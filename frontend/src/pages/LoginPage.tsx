@@ -8,55 +8,171 @@ export default function LoginPage() {
   const searchParams = new URLSearchParams(window.location.search)
   const error = searchParams.get('error')
 
-  // Redirect to home if already authenticated
   useEffect(() => {
     if (!loading && user) navigate('/', { replace: true })
   }, [user, loading, navigate])
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-night flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#120c1e' }}>
         <div className="skeleton w-8 h-8 rounded-full" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-night flex flex-col items-center justify-center px-6">
-      {/* Logo / wordmark */}
-      <div className="text-center mb-12">
-        <div className="text-6xl mb-4">🐱</div>
-        <h1 className="font-display font-bold text-3xl text-ink mb-2">Cat Tracker</h1>
-        <p className="text-ink-mid text-sm">Health monitoring for the cats you love</p>
+    <div className="min-h-screen flex flex-col" style={{ background: '#120c1e' }}>
+
+      {/* Hero */}
+      <div className="flex flex-col items-center pt-16 pb-10 px-6">
+
+        {/* Cat graphic with floating metrics */}
+        <div className="relative mb-8" style={{ width: 140, height: 140 }}>
+          {/* Glow ring */}
+          <div
+            className="absolute inset-0 rounded-full"
+            style={{
+              background: 'radial-gradient(circle, rgba(192,132,252,0.22) 0%, rgba(251,146,60,0.08) 50%, transparent 72%)',
+              transform: 'scale(1.4)',
+            }}
+          />
+
+          {/* Cat emoji */}
+          <div
+            className="absolute inset-0 flex items-center justify-center"
+            style={{ fontSize: 72 }}
+          >
+            🐱
+          </div>
+
+          {/* Floating metric — weight */}
+          <div
+            className="absolute text-[11px] font-semibold px-2 py-1 rounded-lg"
+            style={{
+              top: 8,
+              right: -12,
+              background: 'rgba(192,132,252,0.15)',
+              border: '1px solid rgba(192,132,252,0.35)',
+              color: '#c084fc',
+              backdropFilter: 'blur(8px)',
+            }}
+          >
+            9.4 lbs
+          </div>
+
+          {/* Floating metric — trend */}
+          <div
+            className="absolute text-[11px] font-semibold px-2 py-1 rounded-lg"
+            style={{
+              bottom: 10,
+              left: -14,
+              background: 'rgba(74,222,128,0.1)',
+              border: '1px solid rgba(74,222,128,0.3)',
+              color: '#4ade80',
+              backdropFilter: 'blur(8px)',
+            }}
+          >
+            ↗ stable
+          </div>
+        </div>
+
+        {/* Sparkline */}
+        <div className="mb-10 opacity-50">
+          <svg viewBox="0 0 220 36" width="220" height="36" fill="none">
+            <defs>
+              <linearGradient id="spark" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#c084fc" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#fb923c" stopOpacity="0.8" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M0 28 C20 26 36 22 55 24 S88 16 108 13 S145 16 165 11 S195 6 220 4"
+              stroke="url(#spark)"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+            <circle cx="55" cy="24" r="3" fill="#c084fc" opacity="0.5" />
+            <circle cx="108" cy="13" r="3" fill="#c084fc" opacity="0.7" />
+            <circle cx="165" cy="11" r="3.5" fill="#c084fc" opacity="0.9" />
+            <circle cx="220" cy="4" r="4" fill="#fb923c" />
+          </svg>
+        </div>
+
+        {/* App name + tagline */}
+        <h1 className="font-display font-bold text-3xl text-ink text-center mb-3">
+          Cat Tracker
+        </h1>
+        <p className="text-center text-base leading-relaxed max-w-xs" style={{ color: 'rgba(237,233,246,0.65)' }}>
+          Know your cat's health trends before they become vet emergencies.
+        </p>
       </div>
 
-      {/* Card */}
-      <div className="glass-card w-full max-w-sm p-8 space-y-4">
-        <h2 className="font-display font-semibold text-lg text-ink text-center mb-6">Sign in to continue</h2>
+      {/* Features */}
+      <div className="px-6 mb-8 space-y-3">
+        <FeatureRow
+          icon="⚖️"
+          title="Weight & behavior tracking"
+          desc="Log a reading in seconds. See months of trends at a glance."
+        />
+        <FeatureRow
+          icon="📊"
+          title="Early warning patterns"
+          desc="Spot when food, grooming, or activity shift before weight follows."
+        />
+        <FeatureRow
+          icon="🏥"
+          title="Vet-ready summaries"
+          desc="One tap to export a printable health report for your appointment."
+        />
+      </div>
 
+      {/* Sign in */}
+      <div className="px-6 pb-12 mt-auto">
         {error && (
-          <div className="text-rose text-sm p-3 rounded-xl text-center" style={{ background: 'rgba(248,113,113,0.1)' }}>
-            Sign-in failed. Please try again.
+          <div
+            className="text-rose text-sm p-3 rounded-xl text-center mb-4"
+            style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)' }}
+          >
+            Sign-in failed — please try again.
           </div>
         )}
 
         <a
           href="/api/auth/login?provider=google"
-          className="flex items-center justify-center gap-3 w-full py-3.5 rounded-2xl font-semibold text-sm transition-all"
+          className="flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-semibold text-sm transition-all"
           style={{
-            background: 'rgba(255,255,255,0.08)',
-            border: '1px solid rgba(255,255,255,0.12)',
+            background: 'linear-gradient(135deg, rgba(192,132,252,0.18) 0%, rgba(251,146,60,0.12) 100%)',
+            border: '1px solid rgba(192,132,252,0.35)',
             color: '#ede9f6',
           }}
         >
           <GoogleIcon />
           Continue with Google
         </a>
+
+        <p className="text-center text-xs mt-4" style={{ color: 'rgba(237,233,246,0.35)' }}>
+          Your data is private and only accessible to you.
+        </p>
       </div>
 
-      <p className="text-ink-dim text-xs text-center mt-8 max-w-xs">
-        Your cat data is private and accessible only to you.
-      </p>
+    </div>
+  )
+}
+
+function FeatureRow({ icon, title, desc }: { icon: string; title: string; desc: string }) {
+  return (
+    <div
+      className="flex items-start gap-4 px-4 py-3.5 rounded-2xl"
+      style={{
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.07)',
+      }}
+    >
+      <span className="text-xl shrink-0 mt-0.5">{icon}</span>
+      <div>
+        <p className="text-sm font-semibold text-ink">{title}</p>
+        <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'rgba(237,233,246,0.5)' }}>{desc}</p>
+      </div>
     </div>
   )
 }

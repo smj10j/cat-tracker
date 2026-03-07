@@ -57,6 +57,12 @@ export default function AddEditCat() {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (file) setCropFile(file)
+    e.target.value = ''
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
@@ -74,8 +80,9 @@ export default function AddEditCat() {
       }
       if (isEdit && id) {
         await updateCat(id, payload)
-        if (pendingBlob) await uploadCatPhoto(id, pendingBlob)
-        else if (photoRemoved && existingPhotoUrl) await deleteCatPhoto(id)
+        // Photo upload already happened immediately on crop completion.
+        // Only handle explicit removal here.
+        if (photoRemoved && existingPhotoUrl) await deleteCatPhoto(id)
         navigate(`/cats/${id}`)
       } else {
         const cat = await createCat(payload)
@@ -157,30 +164,31 @@ export default function AddEditCat() {
       {cropFile && (
         <CropModal
           file={cropFile}
-          onCrop={(blob) => { setPendingBlob(blob); setCropFile(null) }}
+          onCrop={(blob) => {
+            setCropFile(null)
+            if (isEdit && id) {
+              // Edit mode: upload immediately so the photo is saved even if the
+              // user navigates away without hitting "Save Changes".
+              const reader = new FileReader()
+              reader.onload = (ev) => setPreviewUrl((ev.target?.result as string) ?? '')
+              reader.readAsDataURL(blob)
+              uploadCatPhoto(id, blob).catch((e: Error) => setError(e.message))
+            } else {
+              // New cat: hold the blob and upload after the cat is created.
+              setPendingBlob(blob)
+            }
+          }}
           onCancel={() => setCropFile(null)}
         />
       )}
 
-      {/* File input — visually hidden, triggered via <label> so the OS picker always opens */}
-      <input
-        id="cat-photo-input"
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0]
-          if (file) setCropFile(file)
-          e.target.value = ''
-        }}
-      />
-
       <form onSubmit={handleSubmit} className="glass-card p-6 space-y-5">
-        {/* Photo slot */}
+        {/* Photo slot — file inputs are overlaid directly on each tap target so
+            the user physically clicks <input type="file">, which works in all
+            PWA contexts without needing programmatic .click() or label tricks. */}
         <div className="flex flex-col items-center gap-2 pb-2">
-          <label
-            htmlFor="cat-photo-input"
-            className="relative w-16 h-16 rounded-full overflow-hidden flex items-center justify-center text-2xl transition-opacity hover:opacity-80 cursor-pointer"
+          <div
+            className="relative w-16 h-16 rounded-full overflow-hidden flex items-center justify-center text-2xl transition-opacity hover:opacity-80"
             style={{
               background: previewUrl || existingPhotoUrl
                 ? undefined
@@ -195,13 +203,24 @@ export default function AddEditCat() {
               name={form.name || 'cat'}
               size={64}
             />
-          </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            />
+          </div>
           {(previewUrl || (!photoRemoved && existingPhotoUrl)) ? (
             <div className="flex items-center gap-3">
-              <label htmlFor="cat-photo-input"
-                className="text-xs text-ink-dim hover:text-ink-mid transition-colors cursor-pointer">
+              <div className="relative text-xs text-ink-dim hover:text-ink-mid transition-colors cursor-pointer">
                 Change photo
-              </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+              </div>
               <span className="text-ink-dim text-xs">·</span>
               <button
                 type="button"
@@ -213,10 +232,15 @@ export default function AddEditCat() {
               </button>
             </div>
           ) : (
-            <label htmlFor="cat-photo-input"
-              className="text-xs text-ink-dim hover:text-ink-mid transition-colors cursor-pointer">
+            <div className="relative text-xs text-ink-dim hover:text-ink-mid transition-colors cursor-pointer">
               Add photo
-            </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+            </div>
           )}
         </div>
 

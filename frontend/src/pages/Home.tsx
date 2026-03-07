@@ -42,12 +42,20 @@ export default function Home() {
         <h1 className="text-2xl font-bold text-brand-700 flex items-center gap-2">
           <span>🐱</span> Cat Tracker
         </h1>
-        <Link
-          to="/cats/new"
-          className="bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
-        >
-          + Add Cat
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            to="/compare"
+            className="border border-brand-600 text-brand-600 px-4 py-2 rounded-lg hover:bg-brand-50 transition-colors text-sm font-medium"
+          >
+            Compare
+          </Link>
+          <Link
+            to="/cats/new"
+            className="bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
+          >
+            + Add Cat
+          </Link>
+        </div>
       </header>
 
       {loading && (

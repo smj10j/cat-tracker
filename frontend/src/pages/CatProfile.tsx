@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { getCat, getMeasurements, deleteMeasurement, type Cat, type Measurement } from '../lib/api'
-import { assessHealth, STATUS_COLORS, STATUS_LABEL } from '../lib/healthMetrics'
+import {
+  assessHealth, STATUS_COLORS, STATUS_LABEL,
+  WATCH_ATTENTION, CONCERNING_ATTENTION, URGENT_VET_SIGNS,
+} from '../lib/healthMetrics'
 import WeightChart from '../components/WeightChart'
 import MeasurementForm from '../components/MeasurementForm'
 
@@ -24,21 +27,27 @@ function formatDate(iso: string): string {
   })
 }
 
-const TYPE_LABELS: Record<string, string> = { weight: 'Weight', food: 'Food', water: 'Water' }
+const BEHAVIORAL_TYPES = new Set(['grooming', 'play', 'activity', 'vomiting', 'litter'])
 
-type Tab = 'weight' | 'food' | 'water' | 'all'
+const TYPE_LABELS: Record<string, string> = {
+  weight: 'Weight', food: 'Food', water: 'Water',
+  grooming: 'Grooming', play: 'Play', activity: 'Activity',
+  vomiting: 'Vomiting', litter: 'Litter Box',
+}
+
+type Tab = 'weight' | 'food' | 'water' | 'behavior' | 'all'
 
 const STATUS_DARK_BG: Record<string, string> = {
   ok: 'rgba(74,222,128,0.08)',
-  watch: 'rgba(251,191,36,0.08)',
-  concerning: 'rgba(249,115,22,0.08)',
-  urgent: 'rgba(248,113,113,0.08)',
+  watch: 'rgba(251,191,36,0.1)',
+  concerning: 'rgba(249,115,22,0.1)',
+  urgent: 'rgba(248,113,113,0.12)',
 }
 const STATUS_BORDER: Record<string, string> = {
   ok: 'rgba(74,222,128,0.25)',
-  watch: 'rgba(251,191,36,0.25)',
-  concerning: 'rgba(249,115,22,0.25)',
-  urgent: 'rgba(248,113,113,0.25)',
+  watch: 'rgba(251,191,36,0.4)',
+  concerning: 'rgba(249,115,22,0.5)',
+  urgent: 'rgba(248,113,113,0.6)',
 }
 const STATUS_ICON: Record<string, string> = {
   ok: '✓', watch: '👀', concerning: '⚠️', urgent: '🚨',
@@ -98,7 +107,7 @@ export default function CatProfile() {
   if (loading) return <SkeletonProfile />
   if (error) return (
     <div className="px-4 pt-6">
-      <div className="glass-card p-4 text-rose text-sm border-rose/20">{error}</div>
+      <div className="glass-card p-4 text-rose text-sm">{error}</div>
     </div>
   )
   if (!cat) return null
@@ -106,19 +115,33 @@ export default function CatProfile() {
   const weightMeasurements = measurements.filter((m) => m.type === 'weight')
   const latestWeight = [...weightMeasurements].sort((a, b) => b.measured_at.localeCompare(a.measured_at))[0]
   const health = assessHealth(weightMeasurements)
+  const status = health.overallStatus
+  const statusColor = STATUS_COLORS[status]
   const typeSet = new Set(measurements.map((m) => m.type))
+  const hasBehavior = [...typeSet].some((t) => BEHAVIORAL_TYPES.has(t))
 
-  const tabMeasurements = (tab === 'all' ? [...measurements] : measurements.filter((m) => m.type === tab))
-    .sort((a, b) => b.measured_at.localeCompare(a.measured_at))
+  const tabMeasurements = (() => {
+    if (tab === 'all') return [...measurements]
+    if (tab === 'behavior') return measurements.filter((m) => BEHAVIORAL_TYPES.has(m.type))
+    return measurements.filter((m) => m.type === tab)
+  })().sort((a, b) => b.measured_at.localeCompare(a.measured_at))
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'weight', label: 'Weight' },
     ...(typeSet.has('food') ? [{ key: 'food' as Tab, label: 'Food' }] : []),
     ...(typeSet.has('water') ? [{ key: 'water' as Tab, label: 'Water' }] : []),
+    ...(hasBehavior ? [{ key: 'behavior' as Tab, label: 'Behavior' }] : []),
     ...(measurements.length > 0 ? [{ key: 'all' as Tab, label: 'All' }] : []),
   ]
 
-  const statusColor = STATUS_COLORS[health.overallStatus]
+  const isUrgent = status === 'urgent'
+  const isConcerning = status === 'concerning'
+  const isWatch = status === 'watch'
+  const showPayAttention = isWatch || isConcerning || isUrgent
+  const showVetNow = isConcerning || isUrgent
+  const payAttentionItems = isConcerning || isUrgent
+    ? [...WATCH_ATTENTION, ...CONCERNING_ATTENTION]
+    : WATCH_ATTENTION
 
   return (
     <div className="min-h-screen">
@@ -126,7 +149,11 @@ export default function CatProfile() {
       <div
         className="px-4 pt-6 pb-8"
         style={{
-          background: 'linear-gradient(180deg, rgba(192,132,252,0.08) 0%, transparent 100%)',
+          background: isUrgent
+            ? 'linear-gradient(180deg, rgba(248,113,113,0.12) 0%, transparent 100%)'
+            : isConcerning
+            ? 'linear-gradient(180deg, rgba(249,115,22,0.1) 0%, transparent 100%)'
+            : 'linear-gradient(180deg, rgba(192,132,252,0.08) 0%, transparent 100%)',
         }}
       >
         <div className="flex items-center gap-3 mb-6">
@@ -140,9 +167,13 @@ export default function CatProfile() {
           <div
             className="w-20 h-20 rounded-full flex items-center justify-center text-4xl shrink-0"
             style={{
-              background: 'linear-gradient(135deg, rgba(192,132,252,0.25) 0%, rgba(251,146,60,0.2) 100%)',
-              border: '2px solid rgba(255,255,255,0.12)',
-              boxShadow: '0 0 24px rgba(192,132,252,0.2)',
+              background: isUrgent
+                ? 'linear-gradient(135deg, rgba(248,113,113,0.25) 0%, rgba(248,113,113,0.15) 100%)'
+                : isConcerning
+                ? 'linear-gradient(135deg, rgba(249,115,22,0.25) 0%, rgba(249,115,22,0.15) 100%)'
+                : 'linear-gradient(135deg, rgba(192,132,252,0.25) 0%, rgba(251,146,60,0.2) 100%)',
+              border: `2px solid ${status !== 'ok' ? statusColor + '60' : 'rgba(255,255,255,0.12)'}`,
+              boxShadow: status !== 'ok' ? `0 0 24px ${statusColor}30` : '0 0 24px rgba(192,132,252,0.2)',
             }}
           >
             🐱
@@ -170,16 +201,16 @@ export default function CatProfile() {
           {/* Latest weight */}
           {latestWeight && (
             <div className="text-right shrink-0">
-              <div className="font-display font-bold text-3xl tabular-nums" style={{ color: '#fb923c' }}>
+              <div className="font-display font-bold text-3xl tabular-nums" style={{ color: status !== 'ok' ? statusColor : '#fb923c' }}>
                 {latestWeight.value}
               </div>
               <div className="text-ink-dim text-xs">{latestWeight.unit}</div>
               {weightMeasurements.length >= 2 && (
                 <div
-                  className="text-[10px] font-semibold mt-1 px-1.5 py-0.5 rounded-full"
-                  style={{ color: statusColor, background: `${statusColor}20`, border: `1px solid ${statusColor}40` }}
+                  className={`text-[10px] font-bold mt-1 px-1.5 py-0.5 rounded-full ${isUrgent ? 'animate-pulse' : ''}`}
+                  style={{ color: statusColor, background: `${statusColor}20`, border: `1px solid ${statusColor}50` }}
                 >
-                  {STATUS_LABEL[health.overallStatus]}
+                  {STATUS_LABEL[status]}
                 </div>
               )}
             </div>
@@ -189,20 +220,27 @@ export default function CatProfile() {
 
       <div className="px-4 space-y-4">
         {/* Health alert */}
-        {weightMeasurements.length >= 2 && health.overallStatus !== 'ok' && (
+        {weightMeasurements.length >= 2 && status !== 'ok' && (
           <div
             className="rounded-2xl p-4 animate-slide-up opacity-0 stagger-1"
             style={{
-              background: STATUS_DARK_BG[health.overallStatus],
-              border: `1px solid ${STATUS_BORDER[health.overallStatus]}`,
+              background: STATUS_DARK_BG[status],
+              border: `${isUrgent ? '2px' : '1px'} solid ${STATUS_BORDER[status]}`,
+              boxShadow: isUrgent ? `0 0 32px ${statusColor}20` : undefined,
               animationFillMode: 'forwards',
             }}
           >
             <div className="flex items-start gap-3">
-              <span className="text-lg shrink-0 mt-0.5">{STATUS_ICON[health.overallStatus]}</span>
-              <div>
-                <p className="font-semibold text-sm mb-0.5" style={{ color: statusColor }}>
-                  {cat.name}'s weight is {STATUS_LABEL[health.overallStatus].toLowerCase()}
+              <span className={`text-xl shrink-0 mt-0.5 ${isUrgent ? 'animate-pulse' : ''}`}>
+                {STATUS_ICON[status]}
+              </span>
+              <div className="flex-1">
+                <p className="font-bold text-sm mb-1" style={{ color: statusColor }}>
+                  {isUrgent
+                    ? `${cat.name}'s weight needs immediate attention`
+                    : isConcerning
+                    ? `${cat.name}'s weight trend is concerning`
+                    : `${cat.name}'s weight is worth watching`}
                   {health.peakLossPct > 0 && ` — ${health.peakLossPct}% below peak`}
                 </p>
                 <p className="text-ink-mid text-sm">{health.summary}</p>
@@ -211,21 +249,70 @@ export default function CatProfile() {
           </div>
         )}
 
+        {/* Pay attention to... */}
+        {showPayAttention && weightMeasurements.length >= 2 && (
+          <div
+            className="rounded-2xl p-4 animate-slide-up opacity-0 stagger-2"
+            style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: `1px solid ${statusColor}30`,
+              animationFillMode: 'forwards',
+            }}
+          >
+            <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: statusColor }}>
+              Pay attention to...
+            </p>
+            <ul className="space-y-2">
+              {payAttentionItems.map((item, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-ink-mid">
+                  <span className="shrink-0 text-xs mt-0.5" style={{ color: statusColor }}>·</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Take to the vet NOW */}
+        {showVetNow && weightMeasurements.length >= 2 && (
+          <div
+            className="rounded-2xl p-4 animate-slide-up opacity-0 stagger-3"
+            style={{
+              background: 'rgba(248,113,113,0.07)',
+              border: `${isUrgent ? '2px' : '1px'} solid rgba(248,113,113,0.4)`,
+              animationFillMode: 'forwards',
+            }}
+          >
+            <p className="text-xs font-bold uppercase tracking-wider mb-3 text-rose">
+              🚨 Take to the vet NOW if you see any of these
+            </p>
+            <ul className="space-y-2">
+              {URGENT_VET_SIGNS.map((sign, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-ink-mid">
+                  <span className="shrink-0 text-rose text-xs mt-0.5">!</span>
+                  {sign}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Chart */}
         <div
-          className="glass-card p-5 animate-slide-up opacity-0 stagger-2"
-          style={{ animationFillMode: 'forwards' }}
+          className="glass-card p-5 animate-slide-up opacity-0"
+          style={{ animationDelay: showPayAttention ? '120ms' : '60ms', animationFillMode: 'forwards' }}
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-display font-semibold text-ink">Weight Over Time</h3>
             <div className="flex gap-3 text-[10px] text-ink-dim">
               {[
-                { label: 'Stable', glow: 'glow-jade', color: '#4ade80' },
-                { label: 'Watch', glow: 'glow-honey', color: '#fbbf24' },
-                { label: 'Concern', glow: 'glow-coral', color: '#f97316' },
-              ].map(({ label, glow, color }) => (
+                { label: 'Stable', color: '#4ade80' },
+                { label: 'Watch', color: '#fbbf24' },
+                { label: 'Concern', color: '#f97316' },
+                { label: 'Urgent', color: '#f87171' },
+              ].map(({ label, color }) => (
                 <span key={label} className="flex items-center gap-1">
-                  <span className={`w-1.5 h-1.5 rounded-full ${glow}`} style={{ backgroundColor: color }} />
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
                   {label}
                 </span>
               ))}
@@ -239,10 +326,7 @@ export default function CatProfile() {
 
         {/* History */}
         {measurements.length > 0 && (
-          <div
-            className="glass-card p-5 animate-slide-up opacity-0 stagger-3"
-            style={{ animationFillMode: 'forwards' }}
-          >
+          <div className="glass-card p-5">
             <h3 className="font-display font-semibold text-ink mb-4">History</h3>
 
             {/* Tabs */}
@@ -274,9 +358,9 @@ export default function CatProfile() {
                   style={{ borderColor: 'rgba(255,255,255,0.05)' }}
                 >
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-sm text-ink tabular-nums">{m.value} {m.unit}</span>
-                      {tab === 'all' && (
+                      {(tab === 'all' || tab === 'behavior') && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full text-ink-dim"
                           style={{ background: 'rgba(255,255,255,0.06)' }}>
                           {TYPE_LABELS[m.type] ?? m.type}

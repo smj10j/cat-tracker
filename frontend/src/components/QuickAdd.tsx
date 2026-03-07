@@ -14,8 +14,13 @@ const UNITS_BY_TYPE: Record<string, string[]> = {
   weight: ['lbs', 'kg'],
   food: ['oz', 'g'],
   water: ['oz', 'mL'],
+  grooming: ['/5'],
+  play: ['min'],
+  activity: ['/5'],
+  vomiting: ['episodes'],
+  litter: ['visits'],
 }
-const DEFAULT_UNIT: Record<string, string> = { weight: 'lbs', food: 'oz', water: 'oz' }
+const DEFAULT_UNIT: Record<string, string> = { weight: 'lbs', food: 'oz', water: 'oz', grooming: '/5', play: 'min', activity: '/5', vomiting: 'episodes', litter: 'visits' }
 
 export default function QuickAdd({ onAdded }: Props) {
   const [open, setOpen] = useState(false)
@@ -136,6 +141,11 @@ export default function QuickAdd({ onAdded }: Props) {
                       <option value="weight">Weight</option>
                       <option value="food">Food</option>
                       <option value="water">Water</option>
+                      <option value="grooming">Grooming</option>
+                      <option value="play">Play Time</option>
+                      <option value="activity">Activity</option>
+                      <option value="vomiting">Vomiting</option>
+                      <option value="litter">Litter Box</option>
                     </select>
                   </div>
                   <div>

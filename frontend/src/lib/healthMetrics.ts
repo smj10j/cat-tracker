@@ -133,10 +133,10 @@ function buildSummary(
 }
 
 export const STATUS_COLORS: Record<HealthStatus, string> = {
-  ok: '#22c55e',
-  watch: '#eab308',
-  concerning: '#f97316',
-  urgent: '#ef4444',
+  ok: '#4ade80',      // jade
+  watch: '#fbbf24',   // honey
+  concerning: '#f97316', // coral
+  urgent: '#f87171',  // rose
 }
 
 export const STATUS_BG: Record<HealthStatus, string> = {
@@ -152,3 +152,35 @@ export const STATUS_LABEL: Record<HealthStatus, string> = {
   concerning: 'Concerning',
   urgent: 'Urgent',
 }
+
+// Evidence-based behavioral observations for each alert level
+// Sources: feline veterinary medicine guidelines (AAFP, Merck Vet Manual)
+
+export const WATCH_ATTENTION: string[] = [
+  'Changes in grooming — bathing less or more than is normal for them',
+  'Hiding or seeking isolation more than their usual baseline',
+  'Shifts in litter box frequency, effort, or stool consistency',
+  'Less interest in play, toys, or interaction',
+  'Eating noticeably faster, slower, or leaving food behind',
+  'Any new vocalizations or unusual behavior',
+]
+
+export const CONCERNING_ATTENTION: string[] = [
+  'Vomiting more than once a week, or frequent hairballs',
+  'Soft stools or diarrhea lasting more than 24 hours',
+  'Consistently leaving food in the bowl when that\'s not their norm',
+  'Coat looking dull, greasy, or developing mats they\'re not grooming out',
+  'Drinking noticeably more or less water than usual',
+  'Moving less — seems stiff, reluctant to jump, or uncomfortable',
+]
+
+export const URGENT_VET_SIGNS: string[] = [
+  'Not eating for more than 24 hours — cats can develop hepatic lipidosis (fatty liver) rapidly',
+  'Straining in the litter box with little output, especially males — may be a life-threatening urinary blockage',
+  'Pale, yellow, grey, or white gums instead of bubblegum pink',
+  'Labored breathing, open-mouth panting, or breathing with the belly',
+  'Crying out, groaning, or hiding completely and refusing to come out',
+  'Collapse, extreme weakness, or inability to stand or walk normally',
+  'Vomiting multiple times in a single day',
+  'Seizures, tremors, or sudden loss of coordination',
+]

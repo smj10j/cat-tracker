@@ -10,15 +10,25 @@ const TYPE_OPTIONS = [
   { value: 'weight', label: 'Weight' },
   { value: 'food', label: 'Food Intake' },
   { value: 'water', label: 'Water Intake' },
+  { value: 'grooming', label: 'Grooming' },
+  { value: 'play', label: 'Play Time' },
+  { value: 'activity', label: 'Activity Level' },
+  { value: 'vomiting', label: 'Vomiting' },
+  { value: 'litter', label: 'Litter Box' },
 ]
 
 const UNITS_BY_TYPE: Record<string, { value: string; label: string }[]> = {
-  weight: [{ value: 'lbs', label: 'lbs' }, { value: 'kg', label: 'kg' }],
-  food:   [{ value: 'oz', label: 'oz' }, { value: 'g', label: 'g' }],
-  water:  [{ value: 'oz', label: 'oz' }, { value: 'mL', label: 'mL' }],
+  weight:   [{ value: 'lbs', label: 'lbs' }, { value: 'kg', label: 'kg' }],
+  food:     [{ value: 'oz', label: 'oz' }, { value: 'g', label: 'g' }],
+  water:    [{ value: 'oz', label: 'oz' }, { value: 'mL', label: 'mL' }],
+  grooming: [{ value: '/5', label: '/5' }],
+  play:     [{ value: 'min', label: 'min' }],
+  activity: [{ value: '/5', label: '/5' }],
+  vomiting: [{ value: 'episodes', label: 'episodes' }],
+  litter:   [{ value: 'visits', label: 'visits' }],
 }
 
-const DEFAULT_UNIT: Record<string, string> = { weight: 'lbs', food: 'oz', water: 'oz' }
+const DEFAULT_UNIT: Record<string, string> = { weight: 'lbs', food: 'oz', water: 'oz', grooming: '/5', play: 'min', activity: '/5', vomiting: 'episodes', litter: 'visits' }
 
 function toLocalDatetimeString(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0')

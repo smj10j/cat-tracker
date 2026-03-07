@@ -150,6 +150,82 @@ Integrate a reference dataset of average healthy weights by breed. Show where a 
 
 ---
 
+## 8. Health Severity Visual Hierarchy
+
+**Problem:** All health states (watch, concerning, urgent) look nearly identical — a small colored dot. Users miss urgent signals at a glance.
+
+**Proposal:** Each severity level should have a dramatically different visual footprint:
+- **OK**: neutral card, small green dot
+- **Watch**: amber border on cat card, amber text badge ("Watch"), amber avatar ring
+- **Concerning**: orange-tinted card background, stronger border, orange glow, "Concerning" badge visible
+- **Urgent**: red pulsing border, red tinted card, large pulsing "Urgent" chip, cats sorted to top of list
+
+Sort cats on home screen by severity (urgent → concerning → watch → ok) so critical cats always appear first.
+
+---
+
+## 9. Behavioral Measurement Types
+
+**Problem:** Weight alone misses critical early-warning signals. Behavioral changes (grooming, activity, litter habits) often precede weight changes by days or weeks.
+
+**New measurement types** (no schema change needed — uses existing type/value/unit system):
+
+| Type | Unit | What to watch |
+|------|------|--------------|
+| Grooming | /5 (score) | 1=not grooming/matted, 3=normal, 5=excessive |
+| Play Time | min | Minutes of active play per session |
+| Activity Level | /5 (score) | 1=lethargic, 3=normal, 5=hyperactive |
+| Vomiting | episodes | Episodes in 24 hours |
+| Litter Box | visits | Visits per day |
+
+**Implementation:**
+- Add to QuickAdd and MeasurementForm type dropdowns
+- "Behavior" tab on cat profile showing all behavioral measurements
+- Behavioral entries shown in history with appropriate icons
+
+---
+
+## 10. Contextual Health Guidance in Cat Profiles
+
+**Problem:** Users see a health alert but don't know what to do with it or what to look for beyond weight.
+
+**Proposal:** Add two evidence-based guidance sections to cat profiles when status is non-OK:
+
+**"Pay attention to..." (watch and concerning):**
+- Changes in grooming habits
+- Hiding or social withdrawal
+- Litter box frequency or consistency changes
+- Reduced interest in play
+- Changes in eating speed or appetite
+- New vocalizations
+
+**"Take to the vet NOW if you notice..." (concerning and urgent):**
+- Not eating for >24 hours (hepatic lipidosis risk)
+- Straining in litter box — especially males (urinary blockage emergency)
+- Pale, yellow, or white gums
+- Labored breathing or open-mouth panting
+- Collapse, extreme weakness, or loss of coordination
+- Vomiting multiple times per day
+- Crying out or hiding completely
+
+Content sourced from feline veterinary literature. Displayed in a contextual card below the health alert.
+
+---
+
+## 11. Home Page Cat Wellness Section
+
+**Problem:** The home page is purely a list. Users have no reference point for what "healthy" looks like, making it hard to know when to act.
+
+**Proposal:** Add a "Cat Wellness" section below the cat list with:
+- **Monthly self-check reminders**: weigh, coat, gums, eyes, ears, body palpation
+- **Normal vitals reference**: temperature (99–102.5°F), heart rate (140–220 bpm), sleep (12–16 hrs/day)
+- **Always call the vet** quick-reference: the urgent signs list
+- **Nutrition basics**: wet food importance, portion guidance, hydration
+
+Design: collapsible cards or a horizontal scrolling card strip to keep it from dominating the screen.
+
+---
+
 ## Priority Order (suggested next sprint)
 
 1. **CSV Import** — unblocks easy data entry from existing spreadsheets (high value, low complexity)

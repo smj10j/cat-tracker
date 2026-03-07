@@ -27,6 +27,7 @@
 | [PRD-profile-clarity.md](PRD-profile-clarity.md) | Cat Profile — Insights Panel Clarity | `Implemented` | 2026-03-07 10:25 |
 | [PRD-security.md](PRD-security.md) | Security Hardening | `Implemented` | 2026-03-07 10:39 |
 | [PRD-medication-reminders.md](PRD-medication-reminders.md) | Medication Reminders | `Implemented` | 2026-03-07 12:00 |
+| [PRD-household-sharing.md](PRD-household-sharing.md) | Household Sharing & Multi-User Access | `Draft` | 2026-03-07 12:30 |
 
 ---
 
@@ -297,6 +298,21 @@ Each entry below provides full implementation notes and open questions. The summ
 
 ---
 
+### PRD-household-sharing.md — Household Sharing & Multi-User Access
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-03-07 12:30 |
+
+**Problem:** Cat Tracker is single-user. Multi-person households (spouses, family members, pet sitters) can't share access to the same cats.
+
+**Scope:** Household entity owns cats; 4-role permission system (Viewer/Contributor/Editor/Admin); email invite flow via MailChannels; household settings UI accessible from profile popover; migration from current per-user cat ownership to household-based ownership.
+
+**Do not implement** — status is `Draft`. Requires product owner approval.
+
+---
+
 ## Planned (no PRD written)
 
 Items mentioned or implied by existing PRDs that have not yet been formally specified. A PRD must be written and approved before implementation.
@@ -317,4 +333,4 @@ Nothing rejected yet.
 
 ---
 
-*Last updated: 2026-03-07 12:00*
+*Last updated: 2026-03-07 12:30*

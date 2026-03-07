@@ -352,6 +352,13 @@
 - [x] frontend/pages/CatProfile.tsx: display microchip badge for real IDs (spaced formatting)
 - [x] Deploy worker + frontend
 
+## Phase 22: Household Sharing PRD (2026-03-07)
+
+- [x] Write PRD-household-sharing.md (Draft): household model, 4-role permission matrix, invite flow, migration strategy, API endpoints, security considerations, phased implementation plan
+- [x] Add to REGISTRY.md (status: Draft)
+
+---
+
 ## Phase 21: Medication Reminders — Phase A Implementation (2026-03-07)
 
 ### Backend

@@ -1,6 +1,6 @@
 # PRD: Cat Profile UX — Insights Panel & History Timeline
 
-**Status:** In Progress
+**Status:** Implemented
 **Scope:** CatProfile.tsx layout refactor — two focused improvements
 
 ---

@@ -417,21 +417,23 @@ This link expires in 7 days. If you didn't expect this invitation, you can ignor
 
 ---
 
-## Open Questions
+## Resolved Decisions
 
-1. **Personal household naming**: "Steve's Cats" is fine for one person, but once it's a shared household it's misleading. Should the owner be prompted to rename the household when they send their first invite? Or just let them rename from the settings page whenever?
+All questions from the initial draft have been answered by the product owner.
 
-2. **Invited user's own cats**: If User B (invitee) already had their own cats before accepting User A's invite, their cats remain in User B's personal household — not automatically visible to User A. For the "husband and wife" use case, the practical answer is: one person sets up the household, the other never had their own cats. But if they did, moving cats to the shared household requires Phase 2 functionality. Is this acceptable for v1?
+1. **Personal household naming** → **Do both.** When an Admin sends their first invite, prompt them to set a household name before the invite is sent ("Before inviting, give your household a name"). After that first invite, the name can be edited any time from `/household` settings. The prompt is a one-time modal, not a blocker — if they dismiss without renaming, the auto-generated name persists and they can rename later.
 
-3. **What happens when a member is removed?** Their access is revoked immediately. Any measurements or cats they added remain (they're owned by the household, not the individual). This is the correct behavior — removing someone from the household shouldn't delete the cat history they contributed. Confirm this is desired.
+2. **Invited user's own cats** → **Acceptable for v1.** If the invitee had pre-existing cats in their personal household, those cats stay in their personal household and are not automatically visible to the household they joined. Moving cats between households is a Phase 2 feature (see PRD-household-sharing-phase2.md). For the primary use case (one person sets up the app, then invites a partner who hasn't used it before), this is a non-issue.
 
-4. **MailChannels integration timing**: MailChannels is also referenced in PRD-medication-reminders.md Phase C. Should both be implemented together as a shared email utility, or independently? Recommendation: implement as a shared `sendEmail()` utility in the Worker, callable from any route.
+3. **Data retention on member removal** → **Confirmed.** When a member is removed, their access is revoked immediately. All cats, measurements, and medication records they contributed remain in the household — they are household data, not personal data. Removing someone does not delete any history.
 
-5. **Household visibility on cat export**: the vet export page currently shows cat name, birthdate, etc. Should it also show household name? Or is that an internal concept that doesn't belong in a vet-facing document?
+4. **MailChannels integration** → **Shared utility.** Implement a single `sendEmail(to, subject, text, html)` helper in the Worker (e.g., `worker/src/lib/email.ts`) callable from any route handler. Both household invites and future medication reminder emails (PRD-medication-reminders.md Phase C) use this utility. Do not implement the same MailChannels call twice.
 
-6. **Admin quorum**: what if the only Admin is the owner, and the owner's Google account becomes inaccessible? No recovery path exists in v1. Phase 2 should add "Transfer ownership" to prevent lock-out.
+5. **Household name on vet export** → **Include it.** The vet export page will show the household name alongside the cat's information. For multi-cat households and especially shelter/clinic deployments, the household name (e.g., "Happy Paws Rescue — Room 3") is clinically relevant context for the vet. Add it near the top of the export, below the cat's name and birthdate.
 
-7. **Invitation to a non-Google-account email**: Cat Tracker uses Google OAuth only. If the invitee uses a different email for Google than the one the invite was sent to, the email-match check will fail. Should the system allow override ("This invite was for sarah@company.com — are you signing in as sarah@gmail.com?" with explicit confirmation), or just tell the invitee to re-request an invite to their Google email?
+6. **Admin quorum / lock-out risk** → **Document for Phase 2.** V1 has no recovery path if the sole owner's Google account becomes inaccessible. This is acceptable for v1 given the personal-household use case. The Phase 2 PRD (PRD-household-sharing-phase2.md) must include ownership transfer as a required feature before the product is considered enterprise-ready.
+
+7. **Email address mismatch on invite acceptance** → **Re-request the invite.** If the logged-in Google account's email does not match `invite_email`, the system shows a clear error: "This invite was sent to [invite_email]. Sign in with that Google account, or ask the household admin to send a new invite to [logged-in email]." No override or confirmation flow — the mismatch check is a security control, not a convenience gap.
 
 ---
 

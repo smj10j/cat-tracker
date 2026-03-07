@@ -1,5 +1,7 @@
 # PRD: Correlation Descriptions — Clinical Accuracy & Dual-Audience Messaging
 
+**Status:** Implemented
+
 ## Problem (Original Bug)
 
 `describeCorrelation` uses the sign of the Pearson `r` coefficient to decide whether the outcome variable "rises" or "drops." This is wrong.

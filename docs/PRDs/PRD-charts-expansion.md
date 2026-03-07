@@ -1,6 +1,6 @@
 # PRD: Charts Expansion — Multi-Type Compare & Profile Chart by Tab
 
-**Status:** Approved for implementation
+**Status:** Implemented
 **Scope:** Compare screen supports all measurement types; CatProfile chart follows active tab
 
 ---

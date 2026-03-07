@@ -28,6 +28,7 @@
 | [PRD-security.md](PRD-security.md) | Security Hardening | `Implemented` | 2026-03-07 10:39 |
 | [PRD-medication-reminders.md](PRD-medication-reminders.md) | Medication Reminders | `Implemented` | 2026-03-07 12:00 |
 | [PRD-household-sharing.md](PRD-household-sharing.md) | Household Sharing & Multi-User Access | `Draft` | 2026-03-07 12:30 |
+| [PRD-household-sharing-phase2.md](PRD-household-sharing-phase2.md) | Household Sharing — Phase 2 (lifecycle + audit) | `Draft` | 2026-03-07 13:00 |
 
 ---
 
@@ -313,6 +314,22 @@ Each entry below provides full implementation notes and open questions. The summ
 
 ---
 
+### PRD-household-sharing-phase2.md — Household Sharing Phase 2
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-03-07 13:00 |
+| **Depends on** | PRD-household-sharing.md Phase A |
+
+**Problem:** Phase 1 leaves dangerous gaps: no ownership transfer (lock-out risk), no household deletion, no cat migration between households, no audit log, and no cross-member medication dose visibility.
+
+**Scope:** Ownership transfer + lock-out recovery; delete household (two-step confirmation); move cats between households; activity feed / audit log (90-day retention); household-wide medication dose notifications with `administered_by` field; confirmation dialogs for destructive actions; Phase B invitation UX (reminder email, admin notifications).
+
+**Do not implement** — status is `Draft`. Requires product owner approval.
+
+---
+
 ## Planned (no PRD written)
 
 Items mentioned or implied by existing PRDs that have not yet been formally specified. A PRD must be written and approved before implementation.
@@ -333,4 +350,4 @@ Nothing rejected yet.
 
 ---
 
-*Last updated: 2026-03-07 12:30*
+*Last updated: 2026-03-07 13:00*

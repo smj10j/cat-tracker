@@ -1,6 +1,6 @@
 # PRD: Killer App Research & Roadmap
 
-**Status:** For review — not yet approved for implementation
+**Status:** Under Review
 **Purpose:** Synthesize research into a prioritized roadmap for making Cat Tracker a genuinely indispensable tool
 
 ---

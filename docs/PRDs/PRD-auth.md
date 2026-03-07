@@ -1,6 +1,6 @@
 # PRD: User Accounts & Data Isolation
 
-**Status:** Draft — under review
+**Status:** Implemented
 **Replaces:** The token-based household sharing sketch in PRD-features-backlog.md §5
 **Scope:** Full user account system; each user owns their own cats and measurements
 

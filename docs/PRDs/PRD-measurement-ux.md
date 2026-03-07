@@ -1,6 +1,6 @@
 # PRD: Measurement UX Fixes
 
-**Status:** Approved for implementation
+**Status:** Implemented
 **Scope:** Fix mobile horizontal scroll in QuickAdd type selector; refine behavioral preset labels
 
 ---

@@ -1,6 +1,6 @@
 # PRD: Measurement Correlations
 
-**Status:** Draft
+**Status:** Implemented
 **Priority:** P4 (from PRD-killer-app.md)
 **Depends on:** Nothing (all data is already in D1; correlations are purely frontend)
 

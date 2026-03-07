@@ -1,5 +1,7 @@
 # PRD: Marketing / Splash Login Page
 
+**Status:** Implemented
+
 ## Problem
 
 The current login page is a single centered card with a "Sign in with Google" button. It gives no context about what the app does, who it's for, or why someone should trust it with their cat's health data. First impressions are poor.

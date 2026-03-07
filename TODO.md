@@ -352,6 +352,14 @@
 - [x] frontend/pages/CatProfile.tsx: display microchip badge for real IDs (spaced formatting)
 - [x] Deploy worker + frontend
 
+## Phase 23: Household Sharing PRDs (2026-03-07)
+
+- [x] Write PRD-household-sharing.md (Draft): household model, 4-role permission matrix, invite flow, migration strategy, API endpoints, security considerations, phased implementation plan
+- [x] Add PRD-household-sharing.md to REGISTRY.md (status: Draft)
+- [x] Update PRD-household-sharing.md: replace Open Questions with Resolved Decisions (7 product owner decisions documented)
+- [x] Write PRD-household-sharing-phase2.md (Draft): ownership transfer, household deletion, cat migration, audit log, household-wide medication notifications, confirmation dialogs
+- [x] Add PRD-household-sharing-phase2.md to REGISTRY.md (status: Draft)
+
 ## Phase 22: Household Sharing PRD (2026-03-07)
 
 - [x] Write PRD-household-sharing.md (Draft): household model, 4-role permission matrix, invite flow, migration strategy, API endpoints, security considerations, phased implementation plan

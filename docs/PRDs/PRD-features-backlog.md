@@ -1,5 +1,7 @@
 # Cat Tracker — Next Features PRD
 
+**Status:** Partial
+
 This document captures the product roadmap following the MVP. Items are roughly priority-ordered within each section. Each section can be built incrementally.
 
 ---

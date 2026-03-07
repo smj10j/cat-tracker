@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | `Approved` |
+| **Status** | `Implemented` |
 | **Author** | Security Review |
 | **Created** | 2026-03-07 |
 

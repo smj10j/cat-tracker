@@ -1,5 +1,7 @@
 # Cat Tracker — Product Requirements Document
 
+**Status:** Implemented
+
 ## Overview
 
 Cat Tracker is a lightweight web application for tracking health and physical measurements of cats over time. The initial version (MVP) focuses on simple data entry and time-series visualization of weight, with a design that allows future measurements to be added easily.

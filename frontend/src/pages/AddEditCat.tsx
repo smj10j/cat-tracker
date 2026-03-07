@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { createCat, updateCat, getCat } from '../lib/api'
+import { createCat, updateCat, getCat, deleteCat } from '../lib/api'
 
 export default function AddEditCat() {
   const { id } = useParams<{ id: string }>()
@@ -10,6 +10,7 @@ export default function AddEditCat() {
   const [form, setForm] = useState({ name: '', birthdate: '', breed: '', coloring: '', notes: '', sex: '' })
   const [loading, setLoading] = useState(isEdit)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -49,6 +50,20 @@ export default function AddEditCat() {
       setError((e as Error).message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!id) return
+    if (!confirm(`Delete this cat and all their measurements? This cannot be undone.`)) return
+    setDeleting(true)
+    setError(null)
+    try {
+      await deleteCat(id)
+      navigate('/')
+    } catch (e: unknown) {
+      setError((e as Error).message)
+      setDeleting(false)
     }
   }
 
@@ -123,9 +138,27 @@ export default function AddEditCat() {
             className="input-dark w-full px-4 py-3 text-sm resize-none" />
         </div>
 
-        <button type="submit" disabled={saving} className="btn-primary w-full py-3.5 text-sm mt-2">
+        <button type="submit" disabled={saving || deleting} className="btn-primary w-full py-3.5 text-sm mt-2">
           {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Add Cat'}
         </button>
+
+        {isEdit && (
+          <div className="pt-4 border-t mt-2" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting || saving}
+              className="w-full py-3 text-sm font-semibold rounded-xl transition-all"
+              style={{
+                color: deleting ? 'rgba(248,113,113,0.4)' : 'rgba(248,113,113,0.7)',
+                background: 'rgba(248,113,113,0.06)',
+                border: '1px solid rgba(248,113,113,0.2)',
+              }}
+            >
+              {deleting ? 'Deleting…' : 'Delete Cat'}
+            </button>
+          </div>
+        )}
       </form>
     </div>
   )

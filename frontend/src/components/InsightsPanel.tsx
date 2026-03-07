@@ -22,6 +22,7 @@ interface Props {
 export default function InsightsPanel({
   cat, status, health, measurementsByType, availableTypes, hasWeightData,
 }: Props) {
+  const [patternsOpen, setPatternsOpen] = useState(false)
   const [exploreOpen, setExploreOpen] = useState(false)
 
   const isUrgent = status === 'urgent'
@@ -37,9 +38,10 @@ export default function InsightsPanel({
     ? detectConfluence(correlations, cat.name)
     : null
 
-  const hasInsights = showHealthAlert || correlations.length > 0
+  const hasPatterns = availableTypes.length >= 2
+  const hasInsights = showHealthAlert || hasPatterns
 
-  if (!hasInsights && availableTypes.length < 2) return null
+  if (!hasInsights) return null
 
   const statusColor = STATUS_COLORS[status as keyof typeof STATUS_COLORS] ?? '#c084fc'
 
@@ -119,82 +121,124 @@ export default function InsightsPanel({
         </div>
       )}
 
-      {/* Detected patterns */}
-      {availableTypes.length >= 2 && (
-        <div className="px-4 py-3 border-t" style={{ borderColor: dividerColor }}>
-          <p className="text-[10px] font-bold uppercase tracking-wider mb-3 text-ink-dim">
-            Patterns detected
-          </p>
+      {/* Patterns — collapsible row */}
+      {hasPatterns && (
+        <div className="border-t" style={{ borderColor: dividerColor }}>
+          {/* Collapsed header / toggle */}
+          <button
+            onClick={() => setPatternsOpen((o) => !o)}
+            className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
+          >
+            <span className="text-sm shrink-0">&#128200;</span>
+            <span className="text-xs font-semibold text-ink-mid flex-1">Patterns</span>
 
-          {/* Confluence alert — shown above individual patterns when multiple signals align */}
-          {confluence && (
-            <div
-              className="mb-3 px-4 py-3 rounded-xl"
+            {/* Count badge */}
+            <span
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
               style={{
-                background: 'rgba(249,115,22,0.08)',
-                border: '1.5px solid rgba(249,115,22,0.4)',
+                background: correlations.length > 0 ? 'rgba(192,132,252,0.15)' : 'rgba(255,255,255,0.05)',
+                color: correlations.length > 0 ? '#c084fc' : '#6b5f85',
+                border: correlations.length > 0 ? '1px solid rgba(192,132,252,0.25)' : '1px solid rgba(255,255,255,0.08)',
               }}
             >
-              <p className="text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: '#f97316' }}>
-                Multiple signals — {confluence.clusterName}
-              </p>
-              <p className="text-sm leading-snug" style={{ color: '#fdba74' }}>
-                {confluence.ownerMessage}
-              </p>
-            </div>
-          )}
+              {correlations.length > 0 ? `${correlations.length} detected` : 'None yet'}
+            </span>
 
-          {correlations.length === 0 ? (
-            <p className="text-sm text-ink-dim">
-              No patterns detected yet — keep logging to see trends emerge.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {correlations.map((r) => (
-                <div key={`${r.typeA}-${r.typeB}`} className="flex items-start gap-2">
-                  {strengthDot(r.strength)}
-                  <p className="text-sm text-ink-mid leading-snug">
-                    {describeCorrelation(r, cat.name, cat.sex)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+            {/* Confluence pill — visible even when collapsed */}
+            {confluence && !patternsOpen && (
+              <span
+                className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
+                style={{
+                  background: 'rgba(249,115,22,0.12)',
+                  color: '#f97316',
+                  border: '1px solid rgba(249,115,22,0.35)',
+                }}
+              >
+                ⚠️ Multiple signals
+              </span>
+            )}
 
-      {/* Explore correlations — prominent card toggle */}
-      {availableTypes.length >= 2 && (
-        <div className="px-4 py-3 border-t" style={{ borderColor: dividerColor }}>
-          <button
-            onClick={() => setExploreOpen((o) => !o)}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left"
-            style={{
-              background: exploreOpen ? 'rgba(192,132,252,0.12)' : 'rgba(192,132,252,0.07)',
-              border: '1px solid rgba(192,132,252,0.2)',
-            }}
-          >
-            <span className="text-base shrink-0">&#128200;</span>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold" style={{ color: '#c084fc' }}>Explore measurement patterns</p>
-              <p className="text-[10px] text-ink-dim mt-0.5">Compare any two types to see how they relate over time</p>
-            </div>
             <span
-              className="text-ink-dim text-sm shrink-0"
-              style={{ transform: exploreOpen ? 'rotate(180deg)' : undefined, transition: 'transform 0.2s', display: 'inline-block' }}
+              className="text-ink-dim text-sm shrink-0 ml-1"
+              style={{ transform: patternsOpen ? 'rotate(180deg)' : undefined, transition: 'transform 0.2s', display: 'inline-block' }}
             >
               ↓
             </span>
           </button>
 
-          {exploreOpen && (
-            <div className="mt-3">
-              <CorrelationChart
-                catName={cat.name}
-                catSex={cat.sex}
-                allMeasurements={measurementsByType}
-                availableTypes={availableTypes}
-              />
+          {/* Expanded content */}
+          {patternsOpen && (
+            <div className="px-4 pb-4 space-y-3">
+              {/* Confluence alert */}
+              {confluence && (
+                <div
+                  className="px-4 py-3 rounded-xl"
+                  style={{
+                    background: 'rgba(249,115,22,0.08)',
+                    border: '1.5px solid rgba(249,115,22,0.4)',
+                  }}
+                >
+                  <p className="text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: '#f97316' }}>
+                    Multiple signals — {confluence.clusterName}
+                  </p>
+                  <p className="text-sm leading-snug" style={{ color: '#fdba74' }}>
+                    {confluence.ownerMessage}
+                  </p>
+                </div>
+              )}
+
+              {/* Correlation descriptions */}
+              {correlations.length === 0 ? (
+                <p className="text-sm text-ink-dim">
+                  No patterns detected yet — keep logging to see trends emerge.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {correlations.map((r) => (
+                    <div key={`${r.typeA}-${r.typeB}`} className="flex items-start gap-2">
+                      {strengthDot(r.strength)}
+                      <p className="text-sm text-ink-mid leading-snug">
+                        {describeCorrelation(r, cat.name, cat.sex)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Explore chart — inside expanded patterns */}
+              <div className="pt-1">
+                <button
+                  onClick={() => setExploreOpen((o) => !o)}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left"
+                  style={{
+                    background: exploreOpen ? 'rgba(192,132,252,0.12)' : 'rgba(192,132,252,0.07)',
+                    border: '1px solid rgba(192,132,252,0.2)',
+                  }}
+                >
+                  <span className="text-base shrink-0">&#128202;</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold" style={{ color: '#c084fc' }}>Explore measurement patterns</p>
+                    <p className="text-[10px] text-ink-dim mt-0.5">Compare any two types to see how they relate over time</p>
+                  </div>
+                  <span
+                    className="text-ink-dim text-sm shrink-0"
+                    style={{ transform: exploreOpen ? 'rotate(180deg)' : undefined, transition: 'transform 0.2s', display: 'inline-block' }}
+                  >
+                    ↓
+                  </span>
+                </button>
+
+                {exploreOpen && (
+                  <div className="mt-3">
+                    <CorrelationChart
+                      catName={cat.name}
+                      catSex={cat.sex}
+                      allMeasurements={measurementsByType}
+                      availableTypes={availableTypes}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

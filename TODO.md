@@ -196,6 +196,16 @@
 - [ ] REVIEW: P6 Shelter mode
 - [ ] REVIEW: P7 AI health narrative
 
+## Phase 12: Profile UX — Insights Panel & History Timeline (PRD-profile-ux.md)
+
+- [x] InsightsPanel.tsx: single severity-tinted panel merging health alerts + correlation insights
+- [x] Proactive correlation text: detected patterns shown immediately (no manual type selection)
+- [x] Collapsible "Explore correlations" expander within Insights
+- [x] History grouped by calendar day with headers (Today / Yesterday / Mon Jan 6 · N entries)
+- [x] Default: last 14 days; "View N older entries" to reveal rest
+- [x] History resets to recent window when type tab changes
+- [x] Removed Trends tab from history tab bar
+
 ## Phase 11: Correlations (PRD-correlations.md)
 
 - [x] New lib: correlations.ts (bucketByWeek, normalize, lagCorrelation, detectCorrelations, describeCorrelation, getHomeBadge)

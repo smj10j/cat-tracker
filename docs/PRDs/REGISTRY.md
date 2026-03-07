@@ -126,4 +126,10 @@ Nothing rejected yet.
 
 ---
 
-*Last updated: Sprint 5 (Phase 10 auth live and verified; PRD-correlations.md drafted)*
+### PRD-profile-ux.md — Cat Profile UX: Insights Panel & History Timeline
+**Status:** `Implemented`
+**Implemented:** InsightsPanel.tsx — single severity-tinted panel replacing 3 separate alert cards; proactive correlation text from detectCorrelations(); collapsible CorrelationChart. History grouped by calendar day with day headers and "View N older entries" load-more. Trends tab removed from history tab bar.
+
+---
+
+*Last updated: Sprint 6 (profile UX, correlations, history timeline)*

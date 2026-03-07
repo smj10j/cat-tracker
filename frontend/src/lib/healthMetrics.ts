@@ -94,9 +94,10 @@ export function assessHealth(measurements: Measurement[]): HealthAssessment {
   else if (peakLossPct >= 7) overallStatus = worstStatus(overallStatus, 'concerning')
   else if (peakLossPct >= 4) overallStatus = worstStatus(overallStatus, 'watch')
 
-  const summary = buildSummary(overallStatus, periods, peakLossPct, latestWeight, peakWeight)
+  const roundedPeakLossPct = Math.round(peakLossPct * 10) / 10
+  const summary = buildSummary(overallStatus, periods, roundedPeakLossPct, latestWeight, peakWeight)
 
-  return { overallStatus, periods, peakLossPct: Math.round(peakLossPct * 10) / 10, summary }
+  return { overallStatus, periods, peakLossPct: roundedPeakLossPct, summary }
 }
 
 function buildSummary(

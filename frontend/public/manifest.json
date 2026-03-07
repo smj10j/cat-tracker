@@ -1,0 +1,17 @@
+{
+  "name": "Cat Tracker",
+  "short_name": "Cat Tracker",
+  "description": "Track your cats' health measurements over time",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#9333ea",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getCats, deleteCat, type Cat } from '../lib/api'
+import QuickAdd from '../components/QuickAdd'
 
 function catAge(birthdate: string): string {
   const birth = new Date(birthdate)
@@ -50,6 +51,12 @@ export default function Home() {
             Compare
           </Link>
           <Link
+            to="/import"
+            className="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+          >
+            Import
+          </Link>
+          <Link
             to="/cats/new"
             className="bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
           >
@@ -80,6 +87,8 @@ export default function Home() {
           </Link>
         </div>
       )}
+
+      <QuickAdd onAdded={() => getCats().then(setCats)} />
 
       <ul className="space-y-3">
         {cats.map((cat) => (

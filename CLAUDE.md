@@ -95,6 +95,20 @@ Logic is in `frontend/src/lib/healthMetrics.ts`. Thresholds are based on feline 
 - No force pushes; no `--no-verify`
 - The `main` branch is production (Pages auto-deploys are not configured — manual `wrangler pages deploy` is used)
 
+## Working Style (autonomous mode)
+
+When given an open-ended task like "build the next set of features":
+
+1. **Read TODO.md first** — understand current state before touching anything
+2. **Plan before coding** — write down what you're going to do (update TODO) so you don't lose track
+3. **Fix bugs before features** — small cleanup items first, then new features
+4. **Parallelize with background agents** — split backend vs. frontend work across agents when the files don't overlap; integrate at the end
+5. **Commit after each logical unit** — one feature = one commit; don't batch unrelated changes
+6. **Deploy as you go** — run `npm run build && npx wrangler pages deploy dist --project-name cat-tracker --commit-dirty=true` after frontend changes; `npx wrangler deploy` after Worker changes
+7. **Update TODO.md as you complete items** — mark `[x]` and commit the TODO update with the feature commit
+8. **Never ask the user for input unless truly blocked** — make reasonable decisions, document them in the commit message
+9. **Keep MEMORY.md current** — update after completing a sprint so the next session has context
+
 ## What NOT to do
 
 - Don't add auth/login without being asked — it's intentionally single-tenant

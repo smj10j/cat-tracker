@@ -1,4 +1,4 @@
-import { getCookie, setCookie } from 'hono/cookie'
+import { getCookie } from 'hono/cookie'
 import type { Context, Next } from 'hono'
 import type { AppEnv } from '../types'
 
@@ -21,14 +21,4 @@ export async function requireAuth(c: Context<AppEnv>, next: Next) {
 
   c.set('userId', session.user_id)
   await next()
-}
-
-export function createSession(sessionId: string, c: Context<AppEnv>) {
-  setCookie(c, 'session', sessionId, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'Lax',
-    maxAge: 7 * 24 * 60 * 60,
-    path: '/',
-  })
 }

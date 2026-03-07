@@ -1,45 +1,68 @@
 import { Hono } from 'hono'
-import { getCookie, deleteCookie } from 'hono/cookie'
+import { getCookie } from 'hono/cookie'
 import type { AppEnv } from '../types'
-import { requireAuth, createSession } from '../middleware/auth'
+import { requireAuth } from '../middleware/auth'
 
 const auth = new Hono<AppEnv>()
 
+function sessionCookie(value: string, maxAge: number) {
+  return `session=${value}; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}; Path=/`
+}
+
 // GET /api/auth/login?provider=google
-auth.get('/auth/login', (c) => {
+auth.get('/auth/login', async (c) => {
   const redirectBase = c.env.OAUTH_REDIRECT_BASE
   const state = crypto.randomUUID().replace(/-/g, '')
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString()
 
-  // Store state in short-lived cookie for CSRF protection
-  deleteCookie(c, 'oauth_state')
-  const res = c.redirect(
-    `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({
-      client_id: c.env.GOOGLE_CLIENT_ID,
-      redirect_uri: `${redirectBase}/api/auth/callback`,
-      response_type: 'code',
-      scope: 'email profile',
-      state,
-      access_type: 'online',
-    })}`
+  // Store state in D1 (avoids cookie round-trip through redirect proxy)
+  await c.env.DB.prepare(
+    "INSERT INTO oauth_states (state, expires_at) VALUES (?, ?) ON CONFLICT(state) DO NOTHING"
+  ).bind(state, expiresAt).run()
+
+  // Clean up old states opportunistically
+  c.executionCtx.waitUntil(
+    c.env.DB.prepare("DELETE FROM oauth_states WHERE expires_at < datetime('now')").run()
   )
-  // Set state cookie on the response before returning
-  res.headers.append(
-    'Set-Cookie',
-    `oauth_state=${state}; HttpOnly; Secure; SameSite=Lax; Max-Age=300; Path=/`
-  )
-  return res
+
+  const googleUrl = `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({
+    client_id: c.env.GOOGLE_CLIENT_ID,
+    redirect_uri: `${redirectBase}/api/auth/callback`,
+    response_type: 'code',
+    scope: 'email profile',
+    state,
+    access_type: 'online',
+  })}`
+
+  return new Response(null, {
+    status: 302,
+    headers: { Location: googleUrl },
+  })
 })
 
 // GET /api/auth/callback
 auth.get('/auth/callback', async (c) => {
   const code = c.req.query('code')
   const state = c.req.query('state')
-  const storedState = getCookie(c, 'oauth_state')
   const redirectBase = c.env.OAUTH_REDIRECT_BASE
 
-  if (!code || !state || state !== storedState) {
-    return c.redirect(`${redirectBase}/login?error=invalid_state`)
+  if (!code || !state) {
+    return new Response(null, { status: 302, headers: { Location: `${redirectBase}/login?error=missing_params` } })
   }
+
+  // Verify state against D1 (single-use, expiry check)
+  const storedState = await c.env.DB.prepare(
+    "SELECT state FROM oauth_states WHERE state = ? AND expires_at > datetime('now')"
+  ).bind(state).first<{ state: string }>()
+
+  if (!storedState) {
+    return new Response(null, { status: 302, headers: { Location: `${redirectBase}/login?error=invalid_state` } })
+  }
+
+  // Delete used state immediately
+  c.executionCtx.waitUntil(
+    c.env.DB.prepare('DELETE FROM oauth_states WHERE state = ?').bind(state).run()
+  )
 
   // Exchange authorization code for access token
   const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -56,7 +79,7 @@ auth.get('/auth/callback', async (c) => {
 
   const tokenData = await tokenRes.json() as { access_token?: string; error?: string }
   if (!tokenData.access_token) {
-    return c.redirect(`${redirectBase}/login?error=token_exchange_failed`)
+    return new Response(null, { status: 302, headers: { Location: `${redirectBase}/login?error=token_exchange_failed` } })
   }
 
   // Get Google user profile
@@ -68,10 +91,10 @@ auth.get('/auth/callback', async (c) => {
   }
 
   if (!profile.id || !profile.email) {
-    return c.redirect(`${redirectBase}/login?error=profile_failed`)
+    return new Response(null, { status: 302, headers: { Location: `${redirectBase}/login?error=profile_failed` } })
   }
 
-  // Upsert user in D1
+  // Upsert user
   await c.env.DB.prepare(`
     INSERT INTO users (email, display_name, avatar_url, oauth_provider, oauth_id)
     VALUES (?, ?, ?, 'google', ?)
@@ -85,7 +108,9 @@ auth.get('/auth/callback', async (c) => {
     "SELECT id FROM users WHERE oauth_provider = 'google' AND oauth_id = ?"
   ).bind(profile.id).first<{ id: string }>()
 
-  if (!user) return c.redirect(`${redirectBase}/login?error=user_creation_failed`)
+  if (!user) {
+    return new Response(null, { status: 302, headers: { Location: `${redirectBase}/login?error=user_creation_failed` } })
+  }
 
   // Create session
   const sessionId = crypto.randomUUID().replace(/-/g, '')
@@ -93,17 +118,13 @@ auth.get('/auth/callback', async (c) => {
   await c.env.DB.prepare('INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)')
     .bind(sessionId, user.id, expiresAt).run()
 
-  // Set session cookie and clear state cookie, then redirect to app
-  const res = c.redirect(`${redirectBase}/`)
-  res.headers.append(
-    'Set-Cookie',
-    `session=${sessionId}; HttpOnly; Secure; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}; Path=/`
-  )
-  res.headers.append(
-    'Set-Cookie',
-    `oauth_state=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/`
-  )
-  return res
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: `${redirectBase}/`,
+      'Set-Cookie': sessionCookie(sessionId, 7 * 24 * 60 * 60),
+    },
+  })
 })
 
 // POST /api/auth/logout
@@ -112,12 +133,12 @@ auth.post('/auth/logout', requireAuth, async (c) => {
   if (sessionId) {
     await c.env.DB.prepare('DELETE FROM sessions WHERE id = ?').bind(sessionId).run()
   }
-  const res = c.json({ success: true })
-  res.headers.append(
-    'Set-Cookie',
-    `session=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/`
-  )
-  return res
+  return new Response(JSON.stringify({ success: true }), {
+    headers: {
+      'Content-Type': 'application/json',
+      'Set-Cookie': sessionCookie('', 0),
+    },
+  })
 })
 
 // GET /api/auth/me
@@ -129,7 +150,6 @@ auth.get('/auth/me', requireAuth, async (c) => {
 
   if (!user) return c.json({ error: 'User not found' }, 404)
 
-  // Check if there are unclaimed cats (for first-login prompt)
   const orphaned = await c.env.DB.prepare(
     'SELECT COUNT(*) as count FROM cats WHERE user_id IS NULL'
   ).first<{ count: number }>()
@@ -143,7 +163,7 @@ auth.get('/auth/me', requireAuth, async (c) => {
   })
 })
 
-// POST /api/auth/claim-cats — assign all unclaimed cats to the current user
+// POST /api/auth/claim-cats
 auth.post('/auth/claim-cats', requireAuth, async (c) => {
   const userId = c.get('userId')
   const result = await c.env.DB.prepare(
@@ -154,4 +174,3 @@ auth.post('/auth/claim-cats', requireAuth, async (c) => {
 })
 
 export default auth
-export { createSession }

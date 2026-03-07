@@ -11,8 +11,17 @@ export const onRequest: PagesFunction = async (context) => {
     body: ['GET', 'HEAD'].includes(context.request.method) ? undefined : context.request.body,
   })
 
-  // Use redirect:'manual' so the Worker's 302 responses (OAuth redirects)
-  // are returned as-is to the browser instead of being followed server-side.
-  // Without this, the proxy fetches Google's HTML and serves it under our domain.
-  return fetch(request, { redirect: 'manual' })
+  // Use redirect:'manual' so the proxy doesn't follow redirects server-side.
+  // Then reconstruct the response explicitly so the browser can process
+  // Set-Cookie and other headers that would otherwise be lost on opaque redirects.
+  const response = await fetch(request, { redirect: 'manual' })
+
+  if (response.status >= 300 && response.status < 400) {
+    return new Response(null, {
+      status: response.status,
+      headers: new Headers(response.headers),
+    })
+  }
+
+  return response
 }

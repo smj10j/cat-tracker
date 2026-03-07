@@ -45,3 +45,8 @@ CREATE TABLE IF NOT EXISTS sessions (
 
 -- Run once: ALTER TABLE cats ADD COLUMN user_id TEXT REFERENCES users(id);
 -- Run once: CREATE INDEX IF NOT EXISTS idx_cats_user ON cats(user_id);
+
+CREATE TABLE IF NOT EXISTS oauth_states (
+  state       TEXT PRIMARY KEY,
+  expires_at  TEXT NOT NULL
+);

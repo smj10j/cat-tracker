@@ -127,6 +127,37 @@ CREATE INDEX IF NOT EXISTS idx_measurements_cat_type
 
 Behavioral measurement types (`food`, `water`, `litter`, `grooming`, `activity`, `vomiting`) store a 0–3 integer value with `unit='scale'`. The label mapping lives in `frontend/src/lib/measurementPresets.ts`.
 
+Auth tables (added in auth sprint):
+
+```sql
+CREATE TABLE IF NOT EXISTS users (
+  id              TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  email           TEXT UNIQUE NOT NULL,
+  display_name    TEXT,
+  avatar_url      TEXT,
+  oauth_provider  TEXT NOT NULL,   -- 'google'
+  oauth_id        TEXT NOT NULL,   -- provider's stable user ID
+  created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(oauth_provider, oauth_id)
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  expires_at  TEXT NOT NULL,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Short-lived OAuth state tokens (5min TTL) stored server-side
+-- because Set-Cookie headers don't survive the Pages proxy redirect
+CREATE TABLE IF NOT EXISTS oauth_states (
+  state       TEXT PRIMARY KEY,
+  expires_at  TEXT NOT NULL
+);
+
+-- One-time migration: ALTER TABLE cats ADD COLUMN user_id TEXT REFERENCES users(id);
+```
+
 ---
 
 ## API Design
@@ -156,6 +187,16 @@ Base path: `/api`
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | /api/import | Bulk import cats + measurements from CSV |
+
+### Auth
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | /api/auth/login?provider=google | Redirect to Google OAuth consent |
+| GET | /api/auth/callback | Exchange code, create session, set cookie |
+| POST | /api/auth/logout | Delete session, clear cookie |
+| GET | /api/auth/me | Return current user + hasOrphanedCats flag |
+| POST | /api/auth/claim-cats | Assign orphaned cats (user_id IS NULL) to current user |
 
 ### Request/Response shapes
 
@@ -223,6 +264,20 @@ All routes are wrapped in `PageShell`, which renders the `BottomNav` and manages
 
 `frontend/src/lib/healthMetrics.ts` exports `assessHealth(measurements[])` which returns `{ overallStatus, periods }`. Each period has a `status` of `'ok' | 'watch' | 'concerning' | 'urgent'`. The `STATUS_EMOJI` map renders the appropriate emoji on chart dots and cat cards.
 
+### Auth flow
+
+1. User on `/login` clicks "Continue with Google" → browser navigates to `/api/auth/login`
+2. Pages proxy forwards to Worker; Worker writes state to `oauth_states` D1 table and returns a `302` to `accounts.google.com`
+3. Proxy reconstructs the `302` as `new Response(null, {status:302, headers})` so the browser processes it correctly
+4. Browser follows redirect to Google OAuth consent screen
+5. Google redirects to `cat-tracker.pages.dev/api/auth/callback?code=...&state=...`
+6. Proxy forwards to Worker; Worker verifies state in D1, exchanges code for access token, fetches Google profile, upserts user, creates session
+7. Worker returns `302` to `/` with `Set-Cookie: session=...; HttpOnly; Secure; SameSite=Lax`
+8. Proxy reconstructs the `302` → browser sets session cookie on `cat-tracker.pages.dev` and follows redirect to home
+9. All subsequent API calls include the cookie automatically; `requireAuth` middleware validates it against D1 sessions
+
+Key: OAuth state is stored in D1, not a cookie, because `Set-Cookie` on redirect responses was being suppressed by the opaque-redirect proxy behavior.
+
 ### QuickAdd flow
 
 1. User taps the "Log" pill in `BottomNav`
@@ -255,6 +310,7 @@ database_id = "9c923aa8-47a3-4029-b07f-3b67d208f9e6"
 - Build command: `npm run build` (in `frontend/`)
 - Output dir: `dist/`
 - API proxy: `frontend/functions/api/[[path]].ts` forwards `/api/*` to Worker
+- **Important:** proxy uses `fetch(request, { redirect: 'manual' })` and explicitly reconstructs 3xx responses to preserve `Set-Cookie` headers (required for the OAuth session cookie flow)
 
 ### Deploy commands
 

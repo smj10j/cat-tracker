@@ -205,14 +205,38 @@ Sessions table will have at most a few hundred rows for this app. Index on `id` 
 
 ---
 
-## Open Questions (for review)
+## Implementation Notes (post-build)
 
-1. **Google + GitHub, or just Google?** GitHub is dev-friendly but Google covers the broadest audience (especially non-technical users like shelter staff). We could launch with Google only and add GitHub later.
+### Schema addition: oauth_states table
+Cookie-based state storage doesn't survive the Cloudflare Pages proxy redirect (opaque redirect responses suppress Set-Cookie). Instead, state is stored server-side in D1:
 
-2. **Household sharing scope?** The features backlog's token-sharing idea (share a link to give someone access to your cats) could still work on top of this auth model — a separate `cat_invites` table and a `/share/:token` route. Not needed in v1 but easy to add.
+```sql
+CREATE TABLE IF NOT EXISTS oauth_states (
+  state       TEXT PRIMARY KEY,
+  expires_at  TEXT NOT NULL   -- 5-minute TTL
+);
+```
 
-3. **What happens to the existing cats (Gemini, Kylo, Luna)?** The "claim on first login" approach is proposed but could also be: first user to log in automatically owns them. Recommend explicit prompt.
+State is written on `/api/auth/login`, verified and deleted on `/api/auth/callback`. Old entries are cleaned up opportunistically on each login.
 
-4. **Session length?** 7 days proposed. Could be longer (30 days) for a low-stakes personal app.
+### Pages proxy redirect reconstruction
+The Pages Function proxy must explicitly reconstruct 3xx responses rather than forwarding opaque redirect responses directly. Without this, `Set-Cookie` headers (including the session cookie from the callback) are not processed by the browser:
 
-5. **PKCE?** Should be used for the OAuth flow to prevent authorization code interception. Hono's OAuth helpers support this.
+```typescript
+const response = await fetch(request, { redirect: 'manual' })
+if (response.status >= 300 && response.status < 400) {
+  return new Response(null, { status: response.status, headers: new Headers(response.headers) })
+}
+```
+
+## Open Questions (resolved)
+
+1. **Google + GitHub, or just Google?** → **Google only at launch.** GitHub can be added later with minimal changes (same flow, different provider endpoints).
+
+2. **Household sharing scope?** → Deferred. Tracked in PRD-killer-app.md P5. Needs its own PRD when prioritized.
+
+3. **What happens to existing cats?** → **Explicit claim prompt on Home screen.** First logged-in user sees a card offering to claim orphaned cats (`user_id IS NULL`). Implemented via `POST /api/auth/claim-cats`.
+
+4. **Session length?** → **7-day rolling sessions.** Extended on every authenticated request.
+
+5. **PKCE?** → **Not implemented.** CSRF is handled via the D1-stored state token instead. PKCE is worthwhile to add before this app is shared publicly.

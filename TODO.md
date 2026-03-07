@@ -228,6 +228,8 @@
 - [x] User avatar in BottomNav (or top corner): name + Sign out
 - [x] First-login "claim existing cats" prompt
 
-### Pending — requires manual setup
-- [ ] Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET Worker secrets
-- [ ] Register https://cat-tracker.pages.dev/api/auth/callback as authorized redirect URI in Google Cloud Console
+### Fixes (post-implementation bugs)
+- [x] OAuth state: replaced cookie-based state with D1 oauth_states table (cookie was swallowed by opaque redirect in proxy)
+- [x] Session cookie: proxy now reconstructs 3xx responses explicitly so Set-Cookie headers reach the browser
+- [x] Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET Worker secrets
+- [x] Register https://cat-tracker.pages.dev/api/auth/callback as authorized redirect URI in Google Cloud Console

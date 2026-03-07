@@ -93,8 +93,8 @@ Canonical list of all product requirement documents, their status, and implement
 
 ### PRD-auth.md — User Accounts & Data Isolation
 **Status:** `Implemented`
-**Implemented:** Google OAuth (login/callback/logout/me); D1 users + sessions tables; cats.user_id FK; requireAuth middleware with rolling sessions; all routes scoped by userId; ProtectedRoute; /login page; user avatar in BottomNav with sign-out; claim-existing-cats prompt on Home
-**Notes:** Google-only at launch (GitHub can be added later). GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set as Worker secrets before auth is functional.
+**Implemented:** Google OAuth (login/callback/logout/me); D1 users + sessions + oauth_states tables; cats.user_id FK; requireAuth middleware with rolling sessions; all routes scoped by userId; ProtectedRoute; /login page; user avatar in BottomNav with sign-out; claim-existing-cats prompt on Home. Live and verified.
+**Open questions resolved:** Google-only at launch (answered). 7-day sessions (answered). Claim prompt on first login (answered, implemented). State stored in D1 oauth_states (not cookie) to survive proxy redirect. Pages proxy reconstructs 3xx responses to preserve Set-Cookie headers.
 
 ---
 
@@ -127,4 +127,4 @@ Nothing rejected yet.
 
 ---
 
-*Last updated: Sprint 5 (Phase 10 auth implemented; PRD-correlations.md drafted)*
+*Last updated: Sprint 5 (Phase 10 auth live and verified; PRD-correlations.md drafted)*

@@ -19,6 +19,7 @@ A lightweight web app for tracking health measurements for your cats over time. 
 - Wellness Guide page with cat health reference cards (vitals, monthly self-check, urgent signs)
 - CSV import for bulk data entry
 - PWA — installable on home screen
+- **Google sign-in** — each user sees only their own cats; session-based auth via httpOnly cookies
 
 ---
 
@@ -219,6 +220,16 @@ Base URL: `https://cat-tracker-api.stevej-67b.workers.dev` (or `/api` via Pages 
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/api/import` | Bulk import cats + measurements from CSV |
+
+### Auth
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/auth/login?provider=google` | Redirect to Google OAuth |
+| `GET` | `/api/auth/callback` | OAuth callback — creates session, sets cookie |
+| `POST` | `/api/auth/logout` | Clears session |
+| `GET` | `/api/auth/me` | Current user info |
+| `POST` | `/api/auth/claim-cats` | Claim orphaned cats on first login |
 
 ### Health check
 

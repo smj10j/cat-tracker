@@ -145,6 +145,7 @@ See **`docs/PRDs/REGISTRY.md`** — it is the single source of truth and is alwa
 
 ### Other docs
 - `docs/API.md` — full API spec: every endpoint, request/response shapes, auth requirements, authorization rules (who can mutate what)
+- `docs/SECURITY.md` — security guidelines, principles, architecture model, known limitations; **read before adding auth/sessions/new API routes**
 - `docs/TDD.md` — architecture, design decisions, schema, auth flow, correlation engine
 - `docs/DESIGN.md` — visual design system
 

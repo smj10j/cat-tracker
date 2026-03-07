@@ -3,6 +3,11 @@ import type { AppEnv } from '../types'
 
 const measurements = new Hono<AppEnv>()
 
+// SEC-05: Measurement type and unit allowlists
+const VALID_TYPES = new Set(['weight', 'food', 'water', 'litter', 'grooming', 'activity', 'vomiting'])
+const VALID_UNITS = new Set(['lbs', 'kg', 'scale'])
+const MAX_NOTES = 1000
+
 // GET /api/cats/:id/measurements?type=weight
 measurements.get('/cats/:id/measurements', async (c) => {
   const userId = c.get('userId')
@@ -38,6 +43,7 @@ measurements.post('/cats/:id/measurements', async (c) => {
     notes?: string
   }>()
 
+  // Owner-only: cat must belong to this user (not orphaned)
   const cat = await c.env.DB.prepare(
     'SELECT id FROM cats WHERE id = ? AND user_id = ?'
   ).bind(catId, userId).first()
@@ -45,6 +51,28 @@ measurements.post('/cats/:id/measurements', async (c) => {
 
   if (!body.type || body.value === undefined || !body.unit || !body.measured_at) {
     return c.json({ error: 'type, value, unit, and measured_at are required' }, 400)
+  }
+
+  // SEC-05: Validate type, unit, and value
+  if (!VALID_TYPES.has(body.type)) {
+    return c.json({ error: `type must be one of: ${[...VALID_TYPES].join(', ')}` }, 400)
+  }
+  if (!VALID_UNITS.has(body.unit)) {
+    return c.json({ error: `unit must be one of: ${[...VALID_UNITS].join(', ')}` }, 400)
+  }
+  if (body.unit === 'scale') {
+    if (!Number.isInteger(body.value) || body.value < 0 || body.value > 3) {
+      return c.json({ error: 'scale value must be an integer 0–3' }, 400)
+    }
+  } else {
+    if (typeof body.value !== 'number' || body.value <= 0 || body.value > 200) {
+      return c.json({ error: 'weight value must be a positive number ≤ 200' }, 400)
+    }
+  }
+
+  // SEC-04: Notes length
+  if (body.notes && body.notes.length > MAX_NOTES) {
+    return c.json({ error: `notes must be ${MAX_NOTES} characters or fewer` }, 400)
   }
 
   const result = await c.env.DB.prepare(

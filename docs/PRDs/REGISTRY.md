@@ -23,8 +23,9 @@
 | [PRD-input-output-metrics.md](PRD-input-output-metrics.md) | Input/Output Metric Classification | `Implemented` | Sprint 7 |
 | [PRD-login-splash.md](PRD-login-splash.md) | Marketing / Splash Login Page | `Implemented` | Sprint 7 |
 | [PRD-correlation-descriptions.md](PRD-correlation-descriptions.md) | Correlation Descriptions: Clinical Accuracy & Dual-Audience | `Implemented` | Sprint 7 |
-| [PRD-microchip-id.md](PRD-microchip-id.md) | Microchip ID as Cat Identifier | `Draft` | Sprint 8 |
-| [PRD-profile-clarity.md](PRD-profile-clarity.md) | Cat Profile — Insights Panel Clarity | `Approved` | Sprint 8 |
+| [PRD-microchip-id.md](PRD-microchip-id.md) | Microchip ID as Cat Identifier | `Implemented` | Sprint 8 |
+| [PRD-profile-clarity.md](PRD-profile-clarity.md) | Cat Profile — Insights Panel Clarity | `Implemented` | Sprint 8 |
+| [PRD-security.md](PRD-security.md) | Security Hardening | `Implemented` | Sprint 8 |
 
 ---
 
@@ -245,14 +246,25 @@ Each entry below provides full implementation notes and open questions. The summ
 
 | | |
 |---|---|
-| **Status** | `Draft` |
+| **Status** | `Implemented` |
 | **Last updated** | Sprint 8 |
 
 **Problem:** Cats have real-world microchip IDs that are globally unique. Cat Tracker currently uses opaque internal UUIDs with no way to identify the same physical cat across accounts or imports.
 
 **Scope:** Add optional `microchip_id` field to cats; auto-generate `temp-microchip-id-<GUID>` when absent; enforce uniqueness with privacy-preserving conflict messages for cross-account conflicts; support microchip_id column in CSV import.
 
-**Status:** Awaiting product owner approval before implementation.
+---
+
+### PRD-security.md — Security Hardening
+
+| | |
+|---|---|
+| **Status** | `Implemented` |
+| **Last updated** | Sprint 8 |
+
+**Problem:** Security review identified 8 findings (2 HIGH, 4 MEDIUM, 2 LOW): TOCTOU race in OAuth state, missing security headers, no input validation, no CORS scoping, no session limits, no frontend maxLength.
+
+**Scope:** Atomic OAuth state consumption, CORS origin locking, security headers (Worker + Pages `_headers`), server-side input length/type validation, import body size limit, session count cap, frontend maxLength attributes.
 
 ---
 
@@ -260,7 +272,7 @@ Each entry below provides full implementation notes and open questions. The summ
 
 | | |
 |---|---|
-| **Status** | `Approved` |
+| **Status** | `Implemented` |
 | **Last updated** | Sprint 8 |
 
 **Problem:** When multiple signals are detected (urgent health + confluence cluster + 2-3 pattern descriptions + explore button), the top of the cat profile is visually overwhelming before the chart is even visible.

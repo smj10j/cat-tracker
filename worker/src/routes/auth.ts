@@ -50,19 +50,16 @@ auth.get('/auth/callback', async (c) => {
     return new Response(null, { status: 302, headers: { Location: `${redirectBase}/login?error=missing_params` } })
   }
 
-  // Verify state against D1 (single-use, expiry check)
-  const storedState = await c.env.DB.prepare(
-    "SELECT state FROM oauth_states WHERE state = ? AND expires_at > datetime('now')"
+  // SEC-01: Atomically consume the state token via DELETE...RETURNING.
+  // A single statement prevents TOCTOU — two concurrent callbacks with the
+  // same state cannot both succeed because only one DELETE can return a row.
+  const consumed = await c.env.DB.prepare(
+    "DELETE FROM oauth_states WHERE state = ? AND expires_at > datetime('now') RETURNING state"
   ).bind(state).first<{ state: string }>()
 
-  if (!storedState) {
+  if (!consumed) {
     return new Response(null, { status: 302, headers: { Location: `${redirectBase}/login?error=invalid_state` } })
   }
-
-  // Delete used state immediately
-  c.executionCtx.waitUntil(
-    c.env.DB.prepare('DELETE FROM oauth_states WHERE state = ?').bind(state).run()
-  )
 
   // Exchange authorization code for access token
   const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -117,6 +114,15 @@ auth.get('/auth/callback', async (c) => {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
   await c.env.DB.prepare('INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)')
     .bind(sessionId, user.id, expiresAt).run()
+
+  // SEC-07: Cap sessions per user at 20 (delete oldest beyond that)
+  c.executionCtx.waitUntil(
+    c.env.DB.prepare(`
+      DELETE FROM sessions WHERE id IN (
+        SELECT id FROM sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT -1 OFFSET 20
+      )
+    `).bind(user.id).run()
+  )
 
   return new Response(null, {
     status: 302,

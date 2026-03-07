@@ -3,10 +3,20 @@ import type { AppEnv } from '../types'
 
 const importRoute = new Hono<AppEnv>()
 
+const IMPORT_MAX_BYTES = 1024 * 1024 // 1 MB — SEC-06
+const MAX_CAT_NAME = 200
+const MAX_NOTES = 4000
+
 // POST /api/import
 importRoute.post('/import', async (c) => {
   const userId = c.get('userId')
   const body = await c.req.text()
+
+  // SEC-06: Body size limit
+  if (body.length > IMPORT_MAX_BYTES) {
+    return c.json({ error: 'Import file too large (max 1 MB)' }, 413)
+  }
+
   const lines = body.split('\n')
 
   // Skip header row
@@ -21,6 +31,7 @@ importRoute.post('/import', async (c) => {
     value: number
     unit: string
     measuredAt: string
+    microchipId: string | null
   }
 
   const rows: ParsedRow[] = []
@@ -32,15 +43,22 @@ importRoute.post('/import', async (c) => {
     const rowNum = i + 2 // +2: 1-indexed, skipping header
     const parts = line.split(',')
 
+    // Accept 5 columns (legacy) or 6 columns (with microchip_id as last column)
     if (parts.length < 5) {
-      errors.push(`Row ${rowNum}: expected 5 columns, got ${parts.length}: "${line}"`)
+      errors.push(`Row ${rowNum}: expected 5 or 6 columns, got ${parts.length}: "${line}"`)
       continue
     }
 
-    const [dateStr, catName, type, valueStr, unit] = parts.map(p => p.trim())
+    const [dateStr, catName, type, valueStr, unit, microchipRaw] = parts.map(p => p.trim())
 
     if (!dateStr || !catName || !type || !valueStr || !unit) {
       errors.push(`Row ${rowNum}: one or more required fields are empty: "${line}"`)
+      continue
+    }
+
+    // SEC-04: Field length validation
+    if (catName.length > MAX_CAT_NAME) {
+      errors.push(`Row ${rowNum}: cat name exceeds ${MAX_CAT_NAME} characters`)
       continue
     }
 
@@ -69,7 +87,9 @@ importRoute.post('/import', async (c) => {
       continue
     }
 
-    rows.push({ catName, type, value, unit, measuredAt })
+    const microchipId = microchipRaw?.trim() || null
+
+    rows.push({ catName, type, value, unit, measuredAt, microchipId })
   }
 
   if (rows.length === 0 && errors.length > 0) {
@@ -77,30 +97,43 @@ importRoute.post('/import', async (c) => {
   }
 
   // Collect unique cat names (case-insensitive, preserve original casing for creation)
-  const catNameMap = new Map<string, string>() // lowercase → original casing
+  const catNameMap = new Map<string, { name: string; microchipId: string | null }>()
   for (const row of rows) {
     const key = row.catName.toLowerCase()
     if (!catNameMap.has(key)) {
-      catNameMap.set(key, row.catName)
+      catNameMap.set(key, { name: row.catName, microchipId: row.microchipId })
     }
   }
 
   // Look up or create each cat (scoped to this user), building a map of lowercase name → id
   const catIdMap = new Map<string, string>()
 
-  for (const [lowerName, originalName] of catNameMap) {
-    const existing = await c.env.DB.prepare(
-      'SELECT id FROM cats WHERE LOWER(name) = ? AND user_id = ?'
-    ).bind(lowerName, userId).first<{ id: string }>()
+  for (const [lowerName, { name: originalName, microchipId }] of catNameMap) {
+    // Try to match by microchip_id first (if provided and not a temp ID)
+    let existing: { id: string } | null = null
+
+    if (microchipId && !microchipId.startsWith('temp-microchip-id-')) {
+      existing = await c.env.DB.prepare(
+        'SELECT id FROM cats WHERE microchip_id = ? AND user_id = ?'
+      ).bind(microchipId, userId).first<{ id: string }>() ?? null
+    }
+
+    // Fall back to name match
+    if (!existing) {
+      existing = await c.env.DB.prepare(
+        'SELECT id FROM cats WHERE LOWER(name) = ? AND user_id = ?'
+      ).bind(lowerName, userId).first<{ id: string }>() ?? null
+    }
 
     if (existing) {
       catIdMap.set(lowerName, existing.id)
     } else {
+      const tempMicrochip = microchipId || `temp-microchip-id-${crypto.randomUUID()}`
       const created = await c.env.DB.prepare(
-        `INSERT INTO cats (name, birthdate, notes, user_id)
-         VALUES (?, '2020-01-01', 'Created via CSV import', ?)
+        `INSERT INTO cats (name, birthdate, notes, microchip_id, user_id)
+         VALUES (?, '2020-01-01', 'Created via CSV import', ?, ?)
          RETURNING id`
-      ).bind(originalName, userId).first<{ id: string }>()
+      ).bind(originalName, tempMicrochip, userId).first<{ id: string }>()
 
       if (!created) {
         errors.push(`Failed to create cat "${originalName}"`)

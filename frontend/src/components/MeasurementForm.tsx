@@ -156,7 +156,7 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
           <div>
             <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Notes</label>
             <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Before breakfast"
-              className="input-dark w-full px-3 py-2.5 text-sm" />
+              maxLength={1000} className="input-dark w-full px-3 py-2.5 text-sm" />
           </div>
           <button type="button" onClick={handleWeightSubmit} disabled={saving} className="btn-primary w-full py-3 text-sm">
             {saving ? 'Saving…' : 'Save Weight'}

@@ -317,6 +317,41 @@
 - [x] Write PRD-microchip-id.md covering: auto-generated temp IDs, partial unique index, same-user vs cross-user conflict resolution, CSV import upsert, open questions
 - [x] Add PRD to REGISTRY.md (status: Draft)
 
+## Phase 18: Security Hardening (PRD-security.md)
+
+### Documentation
+- [x] Create docs/SECURITY.md — principles, architecture model, known limitations
+- [x] Create PRD-security.md — 8 findings (SEC-01 through SEC-08) with fixes
+- [x] Update REGISTRY.md, CLAUDE.md with SECURITY.md references
+
+### Implementation
+- [x] worker/routes/auth.ts: SEC-01 — atomic OAuth state via DELETE...RETURNING
+- [x] worker/routes/auth.ts: SEC-07 — session count cap (keep newest 20 per user)
+- [x] worker/src/index.ts: SEC-02 — CORS locked to known origins
+- [x] worker/src/index.ts: SEC-03 — security headers middleware (X-Content-Type-Options, X-Frame-Options, Referrer-Policy)
+- [x] worker/routes/cats.ts: SEC-04 — field length validation on POST/PUT
+- [x] worker/routes/measurements.ts: SEC-04 + SEC-05 — field length + type/unit/value validation
+- [x] worker/routes/import.ts: SEC-04 + SEC-06 — field length + 1MB body size limit
+- [x] frontend/public/_headers: SEC-03 — CSP, security headers for Pages SPA
+- [x] frontend/pages/AddEditCat.tsx: SEC-08 — maxLength on all text inputs; MeasurementForm notes maxLength
+- [x] Deploy worker + frontend
+
+## Phase 19: Microchip ID (PRD-microchip-id.md)
+
+### Documentation
+- [x] PRD-microchip-id.md written, status updated to Approved
+
+### Implementation
+- [x] worker/db/schema.sql: add microchip_id column + partial unique index
+- [x] Apply schema migration to remote D1 (column + index)
+- [x] worker/routes/cats.ts: POST — generate temp ID if absent; conflict check for real IDs
+- [x] worker/routes/cats.ts: PUT — accept microchip_id update; conflict check; privacy-preserving 409
+- [x] worker/routes/import.ts: support optional 6th column (microchip_id) in CSV; match by chip before name
+- [x] frontend/lib/api.ts: add microchip_id to Cat interface; ApiError class for structured errors
+- [x] frontend/pages/AddEditCat.tsx: microchip_id field (blank if temp); 409 error handling with ApiError
+- [x] frontend/pages/CatProfile.tsx: display microchip badge for real IDs (spaced formatting)
+- [x] Deploy worker + frontend
+
 ## Phase 17: Authorization Fix + Documentation Overhaul
 
 ### Security fix — ownership scoping for mutations

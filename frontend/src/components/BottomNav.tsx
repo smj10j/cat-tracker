@@ -1,6 +1,9 @@
 import { NavLink } from 'react-router-dom'
 
-// SVG icons inline (no icon library)
+interface Props {
+  onLog: () => void
+}
+
 function HomeIcon({ active }: { active: boolean }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#c084fc' : '#6b5f85'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -18,7 +21,7 @@ function ChartIcon({ active }: { active: boolean }) {
   )
 }
 
-export default function BottomNav() {
+export default function BottomNav({ onLog }: Props) {
   return (
     <nav
       style={{
@@ -36,11 +39,7 @@ export default function BottomNav() {
     >
       <div className="flex items-center justify-around px-4 pt-2 pb-2 max-w-lg mx-auto">
         {/* Home */}
-        <NavLink
-          to="/"
-          end
-          className="flex flex-col items-center gap-1 py-1 px-5"
-        >
+        <NavLink to="/" end className="flex flex-col items-center gap-1 py-1 px-5">
           {({ isActive }) => (
             <>
               <HomeIcon active={isActive} />
@@ -49,10 +48,11 @@ export default function BottomNav() {
           )}
         </NavLink>
 
-        {/* Center Add button — floats above the bar */}
-        <NavLink
-          to="/cats/new"
+        {/* Center Log button */}
+        <button
+          onClick={onLog}
           className="flex flex-col items-center -mt-6"
+          aria-label="Log a measurement"
         >
           <div
             style={{
@@ -73,14 +73,11 @@ export default function BottomNav() {
           >
             +
           </div>
-          <span className="text-[10px] font-medium mt-1" style={{ color: '#6b5f85' }}>Add Cat</span>
-        </NavLink>
+          <span className="text-[10px] font-medium mt-1" style={{ color: '#6b5f85' }}>Log</span>
+        </button>
 
         {/* Compare */}
-        <NavLink
-          to="/compare"
-          className="flex flex-col items-center gap-1 py-1 px-5"
-        >
+        <NavLink to="/compare" className="flex flex-col items-center gap-1 py-1 px-5">
           {({ isActive }) => (
             <>
               <ChartIcon active={isActive} />

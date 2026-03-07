@@ -7,6 +7,7 @@ import {
 } from '../lib/healthMetrics'
 import WeightChart from '../components/WeightChart'
 import MeasurementForm from '../components/MeasurementForm'
+import { getPresetLabel } from '../lib/measurementPresets'
 
 function catAge(birthdate: string): string {
   const birth = new Date(birthdate)
@@ -359,7 +360,7 @@ export default function CatProfile() {
                 >
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-sm text-ink tabular-nums">{m.value} {m.unit}</span>
+                      <span className="font-semibold text-sm text-ink tabular-nums">{m.unit === 'scale' ? getPresetLabel(m.type, m.value) : `${m.value} ${m.unit}`}</span>
                       {(tab === 'all' || tab === 'behavior') && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full text-ink-dim"
                           style={{ background: 'rgba(255,255,255,0.06)' }}>

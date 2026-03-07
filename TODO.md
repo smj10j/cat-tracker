@@ -141,3 +141,30 @@
 ## Phase 7: Infrastructure
 - [ ] GitHub Actions: auto-deploy Worker + Pages on push to main
 - [ ] PWA service worker + offline measurement queueing
+## Phase 8: UX Simplification (PRD-ux-simplification.md)
+
+### Docs
+- [x] Move PRDs to docs/PRDs/ folder
+- [x] Create PRD-ux-simplification.md
+- [x] Update CLAUDE.md with PRD conventions
+
+### Navigation & Home Screen
+- [x] BottomNav: center button opens QuickAdd sheet (not /cats/new); re-label "Log"
+- [x] PageShell: manage QuickAdd open/close state; pass onLog to BottomNav
+- [x] QuickAdd: accept open/onClose props instead of self-managing; remove floating trigger button; fire measurementAdded custom event on success
+- [x] Home: add "＋ Add a cat" dashed-card at bottom of cat list
+- [x] Home: replace wellness accordion with single "Cat Wellness Guide →" button
+- [x] Home: listen for measurementAdded event and re-fetch cats
+
+### Wellness Guide Page
+- [x] New page: frontend/src/pages/WellnessGuide.tsx (move accordion cards here)
+- [x] Add /wellness route in App.tsx
+
+### Simplified Measurement Presets
+- [x] Create frontend/src/lib/measurementPresets.ts with preset definitions + getPresetLabel()
+- [x] QuickAdd: use tap-to-select preset buttons for food/water/litter/grooming/activity/vomiting
+- [x] MeasurementForm: same preset UI for behavioral types
+- [x] History display: show label string (e.g. "Most") when unit === 'scale'
+
+### Docs cleanup
+- [x] Update README.md docs paths to reflect docs/PRDs/ move

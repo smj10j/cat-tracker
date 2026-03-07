@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getCats, type Cat } from '../lib/api'
-import { assessHealth, STATUS_COLORS, STATUS_LABEL, URGENT_VET_SIGNS } from '../lib/healthMetrics'
+import { assessHealth, STATUS_COLORS, STATUS_LABEL } from '../lib/healthMetrics'
 import { getMeasurements } from '../lib/api'
-import QuickAdd from '../components/QuickAdd'
 
 function catAge(birthdate: string): string {
   const birth = new Date(birthdate)
@@ -31,7 +30,6 @@ function SkeletonCard() {
 
 const STATUS_RANK: Record<string, number> = { urgent: 3, concerning: 2, watch: 1, ok: 0 }
 
-// Card styles per health status — each level distinctly more alarming
 const CARD_STYLE: Record<string, React.CSSProperties> = {
   ok: {
     background: 'rgba(30,24,46,0.7)',
@@ -40,7 +38,6 @@ const CARD_STYLE: Record<string, React.CSSProperties> = {
   watch: {
     background: 'rgba(30,24,46,0.7)',
     border: '1.5px solid rgba(251,191,36,0.4)',
-    boxShadow: '0 0 0 0 transparent',
   },
   concerning: {
     background: 'rgba(249,115,22,0.07)',
@@ -75,68 +72,24 @@ const AVATAR_STYLE: Record<string, React.CSSProperties> = {
   },
 }
 
-interface WellnessCard {
-  icon: string
-  title: string
-  items: string[]
-}
-
-const WELLNESS_CARDS: WellnessCard[] = [
-  {
-    icon: '📋',
-    title: 'Monthly Self-Check',
-    items: [
-      'Weigh your cat and log it here',
-      'Run hands over their body — feel for lumps or tender spots',
-      'Check coat: shiny, soft, free of mats?',
-      'Gums: pink and moist (not pale, yellow, or tacky)?',
-      'Eyes: clear, no discharge or cloudiness?',
-      'Ears: clean, not smelly or waxy?',
-    ],
-  },
-  {
-    icon: '📊',
-    title: 'Normal Vitals',
-    items: [
-      'Temperature: 99–102.5°F (37–39°C)',
-      'Resting heart rate: 140–220 bpm',
-      'Healthy sleep: 12–16 hours per day',
-      'Healthy weight: varies — ask your vet for their target range',
-      'Weight loss >10% of body weight: always see a vet',
-    ],
-  },
-  {
-    icon: '🚨',
-    title: 'Always Call the Vet',
-    items: URGENT_VET_SIGNS.slice(0, 5),
-  },
-  {
-    icon: '🥩',
-    title: 'Nutrition Basics',
-    items: [
-      'Cats are obligate carnivores — high protein is essential',
-      'Wet food significantly improves hydration and urinary health',
-      'Free-feeding dry kibble is a leading cause of obesity',
-      'Target ~20–30 cal per lb of ideal body weight per day',
-      'Fresh water access at all times — many cats prefer running water',
-    ],
-  },
-]
-
 export default function Home() {
-  const [cats, setCats] = useState<Cat[]>([])
   const [catData, setCatData] = useState<{ cat: Cat; latestWeight: number | null; latestUnit: string; healthStatus: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [openWellness, setOpenWellness] = useState<number | null>(null)
 
-  useEffect(() => { loadCats() }, [])
+  useEffect(() => {
+    loadCats()
+
+    // Re-fetch when a measurement is added via the QuickAdd sheet
+    const handler = () => loadCats()
+    window.addEventListener('measurementAdded', handler)
+    return () => window.removeEventListener('measurementAdded', handler)
+  }, [])
 
   async function loadCats() {
     setLoading(true)
     try {
       const allCats = await getCats()
-      setCats(allCats)
       const enriched = await Promise.all(
         allCats.map(async (cat) => {
           try {
@@ -149,7 +102,6 @@ export default function Home() {
           }
         })
       )
-      // Sort: urgent first, then concerning, watch, ok
       enriched.sort((a, b) => (STATUS_RANK[b.healthStatus] ?? 0) - (STATUS_RANK[a.healthStatus] ?? 0))
       setCatData(enriched)
     } catch (e: unknown) {
@@ -159,6 +111,8 @@ export default function Home() {
     }
   }
 
+  const catCount = catData.length
+
   return (
     <div className="min-h-screen px-4 pt-6">
       {/* Header */}
@@ -166,7 +120,7 @@ export default function Home() {
         <div>
           <h1 className="font-display text-2xl font-bold text-ink">Your Cats</h1>
           <p className="text-ink-dim text-sm mt-0.5">
-            {cats.length > 0 ? `${cats.length} cat${cats.length !== 1 ? 's' : ''} tracked` : 'Add your first cat below'}
+            {catCount > 0 ? `${catCount} cat${catCount !== 1 ? 's' : ''} tracked` : 'Add your first cat below'}
           </p>
         </div>
         <Link to="/import" className="btn-ghost text-xs px-3 py-1.5">Import CSV</Link>
@@ -178,156 +132,114 @@ export default function Home() {
       <div className="space-y-3">
         {loading ? (
           <><SkeletonCard /><SkeletonCard /><SkeletonCard /></>
-        ) : catData.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="text-6xl mb-5 opacity-60">🐾</div>
-            <p className="font-display text-ink text-lg font-semibold mb-1">No cats yet</p>
-            <p className="text-ink-mid text-sm mb-6">Tap + below to add your first cat</p>
-          </div>
         ) : (
-          catData.map(({ cat, latestWeight, latestUnit, healthStatus }, i) => {
-            const stagger = i < 5 ? `stagger-${i + 1}` : ''
-            const isOk = healthStatus === 'ok'
-            const statusColor = STATUS_COLORS[healthStatus as keyof typeof STATUS_COLORS] ?? '#4ade80'
-            const cardStyle = CARD_STYLE[healthStatus] ?? CARD_STYLE.ok
-            const avatarStyle = AVATAR_STYLE[healthStatus] ?? AVATAR_STYLE.ok
-            const isUrgent = healthStatus === 'urgent'
-            const isConcerning = healthStatus === 'concerning'
+          <>
+            {catData.map(({ cat, latestWeight, latestUnit, healthStatus }, i) => {
+              const stagger = i < 5 ? `stagger-${i + 1}` : ''
+              const isOk = healthStatus === 'ok'
+              const statusColor = STATUS_COLORS[healthStatus as keyof typeof STATUS_COLORS] ?? '#4ade80'
+              const cardStyle = CARD_STYLE[healthStatus] ?? CARD_STYLE.ok
+              const avatarStyle = AVATAR_STYLE[healthStatus] ?? AVATAR_STYLE.ok
+              const isUrgent = healthStatus === 'urgent'
+              const isConcerning = healthStatus === 'concerning'
 
-            return (
-              <Link
-                key={cat.id}
-                to={`/cats/${cat.id}`}
-                className={`flex items-center gap-4 p-5 rounded-[20px] block transition-all animate-slide-up opacity-0 ${stagger}`}
-                style={{ ...cardStyle, animationFillMode: 'forwards' }}
-              >
-                {/* Urgent top strip */}
-                {isUrgent && (
-                  <div
-                    className="absolute top-0 left-0 right-0 h-0.5 rounded-t-[20px]"
-                    style={{ background: 'linear-gradient(90deg, transparent, rgba(248,113,113,0.8), transparent)' }}
-                  />
-                )}
-
-                {/* Avatar */}
-                <div
-                  className="shrink-0 w-14 h-14 rounded-full flex items-center justify-center text-2xl"
-                  style={avatarStyle}
+              return (
+                <Link
+                  key={cat.id}
+                  to={`/cats/${cat.id}`}
+                  className={`flex items-center gap-4 p-5 rounded-[20px] block transition-all animate-slide-up opacity-0 ${stagger}`}
+                  style={{ ...cardStyle, animationFillMode: 'forwards' }}
                 >
-                  🐱
-                </div>
+                  <div
+                    className="shrink-0 w-14 h-14 rounded-full flex items-center justify-center text-2xl"
+                    style={avatarStyle}
+                  >
+                    🐱
+                  </div>
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-display font-bold text-ink text-base truncate">{cat.name}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-display font-bold text-ink text-base truncate">{cat.name}</span>
+                      {!isOk && (
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${isUrgent ? 'animate-pulse' : ''}`}
+                          style={{
+                            color: statusColor,
+                            background: `${statusColor}20`,
+                            border: `1px solid ${statusColor}50`,
+                            letterSpacing: '0.05em',
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          {isUrgent ? '⚠ ' : isConcerning ? '! ' : ''}{STATUS_LABEL[healthStatus as keyof typeof STATUS_LABEL]}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-ink-mid text-xs mt-0.5 flex items-center gap-2">
+                      <span>{catAge(cat.birthdate)}</span>
+                      {cat.breed && <span>· {cat.breed}</span>}
+                    </div>
                     {!isOk && (
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${isUrgent ? 'animate-pulse' : ''}`}
-                        style={{
-                          color: statusColor,
-                          background: `${statusColor}20`,
-                          border: `1px solid ${statusColor}50`,
-                          letterSpacing: '0.05em',
-                          textTransform: 'uppercase',
-                        }}
-                      >
-                        {isUrgent ? '⚠ ' : isConcerning ? '! ' : ''}{STATUS_LABEL[healthStatus as keyof typeof STATUS_LABEL]}
-                      </span>
+                      <div className="text-xs mt-1.5" style={{ color: `${statusColor}bb` }}>
+                        {isUrgent ? 'Vet visit recommended' : isConcerning ? 'Monitor closely' : 'Keep an eye on weight trend'}
+                      </div>
                     )}
                   </div>
-                  <div className="text-ink-mid text-xs mt-0.5 flex items-center gap-2">
-                    <span>{catAge(cat.birthdate)}</span>
-                    {cat.breed && <span>· {cat.breed}</span>}
-                  </div>
-                  {!isOk && (
-                    <div className="text-xs mt-1.5" style={{ color: `${statusColor}bb` }}>
-                      {isUrgent ? 'Vet visit recommended' : isConcerning ? 'Monitor closely' : 'Keep an eye on weight trend'}
+
+                  {latestWeight !== null && (
+                    <div className="text-right shrink-0">
+                      <div className="font-display font-bold text-lg tabular-nums" style={{ color: isOk ? '#fb923c' : statusColor }}>
+                        {latestWeight}
+                      </div>
+                      <div className="text-ink-dim text-[10px]">{latestUnit}</div>
                     </div>
                   )}
-                </div>
+                </Link>
+              )
+            })}
 
-                {/* Weight badge */}
-                {latestWeight !== null && (
-                  <div className="text-right shrink-0">
-                    <div
-                      className="font-display font-bold text-lg tabular-nums"
-                      style={{ color: isOk ? '#fb923c' : statusColor }}
-                    >
-                      {latestWeight}
-                    </div>
-                    <div className="text-ink-dim text-[10px]">{latestUnit}</div>
-                  </div>
-                )}
-              </Link>
-            )
-          })
+            {/* Add a cat — dashed card at bottom of list */}
+            <Link
+              to="/cats/new"
+              className="flex items-center justify-center gap-2 py-4 rounded-[20px] transition-all"
+              style={{
+                border: '1.5px dashed rgba(192,132,252,0.25)',
+                color: '#6b5f85',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#c084fc'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(192,132,252,0.5)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#6b5f85'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(192,132,252,0.25)' }}
+            >
+              <span className="text-lg font-light">＋</span>
+              <span className="text-sm font-semibold">Add a cat</span>
+            </Link>
+          </>
         )}
       </div>
 
-      {/* Wellness section */}
+      {/* Wellness guide link */}
       {!loading && (
-        <div className="mt-10 mb-4">
-          <h2 className="font-display font-semibold text-ink-mid text-sm uppercase tracking-wider mb-4">Cat Wellness Guide</h2>
-          <div className="space-y-2">
-            {WELLNESS_CARDS.map((card, i) => {
-              const isOpen = openWellness === i
-              const isUrgentCard = card.title === 'Always Call the Vet'
-              return (
-                <div
-                  key={card.title}
-                  className="rounded-2xl overflow-hidden transition-all"
-                  style={{
-                    background: isUrgentCard
-                      ? 'rgba(248,113,113,0.06)'
-                      : 'rgba(255,255,255,0.03)',
-                    border: isUrgentCard
-                      ? '1px solid rgba(248,113,113,0.2)'
-                      : '1px solid rgba(255,255,255,0.06)',
-                  }}
-                >
-                  <button
-                    onClick={() => setOpenWellness(isOpen ? null : i)}
-                    className="w-full flex items-center justify-between px-4 py-3.5 text-left"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl">{card.icon}</span>
-                      <span
-                        className="font-semibold text-sm"
-                        style={{ color: isUrgentCard ? '#f87171' : '#ede9f6' }}
-                      >
-                        {card.title}
-                      </span>
-                    </div>
-                    <span
-                      className="text-ink-dim text-xs transition-transform"
-                      style={{ transform: isOpen ? 'rotate(180deg)' : 'none' }}
-                    >
-                      ▾
-                    </span>
-                  </button>
-                  {isOpen && (
-                    <div className="px-4 pb-4">
-                      <ul className="space-y-2">
-                        {card.items.map((item, j) => (
-                          <li key={j} className="flex items-start gap-2 text-xs text-ink-mid">
-                            <span className="shrink-0 mt-0.5" style={{ color: isUrgentCard ? '#f87171' : '#6b5f85' }}>
-                              {isUrgentCard ? '•' : '·'}
-                            </span>
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
+        <div className="mt-8 mb-4">
+          <Link
+            to="/wellness"
+            className="flex items-center justify-between w-full px-5 py-4 rounded-2xl transition-all"
+            style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(192,132,252,0.06)' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)' }}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-xl">🐾</span>
+              <div>
+                <div className="text-sm font-semibold text-ink">Cat Wellness Guide</div>
+                <div className="text-xs text-ink-dim mt-0.5">Monthly checks, vitals, vet signs</div>
+              </div>
+            </div>
+            <span className="text-ink-dim text-sm">→</span>
+          </Link>
         </div>
       )}
-
-      <QuickAdd onAdded={loadCats} />
     </div>
   )
 }

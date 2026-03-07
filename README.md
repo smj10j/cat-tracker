@@ -21,9 +21,12 @@ A lightweight web app for tracking health measurements (starting with weight) fo
 ```
 cat-tracker/
 ├── docs/
-│   ├── PRD.md              # Product requirements
+│   ├── PRDs/               # Product requirement documents
+│   │   ├── PRD-mvp.md      # Original MVP requirements
+│   │   ├── PRD-features-backlog.md  # Feature backlog
+│   │   └── PRD-ux-simplification.md # UX simplification PRD
 │   ├── TDD.md              # Technical design doc
-│   └── PRD-next.md         # Upcoming features roadmap
+│   └── DESIGN.md           # Visual design system
 ├── worker/                 # Cloudflare Worker — REST API
 │   ├── src/
 │   │   ├── index.ts        # Hono app entry point + CORS
@@ -214,8 +217,10 @@ Logic lives in `frontend/src/lib/healthMetrics.ts`.
 
 ## Documents
 
-- [`docs/PRD.md`](docs/PRD.md) — Original product requirements
+- [`docs/PRDs/PRD-mvp.md`](docs/PRDs/PRD-mvp.md) — Original MVP requirements
+- [`docs/PRDs/PRD-features-backlog.md`](docs/PRDs/PRD-features-backlog.md) — Feature backlog
+- [`docs/PRDs/PRD-ux-simplification.md`](docs/PRDs/PRD-ux-simplification.md) — UX simplification
 - [`docs/TDD.md`](docs/TDD.md) — Technical design
-- [`docs/PRD-next.md`](docs/PRD-next.md) — Next features roadmap
+- [`docs/DESIGN.md`](docs/DESIGN.md) — Visual design system
 - [`TODO.md`](TODO.md) — Task tracking
 - [`CLAUDE.md`](CLAUDE.md) — Instructions for AI assistants

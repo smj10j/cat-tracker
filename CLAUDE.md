@@ -22,10 +22,13 @@ Always read this at the start of a session.
 ## Project layout
 
 ```
-worker/     Cloudflare Worker — Hono REST API
-frontend/   React + Vite SPA + Pages Functions proxy
-docs/       PRD, TDD, and roadmap documents
-TODO.md     Task tracking — keep this updated
+worker/       Cloudflare Worker — Hono REST API
+frontend/     React + Vite SPA + Pages Functions proxy
+docs/
+  PRDs/       Product requirement documents (one file per feature area)
+  TDD.md      Technical design
+  DESIGN.md   Visual design system
+TODO.md       Task tracking — keep this updated
 ```
 
 See README.md for the full file map.
@@ -108,6 +111,23 @@ When given an open-ended task like "build the next set of features":
 7. **Update TODO.md as you complete items** — mark `[x]` and commit the TODO update with the feature commit
 8. **Never ask the user for input unless truly blocked** — make reasonable decisions, document them in the commit message
 9. **Keep MEMORY.md current** — update after completing a sprint so the next session has context
+
+## Docs
+
+### PRDs
+All product requirement documents live in `docs/PRDs/`. To add a new PRD:
+1. Create `docs/PRDs/PRD-<short-descriptor>.md`
+2. Update `README.md` Documents section with the new file
+3. Add corresponding TODO items before implementation
+
+Current PRDs:
+- `docs/PRDs/PRD-mvp.md` — original MVP requirements
+- `docs/PRDs/PRD-features-backlog.md` — next features backlog (photo upload, sharing, etc.)
+- `docs/PRDs/PRD-ux-simplification.md` — UX simplification: nav, measurement presets, wellness page
+
+### Other docs
+- `docs/TDD.md` — technical design
+- `docs/DESIGN.md` — visual design system
 
 ## What NOT to do
 

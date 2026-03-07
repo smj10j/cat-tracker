@@ -102,7 +102,7 @@ Logic is in `frontend/src/lib/healthMetrics.ts`. Thresholds are based on feline 
 
 When given an open-ended task like "build the next set of features":
 
-1. **Read TODO.md first** — understand current state before touching anything
+1. **Read REGISTRY.md + TODO.md first** — check PRD statuses and current task state before touching anything
 2. **Plan before coding** — write down what you're going to do (update TODO) so you don't lose track
 3. **Fix bugs before features** — small cleanup items first, then new features
 4. **Parallelize with background agents** — split backend vs. frontend work across agents when the files don't overlap; integrate at the end
@@ -114,16 +114,37 @@ When given an open-ended task like "build the next set of features":
 
 ## Docs
 
-### PRDs
-All product requirement documents live in `docs/PRDs/`. To add a new PRD:
-1. Create `docs/PRDs/PRD-<short-descriptor>.md`
-2. Update `README.md` Documents section with the new file
-3. Add corresponding TODO items before implementation
+### PRD Registry (IMPORTANT — read before any feature work)
 
-Current PRDs:
-- `docs/PRDs/PRD-mvp.md` — original MVP requirements
-- `docs/PRDs/PRD-features-backlog.md` — next features backlog (photo upload, sharing, etc.)
-- `docs/PRDs/PRD-ux-simplification.md` — UX simplification: nav, measurement presets, wellness page
+**`docs/PRDs/REGISTRY.md`** is the canonical source of truth for all feature work.
+
+Before implementing anything:
+1. **Read REGISTRY.md** — check if there's an existing PRD, what its status is, and whether it was already implemented or rejected
+2. Never implement a feature that has no `Approved` or higher status in the registry
+3. Never duplicate work listed as `Implemented`
+
+Registry status values: `Draft` → `Under Review` → `Approved` → `In Progress` → `Implemented` / `Rejected` / `Superseded`
+
+### Adding a new PRD
+
+1. Create `docs/PRDs/PRD-<short-descriptor>.md`
+2. Add an entry to `docs/PRDs/REGISTRY.md` with status `Draft`
+3. Update `README.md` Documents section
+4. Wait for product owner to move status to `Approved` before implementing
+5. When implementation is complete, update registry status to `Implemented` and add TODO items as `[x]`
+
+### Current PRD statuses (see REGISTRY.md for full details)
+
+| PRD | Status |
+|-----|--------|
+| PRD-mvp.md | Implemented |
+| PRD-features-backlog.md | Partial |
+| PRD-ux-simplification.md | Implemented |
+| PRD-health-status-visuals.md | Implemented |
+| PRD-measurement-ux.md | Implemented |
+| PRD-charts-expansion.md | Implemented |
+| PRD-killer-app.md | Under Review |
+| PRD-auth.md | Under Review |
 
 ### Other docs
 - `docs/TDD.md` — technical design
@@ -131,7 +152,7 @@ Current PRDs:
 
 ## What NOT to do
 
-- Don't add auth/login without being asked — it's intentionally single-tenant
+- Don't implement auth/login until PRD-auth.md is moved to `Approved` in REGISTRY.md
 - Don't change the measurements schema shape — it's intentionally generic
 - Don't install a component library; keep the UI hand-rolled with Tailwind
 - Don't start from zero on new pages — reuse the layout pattern from `CatProfile.tsx`

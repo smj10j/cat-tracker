@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { createCat, updateCat, getCat, deleteCat, ApiError } from '../lib/api'
+import { createCat, updateCat, getCat, deleteCat, uploadCatPhoto, deleteCatPhoto, ApiError } from '../lib/api'
+import CatAvatar from '../components/CatAvatar'
+import CropModal from '../components/CropModal'
 
 function isTempMicrochip(id: string | null | undefined): boolean {
   return !id || id.startsWith('temp-microchip-id-')
@@ -19,22 +21,38 @@ export default function AddEditCat() {
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null)
+  const [pendingBlob, setPendingBlob] = useState<Blob | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [cropFile, setCropFile] = useState<File | null>(null)
+  const [photoRemoved, setPhotoRemoved] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   useEffect(() => {
     if (!id) return
     getCat(id)
-      .then((cat) => setForm({
-        name: cat.name,
-        birthdate: cat.birthdate,
-        breed: cat.breed ?? '',
-        coloring: cat.coloring ?? '',
-        notes: cat.notes ?? '',
-        sex: cat.sex ?? '',
-        // Show blank for temp placeholder IDs — treat as "not set"
-        microchip_id: isTempMicrochip(cat.microchip_id) ? '' : (cat.microchip_id ?? ''),
-      }))
+      .then((cat) => {
+        setForm({
+          name: cat.name,
+          birthdate: cat.birthdate,
+          breed: cat.breed ?? '',
+          coloring: cat.coloring ?? '',
+          notes: cat.notes ?? '',
+          sex: cat.sex ?? '',
+          microchip_id: isTempMicrochip(cat.microchip_id) ? '' : (cat.microchip_id ?? ''),
+        })
+        setExistingPhotoUrl(cat.photo_url)
+      })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
   }, [id])
+
+  useEffect(() => {
+    if (!pendingBlob) return
+    const url = URL.createObjectURL(pendingBlob)
+    setPreviewUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [pendingBlob])
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
@@ -52,14 +70,17 @@ export default function AddEditCat() {
         coloring: form.coloring.trim() || null,
         notes: form.notes.trim() || null,
         sex: form.sex || null,
-        photo_url: null,
+        photo_url: null as string | null,
         microchip_id: form.microchip_id.trim() || null,
       }
       if (isEdit && id) {
         await updateCat(id, payload)
+        if (pendingBlob) await uploadCatPhoto(id, pendingBlob)
+        else if (photoRemoved && existingPhotoUrl) await deleteCatPhoto(id)
         navigate(`/cats/${id}`)
       } else {
         const cat = await createCat(payload)
+        if (pendingBlob) await uploadCatPhoto(cat.id, pendingBlob)
         navigate(`/cats/${cat.id}`)
       }
     } catch (e: unknown) {
@@ -133,7 +154,74 @@ export default function AddEditCat() {
         <div className="glass-card p-4 text-rose text-sm mb-4" style={{ borderColor: 'rgba(248,113,113,0.2)' }}>{error}</div>
       )}
 
+      {/* Crop modal */}
+      {cropFile && (
+        <CropModal
+          file={cropFile}
+          onCrop={(blob) => { setPendingBlob(blob); setCropFile(null) }}
+          onCancel={() => setCropFile(null)}
+        />
+      )}
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) setCropFile(file)
+          e.target.value = ''
+        }}
+      />
+
       <form onSubmit={handleSubmit} className="glass-card p-6 space-y-5">
+        {/* Photo slot */}
+        <div className="flex flex-col items-center gap-2 pb-2">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="relative w-16 h-16 rounded-full overflow-hidden flex items-center justify-center text-2xl transition-opacity hover:opacity-80"
+            style={{
+              background: previewUrl || existingPhotoUrl
+                ? undefined
+                : 'rgba(192,132,252,0.08)',
+              border: previewUrl || existingPhotoUrl
+                ? '2px solid rgba(192,132,252,0.4)'
+                : '2px dashed rgba(192,132,252,0.35)',
+            }}
+          >
+            <CatAvatar
+              photoUrl={photoRemoved ? null : (previewUrl ?? existingPhotoUrl)}
+              name={form.name || 'cat'}
+              size={64}
+            />
+          </button>
+          {(previewUrl || (!photoRemoved && existingPhotoUrl)) ? (
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={() => fileInputRef.current?.click()}
+                className="text-xs text-ink-dim hover:text-ink-mid transition-colors">
+                Change photo
+              </button>
+              <span className="text-ink-dim text-xs">·</span>
+              <button
+                type="button"
+                onClick={() => { setPendingBlob(null); setPreviewUrl(null); setPhotoRemoved(true) }}
+                className="text-xs transition-colors"
+                style={{ color: 'rgba(248,113,113,0.7)' }}
+              >
+                Remove
+              </button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => fileInputRef.current?.click()}
+              className="text-xs text-ink-dim hover:text-ink-mid transition-colors">
+              Add photo
+            </button>
+          )}
+        </div>
+
         {field('Name', 'name', 'text', true, 'e.g. Luna', 200)}
         {field('Birthdate', 'birthdate', 'date', true)}
         <div className="grid grid-cols-2 gap-3">

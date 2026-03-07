@@ -74,6 +74,32 @@ export const updateCat = (id: string, data: Partial<Omit<Cat, 'id' | 'created_at
 export const deleteCat = (id: string) =>
   request<{ success: boolean }>(`/cats/${id}`, { method: 'DELETE' })
 
+export async function uploadCatPhoto(catId: string, blob: Blob): Promise<{ photo_url: string }> {
+  const form = new FormData()
+  form.append('photo', blob, 'photo.jpg')
+  const res = await fetch(`${BASE}/cats/${catId}/photo`, {
+    method: 'POST',
+    credentials: 'include',
+    body: form,
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: res.statusText })) as Record<string, unknown>
+    throw new ApiError((body.error as string) ?? 'Upload failed', res.status, body)
+  }
+  return res.json() as Promise<{ photo_url: string }>
+}
+
+export async function deleteCatPhoto(catId: string): Promise<void> {
+  const res = await fetch(`${BASE}/cats/${catId}/photo`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: res.statusText })) as Record<string, unknown>
+    throw new ApiError((body.error as string) ?? 'Delete failed', res.status, body)
+  }
+}
+
 // Measurements
 export const getMeasurements = (catId: string, type?: string) =>
   request<Measurement[]>(`/cats/${catId}/measurements${type ? `?type=${type}` : ''}`)

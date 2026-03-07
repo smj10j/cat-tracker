@@ -129,11 +129,22 @@ export default function CatExportPage() {
 
           {/* Document header */}
           <div className="border-b pb-6" style={{ borderColor: '#e5e7eb' }}>
-            <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: '#9ca3af' }}>
+            <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: '#9ca3af' }}>
               Cat Tracker — Vet Visit Summary
             </p>
-            <h1 className="text-2xl font-bold mb-1">{cat.name}</h1>
-            <p className="text-sm" style={{ color: '#6b7280' }}>Generated {generatedAt}</p>
+            <div className="flex items-center gap-4">
+              {cat.photo_url && (
+                <img
+                  src={cat.photo_url}
+                  alt={cat.name}
+                  style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1px solid #e5e7eb' }}
+                />
+              )}
+              <div>
+                <h1 className="text-2xl font-bold mb-0.5">{cat.name}</h1>
+                <p className="text-sm" style={{ color: '#6b7280' }}>Generated {generatedAt}</p>
+              </div>
+            </div>
           </div>
 
           {/* Cat info */}

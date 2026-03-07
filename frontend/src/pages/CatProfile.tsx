@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { getCat, getMeasurements, deleteMeasurement, getMedications, type Cat, type Measurement, type Medication } from '../lib/api'
+import { getCat, getMeasurements, deleteMeasurement, getMedications, uploadCatPhoto, deleteCatPhoto, type Cat, type Measurement, type Medication } from '../lib/api'
+import CatAvatar from '../components/CatAvatar'
+import CropModal from '../components/CropModal'
 import {
   assessHealth, STATUS_COLORS, STATUS_EMOJI, STATUS_LABEL,
 } from '../lib/healthMetrics'
@@ -204,6 +206,12 @@ export default function CatProfile() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const [cropFile, setCropFile] = useState<File | null>(null)
+  const [photoMenuOpen, setPhotoMenuOpen] = useState(false)
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const [photoError, setPhotoError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   useEffect(() => {
     if (!id) return
     Promise.all([getCat(id), getMeasurements(id), getMedications(id)])
@@ -225,6 +233,37 @@ export default function CatProfile() {
 
   function handleMeasurementAdded(m: Measurement) {
     setMeasurements((prev) => [...prev, m].sort((a, b) => a.measured_at.localeCompare(b.measured_at)))
+  }
+
+  async function handleCropSave(blob: Blob) {
+    if (!id || !cat) return
+    setCropFile(null)
+    setPhotoUploading(true)
+    setPhotoError(null)
+    try {
+      const { photo_url } = await uploadCatPhoto(id, blob)
+      setCat((c) => c ? { ...c, photo_url } : c)
+    } catch (e: unknown) {
+      setPhotoError((e as Error).message)
+    } finally {
+      setPhotoUploading(false)
+    }
+  }
+
+  async function handleRemovePhoto() {
+    if (!id || !cat) return
+    setPhotoMenuOpen(false)
+    if (!confirm('Remove this photo?')) return
+    setPhotoUploading(true)
+    setPhotoError(null)
+    try {
+      await deleteCatPhoto(id)
+      setCat((c) => c ? { ...c, photo_url: null } : c)
+    } catch (e: unknown) {
+      setPhotoError((e as Error).message)
+    } finally {
+      setPhotoUploading(false)
+    }
   }
 
   if (loading) return <SkeletonProfile />
@@ -297,20 +336,81 @@ export default function CatProfile() {
           <Link to={`/cats/${cat.id}/edit`} className="btn-ghost text-xs px-3 py-1.5">Edit</Link>
         </div>
 
+        {/* Hidden file input for photo selection */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            if (file) { setCropFile(file); setPhotoMenuOpen(false) }
+            e.target.value = ''
+          }}
+        />
+
+        {/* Crop modal */}
+        {cropFile && (
+          <CropModal
+            file={cropFile}
+            onCrop={handleCropSave}
+            onCancel={() => setCropFile(null)}
+          />
+        )}
+
         <div className="flex items-center gap-5">
-          <div
-            className="w-20 h-20 rounded-full flex items-center justify-center text-4xl shrink-0"
-            style={{
-              background: isUrgent
-                ? 'linear-gradient(135deg, rgba(248,113,113,0.25) 0%, rgba(248,113,113,0.15) 100%)'
-                : isConcerning
-                ? 'linear-gradient(135deg, rgba(249,115,22,0.25) 0%, rgba(249,115,22,0.15) 100%)'
-                : 'linear-gradient(135deg, rgba(192,132,252,0.25) 0%, rgba(251,146,60,0.2) 100%)',
-              border: `2px solid ${status !== 'ok' ? statusColor + '60' : 'rgba(255,255,255,0.12)'}`,
-              boxShadow: status !== 'ok' ? `0 0 24px ${statusColor}30` : '0 0 24px rgba(192,132,252,0.2)',
-            }}
-          >
-            🐱
+          <div className="relative shrink-0">
+            {/* Avatar ring */}
+            <button
+              type="button"
+              onClick={() => setPhotoMenuOpen((v) => !v)}
+              className="w-20 h-20 rounded-full flex items-center justify-center text-4xl overflow-hidden relative"
+              style={{
+                background: isUrgent
+                  ? 'linear-gradient(135deg, rgba(248,113,113,0.25) 0%, rgba(248,113,113,0.15) 100%)'
+                  : isConcerning
+                  ? 'linear-gradient(135deg, rgba(249,115,22,0.25) 0%, rgba(249,115,22,0.15) 100%)'
+                  : 'linear-gradient(135deg, rgba(192,132,252,0.25) 0%, rgba(251,146,60,0.2) 100%)',
+                border: `2px solid ${status !== 'ok' ? statusColor + '60' : 'rgba(255,255,255,0.12)'}`,
+                boxShadow: status !== 'ok' ? `0 0 24px ${statusColor}30` : '0 0 24px rgba(192,132,252,0.2)',
+                opacity: photoUploading ? 0.6 : 1,
+              }}
+            >
+              <CatAvatar photoUrl={cat.photo_url} name={cat.name} size={80} />
+              {/* Camera hint overlay */}
+              <div
+                className="absolute inset-0 flex items-end justify-center pb-1 opacity-0 hover:opacity-100 transition-opacity"
+                style={{ background: 'rgba(0,0,0,0.35)', borderRadius: '50%' }}
+              >
+                <span className="text-[9px] text-white font-semibold tracking-wide">EDIT</span>
+              </div>
+            </button>
+
+            {/* Photo action menu */}
+            {photoMenuOpen && (
+              <div
+                className="absolute left-0 top-full mt-2 rounded-2xl overflow-hidden z-10"
+                style={{ minWidth: 160, background: '#1e1730', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}
+              >
+                <button
+                  type="button"
+                  onClick={() => { setPhotoMenuOpen(false); fileInputRef.current?.click() }}
+                  className="w-full text-left px-4 py-3 text-sm font-medium text-ink hover:bg-white/5 transition-colors"
+                >
+                  {cat.photo_url ? 'Change photo' : 'Add photo'}
+                </button>
+                {cat.photo_url && (
+                  <button
+                    type="button"
+                    onClick={handleRemovePhoto}
+                    className="w-full text-left px-4 py-3 text-sm font-medium transition-colors border-t"
+                    style={{ color: '#f87171', borderColor: 'rgba(255,255,255,0.06)' }}
+                  >
+                    Remove photo
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex-1 min-w-0">
@@ -359,6 +459,9 @@ export default function CatProfile() {
       </div>
 
       <div className="px-4 space-y-4">
+        {photoError && (
+          <div className="glass-card p-3 text-rose text-xs" style={{ borderColor: 'rgba(248,113,113,0.2)' }}>{photoError}</div>
+        )}
         {/* Insights panel — health alerts + correlations */}
         <InsightsPanel
           cat={cat}

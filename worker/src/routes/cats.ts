@@ -213,4 +213,49 @@ cats.delete('/:id', async (c) => {
   return c.json({ success: true })
 })
 
+const PHOTOS_BASE = 'https://pub-40305f88ebb54339b47a48224f195f92.r2.dev'
+const MAX_PHOTO_BYTES = 2 * 1024 * 1024 // 2MB
+
+cats.post('/:id/photo', async (c) => {
+  const userId = c.get('userId')
+  const id = c.req.param('id')
+
+  const catRole = await getCatRole(c.env.DB, id, userId)
+  if (!catRole) return c.json({ error: 'Not found' }, 404)
+  if (!hasRole(catRole, 'editor')) return c.json({ error: 'Editor access required' }, 403)
+
+  const formData = await c.req.formData()
+  const file = formData.get('photo')
+  if (!file || typeof file === 'string') return c.json({ error: 'Missing photo field' }, 400)
+
+  if (file.type !== 'image/jpeg') return c.json({ error: 'Only JPEG images are accepted' }, 400)
+
+  const bytes = await file.arrayBuffer()
+  if (bytes.byteLength > MAX_PHOTO_BYTES) return c.json({ error: 'Photo must be under 2MB' }, 400)
+
+  const key = `cats/${id}/photo.jpg`
+  await c.env.PHOTOS.put(key, bytes, { httpMetadata: { contentType: 'image/jpeg' } })
+
+  const photoUrl = `${PHOTOS_BASE}/${key}`
+  await c.env.DB.prepare("UPDATE cats SET photo_url = ?, updated_at = datetime('now') WHERE id = ?")
+    .bind(photoUrl, id).run()
+
+  return c.json({ photo_url: photoUrl })
+})
+
+cats.delete('/:id/photo', async (c) => {
+  const userId = c.get('userId')
+  const id = c.req.param('id')
+
+  const catRole = await getCatRole(c.env.DB, id, userId)
+  if (!catRole) return c.json({ error: 'Not found' }, 404)
+  if (!hasRole(catRole, 'editor')) return c.json({ error: 'Editor access required' }, 403)
+
+  await c.env.PHOTOS.delete(`cats/${id}/photo.jpg`)
+  await c.env.DB.prepare("UPDATE cats SET photo_url = NULL, updated_at = datetime('now') WHERE id = ?")
+    .bind(id).run()
+
+  return c.json({ ok: true })
+})
+
 export default cats

@@ -352,6 +352,36 @@
 - [x] frontend/pages/CatProfile.tsx: display microchip badge for real IDs (spaced formatting)
 - [x] Deploy worker + frontend
 
+## Phase 26: Cat Photos Implementation (2026-03-07)
+
+### Infrastructure
+- [x] Create R2 bucket `cat-tracker-photos` with public access (pub-40305f88ebb54339b47a48224f195f92.r2.dev)
+- [x] worker/wrangler.toml: add [[r2_buckets]] binding
+- [x] worker/src/types.ts: add PHOTOS: R2Bucket to AppEnv
+
+### Backend
+- [x] worker/src/routes/cats.ts: POST /api/cats/:id/photo (multipart, validate, R2 put, D1 update)
+- [x] worker/src/routes/cats.ts: DELETE /api/cats/:id/photo (R2 delete, D1 null)
+- [x] frontend/public/_headers: update CSP img-src with R2 public domain + blob:
+
+### Frontend
+- [x] frontend/src/lib/api.ts: uploadCatPhoto(), deleteCatPhoto()
+- [x] frontend/src/components/CatAvatar.tsx: new reusable component
+- [x] frontend/src/components/CropModal.tsx: new crop/zoom modal (Canvas API)
+- [x] frontend/src/pages/AddEditCat.tsx: photo slot + file picker + crop flow
+- [x] frontend/src/pages/CatProfile.tsx: tappable avatar with action sheet
+- [x] frontend/src/pages/Home.tsx: replace emoji div with CatAvatar
+- [x] frontend/src/pages/CatExportPage.tsx: photo in print header
+
+### Docs + Deploy
+- [x] Update PRD-cat-photos.md status to Implemented
+- [x] Update REGISTRY.md status to Implemented
+- [x] Update docs/TDD.md with R2 bucket and photo routes
+- [x] Deploy worker
+- [x] Deploy frontend
+
+---
+
 ## Phase 25: Email infra docs + Cat Photos PRD (2026-03-07)
 
 - [x] Update all MailChannels references across docs to Resend + noreply@01j.me (PRD-household-sharing.md, PRD-medication-reminders.md, PRD-features-backlog.md, REGISTRY.md)

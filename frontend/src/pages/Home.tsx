@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { getCats, getMeasurements, claimCats, getNotifications, getHouseholdList, type Cat, type Measurement, type HouseholdListItem } from '../lib/api'
+import CatAvatar from '../components/CatAvatar'
 import { assessHealth, STATUS_COLORS, STATUS_LABEL } from '../lib/healthMetrics'
 import { detectCorrelations, getHomeBadge } from '../lib/correlations'
 import { useAuth } from '../contexts/AuthContext'
@@ -283,10 +284,10 @@ export default function Home() {
                   style={{ ...cardStyle, animationFillMode: 'forwards' }}
                 >
                   <div
-                    className="shrink-0 w-14 h-14 rounded-full flex items-center justify-center text-2xl"
+                    className="shrink-0 w-14 h-14 rounded-full flex items-center justify-center text-2xl overflow-hidden"
                     style={avatarStyle}
                   >
-                    🐱
+                    <CatAvatar photoUrl={cat.photo_url} name={cat.name} size={56} />
                   </div>
 
                   <div className="flex-1 min-w-0">

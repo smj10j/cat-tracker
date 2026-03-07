@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | `Draft` |
+| **Status** | `Implemented` |
 | **Author** | Product Owner |
 | **Created** | 2026-03-07 |
 | **Supersedes** | PRD-features-backlog.md §1a (Photo Upload) |

@@ -14,17 +14,22 @@
 +----------------v------------------+
 |  Cloudflare Worker (Hono)         |
 |  /api/auth/*                      |
-|  /api/cats/*                      |
+|  /api/cats/* (incl. /:id/photo)   |
 |  /api/measurements/*              |
-|  /api/import                      |
-|  /api/health                      |
-+----------------+------------------+
-                 | D1 binding
-+----------------v------------------+
-|  Cloudflare D1 (SQLite)           |
-|  cats, measurements,              |
-|  users, sessions, oauth_states    |
-+-----------------------------------+
+|  /api/medications/* /api/doses/*  |
+|  /api/household/*                 |
+|  /api/import  /api/health         |
++--------+-----------+--------------+
+         | D1        | R2
++--------v----+  +---v--------------------------+
+| D1 (SQLite) |  | R2 bucket: cat-tracker-photos|
+| cats,       |  | Public URL:                  |
+| measurements|  | pub-40305f88ebb54339b47a      |
+| users,      |  | 48224f195f92.r2.dev           |
+| sessions,   |  | Key scheme: cats/{id}/photo.j|
+| households, |  | pg (one object per cat,      |
+| medications |  | overwritten on re-upload)    |
++-------------+  +------------------------------+
 ```
 
 The frontend (Cloudflare Pages) proxies all `/api/*` calls through a Pages Function
@@ -97,7 +102,9 @@ cat-tracker/
 │   │   │   ├── CorrelationChart.tsx    # Normalized dual-line chart with input→output selectors
 │   │   │   ├── QuickAdd.tsx            # Bottom sheet for quick measurement logging
 │   │   │   ├── PageShell.tsx           # Layout wrapper; owns QuickAdd open state
-│   │   │   └── BottomNav.tsx           # Fixed 3-item bottom nav (Cats | Log | Compare)
+│   │   │   ├── BottomNav.tsx           # Fixed 3-item bottom nav (Cats | Log | Compare)
+│   │   │   ├── CatAvatar.tsx           # Reusable photo/emoji avatar; used in Home, CatProfile, AddEditCat
+│   │   │   └── CropModal.tsx           # Full-screen crop/zoom modal; CSS transforms + Canvas extraction
 │   │   └── lib/
 │   │       ├── api.ts                  # Typed fetch wrappers for all API routes
 │   │       ├── healthMetrics.ts        # Vet-threshold health assessment + STATUS_EMOJI/COLORS

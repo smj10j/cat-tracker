@@ -29,7 +29,7 @@
 | [PRD-medication-reminders.md](PRD-medication-reminders.md) | Medication Reminders | `Implemented` | 2026-03-07 12:00 |
 | [PRD-household-sharing.md](PRD-household-sharing.md) | Household Sharing & Multi-User Access | `Implemented` | 2026-03-07 18:00 |
 | [PRD-household-sharing-phase2.md](PRD-household-sharing-phase2.md) | Household Sharing — Phase 2 (lifecycle + audit) | `Draft` | 2026-03-07 13:00 |
-| [PRD-cat-photos.md](PRD-cat-photos.md) | Cat Photo Uploads | `Draft` | 2026-03-07 19:00 |
+| [PRD-cat-photos.md](PRD-cat-photos.md) | Cat Photo Uploads | `Implemented` | 2026-03-07 20:00 |
 
 ---
 
@@ -335,8 +335,8 @@ Each entry below provides full implementation notes and open questions. The summ
 
 | | |
 |---|---|
-| **Status** | `Draft` |
-| **Last updated** | 2026-03-07 19:00 |
+| **Status** | `Implemented` |
+| **Last updated** | 2026-03-07 20:00 |
 | **Supersedes** | PRD-features-backlog.md §1a |
 
 **Problem:** Every cat card and profile shows a generic 🐱 emoji. Real photos make the app feel personal and drive retention.

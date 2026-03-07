@@ -389,7 +389,7 @@ medications.get('/notifications', async (c) => {
 medications.post('/doses/:id/administer', async (c) => {
   const userId = c.get('userId')
   const doseId = c.req.param('id')
-  const body = await c.req.json<{ administered_at?: string; notes?: string }>().catch(() => ({}))
+  const body = await c.req.json<{ administered_at?: string; notes?: string }>().catch(() => ({} as { administered_at?: string; notes?: string }))
 
   const dose = await c.env.DB.prepare(
     `SELECT d.id FROM medication_doses d
@@ -415,7 +415,7 @@ medications.post('/doses/:id/administer', async (c) => {
 medications.post('/doses/:id/skip', async (c) => {
   const userId = c.get('userId')
   const doseId = c.req.param('id')
-  const body = await c.req.json<{ skip_reason?: string }>().catch(() => ({}))
+  const body = await c.req.json<{ skip_reason?: string }>().catch(() => ({} as { skip_reason?: string }))
 
   const dose = await c.env.DB.prepare(
     `SELECT d.id FROM medication_doses d

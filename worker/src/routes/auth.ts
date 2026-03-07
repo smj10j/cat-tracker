@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { getCookie } from 'hono/cookie'
 import type { AppEnv } from '../types'
 import { requireAuth } from '../middleware/auth'
+import { ensureHousehold } from '../lib/household'
 
 const auth = new Hono<AppEnv>()
 
@@ -9,16 +10,17 @@ function sessionCookie(value: string, maxAge: number) {
   return `session=${value}; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}; Path=/`
 }
 
-// GET /api/auth/login?provider=google
+// GET /api/auth/login?provider=google&next=/invite?token=xxx
 auth.get('/auth/login', async (c) => {
   const redirectBase = c.env.OAUTH_REDIRECT_BASE
+  const nextUrl = c.req.query('next') ?? null
   const state = crypto.randomUUID().replace(/-/g, '')
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString()
 
   // Store state in D1 (avoids cookie round-trip through redirect proxy)
   await c.env.DB.prepare(
-    "INSERT INTO oauth_states (state, expires_at) VALUES (?, ?) ON CONFLICT(state) DO NOTHING"
-  ).bind(state, expiresAt).run()
+    "INSERT INTO oauth_states (state, expires_at, next_url) VALUES (?, ?, ?) ON CONFLICT(state) DO NOTHING"
+  ).bind(state, expiresAt, nextUrl).run()
 
   // Clean up old states opportunistically
   c.executionCtx.waitUntil(
@@ -51,15 +53,15 @@ auth.get('/auth/callback', async (c) => {
   }
 
   // SEC-01: Atomically consume the state token via DELETE...RETURNING.
-  // A single statement prevents TOCTOU — two concurrent callbacks with the
-  // same state cannot both succeed because only one DELETE can return a row.
   const consumed = await c.env.DB.prepare(
-    "DELETE FROM oauth_states WHERE state = ? AND expires_at > datetime('now') RETURNING state"
-  ).bind(state).first<{ state: string }>()
+    "DELETE FROM oauth_states WHERE state = ? AND expires_at > datetime('now') RETURNING state, next_url"
+  ).bind(state).first<{ state: string; next_url: string | null }>()
 
   if (!consumed) {
     return new Response(null, { status: 302, headers: { Location: `${redirectBase}/login?error=invalid_state` } })
   }
+
+  const postLoginRedirect = consumed.next_url ?? '/'
 
   // Exchange authorization code for access token
   const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -127,7 +129,7 @@ auth.get('/auth/callback', async (c) => {
   return new Response(null, {
     status: 302,
     headers: {
-      Location: `${redirectBase}/`,
+      Location: `${redirectBase}${postLoginRedirect}`,
       'Set-Cookie': sessionCookie(sessionId, 7 * 24 * 60 * 60),
     },
   })
@@ -175,6 +177,14 @@ auth.post('/auth/claim-cats', requireAuth, async (c) => {
   const result = await c.env.DB.prepare(
     'UPDATE cats SET user_id = ? WHERE user_id IS NULL'
   ).bind(userId).run()
+
+  // Migrate newly claimed cats to this user's household
+  if (result.meta.changes > 0) {
+    const { id: householdId } = await ensureHousehold(c.env.DB, userId)
+    await c.env.DB.prepare(
+      'UPDATE cats SET household_id = ? WHERE user_id = ? AND household_id IS NULL'
+    ).bind(householdId, userId).run()
+  }
 
   return c.json({ claimed: result.meta.changes })
 })

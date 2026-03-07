@@ -12,6 +12,8 @@ import CatExportPage from './pages/CatExportPage'
 import LoginPage from './pages/LoginPage'
 import NotificationsPage from './pages/NotificationsPage'
 import MedicationFormPage from './pages/MedicationFormPage'
+import HouseholdPage from './pages/HouseholdPage'
+import InvitePage from './pages/InvitePage'
 import PageShell from './components/PageShell'
 
 export default function App() {
@@ -20,6 +22,7 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/invite" element={<InvitePage />} />
           <Route path="/*" element={
             <ProtectedRoute>
               <PageShell>
@@ -36,6 +39,7 @@ export default function App() {
                   <Route path="/cats/:catId/medications/new" element={<MedicationFormPage />} />
                   <Route path="/medications/:medId/edit" element={<MedicationFormPage />} />
                   <Route path="/notifications" element={<NotificationsPage />} />
+                  <Route path="/household" element={<HouseholdPage />} />
                 </Routes>
               </PageShell>
             </ProtectedRoute>

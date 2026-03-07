@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../types'
+import { ensureHousehold } from '../lib/household'
 
 const importRoute = new Hono<AppEnv>()
 
@@ -10,6 +11,7 @@ const MAX_NOTES = 4000
 // POST /api/import
 importRoute.post('/import', async (c) => {
   const userId = c.get('userId')
+  const { id: householdId } = await ensureHousehold(c.env.DB, userId)
   const body = await c.req.text()
 
   // SEC-06: Body size limit
@@ -130,10 +132,10 @@ importRoute.post('/import', async (c) => {
     } else {
       const tempMicrochip = microchipId || `temp-microchip-id-${crypto.randomUUID()}`
       const created = await c.env.DB.prepare(
-        `INSERT INTO cats (name, birthdate, notes, microchip_id, user_id)
-         VALUES (?, '2020-01-01', 'Created via CSV import', ?, ?)
+        `INSERT INTO cats (name, birthdate, notes, microchip_id, user_id, household_id)
+         VALUES (?, '2020-01-01', 'Created via CSV import', ?, ?, ?)
          RETURNING id`
-      ).bind(originalName, tempMicrochip, userId).first<{ id: string }>()
+      ).bind(originalName, tempMicrochip, userId, householdId).first<{ id: string }>()
 
       if (!created) {
         errors.push(`Failed to create cat "${originalName}"`)

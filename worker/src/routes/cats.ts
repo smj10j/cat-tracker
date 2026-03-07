@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../types'
+import { ensureHousehold, getCatRole, hasRole } from '../lib/household'
 
 const cats = new Hono<AppEnv>()
 
@@ -21,33 +22,44 @@ async function checkMicrochipConflict(
   requestingUserId: string
 ): Promise<{ error: string; conflictingCatName?: string } | null> {
   const query = currentCatId
-    ? 'SELECT id, name, user_id FROM cats WHERE microchip_id = ? AND id != ?'
-    : 'SELECT id, name, user_id FROM cats WHERE microchip_id = ?'
+    ? 'SELECT c.id, c.name FROM cats c WHERE c.microchip_id = ? AND c.id != ?'
+    : 'SELECT c.id, c.name FROM cats c WHERE c.microchip_id = ?'
 
   const row = currentCatId
-    ? await db.prepare(query).bind(microchipId, currentCatId).first<{ id: string; name: string; user_id: string | null }>()
-    : await db.prepare(query).bind(microchipId).first<{ id: string; name: string; user_id: string | null }>()
+    ? await db.prepare(query).bind(microchipId, currentCatId).first<{ id: string; name: string }>()
+    : await db.prepare(query).bind(microchipId).first<{ id: string; name: string }>()
 
   if (!row) return null
 
-  // Same user owns the conflicting cat — reveal its name
-  if (row.user_id === requestingUserId) {
+  // Check if the conflicting cat is accessible to this user (same household)
+  const conflictRole = await getCatRole(db, row.id, requestingUserId)
+  if (conflictRole) {
     return { error: 'microchip_id_conflict', conflictingCatName: row.name as string }
   }
-  // Different user — privacy-preserving generic error
   return { error: 'microchip_id_conflict' }
 }
 
 cats.get('/', async (c) => {
   const userId = c.get('userId')
-  const result = await c.env.DB.prepare(
-    'SELECT * FROM cats WHERE user_id = ? ORDER BY name ASC'
-  ).bind(userId).all()
+  // Trigger lazy migration so this user's cats have household_id set
+  await ensureHousehold(c.env.DB, userId)
+
+  const result = await c.env.DB.prepare(`
+    SELECT c.*, h.name as household_name
+    FROM cats c
+    LEFT JOIN households h ON h.id = c.household_id
+    WHERE c.household_id IN (
+      SELECT household_id FROM household_members WHERE user_id = ? AND status = 'active'
+    ) OR (c.user_id = ? AND c.household_id IS NULL)
+    ORDER BY c.name ASC
+  `).bind(userId, userId).all()
   return c.json(result.results)
 })
 
 cats.post('/', async (c) => {
   const userId = c.get('userId')
+  // Ensure household exists and get householdId for new cat
+  const { id: householdId } = await ensureHousehold(c.env.DB, userId)
   const body = await c.req.json<{
     name: string
     birthdate: string
@@ -84,8 +96,8 @@ cats.post('/', async (c) => {
   }
 
   const result = await c.env.DB.prepare(
-    `INSERT INTO cats (name, birthdate, breed, coloring, notes, photo_url, sex, microchip_id, user_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO cats (name, birthdate, breed, coloring, notes, photo_url, sex, microchip_id, user_id, household_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      RETURNING *`
   )
     .bind(
@@ -98,6 +110,7 @@ cats.post('/', async (c) => {
       body.sex ?? null,
       microchipId,
       userId,
+      householdId,
     )
     .first()
 
@@ -106,17 +119,25 @@ cats.post('/', async (c) => {
 
 cats.get('/:id', async (c) => {
   const userId = c.get('userId')
-  const cat = await c.env.DB.prepare(
-    'SELECT * FROM cats WHERE id = ? AND (user_id = ? OR user_id IS NULL)'
-  ).bind(c.req.param('id'), userId).first()
+  const catId = c.req.param('id')
+  const role = await getCatRole(c.env.DB, catId, userId)
+  if (!role) return c.json({ error: 'Not found' }, 404)
 
-  if (!cat) return c.json({ error: 'Not found' }, 404)
+  const cat = await c.env.DB.prepare(
+    `SELECT c.*, h.name as household_name FROM cats c
+     LEFT JOIN households h ON h.id = c.household_id WHERE c.id = ?`,
+  ).bind(catId).first()
   return c.json(cat)
 })
 
 cats.put('/:id', async (c) => {
   const userId = c.get('userId')
   const id = c.req.param('id')
+
+  const catRole = await getCatRole(c.env.DB, id, userId)
+  if (!catRole) return c.json({ error: 'Not found' }, 404)
+  if (!hasRole(catRole, 'editor')) return c.json({ error: 'Editor access required' }, 403)
+
   const body = await c.req.json<{
     name?: string
     birthdate?: string
@@ -128,9 +149,8 @@ cats.put('/:id', async (c) => {
     microchip_id?: string | null
   }>()
 
-  const existing = await c.env.DB.prepare(
-    'SELECT * FROM cats WHERE id = ? AND user_id = ?'
-  ).bind(id, userId).first<Record<string, unknown>>()
+  const existing = await c.env.DB.prepare('SELECT * FROM cats WHERE id = ?')
+    .bind(id).first<Record<string, unknown>>()
   if (!existing) return c.json({ error: 'Not found' }, 404)
 
   // SEC-04: Length validation
@@ -183,10 +203,10 @@ cats.put('/:id', async (c) => {
 cats.delete('/:id', async (c) => {
   const userId = c.get('userId')
   const id = c.req.param('id')
-  const existing = await c.env.DB.prepare(
-    'SELECT id FROM cats WHERE id = ? AND user_id = ?'
-  ).bind(id, userId).first()
-  if (!existing) return c.json({ error: 'Not found' }, 404)
+
+  const catRole = await getCatRole(c.env.DB, id, userId)
+  if (!catRole) return c.json({ error: 'Not found' }, 404)
+  if (!hasRole(catRole, 'editor')) return c.json({ error: 'Editor access required' }, 403)
 
   await c.env.DB.prepare('DELETE FROM measurements WHERE cat_id = ?').bind(id).run()
   await c.env.DB.prepare('DELETE FROM cats WHERE id = ?').bind(id).run()

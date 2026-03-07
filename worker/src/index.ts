@@ -7,6 +7,7 @@ import cats from './routes/cats'
 import measurements from './routes/measurements'
 import importRoute from './routes/import'
 import medicationsRoute, { generateDoses, insertDoses, windowEnd90 } from './routes/medications'
+import householdRoute, { householdPublic } from './routes/household'
 
 const app = new Hono<AppEnv>()
 
@@ -39,6 +40,9 @@ app.get('/api/health', (c) => c.json({ status: 'ok' }))
 // Auth routes (login/callback/logout/me — no auth middleware on login/callback)
 app.route('/api', authRoutes)
 
+// Public household endpoints (no auth) — must be registered BEFORE auth guard
+app.route('/api', householdPublic)
+
 // Protected routes
 app.use('/api/cats/*', requireAuth)
 app.use('/api/measurements/*', requireAuth)
@@ -47,11 +51,14 @@ app.use('/api/medications', requireAuth)
 app.use('/api/medications/*', requireAuth)
 app.use('/api/notifications', requireAuth)
 app.use('/api/doses/*', requireAuth)
+app.use('/api/household', requireAuth)
+app.use('/api/household/*', requireAuth)
 
 app.route('/api/cats', cats)
 app.route('/api', measurements)
 app.route('/api', importRoute)
 app.route('/api', medicationsRoute)
+app.route('/api/household', householdRoute)
 
 export default {
   fetch: app.fetch,
@@ -59,6 +66,12 @@ export default {
     ctx.waitUntil((async () => {
       // Clean up expired sessions
       await env.DB.prepare("DELETE FROM sessions WHERE expires_at < datetime('now')").run()
+
+      // Expire stale pending invites
+      await env.DB.prepare(
+        `UPDATE household_members SET status = 'removed', invite_token_hash = NULL
+         WHERE status = 'pending' AND invite_expires_at < datetime('now')`,
+      ).run()
 
       // Extend 90-day rolling dose window for all active medications
       const activeMeds = await env.DB.prepare(

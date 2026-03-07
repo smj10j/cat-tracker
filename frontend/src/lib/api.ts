@@ -8,6 +8,8 @@ export interface Cat {
   photo_url: string | null
   sex: string | null
   microchip_id: string | null
+  household_id: string | null
+  household_name: string | null
   created_at: string
   updated_at: string
 }
@@ -65,9 +67,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 // Cats
 export const getCats = () => request<Cat[]>('/cats')
 export const getCat = (id: string) => request<Cat>(`/cats/${id}`)
-export const createCat = (data: Omit<Cat, 'id' | 'created_at' | 'updated_at'>) =>
+export const createCat = (data: Omit<Cat, 'id' | 'created_at' | 'updated_at' | 'household_id' | 'household_name'>) =>
   request<Cat>('/cats', { method: 'POST', body: JSON.stringify(data) })
-export const updateCat = (id: string, data: Partial<Omit<Cat, 'id' | 'created_at' | 'updated_at'>>) =>
+export const updateCat = (id: string, data: Partial<Omit<Cat, 'id' | 'created_at' | 'updated_at' | 'household_id' | 'household_name'>>) =>
   request<Cat>(`/cats/${id}`, { method: 'PUT', body: JSON.stringify(data) })
 export const deleteCat = (id: string) =>
   request<{ success: boolean }>(`/cats/${id}`, { method: 'DELETE' })
@@ -164,6 +166,88 @@ export const archiveMedication = (id: string) =>
   request<{ success: boolean }>(`/medications/${id}`, { method: 'DELETE' })
 
 export const getNotifications = () => request<NotificationInbox>('/notifications')
+
+// Household
+export interface HouseholdMember {
+  id: string
+  user_id: string
+  role: string
+  invited_at: string
+  joined_at: string | null
+  display_name: string | null
+  email: string | null
+  avatar_url: string | null
+}
+
+export interface PendingInvite {
+  id: string
+  invite_email: string
+  role: string
+  invited_at: string
+  invite_expires_at: string | null
+  invited_by_name: string | null
+}
+
+export interface HouseholdInfo {
+  id: string
+  name: string
+  owner_user_id: string
+  created_at: string
+}
+
+export interface HouseholdResponse {
+  household: HouseholdInfo
+  members: HouseholdMember[]
+  pendingInvites: PendingInvite[]
+  myRole: string
+  isOwner: boolean
+}
+
+export interface HouseholdListItem {
+  id: string
+  name: string
+  role: string
+  is_owner: number
+}
+
+export interface InvitePreview {
+  household_name: string
+  invited_by_name: string | null
+  invite_email: string
+  role: string
+}
+
+export const getHousehold = () => request<HouseholdResponse>('/household')
+export const getHouseholdList = () => request<HouseholdListItem[]>('/household/list')
+export const renameHousehold = (name: string) =>
+  request<HouseholdInfo>('/household', { method: 'PUT', body: JSON.stringify({ name }) })
+export const sendInvite = (email: string, role: string) =>
+  request<{ success: boolean; inviteUrl: string }>('/household/invites', {
+    method: 'POST', body: JSON.stringify({ email, role }),
+  })
+export const revokeInvite = (id: string) =>
+  request<{ success: boolean }>(`/household/invites/${id}`, { method: 'DELETE' })
+export const changeMemberRole = (userId: string, role: string) =>
+  request<{ success: boolean }>(`/household/members/${userId}/role`, {
+    method: 'PUT', body: JSON.stringify({ role }),
+  })
+export const removeMember = (userId: string) =>
+  request<{ success: boolean }>(`/household/members/${userId}`, { method: 'DELETE' })
+export const acceptInvite = (token: string) =>
+  request<{ success: boolean; household_id: string }>('/household/invites/accept', {
+    method: 'POST', body: JSON.stringify({ token }),
+  })
+export const declineInvite = (token: string) =>
+  request<{ success: boolean }>('/household/invites/decline', {
+    method: 'POST', body: JSON.stringify({ token }),
+  })
+export const getInvitePreview = (token: string) =>
+  fetch(`/api/household/invites/preview?token=${encodeURIComponent(token)}`)
+    .then(async res => {
+      const body = await res.json() as InvitePreview | { error: string }
+      if (!res.ok) throw new ApiError((body as { error: string }).error, res.status)
+      return body as InvitePreview
+    })
 export const administerDose = (id: string, data?: { administered_at?: string; notes?: string }) =>
   request<MedicationDose>(`/doses/${id}/administer`, { method: 'POST', body: JSON.stringify(data ?? {}) })
 export const skipDose = (id: string, skip_reason?: string) =>

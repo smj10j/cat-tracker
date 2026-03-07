@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../types'
+import { getCatRole, hasRole } from '../lib/household'
 
 const measurements = new Hono<AppEnv>()
 
@@ -14,11 +15,8 @@ measurements.get('/cats/:id/measurements', async (c) => {
   const catId = c.req.param('id')
   const type = c.req.query('type')
 
-  // Verify cat belongs to this user (or is unclaimed)
-  const cat = await c.env.DB.prepare(
-    'SELECT id FROM cats WHERE id = ? AND (user_id = ? OR user_id IS NULL)'
-  ).bind(catId, userId).first()
-  if (!cat) return c.json({ error: 'Cat not found' }, 404)
+  const catRole = await getCatRole(c.env.DB, catId, userId)
+  if (!catRole) return c.json({ error: 'Cat not found' }, 404)
 
   const result = type
     ? await c.env.DB.prepare(
@@ -43,11 +41,9 @@ measurements.post('/cats/:id/measurements', async (c) => {
     notes?: string
   }>()
 
-  // Owner-only: cat must belong to this user (not orphaned)
-  const cat = await c.env.DB.prepare(
-    'SELECT id FROM cats WHERE id = ? AND user_id = ?'
-  ).bind(catId, userId).first()
-  if (!cat) return c.json({ error: 'Cat not found' }, 404)
+  const writeRole = await getCatRole(c.env.DB, catId, userId)
+  if (!writeRole) return c.json({ error: 'Cat not found' }, 404)
+  if (!hasRole(writeRole, 'contributor')) return c.json({ error: 'Contributor access required' }, 403)
 
   if (!body.type || body.value === undefined || !body.unit || !body.measured_at) {
     return c.json({ error: 'type, value, unit, and measured_at are required' }, 400)
@@ -91,13 +87,14 @@ measurements.delete('/measurements/:id', async (c) => {
   const userId = c.get('userId')
   const id = c.req.param('id')
 
-  // Verify the measurement belongs to a cat owned by this user
-  const existing = await c.env.DB.prepare(
-    `SELECT m.id FROM measurements m
-     JOIN cats c ON c.id = m.cat_id
-     WHERE m.id = ? AND c.user_id = ?`
-  ).bind(id, userId).first()
-  if (!existing) return c.json({ error: 'Not found' }, 404)
+  // Verify the measurement belongs to a cat this user can write to
+  const mRow = await c.env.DB.prepare(
+    `SELECT m.id, m.cat_id FROM measurements m WHERE m.id = ?`,
+  ).bind(id).first<{ id: string; cat_id: string }>()
+  if (!mRow) return c.json({ error: 'Not found' }, 404)
+
+  const delRole = await getCatRole(c.env.DB, mRow.cat_id, userId)
+  if (!delRole || !hasRole(delRole, 'contributor')) return c.json({ error: 'Not found' }, 404)
 
   await c.env.DB.prepare('DELETE FROM measurements WHERE id = ?').bind(id).run()
   return c.json({ success: true })

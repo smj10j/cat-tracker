@@ -100,3 +100,35 @@ CREATE TABLE IF NOT EXISTS medication_doses (
 
 CREATE INDEX IF NOT EXISTS idx_doses_medication ON medication_doses(medication_id, due_at);
 CREATE INDEX IF NOT EXISTS idx_doses_due ON medication_doses(due_at, administered_at);
+
+-- Household sharing (added 2026-03-07)
+CREATE TABLE IF NOT EXISTS households (
+  id            TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  name          TEXT NOT NULL,
+  owner_user_id TEXT NOT NULL REFERENCES users(id),
+  created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS household_members (
+  id                TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  household_id      TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+  user_id           TEXT REFERENCES users(id) ON DELETE CASCADE,
+  role              TEXT NOT NULL,
+  status            TEXT NOT NULL DEFAULT 'pending',
+  invited_by        TEXT REFERENCES users(id),
+  invite_email      TEXT,
+  invite_token_hash TEXT UNIQUE,
+  invite_expires_at TEXT,
+  invited_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  joined_at         TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_hm_household ON household_members(household_id, status);
+CREATE INDEX IF NOT EXISTS idx_hm_user ON household_members(user_id, status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_hm_active_user
+  ON household_members(household_id, user_id)
+  WHERE status = 'active';
+
+-- Run once: ALTER TABLE cats ADD COLUMN household_id TEXT REFERENCES households(id);
+-- Run once: CREATE INDEX IF NOT EXISTS idx_cats_household ON cats(household_id);
+-- Run once: ALTER TABLE oauth_states ADD COLUMN next_url TEXT;

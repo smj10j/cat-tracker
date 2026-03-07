@@ -131,7 +131,7 @@ export default function InsightsPanel({
                 <div key={`${r.typeA}-${r.typeB}`} className="flex items-start gap-2">
                   {strengthDot(r.strength)}
                   <p className="text-sm text-ink-mid leading-snug">
-                    {describeCorrelation(r, cat.name)}
+                    {describeCorrelation(r, cat.name, cat.sex)}
                   </p>
                 </div>
               ))}

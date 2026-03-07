@@ -7,7 +7,7 @@ export default function AddEditCat() {
   const navigate = useNavigate()
   const isEdit = Boolean(id)
 
-  const [form, setForm] = useState({ name: '', birthdate: '', breed: '', coloring: '', notes: '' })
+  const [form, setForm] = useState({ name: '', birthdate: '', breed: '', coloring: '', notes: '', sex: '' })
   const [loading, setLoading] = useState(isEdit)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -15,12 +15,12 @@ export default function AddEditCat() {
   useEffect(() => {
     if (!id) return
     getCat(id)
-      .then((cat) => setForm({ name: cat.name, birthdate: cat.birthdate, breed: cat.breed ?? '', coloring: cat.coloring ?? '', notes: cat.notes ?? '' }))
+      .then((cat) => setForm({ name: cat.name, birthdate: cat.birthdate, breed: cat.breed ?? '', coloring: cat.coloring ?? '', notes: cat.notes ?? '', sex: cat.sex ?? '' }))
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
   }, [id])
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
@@ -35,6 +35,7 @@ export default function AddEditCat() {
         breed: form.breed.trim() || null,
         coloring: form.coloring.trim() || null,
         notes: form.notes.trim() || null,
+        sex: form.sex || null,
         photo_url: null,
       }
       if (isEdit && id) {
@@ -102,10 +103,18 @@ export default function AddEditCat() {
               className="input-dark w-full px-4 py-3 text-sm" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Coloring</label>
-            <input name="coloring" value={form.coloring} onChange={handleChange} placeholder="Orange tabby"
-              className="input-dark w-full px-4 py-3 text-sm" />
+            <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Sex</label>
+            <select name="sex" value={form.sex} onChange={handleChange} className="input-dark w-full px-4 py-3 text-sm">
+              <option value="">Unknown</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
           </div>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Coloring</label>
+          <input name="coloring" value={form.coloring} onChange={handleChange} placeholder="Orange tabby"
+            className="input-dark w-full px-4 py-3 text-sm" />
         </div>
         <div>
           <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Notes</label>

@@ -208,7 +208,6 @@ export default function QuickAdd({ open, onClose }: Props) {
                       onChange={(e) => setForm((f) => ({ ...f, value: e.target.value }))}
                       placeholder="e.g. 9.4"
                       className="input-dark w-full px-3 py-3 text-sm"
-                      autoFocus
                     />
                   </div>
                   <div>

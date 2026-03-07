@@ -260,7 +260,7 @@ export default function CatExportPage() {
                 {correlations.map((r) => (
                   <li key={`${r.typeA}-${r.typeB}`} className="flex items-start gap-2 text-sm">
                     <span style={{ color: r.strength === 'notable' ? '#7c3aed' : '#ea580c' }}>·</span>
-                    <span>{describeCorrelation(r, cat.name)}</span>
+                    <span>{describeCorrelation(r, cat.name, cat.sex)}</span>
                   </li>
                 ))}
               </ul>

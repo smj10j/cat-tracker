@@ -6,9 +6,12 @@ CREATE TABLE IF NOT EXISTS cats (
   coloring    TEXT,
   notes       TEXT,
   photo_url   TEXT,
+  sex         TEXT,
   created_at  TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- Run once: ALTER TABLE cats ADD COLUMN sex TEXT;
 
 CREATE TABLE IF NOT EXISTS measurements (
   id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),

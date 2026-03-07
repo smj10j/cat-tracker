@@ -179,10 +179,17 @@ const TYPE_DISPLAY: Record<string, string> = {
   litter: 'litter box usage',
 }
 
-export function describeCorrelation(result: CorrelationResult, catName: string): string {
+function possessive(sex?: string | null): string {
+  if (sex === 'Male') return 'his'
+  if (sex === 'Female') return 'her'
+  return 'their'
+}
+
+export function describeCorrelation(result: CorrelationResult, catName: string, sex?: string | null): string {
   const { typeA, typeB, lag, r, strength, isHyperthyroidismPattern } = result
   const a = TYPE_DISPLAY[typeA] ?? typeA
   const b = TYPE_DISPLAY[typeB] ?? typeB
+  const poss = possessive(sex)
 
   if (strength === 'none') {
     return `No strong pattern detected yet between ${a} and ${b}. Keep logging to see trends emerge.`
@@ -207,7 +214,7 @@ export function describeCorrelation(result: CorrelationResult, catName: string):
   }
 
   const dirText = r < 0 ? 'drops' : 'rises'
-  return `${catName}'s ${a} tends to change before their ${b} does — ${b} ${dirText} ${lagText}. Watching ${a} can give you an early signal.`
+  return `${catName}'s ${a} tends to change before ${poss} ${b} does — ${b} ${dirText} ${lagText}. Watching ${a} can give you an early signal.`
 }
 
 export function getHomeBadge(results: CorrelationResult[]): string | null {

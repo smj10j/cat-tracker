@@ -20,6 +20,7 @@ cats.post('/', async (c) => {
     coloring?: string
     notes?: string
     photo_url?: string
+    sex?: string
   }>()
 
   if (!body.name?.trim() || !body.birthdate?.trim()) {
@@ -27,8 +28,8 @@ cats.post('/', async (c) => {
   }
 
   const result = await c.env.DB.prepare(
-    `INSERT INTO cats (name, birthdate, breed, coloring, notes, photo_url, user_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO cats (name, birthdate, breed, coloring, notes, photo_url, sex, user_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
      RETURNING *`
   )
     .bind(
@@ -38,6 +39,7 @@ cats.post('/', async (c) => {
       body.coloring ?? null,
       body.notes ?? null,
       body.photo_url ?? null,
+      body.sex ?? null,
       userId,
     )
     .first()
@@ -65,6 +67,7 @@ cats.put('/:id', async (c) => {
     coloring?: string
     notes?: string
     photo_url?: string
+    sex?: string
   }>()
 
   const existing = await c.env.DB.prepare(
@@ -74,7 +77,7 @@ cats.put('/:id', async (c) => {
 
   const updated = await c.env.DB.prepare(
     `UPDATE cats
-     SET name = ?, birthdate = ?, breed = ?, coloring = ?, notes = ?, photo_url = ?,
+     SET name = ?, birthdate = ?, breed = ?, coloring = ?, notes = ?, photo_url = ?, sex = ?,
          updated_at = datetime('now')
      WHERE id = ?
      RETURNING *`
@@ -86,6 +89,7 @@ cats.put('/:id', async (c) => {
       body.coloring !== undefined ? body.coloring : existing.coloring,
       body.notes !== undefined ? body.notes : existing.notes,
       body.photo_url !== undefined ? body.photo_url : existing.photo_url,
+      body.sex !== undefined ? body.sex : existing.sex,
       id
     )
     .first()

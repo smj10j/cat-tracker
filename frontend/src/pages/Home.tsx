@@ -74,11 +74,12 @@ const AVATAR_STYLE: Record<string, React.CSSProperties> = {
 }
 
 export default function Home() {
-  const { user, refresh: refreshUser } = useAuth()
+  const { user, logout, refresh: refreshUser } = useAuth()
   const [catData, setCatData] = useState<{ cat: Cat; latestWeight: number | null; latestUnit: string; healthStatus: string; correlationBadge: string | null }[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [claiming, setClaiming] = useState(false)
+  const [showProfile, setShowProfile] = useState(false)
 
   useEffect(() => {
     loadCats()
@@ -134,14 +135,67 @@ export default function Home() {
 
   const catCount = catData.length
 
+  const initial = (user?.display_name?.[0] ?? user?.email?.[0] ?? '?').toUpperCase()
+
   return (
     <div className="min-h-screen px-4 pt-6">
+      {/* Profile popover */}
+      {showProfile && (
+        <div className="fixed inset-0 z-40" onClick={() => setShowProfile(false)}>
+          <div
+            className="absolute rounded-2xl p-4 space-y-3 min-w-[180px]"
+            style={{
+              top: '72px',
+              left: '16px',
+              background: '#2a2040',
+              border: '1px solid rgba(255,255,255,0.1)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div>
+              <p className="text-sm font-semibold text-ink truncate">{user?.display_name ?? 'You'}</p>
+              <p className="text-xs text-ink-dim truncate">{user?.email}</p>
+            </div>
+            <button
+              onClick={() => { setShowProfile(false); logout() }}
+              className="w-full text-left text-sm text-rose py-1"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
-      <header className="mb-8">
-        <h1 className="font-display text-2xl font-bold text-ink">Your Cats</h1>
-        <p className="text-ink-dim text-sm mt-0.5">
-          {catCount > 0 ? `${catCount} cat${catCount !== 1 ? 's' : ''} tracked` : 'Add your first cat below'}
-        </p>
+      <header className="flex items-center gap-3 mb-8">
+        <button
+          onClick={() => setShowProfile(prev => !prev)}
+          aria-label="Account"
+          className="shrink-0"
+        >
+          {user?.avatar_url ? (
+            <img
+              src={user.avatar_url}
+              alt="Your avatar"
+              className="w-9 h-9 rounded-full object-cover"
+              style={{ border: '1.5px solid rgba(192,132,252,0.3)' }}
+            />
+          ) : (
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
+              style={{ background: 'rgba(192,132,252,0.2)', color: '#c084fc', border: '1.5px solid rgba(192,132,252,0.3)' }}
+            >
+              {initial}
+            </div>
+          )}
+        </button>
+        <div>
+          <h1 className="font-display text-2xl font-bold text-ink">Your Cats</h1>
+          <p className="text-ink-dim text-sm mt-0.5">
+            {catCount > 0 ? `${catCount} cat${catCount !== 1 ? 's' : ''} tracked` : 'Add your first cat below'}
+          </p>
+        </div>
       </header>
 
       {error && <div className="glass-card p-4 mb-4 text-rose text-sm">{error}</div>}

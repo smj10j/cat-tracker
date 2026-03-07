@@ -6,8 +6,15 @@ export interface Cat {
   coloring: string | null
   notes: string | null
   photo_url: string | null
+  sex: string | null
   created_at: string
   updated_at: string
+}
+
+export function catPronouns(sex: string | null | undefined): { subject: string; possessive: string; object: string } {
+  if (sex === 'Male') return { subject: 'he', possessive: 'his', object: 'him' }
+  if (sex === 'Female') return { subject: 'she', possessive: 'her', object: 'her' }
+  return { subject: 'they', possessive: 'their', object: 'them' }
 }
 
 export interface Measurement {

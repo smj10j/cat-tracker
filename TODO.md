@@ -54,17 +54,17 @@
 - [x] Fix: percentage values showing more than 1 decimal place in health summaries
 
 ### Quick Wins
-- [ ] PWA manifest.json — home screen installability
-- [ ] Quick-add floating button on home screen (cat selector + measurement in 2 taps)
+- [x] PWA manifest.json — home screen installability
+- [x] Quick-add floating button on home screen (cat selector + measurement in 2 taps)
 
 ### CSV Import
-- [ ] Backend: POST /api/import endpoint (parse CSV, bulk insert cats + measurements)
-- [ ] Frontend: Import page — file upload, preview table, confirm/cancel
+- [x] Backend: POST /api/import endpoint (parse CSV, bulk insert cats + measurements)
+- [x] Frontend: Import page — file upload, preview table, confirm/cancel
 
 ### More Measurement Types
-- [ ] Add food intake (oz/day) measurement type to form + chart
-- [ ] Add water intake (oz/day) measurement type to form + chart
-- [ ] Cat profile tabs: Weight | Food | Water | All History
+- [x] Add food intake (oz/day) measurement type to form + chart
+- [x] Add water intake (oz/day) measurement type to form + chart
+- [x] Cat profile tabs: Weight | Food | Water | All History
 
 ### Photo Upload
 - [ ] Set up Cloudflare R2 bucket for cat photos

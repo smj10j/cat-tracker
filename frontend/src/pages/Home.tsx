@@ -116,14 +116,11 @@ export default function Home() {
   return (
     <div className="min-h-screen px-4 pt-6">
       {/* Header */}
-      <header className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-ink">Your Cats</h1>
-          <p className="text-ink-dim text-sm mt-0.5">
-            {catCount > 0 ? `${catCount} cat${catCount !== 1 ? 's' : ''} tracked` : 'Add your first cat below'}
-          </p>
-        </div>
-        <Link to="/import" className="btn-ghost text-xs px-3 py-1.5">Import CSV</Link>
+      <header className="mb-8">
+        <h1 className="font-display text-2xl font-bold text-ink">Your Cats</h1>
+        <p className="text-ink-dim text-sm mt-0.5">
+          {catCount > 0 ? `${catCount} cat${catCount !== 1 ? 's' : ''} tracked` : 'Add your first cat below'}
+        </p>
       </header>
 
       {error && <div className="glass-card p-4 mb-4 text-rose text-sm">{error}</div>}

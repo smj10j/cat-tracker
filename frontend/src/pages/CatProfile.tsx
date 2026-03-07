@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { getCat, getMeasurements, deleteMeasurement, type Cat, type Measurement } from '../lib/api'
+import { assessHealth, STATUS_BG, STATUS_LABEL, STATUS_COLORS } from '../lib/healthMetrics'
 import WeightChart from '../components/WeightChart'
 import MeasurementForm from '../components/MeasurementForm'
 
@@ -68,6 +69,7 @@ export default function CatProfile() {
   if (!cat) return null
 
   const latestWeight = [...measurements].sort((a, b) => b.measured_at.localeCompare(a.measured_at))[0]
+  const health = assessHealth(measurements)
 
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-4">
@@ -107,6 +109,14 @@ export default function CatProfile() {
                 {latestWeight.value} {latestWeight.unit}
               </span>
             )}
+            {measurements.length >= 2 && (
+              <span
+                className="text-xs px-2 py-1 rounded-full font-medium border"
+                style={{ color: STATUS_COLORS[health.overallStatus], borderColor: STATUS_COLORS[health.overallStatus], backgroundColor: `${STATUS_COLORS[health.overallStatus]}15` }}
+              >
+                {STATUS_LABEL[health.overallStatus]}
+              </span>
+            )}
           </div>
           {cat.notes && (
             <p className="text-gray-500 text-sm mt-2 italic">{cat.notes}</p>
@@ -114,10 +124,37 @@ export default function CatProfile() {
         </div>
       </div>
 
+      {/* Health alert */}
+      {measurements.length >= 2 && health.overallStatus !== 'ok' && (
+        <div className={`rounded-xl border p-4 ${STATUS_BG[health.overallStatus]}`}>
+          <div className="flex items-start gap-2">
+            <span className="text-lg leading-none mt-0.5">
+              {health.overallStatus === 'urgent' ? '🚨' : health.overallStatus === 'concerning' ? '⚠️' : '👀'}
+            </span>
+            <div>
+              <div className="font-semibold text-sm mb-1">
+                Weight {STATUS_LABEL[health.overallStatus]}
+                {health.peakLossPct > 0 && ` — ${health.peakLossPct}% below peak`}
+              </div>
+              <p className="text-sm">{health.summary}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Weight chart */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <h3 className="font-semibold text-gray-800 mb-3">Weight Over Time</h3>
+        <h3 className="font-semibold text-gray-800 mb-3">
+          Weight Over Time
+          <span className="ml-3 text-xs font-normal text-gray-400">dots colored by rate of change</span>
+        </h3>
         <WeightChart measurements={measurements} />
+        <div className="flex gap-4 mt-3 text-xs text-gray-400">
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block" /> Stable</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-yellow-400 inline-block" /> Watch</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block" /> Concerning</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" /> Urgent</span>
+        </div>
       </div>
 
       {/* Add measurement */}

@@ -133,7 +133,7 @@ export default function CatHealthGuidance() {
             }}
           >
             <p className="text-xs font-bold uppercase tracking-wider mb-4 text-rose">
-              Go to the vet now if you see any of these
+              Go to the vet now if I see any of these
             </p>
             <ul className="space-y-3">
               {URGENT_VET_SIGNS.map((sign, i) => (
@@ -176,7 +176,7 @@ export default function CatHealthGuidance() {
             {isUrgent
               ? 'These thresholds are based on feline veterinary guidelines. A loss of more than 10% of body weight or a rate faster than 2%/week warrants prompt evaluation — not because something is definitely wrong, but because catching issues early makes a real difference.'
               : isConcerning
-              ? "Cats are good at hiding discomfort. These behavioral signals can appear before weight loss becomes severe, which is exactly when intervention is most effective. If you're seeing several of these, a vet visit is worthwhile even without an emergency."
+              ? "Cats are good at hiding discomfort. These behavioral signals can appear before weight loss becomes severe, which is exactly when intervention is most effective. If I'm seeing several of these, a vet visit is worthwhile even without an emergency."
               : "A mild weight change isn't always a problem — it could be a diet shift, seasonal variation, or measurement timing. The goal is to notice a trend early, not to panic at a single reading. Keep logging and see if the pattern continues."}
           </p>
         </div>

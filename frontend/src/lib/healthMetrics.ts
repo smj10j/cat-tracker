@@ -122,7 +122,7 @@ function buildSummary(
 
   if (status === 'concerning') {
     if (peakLossPct >= 7)
-      return `Lost ${peakLossPct}% from peak weight. Clinically significant loss — worth discussing with your vet.`
+      return `Lost ${peakLossPct}% from peak weight. Clinically significant loss — worth discussing with my vet.`
     return `Fastest rate: ${Math.abs(worstPeriod?.changePerWeek ?? 0).toFixed(1)}%/week loss. Cats should not lose more than ~1% body weight per week without veterinary guidance.`
   }
 

@@ -13,7 +13,7 @@ const WELLNESS_CARDS: WellnessCard[] = [
     icon: '📋',
     title: 'Monthly Self-Check',
     items: [
-      'Weigh your cat and log it here',
+      'Weigh my cat and log it here',
       'Run hands over their body — feel for lumps or tender spots',
       'Check coat: shiny, soft, free of mats?',
       'Gums: pink and moist (not pale, yellow, or tacky)?',
@@ -28,7 +28,7 @@ const WELLNESS_CARDS: WellnessCard[] = [
       'Temperature: 99–102.5°F (37–39°C)',
       'Resting heart rate: 140–220 bpm',
       'Healthy sleep: 12–16 hours per day',
-      'Healthy weight: varies — ask your vet for their target range',
+      'Healthy weight: varies — ask my vet for their target range',
       'Weight loss >10% of body weight: always see a vet',
     ],
   },

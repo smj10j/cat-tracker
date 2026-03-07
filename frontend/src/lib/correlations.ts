@@ -350,25 +350,25 @@ export function describeCorrelation(
 
   // Early-warning note when typeA shifted before typeB caught up
   const earlyWarning = isPredictive && lag > 0
-    ? ` Your tracking caught this early — ${poss} ${TYPE_DISPLAY[typeA] ?? typeA} shifted about ${lag === 1 ? 'a week' : `${lag} weeks`} before weight followed.`
+    ? ` My tracking caught this early — ${poss} ${TYPE_DISPLAY[typeA] ?? typeA} shifted about ${lag === 1 ? 'a week' : `${lag} weeks`} before weight followed.`
     : ''
 
   // ── food → weight ──────────────────────────────────────────────────────────
   if (typeA === 'food' && typeB === 'weight') {
     if (typeATrend === 'down' && typeBTrend === 'down') {
       const action = strength === 'notable'
-        ? (dataWeeks >= 8 ? 'This is a well-established pattern — worth discussing with your vet.' : 'This is worth discussing with your vet.')
-        : 'Worth mentioning at your next vet visit.'
+        ? (dataWeeks >= 8 ? 'This is a well-established pattern — worth discussing with my vet.' : 'This is worth discussing with my vet.')
+        : 'Worth mentioning at my next vet visit.'
       return `${catName}'s food intake and weight have both been declining.${earlyWarning} Sustained appetite loss with weight loss is one of the most common ways cats show something's off internally. ${action}${weakCaveat}`
     }
     if (typeATrend === 'up' && typeBTrend === 'up') {
       return `${catName}'s food intake and weight have both been trending up.${earlyWarning} If the weight gain seems faster than expected, it may be worth monitoring portions.${weakCaveat}`
     }
     if (typeATrend === 'stable' && typeBTrend === 'down') {
-      return `${catName}'s weight has been declining despite relatively stable food intake — which can indicate muscle wasting or metabolic changes even when appetite seems normal. Worth mentioning to your vet.${weakCaveat}`
+      return `${catName}'s weight has been declining despite relatively stable food intake — which can indicate muscle wasting or metabolic changes even when appetite seems normal. Worth mentioning to my vet.${weakCaveat}`
     }
     if (typeBTrend === 'down') {
-      return `${catName}'s food and weight are moving in an unusual pattern.${earlyWarning} Weight loss alongside food changes is worth a vet conversation.${weakCaveat}`
+      return `${catName}'s food and weight are moving in an unusual pattern.${earlyWarning} Weight loss alongside food changes is worth a conversation with my vet.${weakCaveat}`
     }
     return `${catName}'s food intake and ${TYPE_DISPLAY['weight']} tend to move together.${earlyWarning}${weakCaveat}`
   }
@@ -382,7 +382,7 @@ export function describeCorrelation(
       return `${catName} has been drinking more than usual, though ${poss} weight has stayed stable so far. Increased water intake in cats is worth noting — it often precedes changes in weight. ${strength === 'notable' ? 'A vet checkup is a reasonable next step.' : 'Keep logging to see if weight follows.'}${weakCaveat}`
     }
     if (typeATrend === 'down' && typeBTrend === 'down') {
-      return `${catName}'s water intake and weight have both been declining.${earlyWarning} Reduced drinking combined with weight loss may indicate dehydration or systemic illness — worth discussing with your vet.${weakCaveat}`
+      return `${catName}'s water intake and weight have both been declining.${earlyWarning} Reduced drinking combined with weight loss may indicate dehydration or systemic illness — worth discussing with my vet.${weakCaveat}`
     }
     return `${catName}'s water intake and weight show a ${strength} relationship over ${dataWeeks} weeks.${earlyWarning}${weakCaveat}`
   }
@@ -393,7 +393,7 @@ export function describeCorrelation(
       return `${catName}'s grooming has declined while ${poss} weight has been dropping.${earlyWarning} Cats are meticulous groomers — they typically groom less when they're in pain or not feeling well. This combination is worth a vet checkup.${weakCaveat}`
     }
     if (typeATrend === 'up' && typeBTrend === 'down') {
-      return `${catName} has been grooming more than usual while losing weight — which can signal stress or a skin condition. Combined with weight loss, this is worth mentioning to your vet.${weakCaveat}`
+      return `${catName} has been grooming more than usual while losing weight — which can signal stress or a skin condition. Combined with weight loss, this is worth mentioning to my vet.${weakCaveat}`
     }
     return `${catName}'s grooming and weight show a ${strength} relationship.${earlyWarning}${weakCaveat}`
   }
@@ -401,7 +401,7 @@ export function describeCorrelation(
   // ── activity → weight ─────────────────────────────────────────────────────
   if (typeA === 'activity' && typeB === 'weight') {
     if (typeATrend === 'down' && typeBTrend === 'down') {
-      return `${catName} has been less active while also losing weight.${earlyWarning} Cats are good at hiding pain — decreased activity is often the first visible sign that something's off. Combined with weight loss, this is worth mentioning to your vet.${weakCaveat}`
+      return `${catName} has been less active while also losing weight.${earlyWarning} Cats are good at hiding pain — decreased activity is often the first visible sign that something's off. Combined with weight loss, this is worth mentioning to my vet.${weakCaveat}`
     }
     if (typeATrend === 'up' && typeBTrend === 'down') {
       return `${catName} has been more active than usual while losing weight — an unusual combination that can indicate hyperthyroidism. This is worth a vet mention.${weakCaveat}`
@@ -424,7 +424,7 @@ export function describeCorrelation(
       return `${catName}'s vomiting has been increasing, though ${poss} weight has stayed stable so far. Frequent vomiting without weight loss may be hairballs or dietary, but is worth monitoring. ${strength === 'notable' ? 'A vet visit to rule out GI issues is reasonable.' : 'Keep logging to see if weight is affected.'}${weakCaveat}`
     }
     if (typeATrend === 'down' && typeBTrend === 'down') {
-      return `${catName}'s vomiting has been decreasing while ${poss} weight has also declined — possibly indicating reduced food intake overall. Keep an eye on both and mention this pattern to your vet.${weakCaveat}`
+      return `${catName}'s vomiting has been decreasing while ${poss} weight has also declined — possibly indicating reduced food intake overall. Keep an eye on both and mention this pattern to my vet.${weakCaveat}`
     }
     return `${catName}'s vomiting frequency and weight show a ${strength} relationship.${earlyWarning}${weakCaveat}`
   }
@@ -436,7 +436,7 @@ export function describeCorrelation(
     return `${catName}'s ${a} and ${b} tend to move together — when one changes, the other often follows around the same time.${weakCaveat}`
   }
   const lagText = lag === 1 ? 'about a week' : `about ${lag} weeks`
-  return `${catName}'s ${a} tends to change before ${poss} ${b} does — ${b} follows ${lagText} later. Watching ${a} can give you an early signal.${weakCaveat}`
+  return `${catName}'s ${a} tends to change before ${poss} ${b} does — ${b} follows ${lagText} later. Watching ${a} can give me an early signal.${weakCaveat}`
 }
 
 // ─── Home badge ───────────────────────────────────────────────────────────────

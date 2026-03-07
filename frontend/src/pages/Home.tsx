@@ -177,7 +177,7 @@ export default function Home() {
           {user?.avatar_url ? (
             <img
               src={user.avatar_url}
-              alt="Your avatar"
+              alt="My account"
               className="w-9 h-9 rounded-full object-cover"
               style={{ border: '1.5px solid rgba(192,132,252,0.3)' }}
             />
@@ -191,9 +191,9 @@ export default function Home() {
           )}
         </button>
         <div>
-          <h1 className="font-display text-2xl font-bold text-ink">Your Cats</h1>
+          <h1 className="font-display text-2xl font-bold text-ink">My Cats</h1>
           <p className="text-ink-dim text-sm mt-0.5">
-            {catCount > 0 ? `${catCount} cat${catCount !== 1 ? 's' : ''} tracked` : 'Add your first cat below'}
+            {catCount > 0 ? `${catCount} cat${catCount !== 1 ? 's' : ''} tracked` : 'Add a cat to get started'}
           </p>
         </div>
       </header>
@@ -205,7 +205,7 @@ export default function Home() {
         <div className="glass-card p-4 mb-6 space-y-3" style={{ border: '1px solid rgba(192,132,252,0.25)' }}>
           <div>
             <p className="text-sm font-semibold text-ink">Existing cats found</p>
-            <p className="text-xs text-ink-mid mt-0.5">There are cats in this app not yet linked to your account. Claim them as yours?</p>
+            <p className="text-xs text-ink-mid mt-0.5">Some cats here aren't linked to my account yet — claim them?</p>
           </div>
           <div className="flex gap-2">
             <button

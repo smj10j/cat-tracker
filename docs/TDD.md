@@ -371,7 +371,42 @@ Use `IF NOT EXISTS` and `ADD COLUMN IF NOT EXISTS` to keep migrations idempotent
 
 ---
 
-## Key Dependencies
+## External Service Dependencies
+
+All third-party services the application depends on at runtime. Any new external dependency must be added here.
+
+### Cloudflare (hosting + infrastructure)
+
+| Service | Resource name | ID / detail |
+|---------|--------------|-------------|
+| Pages | `cat-tracker` | Hosts the React SPA + Pages Functions proxy |
+| Workers | `cat-tracker-api` | Runs the Hono API |
+| D1 (SQLite) | `cat-tracker-db` | `9c923aa8-47a3-4029-b07f-3b67d208f9e6` |
+| R2 (object storage) | `cat-tracker-photos` | Public URL: `pub-40305f88ebb54339b47a48224f195f92.r2.dev` |
+| Account | stevej-67b | `67ba5425d0189fa7d4cf1ada3239e058` |
+
+### Google OAuth
+
+Used for user authentication. No user-facing login alternative exists.
+
+- **Console:** Google Cloud Console, project linked to stevej account
+- **Authorized redirect URI:** `https://cat-tracker.pages.dev/api/auth/callback`
+- **Worker secrets:** `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (set via `wrangler secret put`)
+
+### Resend (transactional email)
+
+Used to send household invite emails.
+
+- **Dashboard:** https://resend.com
+- **From address:** `noreply@01j.me`
+- **Sending domain:** `01j.me` — registered on Cloudflare, DNS-verified in Resend
+- **Worker secret:** `RESEND_API_KEY` (set via `wrangler secret put`)
+- **Helper:** `worker/src/lib/email.ts` — `sendEmail(params, apiKey)` calls `POST https://api.resend.com/emails`
+- **Note:** MailChannels previously provided free email on Workers but ended that integration. Do not use MailChannels.
+
+---
+
+## Key Dependencies (npm packages)
 
 ### Worker
 - `hono` — lightweight routing framework for Cloudflare Workers

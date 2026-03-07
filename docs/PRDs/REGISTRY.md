@@ -30,6 +30,7 @@
 | [PRD-household-sharing.md](PRD-household-sharing.md) | Household Sharing & Multi-User Access | `Implemented` | 2026-03-07 18:00 |
 | [PRD-household-sharing-phase2.md](PRD-household-sharing-phase2.md) | Household Sharing — Phase 2 (lifecycle + audit) | `Draft` | 2026-03-07 13:00 |
 | [PRD-cat-photos.md](PRD-cat-photos.md) | Cat Photo Uploads | `Implemented` | 2026-03-07 20:00 |
+| [PRD-ux-redesign.md](PRD-ux-redesign.md) | UX Redesign — Competitive Analysis & Next-Gen Features | `Draft` | 2026-03-07 |
 
 ---
 
@@ -347,6 +348,29 @@ Each entry below provides full implementation notes and open questions. The summ
 
 ---
 
+### PRD-ux-redesign.md — UX Redesign: Competitive Analysis & Next-Gen Features
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-03-07 |
+| **Depends on** | PRD-killer-app.md (P1, P2, P3, P7) |
+
+**Origin:** Competitive analysis of a vet practice pet management app (PetDesk-like). Five screens analyzed covering pet profile, reminder system, and reminder creation flow.
+
+**Scope:** 5 proposals across 5 phases:
+- **2A** Profile Hero Redesign (full-bleed photo, gradient overlay, structured details) — HIGH
+- **2B** Structured Pet Details with Icons + neuter/spay status field — MEDIUM
+- **2C** Rename Medications to "Care Schedule," add vet event types, emoji icon system — MEDIUM
+- **2D** CatProfile tab reorganization (Health / Care / About) — MEDIUM
+- **2E** Photo gallery/timeline — LOW
+
+Plus 5 Killer App promotions: Daily Check-In (P1), Streaks (P2), Weigh-In Reminders (P3), AI Health Narrative (P7), Vet Integration concept (future).
+
+**Do not implement** — status is `Draft`. Requires product owner review and selective approval.
+
+---
+
 ## Planned (no PRD written)
 
 Items mentioned or implied by existing PRDs that have not yet been formally specified. A PRD must be written and approved before implementation.
@@ -355,9 +379,9 @@ Items mentioned or implied by existing PRDs that have not yet been formally spec
 |---------|--------|-------|
 | ~~Photo upload (R2)~~ | ~~PRD-features-backlog.md~~ | Superseded by PRD-cat-photos.md |
 | Date range filter on charts | PRD-features-backlog.md | Low priority so far |
-| Daily check-in screen | PRD-killer-app.md P1 | High value; needs PRD |
-| Streak tracking | PRD-killer-app.md P2 | Habit-forming; needs PRD |
-| Household sharing (post-auth) | PRD-features-backlog.md §5, PRD-killer-app.md P5 | Depends on auth |
+| ~~Daily check-in screen~~ | ~~PRD-killer-app.md P1~~ | Now fully specified in PRD-ux-redesign.md 3A |
+| ~~Streak tracking~~ | ~~PRD-killer-app.md P2~~ | Now fully specified in PRD-ux-redesign.md 3B |
+| AI Health Narrative | PRD-killer-app.md P7, PRD-ux-redesign.md 3D | Needs separate detailed PRD if approved |
 
 ---
 
@@ -367,4 +391,4 @@ Nothing rejected yet.
 
 ---
 
-*Last updated: 2026-03-07 18:00*
+*Last updated: 2026-03-07*

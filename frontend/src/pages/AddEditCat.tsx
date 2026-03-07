@@ -1,13 +1,19 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { createCat, updateCat, getCat, deleteCat } from '../lib/api'
+import { createCat, updateCat, getCat, deleteCat, ApiError } from '../lib/api'
+
+function isTempMicrochip(id: string | null | undefined): boolean {
+  return !id || id.startsWith('temp-microchip-id-')
+}
 
 export default function AddEditCat() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const isEdit = Boolean(id)
 
-  const [form, setForm] = useState({ name: '', birthdate: '', breed: '', coloring: '', notes: '', sex: '' })
+  const [form, setForm] = useState({
+    name: '', birthdate: '', breed: '', coloring: '', notes: '', sex: '', microchip_id: '',
+  })
   const [loading, setLoading] = useState(isEdit)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -16,7 +22,16 @@ export default function AddEditCat() {
   useEffect(() => {
     if (!id) return
     getCat(id)
-      .then((cat) => setForm({ name: cat.name, birthdate: cat.birthdate, breed: cat.breed ?? '', coloring: cat.coloring ?? '', notes: cat.notes ?? '', sex: cat.sex ?? '' }))
+      .then((cat) => setForm({
+        name: cat.name,
+        birthdate: cat.birthdate,
+        breed: cat.breed ?? '',
+        coloring: cat.coloring ?? '',
+        notes: cat.notes ?? '',
+        sex: cat.sex ?? '',
+        // Show blank for temp placeholder IDs — treat as "not set"
+        microchip_id: isTempMicrochip(cat.microchip_id) ? '' : (cat.microchip_id ?? ''),
+      }))
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
   }, [id])
@@ -38,6 +53,7 @@ export default function AddEditCat() {
         notes: form.notes.trim() || null,
         sex: form.sex || null,
         photo_url: null,
+        microchip_id: form.microchip_id.trim() || null,
       }
       if (isEdit && id) {
         await updateCat(id, payload)
@@ -47,7 +63,15 @@ export default function AddEditCat() {
         navigate(`/cats/${cat.id}`)
       }
     } catch (e: unknown) {
-      setError((e as Error).message)
+      if (e instanceof ApiError && e.message === 'microchip_id_conflict') {
+        if (e.conflictingCatName) {
+          setError(`This microchip ID is already used by ${e.conflictingCatName}. Check for a typo, or edit that cat to update the record.`)
+        } else {
+          setError('This microchip ID is already registered. If this is your cat, contact support.')
+        }
+      } else {
+        setError((e as Error).message)
+      }
     } finally {
       setSaving(false)
     }
@@ -55,7 +79,7 @@ export default function AddEditCat() {
 
   async function handleDelete() {
     if (!id) return
-    if (!confirm(`Delete this cat and all their measurements? This cannot be undone.`)) return
+    if (!confirm('Delete this cat and all their measurements? This cannot be undone.')) return
     setDeleting(true)
     setError(null)
     try {
@@ -78,7 +102,7 @@ export default function AddEditCat() {
     )
   }
 
-  const field = (label: string, name: keyof typeof form, type = 'text', required = false, placeholder = '') => (
+  const field = (label: string, name: keyof typeof form, type = 'text', required = false, placeholder = '', maxLength?: number) => (
     <div>
       <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">
         {label}{required && <span className="text-rose ml-1">*</span>}
@@ -90,6 +114,7 @@ export default function AddEditCat() {
         onChange={handleChange}
         required={required}
         placeholder={placeholder}
+        maxLength={maxLength}
         className="input-dark w-full px-4 py-3 text-sm"
       />
     </div>
@@ -109,13 +134,13 @@ export default function AddEditCat() {
       )}
 
       <form onSubmit={handleSubmit} className="glass-card p-6 space-y-5">
-        {field('Name', 'name', 'text', true, 'e.g. Luna')}
+        {field('Name', 'name', 'text', true, 'e.g. Luna', 200)}
         {field('Birthdate', 'birthdate', 'date', true)}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Breed</label>
             <input name="breed" value={form.breed} onChange={handleChange} placeholder="Domestic Shorthair"
-              className="input-dark w-full px-4 py-3 text-sm" />
+              maxLength={200} className="input-dark w-full px-4 py-3 text-sm" />
           </div>
           <div>
             <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Sex</label>
@@ -129,13 +154,29 @@ export default function AddEditCat() {
         <div>
           <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Coloring</label>
           <input name="coloring" value={form.coloring} onChange={handleChange} placeholder="Orange tabby"
-            className="input-dark w-full px-4 py-3 text-sm" />
+            maxLength={200} className="input-dark w-full px-4 py-3 text-sm" />
         </div>
         <div>
           <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Notes</label>
           <textarea name="notes" value={form.notes} onChange={handleChange} rows={3}
-            placeholder="Anything worth remembering…"
+            placeholder="Anything worth remembering…" maxLength={4000}
             className="input-dark w-full px-4 py-3 text-sm resize-none" />
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">
+            Microchip ID
+            <span className="ml-2 normal-case font-normal text-ink-dim">(optional)</span>
+          </label>
+          <input
+            name="microchip_id"
+            value={form.microchip_id}
+            onChange={handleChange}
+            placeholder="e.g. 985112345678903"
+            maxLength={50}
+            className="input-dark w-full px-4 py-3 text-sm font-mono tracking-wide"
+          />
+          <p className="text-[10px] text-ink-dim mt-1.5">Leave blank to fill in later. Used to identify your cat if found by a vet or shelter.</p>
         </div>
 
         <button type="submit" disabled={saving || deleting} className="btn-primary w-full py-3.5 text-sm mt-2">

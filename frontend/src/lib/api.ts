@@ -7,6 +7,7 @@ export interface Cat {
   notes: string | null
   photo_url: string | null
   sex: string | null
+  microchip_id: string | null
   created_at: string
   updated_at: string
 }
@@ -38,6 +39,16 @@ export interface User {
 
 const BASE = '/api'
 
+export class ApiError extends Error {
+  status: number
+  conflictingCatName?: string
+  constructor(message: string, status: number, extra?: Record<string, unknown>) {
+    super(message)
+    this.status = status
+    if (extra?.conflictingCatName) this.conflictingCatName = extra.conflictingCatName as string
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(BASE + path, {
     headers: { 'Content-Type': 'application/json' },
@@ -45,8 +56,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
   })
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }))
-    throw new Error((err as { error: string }).error ?? 'Request failed')
+    const body = await res.json().catch(() => ({ error: res.statusText })) as Record<string, unknown>
+    throw new ApiError((body.error as string) ?? 'Request failed', res.status, body)
   }
   return res.json() as Promise<T>
 }

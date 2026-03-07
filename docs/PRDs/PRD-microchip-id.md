@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | `Draft` |
+| **Status** | `Approved` |
 | **Author** | Product Owner |
 | **Created** | 2026-03-07 |
 

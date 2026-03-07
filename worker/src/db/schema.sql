@@ -1,17 +1,24 @@
 CREATE TABLE IF NOT EXISTS cats (
-  id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
-  name        TEXT NOT NULL,
-  birthdate   TEXT NOT NULL,
-  breed       TEXT,
-  coloring    TEXT,
-  notes       TEXT,
-  photo_url   TEXT,
-  sex         TEXT,
-  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+  id           TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  name         TEXT NOT NULL,
+  birthdate    TEXT NOT NULL,
+  breed        TEXT,
+  coloring     TEXT,
+  notes        TEXT,
+  photo_url    TEXT,
+  sex          TEXT,
+  microchip_id TEXT,
+  created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Partial unique index: enforces uniqueness only for real microchip IDs (not temp placeholders)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_cats_microchip
+  ON cats(microchip_id)
+  WHERE microchip_id IS NOT NULL AND microchip_id NOT LIKE 'temp-microchip-id-%';
+
 -- Run once: ALTER TABLE cats ADD COLUMN sex TEXT;
+-- Run once: ALTER TABLE cats ADD COLUMN microchip_id TEXT;
 
 CREATE TABLE IF NOT EXISTS measurements (
   id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),

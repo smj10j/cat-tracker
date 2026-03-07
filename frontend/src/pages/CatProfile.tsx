@@ -212,6 +212,13 @@ export default function CatProfile() {
             <h1 className="font-display font-bold text-2xl text-ink leading-tight">{cat.name}</h1>
             <p className="text-ink-mid text-sm mt-0.5">{catAge(cat.birthdate)}</p>
             <div className="flex flex-wrap gap-1.5 mt-2">
+              {cat.microchip_id && !cat.microchip_id.startsWith('temp-microchip-id-') && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-mono text-ink-dim"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+                  title="Microchip ID">
+                  # {cat.microchip_id.replace(/(.{3})/g, '$1 ').trim()}
+                </span>
+              )}
               {cat.breed && (
                 <span className="text-xs px-2 py-0.5 rounded-full font-medium"
                   style={{ background: 'rgba(192,132,252,0.12)', color: '#c084fc', border: '1px solid rgba(192,132,252,0.2)' }}>

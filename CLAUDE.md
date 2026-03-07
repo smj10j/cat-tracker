@@ -98,19 +98,25 @@ Logic is in `frontend/src/lib/healthMetrics.ts`. Thresholds are based on feline 
 - No force pushes; no `--no-verify`
 - The `main` branch is production (Pages auto-deploys are not configured — manual `wrangler pages deploy` is used)
 
-## Working Style (autonomous mode)
+## Execution Loop
 
-When given an open-ended task like "build the next set of features":
+Follow these steps in order for every task or sprint. **Do not skip steps.**
 
-1. **Read REGISTRY.md + TODO.md first** — check PRD statuses and current task state before touching anything
-2. **Plan before coding** — write down what you're going to do (update TODO) so you don't lose track
-3. **Fix bugs before features** — small cleanup items first, then new features
-4. **Parallelize with background agents** — split backend vs. frontend work across agents when the files don't overlap; integrate at the end
-5. **Commit after each logical unit** — one feature = one commit; don't batch unrelated changes
-6. **Deploy as you go** — run `npm run build && npx wrangler pages deploy dist --project-name cat-tracker --commit-dirty=true` after frontend changes; `npx wrangler deploy` after Worker changes
-7. **Update TODO.md as you complete items** — mark `[x]` and commit the TODO update with the feature commit
-8. **Never ask the user for input unless truly blocked** — make reasonable decisions, document them in the commit message
-9. **Keep MEMORY.md current** — update after completing a sprint so the next session has context
+1. **Documentation first** — Write or update PRDs, TDD.md, API.md, REGISTRY.md, and any decision docs before touching code. If a feature has no `Approved` PRD, write one and stop — do not implement until approved.
+2. **Update TODO.md** — Add tasks for everything you plan to implement; mark them `[-]` (in progress). Commit this TODO update before writing implementation code.
+3. **Implement** — Write the code.
+4. **Deploy** — `npx wrangler deploy` (Worker) and/or `npm run build && npx wrangler pages deploy dist --project-name cat-tracker --commit-dirty=true` (frontend) after changes.
+5. **Mark TODO items complete** — Change `[-]` → `[x]` for all finished tasks. Update REGISTRY.md status to `Implemented` for completed PRDs.
+6. **Commit to git** — One logical unit = one commit. Message should reference the feature area. Never batch unrelated changes. Never skip hooks (`--no-verify`).
+7. **Push to remote** — `git push origin main` after every commit.
+8. **Update MEMORY.md** — After completing a sprint, update `~/.claude/projects/.../memory/MEMORY.md` so the next session has context.
+
+### Additional working style notes
+
+- **Read REGISTRY.md + TODO.md first** at the start of every session
+- **Fix bugs before features** — address cleanup items first
+- **Parallelize when safe** — split backend vs. frontend work when files don't overlap; integrate at the end
+- **Never ask the user unless truly blocked** — make reasonable decisions, document them in the commit message
 
 ## Docs
 
@@ -133,21 +139,13 @@ Registry status values: `Draft` → `Under Review` → `Approved` → `In Progre
 4. Wait for product owner to move status to `Approved` before implementing
 5. When implementation is complete, update registry status to `Implemented` and add TODO items as `[x]`
 
-### Current PRD statuses (see REGISTRY.md for full details)
+### Current PRD statuses
 
-| PRD | Status |
-|-----|--------|
-| PRD-mvp.md | Implemented |
-| PRD-features-backlog.md | Partial |
-| PRD-ux-simplification.md | Implemented |
-| PRD-health-status-visuals.md | Implemented |
-| PRD-measurement-ux.md | Implemented |
-| PRD-charts-expansion.md | Implemented |
-| PRD-killer-app.md | Under Review |
-| PRD-auth.md | Under Review |
+See **`docs/PRDs/REGISTRY.md`** — it is the single source of truth and is always up to date. Do not rely on any status table here; check REGISTRY.md directly.
 
 ### Other docs
-- `docs/TDD.md` — technical design
+- `docs/API.md` — full API spec: every endpoint, request/response shapes, auth requirements, authorization rules (who can mutate what)
+- `docs/TDD.md` — architecture, design decisions, schema, auth flow, correlation engine
 - `docs/DESIGN.md` — visual design system
 
 ## What NOT to do

@@ -297,3 +297,37 @@
 - [x] InsightsPanel: shows confluence alert card above individual patterns
 - [x] CorrelationChart: adds typeATrend/typeBTrend/dataWeeks to local result; catSex prop
 - [x] CatExportPage: vet-mode descriptions; confluence note in amber card
+
+## Phase 16: Delete Cat, Profile Clarity, Microchip ID PRD
+
+### Delete cat (Edit page)
+- [x] AddEditCat.tsx: import deleteCat; add deleting state; add handleDelete() with confirm dialog
+- [x] AddEditCat.tsx: "Delete Cat" button at bottom of form — edit mode only; red destructive style
+- [x] worker/routes/cats.ts: DELETE endpoint explicitly deletes measurements before cat (belt-and-suspenders alongside FK CASCADE)
+
+### Profile clarity (PRD-profile-clarity.md — Approved + Implemented)
+- [x] Write PRD-profile-clarity.md
+- [x] Add PRD to REGISTRY.md (status: Approved → Implemented)
+- [x] InsightsPanel.tsx: collapse patterns section by default into single toggle row
+- [x] Collapsed header shows count badge ("N detected") and ⚠️ "Multiple signals" pill when confluence present
+- [x] Merge "Explore measurement patterns" section into expanded patterns section (eliminates standalone third section)
+- [x] Health alert section unchanged — always visible
+
+### Microchip ID PRD (Draft — no implementation)
+- [x] Write PRD-microchip-id.md covering: auto-generated temp IDs, partial unique index, same-user vs cross-user conflict resolution, CSV import upsert, open questions
+- [x] Add PRD to REGISTRY.md (status: Draft)
+
+## Phase 17: Authorization Fix + Documentation Overhaul
+
+### Security fix — ownership scoping for mutations
+- [x] cats.ts PUT: change ownership check from `(user_id = ? OR user_id IS NULL)` to `user_id = ?`
+- [x] cats.ts DELETE: same fix — owner only
+- [x] measurements.ts POST: cat ownership check requires `user_id = ?` (not orphaned)
+- [x] measurements.ts DELETE: JOIN ownership check requires `c.user_id = ?` (not orphaned)
+- [x] Read endpoints (GET cats/:id, GET measurements) intentionally retain `OR user_id IS NULL` for orphaned cat visibility
+
+### Documentation
+- [x] Create docs/API.md — full API spec: all endpoints, request/response shapes, status codes, authentication, authorization model, orphaned cat rules, CORS note, Worker env bindings
+- [x] Overhaul docs/TDD.md — bring current: full schema with all columns (sex, user_id), all routes including auth/export/health, complete component/lib file list, all frontend routes, key design decisions section, auth flow, QuickAdd flow, correlation engine description
+- [x] CLAUDE.md: replace "Working Style" with formal Execution Loop (7 ordered steps); remove stale PRD status table; add API.md to docs references
+- [x] Deploy worker with security fixes

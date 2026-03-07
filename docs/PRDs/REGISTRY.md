@@ -23,6 +23,8 @@
 | [PRD-input-output-metrics.md](PRD-input-output-metrics.md) | Input/Output Metric Classification | `Implemented` | Sprint 7 |
 | [PRD-login-splash.md](PRD-login-splash.md) | Marketing / Splash Login Page | `Implemented` | Sprint 7 |
 | [PRD-correlation-descriptions.md](PRD-correlation-descriptions.md) | Correlation Descriptions: Clinical Accuracy & Dual-Audience | `Implemented` | Sprint 7 |
+| [PRD-microchip-id.md](PRD-microchip-id.md) | Microchip ID as Cat Identifier | `Draft` | Sprint 8 |
+| [PRD-profile-clarity.md](PRD-profile-clarity.md) | Cat Profile — Insights Panel Clarity | `Approved` | Sprint 8 |
 
 ---
 
@@ -236,6 +238,34 @@ Each entry below provides full implementation notes and open questions. The summ
 | **Last updated** | Sprint 7 |
 
 **Implemented:** `typeATrend`/`typeBTrend`/`dataWeeks` fields on `CorrelationResult`; `detectTrend()` using first-half vs second-half bucket average; `detectConfluence()` with two known clinical clusters (kidney/thyroid/DM; systemic illness); `describeCorrelation()` rewritten with `mode: 'owner' | 'vet'` — owner mode uses pair-specific clinical context, gendered pronouns, confidence framing, early-warning note; vet mode includes r/lag/dataWeeks stats and clinical differentials by pair+trend direction. InsightsPanel shows confluence alert above individual patterns. CorrelationChart updated with new fields and `catSex` prop. CatExportPage uses vet mode with amber confluence card.
+
+---
+
+### PRD-microchip-id.md — Microchip ID as Cat Identifier
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | Sprint 8 |
+
+**Problem:** Cats have real-world microchip IDs that are globally unique. Cat Tracker currently uses opaque internal UUIDs with no way to identify the same physical cat across accounts or imports.
+
+**Scope:** Add optional `microchip_id` field to cats; auto-generate `temp-microchip-id-<GUID>` when absent; enforce uniqueness with privacy-preserving conflict messages for cross-account conflicts; support microchip_id column in CSV import.
+
+**Status:** Awaiting product owner approval before implementation.
+
+---
+
+### PRD-profile-clarity.md — Cat Profile: Insights Panel Clarity
+
+| | |
+|---|---|
+| **Status** | `Approved` |
+| **Last updated** | Sprint 8 |
+
+**Problem:** When multiple signals are detected (urgent health + confluence cluster + 2-3 pattern descriptions + explore button), the top of the cat profile is visually overwhelming before the chart is even visible.
+
+**Solution:** Collapse the patterns section by default into a single toggle row; surface the confluence ⚠️ pill in the collapsed header; merge the "Explore" section inside the expanded patterns panel. Health alerts remain fully visible.
 
 ---
 

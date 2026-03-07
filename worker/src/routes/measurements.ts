@@ -39,7 +39,7 @@ measurements.post('/cats/:id/measurements', async (c) => {
   }>()
 
   const cat = await c.env.DB.prepare(
-    'SELECT id FROM cats WHERE id = ? AND (user_id = ? OR user_id IS NULL)'
+    'SELECT id FROM cats WHERE id = ? AND user_id = ?'
   ).bind(catId, userId).first()
   if (!cat) return c.json({ error: 'Cat not found' }, 404)
 
@@ -67,7 +67,7 @@ measurements.delete('/measurements/:id', async (c) => {
   const existing = await c.env.DB.prepare(
     `SELECT m.id FROM measurements m
      JOIN cats c ON c.id = m.cat_id
-     WHERE m.id = ? AND (c.user_id = ? OR c.user_id IS NULL)`
+     WHERE m.id = ? AND c.user_id = ?`
   ).bind(id, userId).first()
   if (!existing) return c.json({ error: 'Not found' }, 404)
 

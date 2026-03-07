@@ -71,7 +71,7 @@ cats.put('/:id', async (c) => {
   }>()
 
   const existing = await c.env.DB.prepare(
-    'SELECT * FROM cats WHERE id = ? AND (user_id = ? OR user_id IS NULL)'
+    'SELECT * FROM cats WHERE id = ? AND user_id = ?'
   ).bind(id, userId).first()
   if (!existing) return c.json({ error: 'Not found' }, 404)
 
@@ -101,10 +101,11 @@ cats.delete('/:id', async (c) => {
   const userId = c.get('userId')
   const id = c.req.param('id')
   const existing = await c.env.DB.prepare(
-    'SELECT id FROM cats WHERE id = ? AND (user_id = ? OR user_id IS NULL)'
+    'SELECT id FROM cats WHERE id = ? AND user_id = ?'
   ).bind(id, userId).first()
   if (!existing) return c.json({ error: 'Not found' }, 404)
 
+  await c.env.DB.prepare('DELETE FROM measurements WHERE cat_id = ?').bind(id).run()
   await c.env.DB.prepare('DELETE FROM cats WHERE id = ?').bind(id).run()
   return c.json({ success: true })
 })

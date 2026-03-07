@@ -352,6 +352,15 @@
 - [x] frontend/pages/CatProfile.tsx: display microchip badge for real IDs (spaced formatting)
 - [x] Deploy worker + frontend
 
+## Phase 20: Medication Reminders PRD (2026-03-07)
+
+### Documentation only — do not implement until Approved
+- [x] Write PRD-medication-reminders.md (Draft): medication schedule model, dose records, 90-day materialization strategy, in-app notification inbox, push notifications (VAPID/Web Push), preset medications, full API spec, phased implementation plan (A-D)
+- [x] Add PRD-medication-reminders.md to REGISTRY.md (status: Draft)
+- [x] Replace all "Sprint X" Last Updated values in REGISTRY.md with precise git-derived timestamps
+
+---
+
 ## Phase 17: Authorization Fix + Documentation Overhaul
 
 ### Security fix — ownership scoping for mutations

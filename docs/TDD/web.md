@@ -1,9 +1,10 @@
-# Cat Tracker — Technical Design Document
+# Cat Tracker — Web Architecture TDD
 
-> **Deprecated.** This file has been superseded by the `docs/TDD/` directory.
-> - Current web architecture → [docs/TDD/web.md](TDD/web.md)
-> - Cross-platform (iOS / Android / web) plan → [docs/TDD/cross-platform.md](TDD/cross-platform.md)
-> - TDD index → [docs/TDD/README.md](TDD/README.md)
+> For the full API specification including request/response shapes and authorization rules, see **[API.md](../API.md)**.
+
+This document covers the current production architecture: Cloudflare Worker API + D1 + R2 + React/Vite SPA hosted on Cloudflare Pages.
+
+For the cross-platform (iOS / Android / web unified) architecture plan, see **[cross-platform.md](cross-platform.md)**.
 
 ---
 
@@ -67,8 +68,12 @@ cat-tracker/
 │   │   ├── PRD-correlation-descriptions.md
 │   │   ├── PRD-microchip-id.md
 │   │   └── PRD-profile-clarity.md
+│   ├── TDD/
+│   │   ├── README.md                 # TDD index — start here
+│   │   ├── web.md                    # This file
+│   │   └── cross-platform.md        # iOS/Android/web unified plan
 │   ├── API.md                        # Full API spec: endpoints, shapes, auth, authorization
-│   ├── TDD.md                        # This file — architecture and design decisions
+│   ├── TDD.md                        # Deprecated — see docs/TDD/web.md
 │   └── DESIGN.md                     # Visual design system (Tailwind config, color tokens)
 ├── worker/               # Cloudflare Worker (API)
 │   ├── src/
@@ -80,6 +85,8 @@ cat-tracker/
 │   │   │   ├── auth.ts           # OAuth login/callback/logout/me/claim-cats
 │   │   │   ├── cats.ts           # CRUD for /api/cats
 │   │   │   ├── measurements.ts   # CRUD for /api/cats/:id/measurements + /api/measurements/:id
+│   │   │   ├── medications.ts    # CRUD for /api/medications; dose generation; notifications
+│   │   │   ├── household.ts      # Household sharing: members, invites, roles
 │   │   │   └── import.ts         # POST /api/import (CSV bulk insert)
 │   │   └── db/
 │   │       └── schema.sql        # D1 schema (source of truth)
@@ -90,7 +97,7 @@ cat-tracker/
 │   │   ├── main.tsx
 │   │   ├── App.tsx               # Router + ProtectedRoute wrapper
 │   │   ├── pages/
-│   │   │   ├── Login.tsx               # Google sign-in splash page
+│   │   │   ├── LoginPage.tsx           # Google sign-in splash page
 │   │   │   ├── Home.tsx                # Cat list + health badges + claim prompt
 │   │   │   ├── CatProfile.tsx          # Per-cat chart, tabs, history timeline, insights
 │   │   │   ├── AddEditCat.tsx          # Add/edit/delete cat form
@@ -98,7 +105,11 @@ cat-tracker/
 │   │   │   ├── ImportPage.tsx          # CSV upload + preview + confirm
 │   │   │   ├── WellnessGuide.tsx       # Cat health reference page
 │   │   │   ├── CatHealthGuidance.tsx   # Per-cat health signals + vet thresholds + export link
-│   │   │   └── CatExportPage.tsx       # Print-optimized vet visit summary
+│   │   │   ├── CatExportPage.tsx       # Print-optimized vet visit summary
+│   │   │   ├── HouseholdPage.tsx       # Household settings + member management
+│   │   │   ├── NotificationsPage.tsx   # Medication notification inbox
+│   │   │   ├── MedicationFormPage.tsx  # Add/edit care schedule items
+│   │   │   └── InvitePage.tsx          # Household invite acceptance
 │   │   ├── components/
 │   │   │   ├── WeightChart.tsx         # Recharts line chart; emoji dots per health status
 │   │   │   ├── MeasurementChart.tsx    # 0-3 scale chart for behavioral/food/water types
@@ -108,12 +119,12 @@ cat-tracker/
 │   │   │   ├── QuickAdd.tsx            # Bottom sheet for quick measurement logging
 │   │   │   ├── PageShell.tsx           # Layout wrapper; owns QuickAdd open state
 │   │   │   ├── BottomNav.tsx           # Fixed 3-item bottom nav (Cats | Log | Compare)
-│   │   │   ├── CatAvatar.tsx           # Reusable photo/emoji avatar; used in Home, CatProfile, AddEditCat
-│   │   │   └── CropModal.tsx           # Full-screen crop/zoom modal; CSS transforms + Canvas extraction
+│   │   │   ├── CatAvatar.tsx           # Reusable photo/emoji avatar
+│   │   │   └── CropModal.tsx           # Full-screen crop/zoom modal; CSS transforms + Canvas
 │   │   └── lib/
 │   │       ├── api.ts                  # Typed fetch wrappers for all API routes
 │   │       ├── healthMetrics.ts        # Vet-threshold health assessment + STATUS_EMOJI/COLORS
-│   │       ├── correlations.ts         # Pearson lag correlation; detectCorrelations; describeCorrelation; detectConfluence
+│   │       ├── correlations.ts         # Pearson lag correlation; detectCorrelations; detectConfluence
 │   │       └── measurementPresets.ts   # Preset labels/values for behavioral types (0-3 scale)
 │   ├── functions/
 │   │   └── api/[[path]].ts       # Pages Function: proxies /api/* to Worker (preserves Set-Cookie)
@@ -144,9 +155,11 @@ CREATE TABLE IF NOT EXISTS cats (
   breed       TEXT,
   coloring    TEXT,
   notes       TEXT,
-  photo_url   TEXT,             -- reserved for future R2 photo upload
+  photo_url   TEXT,
   sex         TEXT,             -- 'Male' | 'Female' | NULL (unknown)
-  user_id     TEXT REFERENCES users(id),  -- NULL = orphaned (pre-auth or unclaimed)
+  is_neutered INTEGER,          -- 0 | 1 | NULL (unknown)
+  microchip_id TEXT,
+  user_id     TEXT REFERENCES users(id),
   created_at  TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -213,8 +226,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 ```
 
-A cron job runs daily at 03:00 UTC to purge expired sessions:
-`DELETE FROM sessions WHERE expires_at < datetime('now')`
+A cron job runs daily at 03:00 UTC to purge expired sessions.
 
 ### oauth_states
 
@@ -225,27 +237,40 @@ CREATE TABLE IF NOT EXISTS oauth_states (
 );
 ```
 
-Used during the Google OAuth flow to prevent CSRF. State is stored in D1 rather than a cookie
-because `Set-Cookie` on redirect responses was being silently dropped by the Pages proxy.
+### households, household_members, household_invites
+
+See `worker/src/db/schema.sql` for the full household schema. Households own cats; members have
+roles (Viewer / Contributor / Editor / Admin); invites are email-based via Resend.
+
+### medications, medication_doses
+
+See `worker/src/db/schema.sql`. Medications have frequency and reminder_time; doses are pre-generated
+in a 90-day rolling window via cron. `due_at` stored as `YYYY-MM-DD HH:MM:00` (space separator,
+SQLite datetime format).
 
 ---
 
 ## Frontend Routing
 
-React Router v6, client-side. All routes require authentication via `ProtectedRoute`; unauthenticated users are redirected to `/login`.
+React Router v6, client-side. All routes require authentication via `ProtectedRoute`.
 
 | Route | Component | Notes |
 |-------|-----------|-------|
-| `/login` | `Login` | Google sign-in splash; redirect to `/` if already authenticated |
+| `/login` | `LoginPage` | Google sign-in splash; redirect to `/` if already authenticated |
 | `/` | `Home` | Cat list with health status badges; claim-orphaned-cats prompt |
 | `/cats/new` | `AddEditCat` | Add cat form |
-| `/cats/:id` | `CatProfile` | Per-cat charts, history timeline, InsightsPanel |
+| `/cats/:id` | `CatProfile` | Per-cat charts, history timeline, InsightsPanel; 3 tabs: Health/Care/About |
 | `/cats/:id/edit` | `AddEditCat` | Edit + delete cat |
 | `/cats/:id/health` | `CatHealthGuidance` | Health signals, vet thresholds, export link |
 | `/cats/:id/export` | `CatExportPage` | Print-optimized vet visit summary |
+| `/cats/:id/medications/new` | `MedicationFormPage` | Add care item |
+| `/medications/:id/edit` | `MedicationFormPage` | Edit care item |
 | `/compare` | `CompareChart` | Multi-cat chart with type selector |
 | `/import` | `ImportPage` | CSV upload + preview + confirm |
 | `/wellness` | `WellnessGuide` | Static cat health reference cards |
+| `/household` | `HouseholdPage` | Household settings + member management |
+| `/notifications` | `NotificationsPage` | Medication notification inbox |
+| `/invite` | `InvitePage` | Household invite acceptance |
 
 All routes except `/login` are wrapped in `PageShell`, which renders `BottomNav` (3 items: Cats | Log | Compare) and owns the `QuickAdd` open state.
 
@@ -266,21 +291,18 @@ When a user requests a resource that exists but belongs to another user, the API
 ### Orphaned cats: read-only until claimed
 
 Pre-auth cats and any cats with `user_id IS NULL` are readable by any authenticated user but
-immutable. This allows a smooth transition for early users. The `claim-cats` endpoint mass-assigns
-all orphaned cats to the requesting user in one call.
+immutable. The `claim-cats` endpoint mass-assigns all orphaned cats to the requesting user.
 
 ### OAuth state in D1, not cookies
 
-During the OAuth redirect flow, the Pages proxy performs an opaque redirect when the Worker returns
-a `302`. `Set-Cookie` headers on opaque redirects were being silently dropped by the proxy. Moving
-state storage to D1 (with a 5-minute TTL) eliminates the need for a state cookie entirely.
+During the OAuth redirect flow, `Set-Cookie` on opaque redirect responses was being silently dropped
+by the Pages proxy. Moving state storage to D1 (5-minute TTL) eliminates the need for a state cookie.
 
 ### Pages proxy preserves Set-Cookie on redirects
 
-`frontend/functions/api/[[path]].ts` uses `fetch(request, { redirect: 'manual' })` and
-explicitly reconstructs 3xx responses as `new Response(null, { status, headers })`. This is
-necessary because `Response.redirect()` strips custom headers including `Set-Cookie` from redirect
-responses.
+`frontend/functions/api/[[path]].ts` uses `fetch(request, { redirect: 'manual' })` and explicitly
+reconstructs 3xx responses as `new Response(null, { status, headers })`. `Response.redirect()` strips
+custom headers including `Set-Cookie`.
 
 ### Correlations are frontend-only
 
@@ -302,11 +324,9 @@ sequential IDs that leak row counts and makes IDs safe to expose in URLs.
 3. Pages proxy reconstructs the `302` response explicitly so headers pass through
 4. Google redirects to `cat-tracker.pages.dev/api/auth/callback?code=...&state=...`
 5. Pages proxy forwards to Worker
-6. Worker: verifies `state` exists in `oauth_states` (and hasn't expired), exchanges `code` for
-   Google access token, fetches Google user profile, upserts into `users`, creates `sessions` row
+6. Worker: verifies `state`, exchanges `code` for Google token, fetches profile, upserts `users`, creates `sessions` row
 7. Worker returns `302` to `/` with `Set-Cookie: session=<id>; HttpOnly; Secure; SameSite=Lax`
-8. Pages proxy reconstructs the `302`; browser sets cookie on `cat-tracker.pages.dev` and follows
-   redirect to `/`
+8. Pages proxy reconstructs the `302`; browser sets cookie and follows redirect to `/`
 9. All subsequent API calls include the cookie; `requireAuth` middleware validates against `sessions`
 
 ---
@@ -315,9 +335,9 @@ sequential IDs that leak row counts and makes IDs safe to expose in URLs.
 
 1. User taps the center "Log" button in `BottomNav`
 2. `PageShell` sets `quickAddOpen = true`, renders `<QuickAdd open onClose=... />`
-3. User picks cat + measurement type + value (preset buttons or numeric input); taps save
+3. User picks cat + measurement type + value; taps save
 4. `createMeasurement()` API call; on success fires `window.dispatchEvent(new CustomEvent('measurementAdded'))`
-5. `Home` and `CatProfile` both listen for this event and re-fetch their measurement data
+5. `Home` and `CatProfile` both listen for this event and re-fetch
 
 ---
 
@@ -327,14 +347,10 @@ sequential IDs that leak row counts and makes IDs safe to expose in URLs.
 
 - **Algorithm:** Pearson correlation with lag (0–4 weeks). Input measurements are bucketed into
   weekly averages. Minimum 4 aligned weekly buckets required.
-- **Known pairs:** 5 hardcoded input→outcome pairs checked (e.g., food→weight, water→vomiting).
-  Input types: `food, water, grooming, activity, play`. Outcome types: `weight, vomiting, litter`.
+- **Known pairs:** 5 hardcoded input→outcome pairs (food→weight, water→vomiting, etc.).
 - **Strength thresholds:** |r| ≥ 0.6 = "notable"; |r| ≥ 0.4 = "moderate"; below = "none".
-- **Confluence detection:** Two hardcoded clinical clusters — kidney/thyroid/DM signals, systemic
-  illness signals. Triggered when two or more cluster-specific correlations are detected.
+- **Confluence detection:** Two clinical clusters — kidney/thyroid/DM signals; systemic illness.
 - **Descriptions:** `describeCorrelation(result, catName, catSex, mode)` with `mode: 'owner' | 'vet'`.
-  Owner mode: plain-language clinical context with gendered pronouns.
-  Vet mode: r-value, lag, data weeks, clinical differentials.
 
 ---
 
@@ -352,12 +368,9 @@ cd worker && npx wrangler deploy
 cd frontend && npm run build && npx wrangler pages deploy dist --project-name cat-tracker --commit-dirty=true
 ```
 
-**Must run from `frontend/` directory.** Running from project root doesn't pick up the
-`functions/` directory correctly.
+**Must run from `frontend/` directory.** Running from project root doesn't pick up the `functions/` directory correctly.
 
 ### DB migrations
-
-After schema changes, apply the migration to production:
 
 ```bash
 cd worker && npx wrangler d1 execute cat-tracker-db --remote --file=src/db/schema.sql
@@ -372,59 +385,49 @@ Use `IF NOT EXISTS` and `ADD COLUMN IF NOT EXISTS` to keep migrations idempotent
 | Worker | `cat-tracker-api` | — |
 | Pages project | `cat-tracker` | — |
 | D1 database | `cat-tracker-db` | `9c923aa8-47a3-4029-b07f-3b67d208f9e6` |
+| R2 bucket | `cat-tracker-photos` | Public: `pub-40305f88ebb54339b47a48224f195f92.r2.dev` |
 | Account | stevej-67b | `67ba5425d0189fa7d4cf1ada3239e058` |
 
 ---
 
 ## External Service Dependencies
 
-All third-party services the application depends on at runtime. Any new external dependency must be added here.
-
 ### Cloudflare (hosting + infrastructure)
 
-| Service | Resource name | ID / detail |
-|---------|--------------|-------------|
-| Pages | `cat-tracker` | Hosts the React SPA + Pages Functions proxy |
+| Service | Resource name | Detail |
+|---------|--------------|--------|
+| Pages | `cat-tracker` | Hosts React SPA + Pages Functions proxy |
 | Workers | `cat-tracker-api` | Runs the Hono API |
-| D1 (SQLite) | `cat-tracker-db` | `9c923aa8-47a3-4029-b07f-3b67d208f9e6` |
-| R2 (object storage) | `cat-tracker-photos` | Public URL: `pub-40305f88ebb54339b47a48224f195f92.r2.dev` |
-| Account | stevej-67b | `67ba5425d0189fa7d4cf1ada3239e058` |
+| D1 | `cat-tracker-db` | `9c923aa8-47a3-4029-b07f-3b67d208f9e6` |
+| R2 | `cat-tracker-photos` | Public: `pub-40305f88ebb54339b47a48224f195f92.r2.dev` |
 
 ### Google OAuth
 
-Used for user authentication. No user-facing login alternative exists.
-
 - **Console:** Google Cloud Console, project linked to stevej account
 - **Authorized redirect URI:** `https://cat-tracker.pages.dev/api/auth/callback`
-- **Worker secrets:** `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (set via `wrangler secret put`)
+- **Worker secrets:** `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
 
 ### Resend (transactional email)
 
-Used to send household invite emails.
-
-- **Dashboard:** https://resend.com
-- **From address:** `noreply@01j.me`
-- **Sending domain:** `01j.me` — registered on Cloudflare, DNS-verified in Resend
-- **Worker secret:** `RESEND_API_KEY` (set via `wrangler secret put`)
-- **Helper:** `worker/src/lib/email.ts` — `sendEmail(params, apiKey)` calls `POST https://api.resend.com/emails`
-- **Note:** MailChannels previously provided free email on Workers but ended that integration. Do not use MailChannels.
+- **From address:** `noreply@01j.me` (verified domain)
+- **Worker secret:** `RESEND_API_KEY`
+- **Helper:** `worker/src/lib/email.ts`
 
 ---
 
-## Key Dependencies (npm packages)
+## Key Dependencies
 
 ### Worker
-- `hono` — lightweight routing framework for Cloudflare Workers
+- `hono` — routing framework for Cloudflare Workers
 - `@cloudflare/workers-types` — TypeScript types for Worker APIs
 
 ### Frontend
 - `react`, `react-dom`, `react-router-dom` v6
 - `recharts` — LineChart, AreaChart, ResponsiveContainer
-- `tailwindcss` with custom `brand-*` color scale and dark glass design tokens
+- `tailwindcss` with custom `brand-*` color scale
 - `vite`
 
 ### TypeScript Config (both packages)
-- `strict: true`
-- `noUnusedLocals`, `noUnusedParameters`
+- `strict: true`, `noUnusedLocals`, `noUnusedParameters`
 - `noUncheckedIndexedAccess` style — always null-check array accesses
 - Worker uses `bundler` module resolution; frontend uses standard Vite config

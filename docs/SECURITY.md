@@ -3,7 +3,7 @@
 This document describes the security model, principles, and guidelines for the Cat Tracker application. It applies to the Cloudflare Worker API, the React SPA, and the Pages proxy.
 
 > For the API authorization rules (who can read/mutate which resources), see **[API.md](API.md)**.
-> For the full technical design including the auth flow, see **[TDD.md](TDD.md)**.
+> For the full technical design including the auth flow, see **[TDD/web.md](TDD/web.md)**.
 
 ---
 
@@ -78,7 +78,7 @@ Input validation runs at the Worker API layer, not just the frontend. Field leng
 | `Path=/` | Cookie scoped to the entire origin |
 
 ### OAuth state (CSRF protection)
-State tokens are stored in D1 `oauth_states` with a 5-minute TTL. State verification uses a single `DELETE ... RETURNING` statement — this atomically consumes the state, preventing replay even under concurrent requests. See [TDD.md](TDD.md) for why state is in D1 rather than a cookie.
+State tokens are stored in D1 `oauth_states` with a 5-minute TTL. State verification uses a single `DELETE ... RETURNING` statement — this atomically consumes the state, preventing replay even under concurrent requests. See [TDD/web.md](TDD/web.md) for why state is in D1 rather than a cookie.
 
 ---
 

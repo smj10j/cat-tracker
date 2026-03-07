@@ -26,7 +26,10 @@ worker/       Cloudflare Worker — Hono REST API
 frontend/     React + Vite SPA + Pages Functions proxy
 docs/
   PRDs/       Product requirement documents (one file per feature area)
-  TDD.md      Technical design
+  TDD/        Technical design documents
+    README.md       TDD index — read this first
+    web.md          Current production architecture
+    cross-platform.md  iOS/Android/web unified app plan (not yet implemented)
   DESIGN.md   Visual design system
 TODO.md       Task tracking — keep this updated
 ```
@@ -121,7 +124,7 @@ Transactional email is sent via **Resend** (https://resend.com).
 
 Follow these steps **in order**. Do not skip, reorder, or batch steps.
 
-1. **Documentation first** — Write or update PRDs, TDD.md, API.md, REGISTRY.md, and decision docs before touching code. If a feature has no `Approved` PRD, write one and stop — do not implement until approved. This applies even for small changes: update the relevant doc before the code.
+1. **Documentation first** — Write or update PRDs, docs/TDD/web.md, API.md, REGISTRY.md, and decision docs before touching code. If a feature has no `Approved` PRD, write one and stop — do not implement until approved. This applies even for small changes: update the relevant doc before the code.
 
 2. **Update TODO.md** — Add a new Phase entry for the work about to be done (even if doc-only). Mark tasks `[-]` (in progress) before starting. **This step is required for all work, not just implementation sprints.**
 
@@ -189,7 +192,8 @@ See **`docs/PRDs/REGISTRY.md`** — it is the single source of truth and is alwa
 ### Other docs
 - `docs/API.md` — full API spec: every endpoint, request/response shapes, auth requirements, authorization rules (who can mutate what)
 - `docs/SECURITY.md` — security guidelines, principles, architecture model, known limitations; **read before adding auth/sessions/new API routes**
-- `docs/TDD.md` — architecture, design decisions, schema, auth flow, correlation engine
+- `docs/TDD/web.md` — current web architecture, design decisions, schema, auth flow, correlation engine
+- `docs/TDD/cross-platform.md` — iOS/Android/web unified app plan (Expo + Expo Router; not yet implemented)
 - `docs/DESIGN.md` — visual design system
 
 ## What NOT to do

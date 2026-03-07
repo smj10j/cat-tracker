@@ -38,7 +38,10 @@ cat-tracker/
 │   │   ├── PRD-charts-expansion.md   # Multi-type charts
 │   │   ├── PRD-killer-app.md         # Roadmap research (under review)
 │   │   └── PRD-auth.md               # User accounts & data isolation (under review)
-│   ├── TDD.md                        # Technical design doc
+│   ├── TDD/                          # Technical design docs
+│   │   ├── README.md                 #   Index
+│   │   ├── web.md                    #   Current web architecture
+│   │   └── cross-platform.md        #   iOS/Android/web unified plan
 │   └── DESIGN.md                     # Visual design system
 ├── worker/                 # Cloudflare Worker — REST API
 │   ├── src/
@@ -262,7 +265,9 @@ Emoji dots appear on chart data points and as badges on cat cards. Logic lives i
 - [`docs/PRDs/PRD-ux-simplification.md`](docs/PRDs/PRD-ux-simplification.md) — UX simplification
 - [`docs/PRDs/PRD-auth.md`](docs/PRDs/PRD-auth.md) — User accounts & data isolation
 - [`docs/PRDs/PRD-killer-app.md`](docs/PRDs/PRD-killer-app.md) — Roadmap research
-- [`docs/TDD.md`](docs/TDD.md) — Technical design
+- [`docs/TDD/README.md`](docs/TDD/README.md) — Technical design docs index
+  - [`docs/TDD/web.md`](docs/TDD/web.md) — Current web architecture
+  - [`docs/TDD/cross-platform.md`](docs/TDD/cross-platform.md) — iOS / Android / web unified plan
 - [`docs/DESIGN.md`](docs/DESIGN.md) — Visual design system
 - [`TODO.md`](TODO.md) — Task tracking
 - [`CLAUDE.md`](CLAUDE.md) — Instructions for AI assistants

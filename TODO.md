@@ -168,3 +168,31 @@
 
 ### Docs cleanup
 - [x] Update README.md docs paths to reflect docs/PRDs/ move
+
+## Phase 9: Health Visuals, Chart Expansion, Measurement UX (PRD refs)
+
+### Health Status Emoji Dots (PRD-health-status-visuals.md)
+- [x] Add STATUS_EMOJI to healthMetrics.ts
+- [x] WeightChart: replace colored circles with emoji SVG text nodes
+- [x] CompareChart: replace dots + legend colored circles with emoji
+
+### Measurement UX Fixes (PRD-measurement-ux.md)
+- [x] QuickAdd: replace horizontal pill row with <select> dropdown for type
+- [x] measurementPresets.ts: fix litter labels/order (Not used · Straining · Loose/Diarrhea · Normal)
+- [x] measurementPresets.ts: shorten grooming "Not grooming" → "None"
+
+### Charts Expansion (PRD-charts-expansion.md)
+- [x] CompareChart: add type selector; re-fetch + re-render on type change
+- [x] CompareChart: scale-type Y axis shows preset labels; plain dots for non-weight
+- [x] New MeasurementChart.tsx component for 0–3 scale types
+- [x] CatProfile: show WeightChart on weight tab, MeasurementChart on food/water tabs, no chart on behavior/all tabs
+
+### Killer App PRD (PRD-killer-app.md — for review, not yet implementing)
+- [ ] REVIEW: P0 Vet export / shareable summary
+- [ ] REVIEW: P1 Daily check-in multi-log screen
+- [ ] REVIEW: P2 Streak & consistency tracking
+- [ ] REVIEW: P3 Weigh-in reminders
+- [ ] REVIEW: P4 Correlation insights
+- [ ] REVIEW: P5 Household sharing / token auth
+- [ ] REVIEW: P6 Shelter mode
+- [ ] REVIEW: P7 AI health narrative

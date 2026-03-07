@@ -150,25 +150,18 @@ export default function QuickAdd({ open, onClose }: Props) {
               </select>
             </div>
 
-            {/* Type selector — horizontal scroll of pill buttons */}
+            {/* Type selector */}
             <div>
               <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">What to log</label>
-              <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+              <select
+                value={form.type}
+                onChange={(e) => handleTypeChange(e.target.value)}
+                className="input-dark w-full px-3 py-3 text-sm"
+              >
                 {TYPE_OPTIONS.map(({ value, label }) => (
-                  <button
-                    key={value}
-                    onClick={() => handleTypeChange(value)}
-                    className="shrink-0 px-3 py-2 rounded-xl text-sm font-medium transition-all"
-                    style={{
-                      background: form.type === value ? 'rgba(192,132,252,0.2)' : 'rgba(255,255,255,0.05)',
-                      color: form.type === value ? '#c084fc' : '#6b5f85',
-                      border: form.type === value ? '1px solid rgba(192,132,252,0.4)' : '1px solid rgba(255,255,255,0.07)',
-                    }}
-                  >
-                    {label}
-                  </button>
+                  <option key={value} value={value}>{label}</option>
                 ))}
-              </div>
+              </select>
             </div>
 
             {/* Input area */}

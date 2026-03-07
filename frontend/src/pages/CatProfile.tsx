@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { getCat, getMeasurements, deleteMeasurement, type Cat, type Measurement } from '../lib/api'
 import {
-  assessHealth, STATUS_COLORS, STATUS_LABEL,
+  assessHealth, STATUS_COLORS, STATUS_EMOJI, STATUS_LABEL,
   WATCH_ATTENTION, CONCERNING_ATTENTION, URGENT_VET_SIGNS,
 } from '../lib/healthMetrics'
 import WeightChart from '../components/WeightChart'
 import MeasurementForm from '../components/MeasurementForm'
+import MeasurementChart from '../components/MeasurementChart'
 import { getPresetLabel } from '../lib/measurementPresets'
 
 function catAge(birthdate: string): string {
@@ -298,29 +299,39 @@ export default function CatProfile() {
           </div>
         )}
 
-        {/* Chart */}
-        <div
-          className="glass-card p-5 animate-slide-up opacity-0"
-          style={{ animationDelay: showPayAttention ? '120ms' : '60ms', animationFillMode: 'forwards' }}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-display font-semibold text-ink">Weight Over Time</h3>
-            <div className="flex gap-3 text-[10px] text-ink-dim">
-              {[
-                { label: 'Stable', color: '#4ade80' },
-                { label: 'Watch', color: '#fbbf24' },
-                { label: 'Concern', color: '#f97316' },
-                { label: 'Urgent', color: '#f87171' },
-              ].map(({ label, color }) => (
-                <span key={label} className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
-                  {label}
-                </span>
-              ))}
-            </div>
+        {/* Chart — follows active tab */}
+        {(tab === 'weight' || tab === 'food' || tab === 'water') && (
+          <div
+            className="glass-card p-5 animate-slide-up opacity-0"
+            style={{ animationDelay: showPayAttention ? '120ms' : '60ms', animationFillMode: 'forwards' }}
+          >
+            {tab === 'weight' ? (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-display font-semibold text-ink">Weight Over Time</h3>
+                  <div className="flex gap-3 text-[10px] text-ink-dim">
+                    {(['ok', 'watch', 'concerning', 'urgent'] as const).map((s) => (
+                      <span key={s} className="flex items-center gap-1">
+                        {STATUS_EMOJI[s]} {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <WeightChart measurements={weightMeasurements} />
+              </>
+            ) : (
+              <>
+                <h3 className="font-display font-semibold text-ink mb-4">
+                  {tab === 'food' ? 'Food Intake' : 'Water Intake'} Over Time
+                </h3>
+                <MeasurementChart
+                  measurements={measurements.filter((m) => m.type === tab).sort((a, b) => a.measured_at.localeCompare(b.measured_at))}
+                  type={tab}
+                />
+              </>
+            )}
           </div>
-          <WeightChart measurements={weightMeasurements} />
-        </div>
+        )}
 
         {/* Add measurement */}
         {id && <MeasurementForm catId={id} onAdded={handleMeasurementAdded} />}

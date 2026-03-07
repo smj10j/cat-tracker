@@ -146,6 +146,13 @@ export const STATUS_BG: Record<HealthStatus, string> = {
   urgent: 'bg-red-50 border-red-200 text-red-800',
 }
 
+export const STATUS_EMOJI: Record<HealthStatus, string> = {
+  ok: '✅',
+  watch: '👀',
+  concerning: '⚠️',
+  urgent: '🚨',
+}
+
 export const STATUS_LABEL: Record<HealthStatus, string> = {
   ok: 'Stable',
   watch: 'Watch',

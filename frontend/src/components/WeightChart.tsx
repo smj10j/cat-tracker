@@ -3,7 +3,7 @@ import {
   ResponsiveContainer, Area, AreaChart,
 } from 'recharts'
 import type { Measurement } from '../lib/api'
-import { assessHealth, STATUS_COLORS, type PeriodHealth } from '../lib/healthMetrics'
+import { assessHealth, STATUS_COLORS, STATUS_EMOJI, type PeriodHealth } from '../lib/healthMetrics'
 
 interface Props {
   measurements: Measurement[]
@@ -21,14 +21,19 @@ interface DotProps {
 function HealthDot({ cx, cy, index, periods }: DotProps) {
   if (cx == null || cy == null || index == null) return null
   const period = periods[index]
-  const color = period ? STATUS_COLORS[period.status] : '#4ade80'
+  const status = period?.status ?? 'ok'
+  const emoji = STATUS_EMOJI[status]
   return (
-    <g>
-      {/* Glow */}
-      <circle cx={cx} cy={cy} r={8} fill={color} opacity={0.15} />
-      {/* Dot */}
-      <circle cx={cx} cy={cy} r={4.5} fill={color} stroke="#16111f" strokeWidth={2} />
-    </g>
+    <text
+      x={cx}
+      y={cy}
+      textAnchor="middle"
+      dominantBaseline="middle"
+      fontSize={14}
+      style={{ userSelect: 'none' }}
+    >
+      {emoji}
+    </text>
   )
 }
 
@@ -55,7 +60,7 @@ function CustomTooltip({ active, payload, label }: {
       <div style={{ color: '#ede9f6', fontWeight: 700, fontSize: 16 }}>{value} {unit}</div>
       {period && period.direction !== 'stable' && (
         <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.07)', color: STATUS_COLORS[period.status] }}>
-          {period.direction === 'loss' ? '▼' : '▲'} {Math.abs(period.lbsChange)} {unit} in {period.days}d
+          {STATUS_EMOJI[period.status]} {period.direction === 'loss' ? '▼' : '▲'} {Math.abs(period.lbsChange)} {unit} in {period.days}d
           <span style={{ color: '#6b5f85', marginLeft: 6 }}>{Math.abs(period.changePerWeek)}%/wk</span>
         </div>
       )}
@@ -92,7 +97,7 @@ export default function WeightChart({ measurements }: Props) {
 
   return (
     <ResponsiveContainer width="100%" height={240}>
-      <AreaChart data={data} margin={{ top: 10, right: 8, left: 0, bottom: 4 }}>
+      <AreaChart data={data} margin={{ top: 14, right: 8, left: 0, bottom: 4 }}>
         <defs>
           <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%" stopColor="#c084fc" />
@@ -104,12 +109,7 @@ export default function WeightChart({ measurements }: Props) {
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-        <XAxis
-          dataKey="date"
-          tick={{ fontSize: 10, fill: '#6b5f85' }}
-          tickLine={false}
-          axisLine={false}
-        />
+        <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#6b5f85' }} tickLine={false} axisLine={false} />
         <YAxis
           domain={yDomain}
           tick={{ fontSize: 10, fill: '#6b5f85' }}

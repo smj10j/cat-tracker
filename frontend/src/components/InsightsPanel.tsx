@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import type { Cat, Measurement } from '../lib/api'
 import { STATUS_COLORS } from '../lib/healthMetrics'
 import type { HealthAssessment } from '../lib/healthMetrics'
-import { detectCorrelations, describeCorrelation } from '../lib/correlations'
+import { detectCorrelations, describeCorrelation, detectConfluence } from '../lib/correlations'
 import CorrelationChart from './CorrelationChart'
 
 const STATUS_ICON: Record<string, string> = {
@@ -32,6 +32,10 @@ export default function InsightsPanel({
   const correlations = availableTypes.length >= 2
     ? detectCorrelations(measurementsByType).filter((r) => r.strength !== 'none')
     : []
+
+  const confluence = correlations.length >= 2
+    ? detectConfluence(correlations, cat.name)
+    : null
 
   const hasInsights = showHealthAlert || correlations.length > 0
 
@@ -121,6 +125,25 @@ export default function InsightsPanel({
           <p className="text-[10px] font-bold uppercase tracking-wider mb-3 text-ink-dim">
             Patterns detected
           </p>
+
+          {/* Confluence alert — shown above individual patterns when multiple signals align */}
+          {confluence && (
+            <div
+              className="mb-3 px-4 py-3 rounded-xl"
+              style={{
+                background: 'rgba(249,115,22,0.08)',
+                border: '1.5px solid rgba(249,115,22,0.4)',
+              }}
+            >
+              <p className="text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: '#f97316' }}>
+                Multiple signals — {confluence.clusterName}
+              </p>
+              <p className="text-sm leading-snug" style={{ color: '#fdba74' }}>
+                {confluence.ownerMessage}
+              </p>
+            </div>
+          )}
+
           {correlations.length === 0 ? (
             <p className="text-sm text-ink-dim">
               No patterns detected yet — keep logging to see trends emerge.
@@ -168,6 +191,7 @@ export default function InsightsPanel({
             <div className="mt-3">
               <CorrelationChart
                 catName={cat.name}
+                catSex={cat.sex}
                 allMeasurements={measurementsByType}
                 availableTypes={availableTypes}
               />

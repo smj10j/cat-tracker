@@ -4,7 +4,7 @@ import {
   ResponsiveContainer, Legend,
 } from 'recharts'
 import type { Measurement } from '../lib/api'
-import { bucketByWeek, lagCorrelation, normalize, describeCorrelation, INPUT_TYPES, OUTCOME_TYPES } from '../lib/correlations'
+import { bucketByWeek, lagCorrelation, normalize, describeCorrelation, detectTrend, INPUT_TYPES, OUTCOME_TYPES } from '../lib/correlations'
 import type { CorrelationResult } from '../lib/correlations'
 
 const TYPE_LABELS: Record<string, string> = {
@@ -15,6 +15,7 @@ const TYPE_LABELS: Record<string, string> = {
 
 interface Props {
   catName: string
+  catSex?: string | null
   allMeasurements: Record<string, Measurement[]>
   availableTypes: string[]
 }
@@ -35,7 +36,7 @@ type ChartPoint = {
   [key: string]: string | number | null
 }
 
-export default function CorrelationChart({ catName, allMeasurements, availableTypes }: Props) {
+export default function CorrelationChart({ catName, catSex, allMeasurements, availableTypes }: Props) {
   const typesWithData = availableTypes.filter((t) => (allMeasurements[t]?.length ?? 0) >= 2)
 
   const inputOptions = typesWithData.filter((t) => INPUT_TYPES.has(t))
@@ -110,15 +111,18 @@ export default function CorrelationChart({ catName, allMeasurements, availableTy
       strength,
       isPredictive: false,
       isHyperthyroidismPattern,
+      typeATrend: detectTrend(bucketsA),
+      typeBTrend: detectTrend(bucketsB),
+      dataWeeks: alignedA.length,
     }
 
     return {
       chartData,
       result,
-      description: describeCorrelation(result, catName),
+      description: describeCorrelation(result, catName, catSex),
       needsMoreData: false,
     }
-  }, [typeA, typeB, allMeasurements, catName])
+  }, [typeA, typeB, allMeasurements, catName, catSex])
 
   const strengthColor =
     result?.strength === 'notable' ? '#c084fc'

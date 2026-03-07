@@ -187,7 +187,7 @@
 - [x] CatProfile: show WeightChart on weight tab, MeasurementChart on food/water tabs, no chart on behavior/all tabs
 
 ### Killer App PRD (PRD-killer-app.md — for review, not yet implementing)
-- [ ] REVIEW: P0 Vet export / shareable summary
+- [x] REVIEW: P0 Vet export / shareable summary — implemented, see Phase 13
 - [ ] REVIEW: P1 Daily check-in multi-log screen
 - [ ] REVIEW: P2 Streak & consistency tracking
 - [ ] REVIEW: P3 Weigh-in reminders
@@ -250,3 +250,50 @@
 - [x] Session cookie: proxy now reconstructs 3xx responses explicitly so Set-Cookie headers reach the browser
 - [x] Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET Worker secrets
 - [x] Register https://cat-tracker.pages.dev/api/auth/callback as authorized redirect URI in Google Cloud Console
+
+## Phase 13: Vet Export, Input/Output Metrics, Profile UX Polish
+
+### Vet Export (PRD-vet-export.md)
+- [x] CatExportPage.tsx at /cats/:id/export — print-friendly white background
+- [x] Cat info, weight summary table (last 15 entries with change deltas)
+- [x] Behavioral tables: last 4 weeks with getPresetLabel human-readable values
+- [x] Detected patterns section (owner prose)
+- [x] "Print / Save as PDF" button (window.print())
+- [x] Export buttons on CatProfile and CatHealthGuidance
+- [x] Export uses vet-mode correlation descriptions with clinical differentials
+
+### Input/Output Metric Framing (PRD-input-output-metrics.md)
+- [x] Classify measurement types: INPUT_TYPES (food, water, grooming, activity, play) vs OUTCOME_TYPES (weight, vomiting, litter)
+- [x] CorrelationChart constrained selectors: left = input, right = outcome
+- [x] Graceful empty state if no input types logged
+
+### CatHealthGuidance page (PRD-profile-ux.md continuation)
+- [x] /cats/:id/health — dedicated health guidance page
+- [x] Vet signs shown first for urgent/concerning; pay-attention list; contextual reassurance
+- [x] "Export for vet" button in header
+
+### UX polish
+- [x] Cat sex field (Male/Female/Unknown) in add/edit form; stored in D1 (migration applied)
+- [x] Correlation descriptions use gendered pronouns (his/her/their) based on sex
+- [x] Remove autoFocus from QuickAdd weight input (keyboard no longer pops on open)
+- [x] BottomNav simplified to 3 items (Cats | Log | Compare) — Log is now perfectly centered
+- [x] Profile avatar moved from BottomNav to top-left of Home header with sign-out popover
+
+## Phase 14: Login Splash Page (PRD-login-splash.md)
+- [x] Hero section: cat emoji with radial glow, floating metric bubbles (9.4 lbs / ↗ stable)
+- [x] Branded sparkline hint at health tracking
+- [x] Value prop: "Know your cat's health trends before they become vet emergencies."
+- [x] 3 feature rows: weight tracking, early warning patterns, vet-ready summaries
+- [x] Sign-in button with gradient border; privacy note footer
+
+## Phase 15: Correlation Descriptions Overhaul (PRD-correlation-descriptions.md)
+- [x] Add typeATrend / typeBTrend / dataWeeks to CorrelationResult (fix direction bug)
+- [x] detectTrend() — first-half vs second-half average comparison
+- [x] Clinical annotation per pair: food/water/grooming/activity/vomiting → weight
+- [x] describeCorrelation() mode param: 'owner' (plain language) vs 'vet' (clinical + differentials + stats)
+- [x] Owner descriptions: pair-specific clinical context, gendered pronouns, confidence framing, early-warning note when isPredictive
+- [x] Vet descriptions: r value, lag, dataWeeks, differentials by pair+direction
+- [x] detectConfluence(): detects multi-pattern clusters (kidney/thyroid/DM; systemic illness)
+- [x] InsightsPanel: shows confluence alert card above individual patterns
+- [x] CorrelationChart: adds typeATrend/typeBTrend/dataWeeks to local result; catSex prop
+- [x] CatExportPage: vet-mode descriptions; confluence note in amber card

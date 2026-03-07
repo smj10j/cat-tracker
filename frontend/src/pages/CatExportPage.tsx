@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getCat, getMeasurements, type Cat, type Measurement } from '../lib/api'
 import { assessHealth } from '../lib/healthMetrics'
-import { detectCorrelations, describeCorrelation } from '../lib/correlations'
+import { detectCorrelations, describeCorrelation, detectConfluence } from '../lib/correlations'
 import { getPresetLabel, PRESET_TYPES } from '../lib/measurementPresets'
 
 const TYPE_LABELS: Record<string, string> = {
@@ -81,6 +81,7 @@ export default function CatExportPage() {
   const correlations = allTypes.length >= 2
     ? detectCorrelations(byType).filter((r) => r.strength !== 'none')
     : []
+  const confluence = correlations.length >= 2 ? detectConfluence(correlations, cat.name) : null
 
   const generatedAt = new Date().toLocaleString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
@@ -252,15 +253,34 @@ export default function CatExportPage() {
             )
           })}
 
-          {/* Detected patterns */}
+          {/* Observed patterns (vet-mode: clinical language + differentials) */}
           {correlations.length > 0 && (
             <section>
-              <h2 className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: '#6b7280' }}>Observed patterns</h2>
-              <ul className="space-y-2">
+              <h2 className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: '#6b7280' }}>Observed patterns</h2>
+              <p className="text-xs mb-3" style={{ color: '#9ca3af' }}>
+                Based on owner-reported behavioral data corroborating objective weight measurements.
+              </p>
+
+              {/* Confluence cluster note */}
+              {confluence && (
+                <div
+                  className="mb-3 px-3 py-2.5 rounded-lg text-sm"
+                  style={{ background: '#fef3c7', border: '1px solid #f59e0b' }}
+                >
+                  <p className="font-semibold text-xs uppercase tracking-wider mb-1" style={{ color: '#92400e' }}>
+                    Multi-pattern cluster — {confluence.clusterName}
+                  </p>
+                  <p style={{ color: '#78350f' }}>{confluence.vetNote}</p>
+                </div>
+              )}
+
+              <ul className="space-y-3">
                 {correlations.map((r) => (
-                  <li key={`${r.typeA}-${r.typeB}`} className="flex items-start gap-2 text-sm">
-                    <span style={{ color: r.strength === 'notable' ? '#7c3aed' : '#ea580c' }}>·</span>
-                    <span>{describeCorrelation(r, cat.name, cat.sex)}</span>
+                  <li key={`${r.typeA}-${r.typeB}`} className="text-sm" style={{ color: '#374151' }}>
+                    <span className="font-medium" style={{ color: r.strength === 'notable' ? '#7c3aed' : '#ea580c' }}>
+                      {r.strength === 'notable' ? '● ' : '○ '}
+                    </span>
+                    {describeCorrelation(r, cat.name, cat.sex, 'vet')}
                   </li>
                 ))}
               </ul>

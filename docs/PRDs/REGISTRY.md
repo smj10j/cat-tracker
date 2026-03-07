@@ -102,6 +102,33 @@ Canonical list of all product requirement documents, their status, and implement
 **Status:** `Implemented`
 **Implemented:** `correlations.ts` (weekly buckets, normalize, Pearson lag correlation, detectCorrelations, describeCorrelation, getHomeBadge); `CorrelationChart.tsx` (normalized dual-line chart, type selectors, pattern prose); CatProfile Trends tab; Home correlation badge for predictive signals. Frontend-only, no new API.
 **Open questions resolved:** Min data = 4 aligned weekly buckets (lenient; works with our test data). Hyperthyroidism pattern flagged without naming the disease. Copy avoids causation language. Sparse data shows "X more weeks needed".
+**Superseded by:** PRD-correlation-descriptions.md for description quality/clinical content. Core math unchanged.
+
+---
+
+---
+
+### PRD-vet-export.md — Vet Visit Export
+**Status:** `Implemented`
+**Implemented:** `/cats/:id/export` — print-optimized white page with cat info, weight table (15 entries with deltas), behavioral tables (last 4 weeks, human-readable preset labels), observed patterns section. Vet-mode correlation descriptions (clinical language + differentials). Confluence cluster note in amber card. Export buttons on CatProfile and CatHealthGuidance. `window.print()` → "Save as PDF" flow.
+
+---
+
+### PRD-input-output-metrics.md — Input/Output Metric Classification
+**Status:** `Implemented`
+**Implemented:** `INPUT_TYPES` (food, water, grooming, activity, play) and `OUTCOME_TYPES` (weight, vomiting, litter) sets in correlations.ts. CorrelationChart uses constrained selectors: left dropdown = input types only, right = outcome types only. Arrow `→` between dropdowns. Graceful empty state when no input or outcome types are logged.
+
+---
+
+### PRD-login-splash.md — Marketing / Splash Login Page
+**Status:** `Implemented`
+**Implemented:** Full login page redesign. Hero section with cat emoji, radial glow, floating "9.4 lbs" / "↗ stable" metric bubbles, branded sparkline. Value prop headline. 3 feature rows (weight tracking, early warning patterns, vet-ready summaries). Sign-in button with gradient border. Privacy note. Error state for auth failures.
+
+---
+
+### PRD-correlation-descriptions.md — Correlation Descriptions: Clinical Accuracy & Dual-Audience
+**Status:** `Implemented`
+**Implemented:** `typeATrend`/`typeBTrend`/`dataWeeks` fields on CorrelationResult; `detectTrend()` using first-half vs second-half average; `detectConfluence()` with two known clinical clusters (kidney/thyroid/DM; systemic illness); `describeCorrelation()` rewritten with `mode: 'owner' | 'vet'` — owner mode uses pair-specific clinical context, gendered pronouns, confidence framing, early-warning note; vet mode includes r/lag/dataWeeks stats and clinical differentials by pair+trend direction. InsightsPanel shows confluence alert above individual patterns. CorrelationChart updated with new fields and catSex prop. CatExportPage uses vet mode with amber confluence card.
 
 ---
 
@@ -113,7 +140,6 @@ These items have been mentioned or are implied by existing PRDs but don't have a
 |---------|--------|-------|
 | Photo upload (R2) | PRD-mvp, backlog | Straightforward; needs PRD |
 | Date range filter on charts | PRD-mvp | Low priority so far |
-| Vet export / PDF | PRD-killer-app P0 | High value; needs PRD |
 | Daily check-in screen | PRD-killer-app P1 | High value; needs PRD |
 | Streak tracking | PRD-killer-app P2 | Habit-forming; needs PRD |
 | Household sharing (post-auth) | backlog §5, killer-app P5 | Depends on auth being done first |
@@ -132,4 +158,4 @@ Nothing rejected yet.
 
 ---
 
-*Last updated: Sprint 6 (profile UX, correlations, history timeline)*
+*Last updated: Sprint 7 (vet export, input/output metrics, login splash, correlation descriptions overhaul, cat sex field, UX polish)*

@@ -92,10 +92,17 @@ Canonical list of all product requirement documents, their status, and implement
 ---
 
 ### PRD-auth.md — User Accounts & Data Isolation
-**Status:** `Under Review`
+**Status:** `Implemented`
+**Implemented:** Google OAuth (login/callback/logout/me); D1 users + sessions tables; cats.user_id FK; requireAuth middleware with rolling sessions; all routes scoped by userId; ProtectedRoute; /login page; user avatar in BottomNav with sign-out; claim-existing-cats prompt on Home
+**Notes:** Google-only at launch (GitHub can be added later). GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set as Worker secrets before auth is functional.
+
+---
+
+### PRD-correlations.md — Measurement Correlations
+**Status:** `Draft`
 **Implemented:** Nothing yet
-**Summary:** OAuth login (Google + GitHub); D1 users + sessions tables; cats scoped by user_id; ProtectedRoute on frontend; claim-existing-cats prompt on first login
-**Open questions:** See PRD-auth.md §Open Questions — needs product owner input before implementation begins
+**Summary:** Dual-axis "Trends" tab on CatProfile showing how two measurement types correlate over time; lag-based correlation detection (food drop → weight drop ~2wks later); home card badge for active predictive signals; frontend-only computation on existing data
+**Open questions:** See PRD-correlations.md §Open Questions
 
 ---
 
@@ -120,4 +127,4 @@ Nothing rejected yet.
 
 ---
 
-*Last updated: Sprint 4 (Phase 9 complete)*
+*Last updated: Sprint 5 (Phase 10 auth implemented; PRD-correlations.md drafted)*

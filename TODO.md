@@ -199,31 +199,35 @@
 ## Phase 10: Auth — User Accounts & Data Isolation (PRD-auth.md)
 
 ### Schema
-- [-] Add users table (id, email, display_name, avatar_url, oauth_provider, oauth_id)
-- [-] Add sessions table (id, user_id, expires_at)
-- [-] Add nullable user_id column to cats table
+- [x] Add users table (id, email, display_name, avatar_url, oauth_provider, oauth_id)
+- [x] Add sessions table (id, user_id, expires_at)
+- [x] Add nullable user_id column to cats table
 
 ### Worker — Auth Routes
-- [ ] GET /api/auth/login?provider=google — redirect to OAuth consent
-- [ ] GET /api/auth/callback — exchange code, upsert user, create session, set cookie
-- [ ] POST /api/auth/logout — delete session, clear cookie
-- [ ] GET /api/auth/me — return current user
+- [x] GET /api/auth/login?provider=google — redirect to OAuth consent
+- [x] GET /api/auth/callback — exchange code, upsert user, create session, set cookie
+- [x] POST /api/auth/logout — delete session, clear cookie
+- [x] GET /api/auth/me — return current user
 
 ### Worker — Auth Middleware & Query Scoping
-- [ ] Auth middleware: validate session cookie, inject userId into context
-- [ ] Scope GET /api/cats to user_id
-- [ ] Scope POST /api/cats to user_id
-- [ ] Scope GET/PUT/DELETE /api/cats/:id to user_id
-- [ ] Scope GET/POST /api/cats/:id/measurements to user_id (via cat ownership)
-- [ ] Scope DELETE /api/measurements/:id to user_id
-- [ ] Scope POST /api/import to user_id
+- [x] Auth middleware: validate session cookie, inject userId into context
+- [x] Scope GET /api/cats to user_id
+- [x] Scope POST /api/cats to user_id
+- [x] Scope GET/PUT/DELETE /api/cats/:id to user_id
+- [x] Scope GET/POST /api/cats/:id/measurements to user_id (via cat ownership)
+- [x] Scope DELETE /api/measurements/:id to user_id
+- [x] Scope POST /api/import to user_id
 
 ### Worker — Session Cleanup Cron
-- [ ] Add Cron trigger (0 3 * * *) to delete expired sessions
+- [x] Add Cron trigger (0 3 * * *) to delete expired sessions
 
 ### Frontend — Auth
-- [ ] AuthContext: fetch /api/auth/me on mount; provide user, loading, logout()
-- [ ] /login page: "Sign in with Google" button
-- [ ] ProtectedRoute wrapper: redirect to /login if not authenticated
-- [ ] User avatar in BottomNav (or top corner): name + Sign out
-- [ ] First-login "claim existing cats" prompt
+- [x] AuthContext: fetch /api/auth/me on mount; provide user, loading, logout()
+- [x] /login page: "Sign in with Google" button
+- [x] ProtectedRoute wrapper: redirect to /login if not authenticated
+- [x] User avatar in BottomNav (or top corner): name + Sign out
+- [x] First-login "claim existing cats" prompt
+
+### Pending — requires manual setup
+- [ ] Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET Worker secrets
+- [ ] Register https://cat-tracker.pages.dev/api/auth/callback as authorized redirect URI in Google Cloud Console

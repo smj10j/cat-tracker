@@ -4,7 +4,7 @@ import {
   ResponsiveContainer, Legend,
 } from 'recharts'
 import type { Measurement } from '../lib/api'
-import { bucketByWeek, lagCorrelation, normalize, describeCorrelation } from '../lib/correlations'
+import { bucketByWeek, lagCorrelation, normalize, describeCorrelation, INPUT_TYPES, OUTCOME_TYPES } from '../lib/correlations'
 import type { CorrelationResult } from '../lib/correlations'
 
 const TYPE_LABELS: Record<string, string> = {
@@ -38,10 +38,16 @@ type ChartPoint = {
 export default function CorrelationChart({ catName, allMeasurements, availableTypes }: Props) {
   const typesWithData = availableTypes.filter((t) => (allMeasurements[t]?.length ?? 0) >= 2)
 
-  const defaultA = typesWithData.find((t) => t !== 'weight') ?? typesWithData[0] ?? 'food'
-  const defaultB = typesWithData.includes('weight') && defaultA !== 'weight'
+  const inputOptions = typesWithData.filter((t) => INPUT_TYPES.has(t))
+  const outcomeOptions = typesWithData.filter((t) => OUTCOME_TYPES.has(t))
+
+  // If no input or no outcome types are logged, we can't do constrained exploration
+  const canExplore = inputOptions.length > 0 && outcomeOptions.length > 0
+
+  const defaultA = inputOptions[0] ?? typesWithData[0] ?? 'food'
+  const defaultB = outcomeOptions.includes('weight')
     ? 'weight'
-    : typesWithData.find((t) => t !== defaultA) ?? typesWithData[1] ?? 'weight'
+    : outcomeOptions[0] ?? typesWithData.find((t) => t !== defaultA) ?? 'weight'
 
   const [typeA, setTypeA] = useState(defaultA)
   const [typeB, setTypeB] = useState(defaultB)
@@ -131,35 +137,49 @@ export default function CorrelationChart({ catName, allMeasurements, availableTy
     minWidth: 0,
   }
 
+  if (!canExplore) {
+    return (
+      <div className="rounded-xl px-4 py-3 text-sm text-ink-dim" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        Log behavioral measurements (food, water, grooming, activity) to explore how they relate to health outcomes like weight.
+      </div>
+    )
+  }
+
   return (
     <div className="glass-card p-5">
       <h3 className="font-display font-semibold text-ink mb-4">Trends</h3>
 
-      {/* Type selectors */}
+      {/* Constrained selectors: input → outcome */}
       <div className="flex items-center gap-2 mb-5">
-        <select
-          value={typeA}
-          onChange={(e) => setTypeA(e.target.value)}
-          style={selectStyle}
-        >
-          {typesWithData.map((t) => (
-            <option key={t} value={t} disabled={t === typeB}>
-              {TYPE_LABELS[t] ?? t}
-            </option>
-          ))}
-        </select>
-        <span className="text-ink-dim text-sm shrink-0">vs</span>
-        <select
-          value={typeB}
-          onChange={(e) => setTypeB(e.target.value)}
-          style={selectStyle}
-        >
-          {typesWithData.map((t) => (
-            <option key={t} value={t} disabled={t === typeA}>
-              {TYPE_LABELS[t] ?? t}
-            </option>
-          ))}
-        </select>
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-dim mb-1.5">Input / behavior</p>
+          <select
+            value={typeA}
+            onChange={(e) => setTypeA(e.target.value)}
+            style={selectStyle}
+          >
+            {inputOptions.map((t) => (
+              <option key={t} value={t}>
+                {TYPE_LABELS[t] ?? t}
+              </option>
+            ))}
+          </select>
+        </div>
+        <span className="text-ink-dim text-sm shrink-0 mt-4">→</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-dim mb-1.5">Health outcome</p>
+          <select
+            value={typeB}
+            onChange={(e) => setTypeB(e.target.value)}
+            style={selectStyle}
+          >
+            {outcomeOptions.map((t) => (
+              <option key={t} value={t}>
+                {TYPE_LABELS[t] ?? t}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Chart */}

@@ -188,6 +188,7 @@ export default function CatProfile() {
         <div className="flex items-center gap-3 mb-6">
           <button onClick={() => navigate('/')} className="text-ink-dim hover:text-ink-mid transition-colors text-xl leading-none">←</button>
           <div className="flex-1" />
+          <Link to={`/cats/${cat.id}/export`} className="btn-ghost text-xs px-3 py-1.5">Export</Link>
           <Link to={`/cats/${cat.id}/edit`} className="btn-ghost text-xs px-3 py-1.5">Edit</Link>
         </div>
 

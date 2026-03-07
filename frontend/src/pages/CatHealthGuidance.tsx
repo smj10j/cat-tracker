@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { getCat, getMeasurements, type Cat, type Measurement } from '../lib/api'
 import {
   assessHealth, STATUS_COLORS, STATUS_LABEL,
@@ -81,13 +81,21 @@ export default function CatHealthGuidance() {
     <div className="min-h-screen">
       {/* Header */}
       <div className="px-4 pt-6 pb-8" style={{ background: headerGradient }}>
-        <button
-          onClick={() => navigate(`/cats/${cat.id}`)}
-          className="flex items-center gap-2 text-ink-dim hover:text-ink-mid transition-colors mb-6"
-        >
-          <span className="text-xl leading-none">←</span>
-          <span className="text-sm">{cat.name}</span>
-        </button>
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={() => navigate(`/cats/${cat.id}`)}
+            className="flex items-center gap-2 text-ink-dim hover:text-ink-mid transition-colors"
+          >
+            <span className="text-xl leading-none">←</span>
+            <span className="text-sm">{cat.name}</span>
+          </button>
+          <Link
+            to={`/cats/${cat.id}/export`}
+            className="btn-ghost text-xs px-3 py-1.5"
+          >
+            Export for vet
+          </Link>
+        </div>
 
         <div className="flex items-center gap-2 mb-1">
           <span

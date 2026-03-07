@@ -1,5 +1,11 @@
 import type { Measurement } from './api'
 
+// Inputs: things the cat consumes or does — leading behavioral indicators
+export const INPUT_TYPES = new Set(['food', 'water', 'grooming', 'activity', 'play'])
+
+// Outcomes: health results that reflect the cat's internal state
+export const OUTCOME_TYPES = new Set(['weight', 'vomiting', 'litter'])
+
 export interface WeeklyBucket {
   weekKey: string
   weekStart: Date

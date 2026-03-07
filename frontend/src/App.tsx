@@ -8,6 +8,7 @@ import CompareChart from './pages/CompareChart'
 import ImportPage from './pages/ImportPage'
 import WellnessGuide from './pages/WellnessGuide'
 import CatHealthGuidance from './pages/CatHealthGuidance'
+import CatExportPage from './pages/CatExportPage'
 import LoginPage from './pages/LoginPage'
 import PageShell from './components/PageShell'
 
@@ -28,6 +29,7 @@ export default function App() {
                   <Route path="/cats/new" element={<AddEditCat />} />
                   <Route path="/cats/:id" element={<CatProfile />} />
                   <Route path="/cats/:id/health" element={<CatHealthGuidance />} />
+                  <Route path="/cats/:id/export" element={<CatExportPage />} />
                   <Route path="/cats/:id/edit" element={<AddEditCat />} />
                 </Routes>
               </PageShell>

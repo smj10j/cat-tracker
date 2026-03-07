@@ -3,12 +3,11 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { getCat, getMeasurements, deleteMeasurement, type Cat, type Measurement } from '../lib/api'
 import {
   assessHealth, STATUS_COLORS, STATUS_EMOJI, STATUS_LABEL,
-  WATCH_ATTENTION, CONCERNING_ATTENTION, URGENT_VET_SIGNS,
 } from '../lib/healthMetrics'
 import WeightChart from '../components/WeightChart'
 import MeasurementForm from '../components/MeasurementForm'
 import MeasurementChart from '../components/MeasurementChart'
-import CorrelationChart from '../components/CorrelationChart'
+import InsightsPanel from '../components/InsightsPanel'
 import { getPresetLabel } from '../lib/measurementPresets'
 
 function catAge(birthdate: string): string {
@@ -23,11 +22,39 @@ function catAge(birthdate: string): string {
   return rem > 0 ? `${years}y ${rem}mo` : `${years} year${years !== 1 ? 's' : ''} old`
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric',
-    hour: 'numeric', minute: '2-digit',
-  })
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+}
+
+function formatDayLabel(dateStr: string): string {
+  const today = new Date().toLocaleDateString('en-CA')
+  const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA')
+  if (dateStr === today) return 'Today'
+  if (dateStr === yesterday) return 'Yesterday'
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+}
+
+interface DayGroup {
+  dateStr: string
+  label: string
+  items: Measurement[]
+}
+
+function groupByDay(measurements: Measurement[]): DayGroup[] {
+  const map = new Map<string, Measurement[]>()
+  for (const m of measurements) {
+    const dateStr = m.measured_at.slice(0, 10)
+    const bucket = map.get(dateStr) ?? []
+    bucket.push(m)
+    map.set(dateStr, bucket)
+  }
+  return [...map.entries()]
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([dateStr, items]) => ({
+      dateStr,
+      label: formatDayLabel(dateStr),
+      items: items.sort((a, b) => b.measured_at.localeCompare(a.measured_at)),
+    }))
 }
 
 const BEHAVIORAL_TYPES = new Set(['grooming', 'play', 'activity', 'vomiting', 'litter'])
@@ -38,23 +65,7 @@ const TYPE_LABELS: Record<string, string> = {
   vomiting: 'Vomiting', litter: 'Litter Box',
 }
 
-type Tab = 'weight' | 'food' | 'water' | 'behavior' | 'all' | 'trends'
-
-const STATUS_DARK_BG: Record<string, string> = {
-  ok: 'rgba(74,222,128,0.08)',
-  watch: 'rgba(251,191,36,0.1)',
-  concerning: 'rgba(249,115,22,0.1)',
-  urgent: 'rgba(248,113,113,0.12)',
-}
-const STATUS_BORDER: Record<string, string> = {
-  ok: 'rgba(74,222,128,0.25)',
-  watch: 'rgba(251,191,36,0.4)',
-  concerning: 'rgba(249,115,22,0.5)',
-  urgent: 'rgba(248,113,113,0.6)',
-}
-const STATUS_ICON: Record<string, string> = {
-  ok: '✓', watch: '👀', concerning: '⚠️', urgent: '🚨',
-}
+type Tab = 'weight' | 'food' | 'water' | 'behavior' | 'all'
 
 function SkeletonProfile() {
   return (
@@ -84,6 +95,7 @@ export default function CatProfile() {
   const [cat, setCat] = useState<Cat | null>(null)
   const [measurements, setMeasurements] = useState<Measurement[]>([])
   const [tab, setTab] = useState<Tab>('weight')
+  const [showOlderHistory, setShowOlderHistory] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -94,6 +106,9 @@ export default function CatProfile() {
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
   }, [id])
+
+  // Reset "show older" when tab changes
+  useEffect(() => { setShowOlderHistory(false) }, [tab])
 
   async function handleDeleteMeasurement(m: Measurement) {
     if (!confirm('Delete this measurement?')) return
@@ -129,14 +144,22 @@ export default function CatProfile() {
     measurementsByType[m.type]!.push(m)
   }
   const availableTypes = Object.keys(measurementsByType)
-  const showTrends = availableTypes.length >= 2
 
+  // Tab-filtered measurements for history
   const tabMeasurements = (() => {
     if (tab === 'all') return [...measurements]
     if (tab === 'behavior') return measurements.filter((m) => BEHAVIORAL_TYPES.has(m.type))
-    if (tab === 'trends') return []
     return measurements.filter((m) => m.type === tab)
-  })().sort((a, b) => b.measured_at.localeCompare(a.measured_at))
+  })()
+
+  // Group by day for history timeline
+  const allDayGroups = groupByDay(tabMeasurements)
+  const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toLocaleDateString('en-CA')
+  const recentGroups = allDayGroups.filter((g) => g.dateStr >= cutoff)
+  const olderGroups = allDayGroups.filter((g) => g.dateStr < cutoff)
+  const defaultGroups = recentGroups.length > 0 ? recentGroups : allDayGroups.slice(0, 3)
+  const visibleGroups = showOlderHistory ? allDayGroups : defaultGroups
+  const olderCount = olderGroups.reduce((sum, g) => sum + g.items.length, 0)
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'weight', label: 'Weight' },
@@ -144,17 +167,10 @@ export default function CatProfile() {
     ...(typeSet.has('water') ? [{ key: 'water' as Tab, label: 'Water' }] : []),
     ...(hasBehavior ? [{ key: 'behavior' as Tab, label: 'Behavior' }] : []),
     ...(measurements.length > 0 ? [{ key: 'all' as Tab, label: 'All' }] : []),
-    ...(showTrends ? [{ key: 'trends' as Tab, label: 'Trends' }] : []),
   ]
 
   const isUrgent = status === 'urgent'
   const isConcerning = status === 'concerning'
-  const isWatch = status === 'watch'
-  const showPayAttention = isWatch || isConcerning || isUrgent
-  const showVetNow = isConcerning || isUrgent
-  const payAttentionItems = isConcerning || isUrgent
-    ? [...WATCH_ATTENTION, ...CONCERNING_ATTENTION]
-    : WATCH_ATTENTION
 
   return (
     <div className="min-h-screen">
@@ -176,7 +192,6 @@ export default function CatProfile() {
         </div>
 
         <div className="flex items-center gap-5">
-          {/* Avatar */}
           <div
             className="w-20 h-20 rounded-full flex items-center justify-center text-4xl shrink-0"
             style={{
@@ -211,7 +226,6 @@ export default function CatProfile() {
             </div>
           </div>
 
-          {/* Latest weight */}
           {latestWeight && (
             <div className="text-right shrink-0">
               <div className="font-display font-bold text-3xl tabular-nums" style={{ color: status !== 'ok' ? statusColor : '#fb923c' }}>
@@ -232,96 +246,19 @@ export default function CatProfile() {
       </div>
 
       <div className="px-4 space-y-4">
-        {/* Health alert */}
-        {weightMeasurements.length >= 2 && status !== 'ok' && (
-          <div
-            className="rounded-2xl p-4 animate-slide-up opacity-0 stagger-1"
-            style={{
-              background: STATUS_DARK_BG[status],
-              border: `${isUrgent ? '2px' : '1px'} solid ${STATUS_BORDER[status]}`,
-              boxShadow: isUrgent ? `0 0 32px ${statusColor}20` : undefined,
-              animationFillMode: 'forwards',
-            }}
-          >
-            <div className="flex items-start gap-3">
-              <span className={`text-xl shrink-0 mt-0.5 ${isUrgent ? 'animate-pulse' : ''}`}>
-                {STATUS_ICON[status]}
-              </span>
-              <div className="flex-1">
-                <p className="font-bold text-sm mb-1" style={{ color: statusColor }}>
-                  {isUrgent
-                    ? `${cat.name}'s weight needs immediate attention`
-                    : isConcerning
-                    ? `${cat.name}'s weight trend is concerning`
-                    : `${cat.name}'s weight is worth watching`}
-                  {health.peakLossPct > 0 && ` — ${health.peakLossPct}% below peak`}
-                </p>
-                <p className="text-ink-mid text-sm">{health.summary}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Pay attention to... */}
-        {showPayAttention && weightMeasurements.length >= 2 && (
-          <div
-            className="rounded-2xl p-4 animate-slide-up opacity-0 stagger-2"
-            style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: `1px solid ${statusColor}30`,
-              animationFillMode: 'forwards',
-            }}
-          >
-            <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: statusColor }}>
-              Pay attention to...
-            </p>
-            <ul className="space-y-2">
-              {payAttentionItems.map((item, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-ink-mid">
-                  <span className="shrink-0 text-xs mt-0.5" style={{ color: statusColor }}>·</span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Take to the vet NOW */}
-        {showVetNow && weightMeasurements.length >= 2 && (
-          <div
-            className="rounded-2xl p-4 animate-slide-up opacity-0 stagger-3"
-            style={{
-              background: 'rgba(248,113,113,0.07)',
-              border: `${isUrgent ? '2px' : '1px'} solid rgba(248,113,113,0.4)`,
-              animationFillMode: 'forwards',
-            }}
-          >
-            <p className="text-xs font-bold uppercase tracking-wider mb-3 text-rose">
-              🚨 Take to the vet NOW if you see any of these
-            </p>
-            <ul className="space-y-2">
-              {URGENT_VET_SIGNS.map((sign, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-ink-mid">
-                  <span className="shrink-0 text-rose text-xs mt-0.5">!</span>
-                  {sign}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        {/* Insights panel — health alerts + correlations */}
+        <InsightsPanel
+          cat={cat}
+          status={status}
+          health={health}
+          measurementsByType={measurementsByType}
+          availableTypes={availableTypes}
+          hasWeightData={weightMeasurements.length >= 2}
+        />
 
         {/* Chart — follows active tab */}
-        {tab === 'trends' ? (
-          <CorrelationChart
-            catName={cat.name}
-            allMeasurements={measurementsByType}
-            availableTypes={availableTypes}
-          />
-        ) : (tab === 'weight' || tab === 'food' || tab === 'water') && (
-          <div
-            className="glass-card p-5 animate-slide-up opacity-0"
-            style={{ animationDelay: showPayAttention ? '120ms' : '60ms', animationFillMode: 'forwards' }}
-          >
+        {(tab === 'weight' || tab === 'food' || tab === 'water') && (
+          <div className="glass-card p-5 animate-slide-up opacity-0" style={{ animationDelay: '60ms', animationFillMode: 'forwards' }}>
             {tab === 'weight' ? (
               <>
                 <div className="flex items-center justify-between mb-4">
@@ -353,13 +290,13 @@ export default function CatProfile() {
         {/* Add measurement */}
         {id && <MeasurementForm catId={id} onAdded={handleMeasurementAdded} />}
 
-        {/* History */}
-        {measurements.length > 0 && tab !== 'trends' && (
+        {/* History — grouped timeline */}
+        {measurements.length > 0 && (
           <div className="glass-card p-5">
             <h3 className="font-display font-semibold text-ink mb-4">History</h3>
 
-            {/* Tabs */}
-            <div className="flex gap-1 mb-4 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+            {/* Type filter tabs */}
+            <div className="flex gap-1 mb-5 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
               {tabs.map(({ key, label }) => (
                 <button
                   key={key}
@@ -376,38 +313,73 @@ export default function CatProfile() {
               ))}
             </div>
 
-            <div className="space-y-0.5">
-              {tabMeasurements.length === 0 && (
-                <p className="text-ink-dim text-sm text-center py-6">No {tab} measurements yet</p>
-              )}
-              {tabMeasurements.map((m) => (
-                <div
-                  key={m.id}
-                  className="flex items-center justify-between py-3 border-b last:border-0"
-                  style={{ borderColor: 'rgba(255,255,255,0.05)' }}
-                >
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-sm text-ink tabular-nums">{m.unit === 'scale' ? getPresetLabel(m.type, m.value) : `${m.value} ${m.unit}`}</span>
-                      {(tab === 'all' || tab === 'behavior') && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full text-ink-dim"
-                          style={{ background: 'rgba(255,255,255,0.06)' }}>
-                          {TYPE_LABELS[m.type] ?? m.type}
-                        </span>
-                      )}
-                      {m.notes && <span className="text-xs text-ink-dim">— {m.notes}</span>}
+            {/* Day-grouped entries */}
+            {tabMeasurements.length === 0 ? (
+              <p className="text-ink-dim text-sm text-center py-6">No {tab} measurements yet</p>
+            ) : (
+              <div className="space-y-5">
+                {visibleGroups.map((group) => (
+                  <div key={group.dateStr}>
+                    {/* Day header */}
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-xs font-bold text-ink-dim">{group.label}</span>
+                      <span className="text-[10px] text-ink-dim/60">
+                        {group.items.length} {group.items.length === 1 ? 'entry' : 'entries'}
+                      </span>
+                      <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.05)' }} />
                     </div>
-                    <div className="text-ink-dim text-xs mt-0.5">{formatDate(m.measured_at)}</div>
+
+                    {/* Entries for this day */}
+                    <div className="space-y-0.5">
+                      {group.items.map((m) => (
+                        <div
+                          key={m.id}
+                          className="flex items-center justify-between py-2.5 border-b last:border-0"
+                          style={{ borderColor: 'rgba(255,255,255,0.04)' }}
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <span className="text-ink-dim text-xs w-16 shrink-0 tabular-nums">{formatTime(m.measured_at)}</span>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold text-sm text-ink tabular-nums">
+                                {m.unit === 'scale' ? getPresetLabel(m.type, m.value) : `${m.value} ${m.unit}`}
+                              </span>
+                              {(tab === 'all' || tab === 'behavior') && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full text-ink-dim"
+                                  style={{ background: 'rgba(255,255,255,0.06)' }}>
+                                  {TYPE_LABELS[m.type] ?? m.type}
+                                </span>
+                              )}
+                              {m.notes && <span className="text-xs text-ink-dim">— {m.notes}</span>}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteMeasurement(m)}
+                            className="text-xs text-rose/60 hover:text-rose transition-colors ml-3 shrink-0"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
+                ))}
+
+                {/* Show older entries */}
+                {!showOlderHistory && olderGroups.length > 0 && (
                   <button
-                    onClick={() => handleDeleteMeasurement(m)}
-                    className="text-xs text-rose/60 hover:text-rose transition-colors ml-4 shrink-0"
+                    onClick={() => setShowOlderHistory(true)}
+                    className="w-full py-2.5 text-xs font-semibold rounded-xl transition-all"
+                    style={{
+                      color: '#6b5f85',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                    }}
                   >
-                    Delete
+                    View {olderCount} older {olderCount === 1 ? 'entry' : 'entries'}
                   </button>
-                </div>
-              ))}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

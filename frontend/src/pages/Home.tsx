@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getCats, getMeasurements, claimCats, type Cat } from '../lib/api'
+import { getCats, getMeasurements, claimCats, type Cat, type Measurement } from '../lib/api'
 import { assessHealth, STATUS_COLORS, STATUS_LABEL } from '../lib/healthMetrics'
+import { detectCorrelations, getHomeBadge } from '../lib/correlations'
 import { useAuth } from '../contexts/AuthContext'
 
 function catAge(birthdate: string): string {
@@ -74,7 +75,7 @@ const AVATAR_STYLE: Record<string, React.CSSProperties> = {
 
 export default function Home() {
   const { user, refresh: refreshUser } = useAuth()
-  const [catData, setCatData] = useState<{ cat: Cat; latestWeight: number | null; latestUnit: string; healthStatus: string }[]>([])
+  const [catData, setCatData] = useState<{ cat: Cat; latestWeight: number | null; latestUnit: string; healthStatus: string; correlationBadge: string | null }[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [claiming, setClaiming] = useState(false)
@@ -95,12 +96,20 @@ export default function Home() {
       const enriched = await Promise.all(
         allCats.map(async (cat) => {
           try {
-            const ms = await getMeasurements(cat.id, 'weight')
-            const sorted = [...ms].sort((a, b) => b.measured_at.localeCompare(a.measured_at))
-            const health = assessHealth(ms)
-            return { cat, latestWeight: sorted[0]?.value ?? null, latestUnit: sorted[0]?.unit ?? 'lbs', healthStatus: health.overallStatus }
+            const ms = await getMeasurements(cat.id)
+            const weightMs = ms.filter((m: Measurement) => m.type === 'weight')
+            const sorted = [...weightMs].sort((a, b) => b.measured_at.localeCompare(a.measured_at))
+            const health = assessHealth(weightMs)
+            const byType: Record<string, Measurement[]> = {}
+            for (const m of ms) {
+              if (!byType[m.type]) byType[m.type] = []
+              byType[m.type]!.push(m)
+            }
+            const correlations = detectCorrelations(byType)
+            const correlationBadge = getHomeBadge(correlations)
+            return { cat, latestWeight: sorted[0]?.value ?? null, latestUnit: sorted[0]?.unit ?? 'lbs', healthStatus: health.overallStatus, correlationBadge }
           } catch {
-            return { cat, latestWeight: null, latestUnit: 'lbs', healthStatus: 'ok' }
+            return { cat, latestWeight: null, latestUnit: 'lbs', healthStatus: 'ok', correlationBadge: null }
           }
         })
       )
@@ -168,7 +177,7 @@ export default function Home() {
           <><SkeletonCard /><SkeletonCard /><SkeletonCard /></>
         ) : (
           <>
-            {catData.map(({ cat, latestWeight, latestUnit, healthStatus }, i) => {
+            {catData.map(({ cat, latestWeight, latestUnit, healthStatus, correlationBadge }, i) => {
               const stagger = i < 5 ? `stagger-${i + 1}` : ''
               const isOk = healthStatus === 'ok'
               const statusColor = STATUS_COLORS[healthStatus as keyof typeof STATUS_COLORS] ?? '#4ade80'
@@ -216,6 +225,12 @@ export default function Home() {
                     {!isOk && (
                       <div className="text-xs mt-1.5" style={{ color: `${statusColor}bb` }}>
                         {isUrgent ? 'Vet visit recommended' : isConcerning ? 'Monitor closely' : 'Keep an eye on weight trend'}
+                      </div>
+                    )}
+                    {correlationBadge && (
+                      <div className="text-xs mt-1.5 flex items-center gap-1" style={{ color: 'rgba(192,132,252,0.8)' }}>
+                        <span>&#9889;</span>
+                        <span>{correlationBadge}</span>
                       </div>
                     )}
                   </div>

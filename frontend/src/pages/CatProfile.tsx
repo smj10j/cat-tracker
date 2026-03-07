@@ -8,6 +8,7 @@ import {
 import WeightChart from '../components/WeightChart'
 import MeasurementForm from '../components/MeasurementForm'
 import MeasurementChart from '../components/MeasurementChart'
+import CorrelationChart from '../components/CorrelationChart'
 import { getPresetLabel } from '../lib/measurementPresets'
 
 function catAge(birthdate: string): string {
@@ -37,7 +38,7 @@ const TYPE_LABELS: Record<string, string> = {
   vomiting: 'Vomiting', litter: 'Litter Box',
 }
 
-type Tab = 'weight' | 'food' | 'water' | 'behavior' | 'all'
+type Tab = 'weight' | 'food' | 'water' | 'behavior' | 'all' | 'trends'
 
 const STATUS_DARK_BG: Record<string, string> = {
   ok: 'rgba(74,222,128,0.08)',
@@ -122,9 +123,18 @@ export default function CatProfile() {
   const typeSet = new Set(measurements.map((m) => m.type))
   const hasBehavior = [...typeSet].some((t) => BEHAVIORAL_TYPES.has(t))
 
+  const measurementsByType: Record<string, typeof measurements> = {}
+  for (const m of measurements) {
+    if (!measurementsByType[m.type]) measurementsByType[m.type] = []
+    measurementsByType[m.type]!.push(m)
+  }
+  const availableTypes = Object.keys(measurementsByType)
+  const showTrends = availableTypes.length >= 2
+
   const tabMeasurements = (() => {
     if (tab === 'all') return [...measurements]
     if (tab === 'behavior') return measurements.filter((m) => BEHAVIORAL_TYPES.has(m.type))
+    if (tab === 'trends') return []
     return measurements.filter((m) => m.type === tab)
   })().sort((a, b) => b.measured_at.localeCompare(a.measured_at))
 
@@ -134,6 +144,7 @@ export default function CatProfile() {
     ...(typeSet.has('water') ? [{ key: 'water' as Tab, label: 'Water' }] : []),
     ...(hasBehavior ? [{ key: 'behavior' as Tab, label: 'Behavior' }] : []),
     ...(measurements.length > 0 ? [{ key: 'all' as Tab, label: 'All' }] : []),
+    ...(showTrends ? [{ key: 'trends' as Tab, label: 'Trends' }] : []),
   ]
 
   const isUrgent = status === 'urgent'
@@ -300,7 +311,13 @@ export default function CatProfile() {
         )}
 
         {/* Chart — follows active tab */}
-        {(tab === 'weight' || tab === 'food' || tab === 'water') && (
+        {tab === 'trends' ? (
+          <CorrelationChart
+            catName={cat.name}
+            allMeasurements={measurementsByType}
+            availableTypes={availableTypes}
+          />
+        ) : (tab === 'weight' || tab === 'food' || tab === 'water') && (
           <div
             className="glass-card p-5 animate-slide-up opacity-0"
             style={{ animationDelay: showPayAttention ? '120ms' : '60ms', animationFillMode: 'forwards' }}
@@ -337,7 +354,7 @@ export default function CatProfile() {
         {id && <MeasurementForm catId={id} onAdded={handleMeasurementAdded} />}
 
         {/* History */}
-        {measurements.length > 0 && (
+        {measurements.length > 0 && tab !== 'trends' && (
           <div className="glass-card p-5">
             <h3 className="font-display font-semibold text-ink mb-4">History</h3>
 

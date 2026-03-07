@@ -7,13 +7,7 @@ export default function AddEditCat() {
   const navigate = useNavigate()
   const isEdit = Boolean(id)
 
-  const [form, setForm] = useState({
-    name: '',
-    birthdate: '',
-    breed: '',
-    coloring: '',
-    notes: '',
-  })
+  const [form, setForm] = useState({ name: '', birthdate: '', breed: '', coloring: '', notes: '' })
   const [loading, setLoading] = useState(isEdit)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -21,15 +15,7 @@ export default function AddEditCat() {
   useEffect(() => {
     if (!id) return
     getCat(id)
-      .then((cat) => {
-        setForm({
-          name: cat.name,
-          birthdate: cat.birthdate,
-          breed: cat.breed ?? '',
-          coloring: cat.coloring ?? '',
-          notes: cat.notes ?? '',
-        })
-      })
+      .then((cat) => setForm({ name: cat.name, birthdate: cat.birthdate, breed: cat.breed ?? '', coloring: cat.coloring ?? '', notes: cat.notes ?? '' }))
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
   }, [id])
@@ -66,101 +52,68 @@ export default function AddEditCat() {
   }
 
   if (loading) {
-    return <div className="text-center py-12 text-gray-400">Loading...</div>
+    return (
+      <div className="px-4 pt-6 space-y-4">
+        <div className="skeleton h-8 w-32 rounded" />
+        <div className="glass-card p-6 space-y-4">
+          {[1,2,3,4].map(i => <div key={i} className="space-y-1.5"><div className="skeleton h-3 w-16 rounded" /><div className="skeleton h-10 w-full rounded-xl" /></div>)}
+        </div>
+      </div>
+    )
   }
 
+  const field = (label: string, name: keyof typeof form, type = 'text', required = false, placeholder = '') => (
+    <div>
+      <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">
+        {label}{required && <span className="text-rose ml-1">*</span>}
+      </label>
+      <input
+        name={name}
+        type={type}
+        value={form[name]}
+        onChange={handleChange}
+        required={required}
+        placeholder={placeholder}
+        className="input-dark w-full px-4 py-3 text-sm"
+      />
+    </div>
+  )
+
   return (
-    <div className="max-w-lg mx-auto p-4">
-      <header className="flex items-center gap-3 mb-6">
-        <Link to={isEdit && id ? `/cats/${id}` : '/'} className="text-gray-400 hover:text-gray-600">
-          ← Back
-        </Link>
-        <h1 className="text-xl font-bold text-gray-900">
-          {isEdit ? 'Edit Cat' : 'Add a Cat'}
-        </h1>
-      </header>
+    <div className="min-h-screen px-4 pt-6">
+      <div className="flex items-center gap-3 mb-8">
+        <Link to={isEdit && id ? `/cats/${id}` : '/'} className="text-ink-dim hover:text-ink-mid transition-colors text-xl">←</Link>
+        <h1 className="font-display font-bold text-2xl text-ink">{isEdit ? 'Edit Cat' : 'New Cat'}</h1>
+      </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 mb-4 text-sm">
-          {error}
-        </div>
+        <div className="glass-card p-4 text-rose text-sm mb-4" style={{ borderColor: 'rgba(248,113,113,0.2)' }}>{error}</div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+      <form onSubmit={handleSubmit} className="glass-card p-6 space-y-5">
+        {field('Name', 'name', 'text', true, 'e.g. Luna')}
+        {field('Birthdate', 'birthdate', 'date', true)}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Breed</label>
+            <input name="breed" value={form.breed} onChange={handleChange} placeholder="Domestic Shorthair"
+              className="input-dark w-full px-4 py-3 text-sm" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Coloring</label>
+            <input name="coloring" value={form.coloring} onChange={handleChange} placeholder="Orange tabby"
+              className="input-dark w-full px-4 py-3 text-sm" />
+          </div>
+        </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Name <span className="text-red-500">*</span>
-          </label>
-          <input
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            required
-            placeholder="e.g. Luna"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-          />
+          <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Notes</label>
+          <textarea name="notes" value={form.notes} onChange={handleChange} rows={3}
+            placeholder="Anything worth remembering…"
+            className="input-dark w-full px-4 py-3 text-sm resize-none" />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Birthdate <span className="text-red-500">*</span>
-          </label>
-          <input
-            name="birthdate"
-            type="date"
-            value={form.birthdate}
-            onChange={handleChange}
-            required
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Breed / Type <span className="text-gray-400 font-normal">(optional)</span>
-          </label>
-          <input
-            name="breed"
-            value={form.breed}
-            onChange={handleChange}
-            placeholder="e.g. Domestic Shorthair"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Coloring / Coat <span className="text-gray-400 font-normal">(optional)</span>
-          </label>
-          <input
-            name="coloring"
-            value={form.coloring}
-            onChange={handleChange}
-            placeholder="e.g. Orange tabby"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Notes <span className="text-gray-400 font-normal">(optional)</span>
-          </label>
-          <textarea
-            name="notes"
-            value={form.notes}
-            onChange={handleChange}
-            rows={3}
-            placeholder="Any extra info about this cat..."
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={saving}
-          className="w-full bg-brand-600 text-white py-2 rounded-lg font-medium hover:bg-brand-700 disabled:opacity-60 transition-colors"
-        >
-          {saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Add Cat'}
+        <button type="submit" disabled={saving} className="btn-primary w-full py-3.5 text-sm mt-2">
+          {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Add Cat'}
         </button>
       </form>
     </div>

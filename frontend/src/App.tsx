@@ -4,18 +4,21 @@ import CatProfile from './pages/CatProfile'
 import AddEditCat from './pages/AddEditCat'
 import CompareChart from './pages/CompareChart'
 import ImportPage from './pages/ImportPage'
+import PageShell from './components/PageShell'
 
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/compare" element={<CompareChart />} />
-        <Route path="/import" element={<ImportPage />} />
-        <Route path="/cats/new" element={<AddEditCat />} />
-        <Route path="/cats/:id" element={<CatProfile />} />
-        <Route path="/cats/:id/edit" element={<AddEditCat />} />
-      </Routes>
+      <PageShell>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/compare" element={<CompareChart />} />
+          <Route path="/import" element={<ImportPage />} />
+          <Route path="/cats/new" element={<AddEditCat />} />
+          <Route path="/cats/:id" element={<CatProfile />} />
+          <Route path="/cats/:id/edit" element={<AddEditCat />} />
+        </Routes>
+      </PageShell>
     </BrowserRouter>
   )
 }

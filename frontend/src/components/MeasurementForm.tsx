@@ -27,13 +27,7 @@ function toLocalDatetimeString(d: Date): string {
 
 export default function MeasurementForm({ catId, onAdded }: Props) {
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({
-    type: 'weight',
-    value: '',
-    unit: 'lbs',
-    measured_at: toLocalDatetimeString(new Date()),
-    notes: '',
-  })
+  const [form, setForm] = useState({ type: 'weight', value: '', unit: 'lbs', measured_at: toLocalDatetimeString(new Date()), notes: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -49,17 +43,12 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const numVal = parseFloat(form.value)
-    if (isNaN(numVal) || numVal <= 0) {
-      setError('Please enter a valid positive number.')
-      return
-    }
+    if (isNaN(numVal) || numVal <= 0) { setError('Enter a valid positive number.'); return }
     setSaving(true)
     setError(null)
     try {
       const m = await createMeasurement(catId, {
-        type: form.type,
-        value: numVal,
-        unit: form.unit,
+        type: form.type, value: numVal, unit: form.unit,
         measured_at: new Date(form.measured_at).toISOString(),
         notes: form.notes.trim() || null,
       })
@@ -73,71 +62,76 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
     }
   }
 
+  const unitOptions = UNITS_BY_TYPE[form.type] ?? UNITS_BY_TYPE['weight']!
+
   if (!open) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full border-2 border-dashed border-brand-300 text-brand-600 rounded-xl py-3 text-sm font-medium hover:border-brand-500 hover:bg-brand-50 transition-colors"
+        className="w-full py-3.5 rounded-2xl text-sm font-semibold text-lavender transition-all"
+        style={{
+          border: '1.5px dashed rgba(192,132,252,0.3)',
+          background: 'transparent',
+        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(192,132,252,0.06)' }}
+        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
       >
         + Add Measurement
       </button>
     )
   }
 
-  const unitOptions = UNITS_BY_TYPE[form.type] ?? UNITS_BY_TYPE['weight']!
-
   return (
-    <form onSubmit={handleSubmit} className="bg-white border border-brand-200 rounded-xl p-4 space-y-3">
-      <div className="flex items-center justify-between mb-1">
-        <h3 className="font-semibold text-gray-800">New Measurement</h3>
-        <button type="button" onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 text-lg leading-none">×</button>
+    <div
+      className="rounded-2xl p-5 space-y-4 animate-fade-in"
+      style={{
+        background: 'rgba(192,132,252,0.06)',
+        border: '1px solid rgba(192,132,252,0.2)',
+      }}
+    >
+      <div className="flex items-center justify-between">
+        <h3 className="font-display font-semibold text-ink">New Measurement</h3>
+        <button onClick={() => setOpen(false)} className="text-ink-dim hover:text-ink-mid text-xl leading-none w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-all">×</button>
       </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-2 text-sm">{error}</div>
-      )}
+      {error && <div className="text-rose text-sm p-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.1)' }}>{error}</div>}
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Type</label>
-          <select name="type" value={form.type} onChange={handleChange}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
-            {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Type</label>
+          <select name="type" value={form.type} onChange={handleChange} className="input-dark w-full px-3 py-2.5 text-sm">
+            {TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Unit</label>
-          <select name="unit" value={form.unit} onChange={handleChange}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
-            {unitOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Unit</label>
+          <select name="unit" value={form.unit} onChange={handleChange} className="input-dark w-full px-3 py-2.5 text-sm">
+            {unitOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">Value</label>
+        <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Value</label>
         <input name="value" type="number" step="0.01" min="0" value={form.value} onChange={handleChange}
-          required placeholder="e.g. 9.4"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+          required placeholder="e.g. 9.4" className="input-dark w-full px-3 py-2.5 text-sm" />
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">Date &amp; Time</label>
+        <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Date &amp; Time</label>
         <input name="measured_at" type="datetime-local" value={form.measured_at} onChange={handleChange}
-          required
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+          required className="input-dark w-full px-3 py-2.5 text-sm" />
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">Notes (optional)</label>
+        <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Notes</label>
         <input name="notes" value={form.notes} onChange={handleChange} placeholder="e.g. Before breakfast"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+          className="input-dark w-full px-3 py-2.5 text-sm" />
       </div>
 
-      <button type="submit" disabled={saving}
-        className="w-full bg-brand-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-60 transition-colors">
-        {saving ? 'Saving...' : 'Save Measurement'}
+      <button type="button" onClick={handleSubmit} disabled={saving} className="btn-primary w-full py-3 text-sm">
+        {saving ? 'Saving…' : 'Save Measurement'}
       </button>
-    </form>
+    </div>
   )
 }

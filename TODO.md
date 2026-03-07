@@ -83,6 +83,37 @@
 - [ ] Frontend: settings page with shareable link + rotate button
 - [ ] Middleware: accept ?token= on all API routes
 
+## Phase 6b: Design Overhaul (docs/DESIGN.md)
+
+### Foundation
+- [x] Design doc written (docs/DESIGN.md)
+- [x] Tailwind config: new color system (night/surface/lavender/amber/ink tokens)
+- [x] index.css: dark base styles, glass-card class, slideUpFade animation, skeleton shimmer
+- [x] index.html: add Plus Jakarta Sans from Google Fonts
+
+### Navigation & Layout
+- [x] BottomNav component (Home / Compare / Add tabs, fixed bottom, blur backdrop)
+- [x] PageShell layout wrapper (padding bottom for nav, safe areas)
+- [x] App.tsx: wrap all routes in PageShell, remove old header Import link
+
+### Pages
+- [x] Home page redesign (dark cards, staggered entrance, cat avatars with glow)
+- [x] Cat profile redesign (hero section, amber stats, personal health language)
+- [x] Comparison chart redesign (dark chart, gradient toggle pills)
+- [x] Add/Edit cat form redesign (dark inputs, glass card)
+- [x] Import page redesign (dark styling)
+- [x] QuickAdd bottom sheet polish (dark surface-hi, blur backdrop)
+
+### Chart Polish
+- [x] WeightChart: dark grid, gradient line, glow dots, area fill
+- [x] CompareChart: dark grid, same visual treatment
+
+### Details
+- [x] Health status badges: soft glow on urgent pulse
+- [x] Skeleton loading states (replace plain "Loading..." text)
+- [x] Entrance animations on list items (staggered slideUpFade)
+- [x] Success micro-animation on measurement add
+
 ## Phase 7: Infrastructure
 - [ ] GitHub Actions: auto-deploy Worker + Pages on push to main
 - [ ] PWA service worker + offline measurement queueing

@@ -257,7 +257,7 @@ household.post('/invites', async (c) => {
         ``,
         `— Cat Tracker`,
       ].join('\n'),
-    }).catch(() => { /* non-fatal */ }),
+    }, c.env.RESEND_API_KEY).catch(() => { /* non-fatal */ }),
   )
 
   return c.json({ success: true, inviteUrl }, 201)

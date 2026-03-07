@@ -1,7 +1,9 @@
 /**
- * Send a transactional email via MailChannels.
- * Fails gracefully — if email cannot be sent the operation still succeeds.
- * See: https://support.mailchannels.com/hc/en-us/articles/16918954360845
+ * Send a transactional email via Resend (https://resend.com).
+ * Requires RESEND_API_KEY Worker secret.
+ *
+ * From address: use a verified Resend domain. For testing, Resend allows
+ * 'onboarding@resend.dev' before domain verification.
  */
 export async function sendEmail(params: {
   to: string
@@ -9,20 +11,21 @@ export async function sendEmail(params: {
   subject: string
   text: string
   html?: string
-}): Promise<void> {
-  const res = await fetch('https://api.mailchannels.net/tx/v1/send', {
+}, apiKey: string): Promise<void> {
+  if (!apiKey) throw new Error('RESEND_API_KEY is not configured')
+
+  const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
     body: JSON.stringify({
-      personalizations: [{
-        to: [{ email: params.to, ...(params.toName ? { name: params.toName } : {}) }],
-      }],
-      from: { email: 'noreply@cat-tracker.pages.dev', name: 'Cat Tracker' },
+      from: 'Cat Tracker <onboarding@resend.dev>',
+      to: params.toName ? [`${params.toName} <${params.to}>`] : [params.to],
       subject: params.subject,
-      content: [
-        { type: 'text/plain', value: params.text },
-        ...(params.html ? [{ type: 'text/html', value: params.html }] : []),
-      ],
+      text: params.text,
+      ...(params.html ? { html: params.html } : {}),
     }),
   })
 

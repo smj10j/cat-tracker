@@ -26,7 +26,7 @@
 | [PRD-microchip-id.md](PRD-microchip-id.md) | Microchip ID as Cat Identifier | `Implemented` | 2026-03-07 10:25 |
 | [PRD-profile-clarity.md](PRD-profile-clarity.md) | Cat Profile — Insights Panel Clarity | `Implemented` | 2026-03-07 10:25 |
 | [PRD-security.md](PRD-security.md) | Security Hardening | `Implemented` | 2026-03-07 10:39 |
-| [PRD-medication-reminders.md](PRD-medication-reminders.md) | Medication Reminders | `Draft` | 2026-03-07 11:00 |
+| [PRD-medication-reminders.md](PRD-medication-reminders.md) | Medication Reminders | `Implemented` | 2026-03-07 12:00 |
 
 ---
 
@@ -293,7 +293,7 @@ Each entry below provides full implementation notes and open questions. The summ
 
 **Scope:** Medication schedule management, recurring/one-time reminders, finite courses, in-app notification inbox, mark-given/skip-dose, refill reminders, web push notifications (VAPID), cron-driven delivery, pre-built medication presets.
 
-**Do not implement** — status is `Draft`. Requires product owner approval before any work begins.
+**Implemented Phase A** (core scheduling + in-app inbox). Phase B (web push), C (email), D (refill stock UI) remain as future work.
 
 ---
 
@@ -317,4 +317,4 @@ Nothing rejected yet.
 
 ---
 
-*Last updated: 2026-03-07 11:00*
+*Last updated: 2026-03-07 12:00*

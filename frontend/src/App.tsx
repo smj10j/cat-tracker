@@ -10,6 +10,8 @@ import WellnessGuide from './pages/WellnessGuide'
 import CatHealthGuidance from './pages/CatHealthGuidance'
 import CatExportPage from './pages/CatExportPage'
 import LoginPage from './pages/LoginPage'
+import NotificationsPage from './pages/NotificationsPage'
+import MedicationFormPage from './pages/MedicationFormPage'
 import PageShell from './components/PageShell'
 
 export default function App() {
@@ -31,6 +33,9 @@ export default function App() {
                   <Route path="/cats/:id/health" element={<CatHealthGuidance />} />
                   <Route path="/cats/:id/export" element={<CatExportPage />} />
                   <Route path="/cats/:id/edit" element={<AddEditCat />} />
+                  <Route path="/cats/:catId/medications/new" element={<MedicationFormPage />} />
+                  <Route path="/medications/:medId/edit" element={<MedicationFormPage />} />
+                  <Route path="/notifications" element={<NotificationsPage />} />
                 </Routes>
               </PageShell>
             </ProtectedRoute>

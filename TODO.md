@@ -352,6 +352,31 @@
 - [x] frontend/pages/CatProfile.tsx: display microchip badge for real IDs (spaced formatting)
 - [x] Deploy worker + frontend
 
+## Phase 21: Medication Reminders — Phase A Implementation (2026-03-07)
+
+### Backend
+- [x] schema.sql: add medications + medication_doses tables (with UNIQUE on med_id+due_at for idempotent cron)
+- [x] Apply migration to remote D1
+- [x] worker/routes/medications.ts: GET/POST/PUT/DELETE /api/medications, dose generation (90-day forward window), batched INSERT OR IGNORE
+- [x] worker/routes/medications.ts: GET /api/notifications (overdue/due-today/upcoming-7d/refill alerts)
+- [x] worker/routes/medications.ts: POST /api/doses/:id/administer, POST /api/doses/:id/skip
+- [x] worker/index.ts: register medication routes + extend cron to roll 90-day dose window
+
+### Frontend
+- [x] api.ts: Medication + MedicationDose + NotificationInbox types + API functions
+- [x] NotificationsPage.tsx: inbox with Overdue/Due Today/Upcoming sections, Mark Given/Skip buttons
+- [x] MedicationFormPage.tsx: add/edit form with preset picker, frequency/schedule fields
+- [x] CatProfile.tsx: Medications section (active meds with next due date, overdue indicator, Add button)
+- [x] Home.tsx: notification bell with overdue+due-today badge count in header
+- [x] App.tsx: /notifications, /cats/:id/medications/new, /medications/:id/edit routes
+
+### Deploy + docs
+- [x] Deploy worker
+- [x] Deploy frontend
+- [x] Update REGISTRY.md status to Implemented
+
+---
+
 ## Phase 20: Medication Reminders PRD (2026-03-07)
 
 ### Documentation only — do not implement until Approved

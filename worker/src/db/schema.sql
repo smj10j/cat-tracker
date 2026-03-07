@@ -60,3 +60,43 @@ CREATE TABLE IF NOT EXISTS oauth_states (
   state       TEXT PRIMARY KEY,
   expires_at  TEXT NOT NULL
 );
+
+-- Medication reminders (added 2026-03-07)
+CREATE TABLE IF NOT EXISTS medications (
+  id                     TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  cat_id                 TEXT NOT NULL REFERENCES cats(id) ON DELETE CASCADE,
+  user_id                TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name                   TEXT NOT NULL,
+  type                   TEXT NOT NULL DEFAULT 'other',
+  dose                   TEXT,
+  frequency              TEXT NOT NULL,     -- 'daily'|'twice_daily'|'weekly'|'monthly'|'custom'
+  frequency_days         INTEGER,           -- for 'custom' frequency
+  reminder_time          TEXT NOT NULL DEFAULT '09:00',  -- HH:MM local time
+  start_date             TEXT NOT NULL,     -- YYYY-MM-DD
+  end_date               TEXT,              -- YYYY-MM-DD, null = ongoing
+  doses_total            INTEGER,           -- null = ongoing course
+  notes                  TEXT,
+  is_active              INTEGER NOT NULL DEFAULT 1,
+  doses_remaining        INTEGER,           -- null = not tracking stock
+  refill_alert_threshold INTEGER,           -- alert when doses_remaining <= this
+  created_at             TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at             TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_medications_cat ON medications(cat_id);
+CREATE INDEX IF NOT EXISTS idx_medications_user ON medications(user_id, is_active);
+
+CREATE TABLE IF NOT EXISTS medication_doses (
+  id              TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  medication_id   TEXT NOT NULL REFERENCES medications(id) ON DELETE CASCADE,
+  due_at          TEXT NOT NULL,      -- 'YYYY-MM-DD HH:MM:00' (SQLite datetime format)
+  administered_at TEXT,
+  skipped         INTEGER NOT NULL DEFAULT 0,
+  skip_reason     TEXT,
+  notes           TEXT,
+  created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(medication_id, due_at)       -- idempotent cron insertion via INSERT OR IGNORE
+);
+
+CREATE INDEX IF NOT EXISTS idx_doses_medication ON medication_doses(medication_id, due_at);
+CREATE INDEX IF NOT EXISTS idx_doses_due ON medication_doses(due_at, administered_at);

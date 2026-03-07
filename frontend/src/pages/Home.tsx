@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getCats, getMeasurements, claimCats, type Cat, type Measurement } from '../lib/api'
+import { getCats, getMeasurements, claimCats, getNotifications, type Cat, type Measurement } from '../lib/api'
 import { assessHealth, STATUS_COLORS, STATUS_LABEL } from '../lib/healthMetrics'
 import { detectCorrelations, getHomeBadge } from '../lib/correlations'
 import { useAuth } from '../contexts/AuthContext'
@@ -80,9 +80,11 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const [claiming, setClaiming] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
+  const [notifCount, setNotifCount] = useState(0)
 
   useEffect(() => {
     loadCats()
+    loadNotifCount()
 
     // Re-fetch when a measurement is added via the QuickAdd sheet
     const handler = () => loadCats()
@@ -120,6 +122,15 @@ export default function Home() {
       setError((e as Error).message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function loadNotifCount() {
+    try {
+      const inbox = await getNotifications()
+      setNotifCount(inbox.overdue.length + inbox.due_today.length)
+    } catch {
+      // non-fatal — badge just stays at 0
     }
   }
 
@@ -190,12 +201,26 @@ export default function Home() {
             </div>
           )}
         </button>
-        <div>
+        <div className="flex-1">
           <h1 className="font-display text-2xl font-bold text-ink">My Cats</h1>
           <p className="text-ink-dim text-sm mt-0.5">
             {catCount > 0 ? `${catCount} cat${catCount !== 1 ? 's' : ''} tracked` : 'Add a cat to get started'}
           </p>
         </div>
+        <Link to="/notifications" className="relative p-2" aria-label="Medication reminders">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6b5f85" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 01-3.46 0" />
+          </svg>
+          {notifCount > 0 && (
+            <span
+              className="absolute top-0.5 right-0.5 flex items-center justify-center text-[9px] font-bold rounded-full min-w-[16px] h-4 px-1"
+              style={{ background: '#f87171', color: 'white' }}
+            >
+              {notifCount > 99 ? '99+' : notifCount}
+            </span>
+          )}
+        </Link>
       </header>
 
       {error && <div className="glass-card p-4 mb-4 text-rose text-sm">{error}</div>}

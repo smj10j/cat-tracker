@@ -84,3 +84,87 @@ export const deleteMeasurement = (id: string) =>
 export const getMe = () => request<User>('/auth/me')
 export const logout = () => request<{ success: boolean }>('/auth/logout', { method: 'POST' })
 export const claimCats = () => request<{ claimed: number }>('/auth/claim-cats', { method: 'POST' })
+
+// Medications
+export interface Medication {
+  id: string
+  cat_id: string
+  user_id: string
+  name: string
+  type: string
+  dose: string | null
+  frequency: string
+  frequency_days: number | null
+  reminder_time: string
+  start_date: string
+  end_date: string | null
+  doses_total: number | null
+  notes: string | null
+  is_active: number
+  doses_remaining: number | null
+  refill_alert_threshold: number | null
+  created_at: string
+  updated_at: string
+  // Computed by list endpoint
+  next_due_at?: string | null
+  overdue_count?: number
+}
+
+export interface MedicationDose {
+  id: string
+  medication_id: string
+  due_at: string
+  administered_at: string | null
+  skipped: number
+  skip_reason: string | null
+  notes: string | null
+  created_at: string
+}
+
+export interface DoseWithContext extends MedicationDose {
+  med_name: string
+  dose: string | null
+  med_type: string
+  cat_name: string
+  cat_id: string
+}
+
+export interface NotificationInbox {
+  overdue: DoseWithContext[]
+  due_today: DoseWithContext[]
+  upcoming: DoseWithContext[]
+  refill_alerts: (Medication & { cat_name: string })[]
+}
+
+export type MedicationInput = {
+  cat_id: string
+  name: string
+  type?: string
+  dose?: string | null
+  frequency: string
+  frequency_days?: number | null
+  reminder_time?: string
+  start_date: string
+  end_date?: string | null
+  doses_total?: number | null
+  notes?: string | null
+  doses_remaining?: number | null
+  refill_alert_threshold?: number | null
+}
+
+export const getMedications = (catId?: string) =>
+  request<Medication[]>(`/medications${catId ? `?cat_id=${catId}` : ''}`)
+export const getMedication = (id: string) =>
+  request<Medication & { doses: MedicationDose[] }>(`/medications/${id}`)
+export const createMedication = (data: MedicationInput) =>
+  request<Medication>('/medications', { method: 'POST', body: JSON.stringify(data) })
+export const updateMedication = (id: string, data: Partial<MedicationInput & { is_active: number }>) =>
+  request<Medication>(`/medications/${id}`, { method: 'PUT', body: JSON.stringify(data) })
+export const archiveMedication = (id: string) =>
+  request<{ success: boolean }>(`/medications/${id}`, { method: 'DELETE' })
+
+export const getNotifications = () => request<NotificationInbox>('/notifications')
+export const administerDose = (id: string, data?: { administered_at?: string; notes?: string }) =>
+  request<MedicationDose>(`/doses/${id}/administer`, { method: 'POST', body: JSON.stringify(data ?? {}) })
+export const skipDose = (id: string, skip_reason?: string) =>
+  request<MedicationDose>(`/doses/${id}/skip`, { method: 'POST', body: JSON.stringify({ skip_reason }) })

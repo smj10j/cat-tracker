@@ -6,6 +6,7 @@ import authRoutes from './routes/auth'
 import cats from './routes/cats'
 import measurements from './routes/measurements'
 import importRoute from './routes/import'
+import medicationsRoute, { generateDoses, insertDoses, windowEnd90 } from './routes/medications'
 
 const app = new Hono<AppEnv>()
 
@@ -42,17 +43,40 @@ app.route('/api', authRoutes)
 app.use('/api/cats/*', requireAuth)
 app.use('/api/measurements/*', requireAuth)
 app.use('/api/import', requireAuth)
+app.use('/api/medications', requireAuth)
+app.use('/api/medications/*', requireAuth)
+app.use('/api/notifications', requireAuth)
+app.use('/api/doses/*', requireAuth)
 
 app.route('/api/cats', cats)
 app.route('/api', measurements)
 app.route('/api', importRoute)
+app.route('/api', medicationsRoute)
 
 export default {
   fetch: app.fetch,
   async scheduled(_event: ScheduledEvent, env: AppEnv['Bindings'], ctx: ExecutionContext) {
-    // Clean up expired sessions daily
-    ctx.waitUntil(
-      env.DB.prepare("DELETE FROM sessions WHERE expires_at < datetime('now')").run()
-    )
+    ctx.waitUntil((async () => {
+      // Clean up expired sessions
+      await env.DB.prepare("DELETE FROM sessions WHERE expires_at < datetime('now')").run()
+
+      // Extend 90-day rolling dose window for all active medications
+      const activeMeds = await env.DB.prepare(
+        `SELECT id, start_date, reminder_time, frequency, frequency_days, end_date
+         FROM medications WHERE is_active = 1`
+      ).all<{
+        id: string; start_date: string; reminder_time: string
+        frequency: string; frequency_days: number | null; end_date: string | null
+      }>()
+
+      const window = windowEnd90()
+      for (const med of activeMeds.results) {
+        const doses = generateDoses(
+          med.id, med.start_date, med.reminder_time,
+          med.frequency, med.frequency_days, med.end_date, window,
+        )
+        await insertDoses(env.DB, doses)
+      }
+    })())
   },
 }

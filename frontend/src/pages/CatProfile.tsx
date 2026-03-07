@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { getCat, getMeasurements, deleteMeasurement, type Cat, type Measurement } from '../lib/api'
+import { getCat, getMeasurements, deleteMeasurement, getMedications, type Cat, type Measurement, type Medication } from '../lib/api'
 import {
   assessHealth, STATUS_COLORS, STATUS_EMOJI, STATUS_LABEL,
 } from '../lib/healthMetrics'
@@ -88,12 +88,126 @@ function SkeletonProfile() {
   )
 }
 
+const FREQ_SHORT: Record<string, string> = {
+  daily: 'daily', twice_daily: 'twice daily', weekly: 'weekly',
+  monthly: 'monthly', custom: 'every N days',
+}
+
+function formatNextDue(nextDueAt: string | null | undefined): string {
+  if (!nextDueAt) return 'No upcoming dose'
+  const [datePart, timePart] = nextDueAt.split(' ')
+  if (!datePart) return 'Upcoming'
+  const today = new Date().toISOString().slice(0, 10)
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
+  const [h, m] = (timePart ?? '09:00').split(':')
+  const hour = parseInt(h ?? '9', 10)
+  const minute = m ?? '00'
+  const ampm = hour >= 12 ? 'PM' : 'AM'
+  const timeStr = `${hour % 12 || 12}:${minute} ${ampm}`
+  if (datePart === today) return `Today at ${timeStr}`
+  if (datePart === tomorrow) return `Tomorrow at ${timeStr}`
+  const d = new Date(datePart + 'T12:00:00')
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ` at ${timeStr}`
+}
+
+function MedicationsSection({ catId, meds }: { catId: string; meds: Medication[] }) {
+  const [open, setOpen] = useState(false)
+  if (meds.length === 0 && !open) {
+    return (
+      <div className="flex items-center justify-between px-1">
+        <span className="text-xs text-ink-dim">No active medications</span>
+        <Link
+          to={`/cats/${catId}/medications/new`}
+          className="text-xs font-semibold"
+          style={{ color: '#c084fc' }}
+        >
+          + Add medication
+        </Link>
+      </div>
+    )
+  }
+
+  const overdueCount = meds.reduce((sum, m) => sum + (m.overdue_count ?? 0), 0)
+
+  return (
+    <div
+      className="rounded-2xl overflow-hidden"
+      style={{ border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)' }}
+    >
+      {/* Header row */}
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-4 py-3"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold uppercase tracking-widest text-ink-mid">Medications</span>
+          {meds.length > 0 && (
+            <span
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+              style={{ background: 'rgba(255,255,255,0.06)', color: '#8b7fb0' }}
+            >
+              {meds.length}
+            </span>
+          )}
+          {overdueCount > 0 && (
+            <span
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+              style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171' }}
+            >
+              {overdueCount} overdue
+            </span>
+          )}
+        </div>
+        <span className="text-ink-dim text-sm">{open ? '↑' : '↓'}</span>
+      </button>
+
+      {open && (
+        <div className="px-4 pb-4 space-y-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+          {meds.map(med => (
+            <Link
+              key={med.id}
+              to={`/medications/${med.id}/edit`}
+              className="flex items-center justify-between py-3 px-1 rounded-xl transition-all"
+              style={{ color: 'inherit' }}
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-ink truncate">{med.name}</span>
+                  {(med.overdue_count ?? 0) > 0 && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
+                      style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171' }}>
+                      overdue
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-ink-dim mt-0.5">{FREQ_SHORT[med.frequency] ?? med.frequency} &middot; {formatNextDue(med.next_due_at)}</p>
+                {med.dose && <p className="text-xs text-ink-dim">{med.dose}</p>}
+              </div>
+              <span className="text-ink-dim text-sm ml-3">→</span>
+            </Link>
+          ))}
+
+          <Link
+            to={`/cats/${catId}/medications/new`}
+            className="flex items-center justify-center gap-1 w-full py-2.5 rounded-xl text-xs font-semibold transition-all mt-1"
+            style={{ border: '1px dashed rgba(192,132,252,0.25)', color: '#8b7fb0' }}
+          >
+            + Add medication
+          </Link>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function CatProfile() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
   const [cat, setCat] = useState<Cat | null>(null)
   const [measurements, setMeasurements] = useState<Measurement[]>([])
+  const [meds, setMeds] = useState<Medication[]>([])
   const [tab, setTab] = useState<Tab>('weight')
   const [showOlderHistory, setShowOlderHistory] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -101,8 +215,8 @@ export default function CatProfile() {
 
   useEffect(() => {
     if (!id) return
-    Promise.all([getCat(id), getMeasurements(id)])
-      .then(([c, m]) => { setCat(c); setMeasurements(m) })
+    Promise.all([getCat(id), getMeasurements(id), getMedications(id)])
+      .then(([c, m, mds]) => { setCat(c); setMeasurements(m); setMeds(mds) })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
   }, [id])
@@ -263,6 +377,9 @@ export default function CatProfile() {
           availableTypes={availableTypes}
           hasWeightData={weightMeasurements.length >= 2}
         />
+
+        {/* Medications section */}
+        <MedicationsSection catId={id!} meds={meds} />
 
         {/* Chart — follows active tab */}
         {(tab === 'weight' || tab === 'food' || tab === 'water') && (

@@ -26,9 +26,9 @@ export default function CropModal({ file, onCrop, onCancel }: CropModalProps) {
   const pinchRef = useRef<{ startDist: number; startScale: number } | null>(null)
 
   useEffect(() => {
-    const url = URL.createObjectURL(file)
-    setObjectUrl(url)
-    return () => URL.revokeObjectURL(url)
+    const reader = new FileReader()
+    reader.onload = (e) => setObjectUrl((e.target?.result as string) ?? '')
+    reader.readAsDataURL(file)
   }, [file])
 
   // When image loads, compute the display size (object-contain into square container = APERTURE+80)

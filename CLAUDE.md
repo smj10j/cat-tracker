@@ -125,19 +125,24 @@ Follow these steps **in order**. Do not skip, reorder, or batch steps.
 
 2. **Update TODO.md** — Add a new Phase entry for the work about to be done (even if doc-only). Mark tasks `[-]` (in progress) before starting. **This step is required for all work, not just implementation sprints.**
 
-3. **Implement** — Write the code.
+3. **Implement** — Write the code. **Write or update tests alongside implementation** (see `docs/TESTING.md`).
 
-4. **Deploy** — After any change:
+4. **Run tests** — Before deploying, ensure all tests pass:
+   - `cd worker && npm test`
+   - `cd frontend && npm test`
+   If any test fails, fix the code (or the test if the expectation was wrong) before proceeding.
+
+5. **Deploy** — After any change:
    - Worker: `cd worker && npx wrangler deploy`
    - Frontend: `cd frontend && npm run build && npx wrangler pages deploy dist --project-name cat-tracker --commit-dirty=true`
 
-5. **Mark TODO items complete** — Change `[-]` → `[x]` for all finished tasks. Update REGISTRY.md status to `Implemented` for completed PRDs. Do this before committing.
+6. **Mark TODO items complete** — Change `[-]` → `[x]` for all finished tasks. Update REGISTRY.md status to `Implemented` for completed PRDs. Do this before committing.
 
-6. **Commit to git** — One logical unit = one commit. Message must reference the feature area. Never batch unrelated changes. Never use `--no-verify`.
+7. **Commit to git** — One logical unit = one commit. Message must reference the feature area. Never batch unrelated changes. Never use `--no-verify`.
 
-7. **Push to remote** — `git push origin main` immediately after every commit. Do not accumulate unpushed commits.
+8. **Push to remote** — `git push origin main` immediately after every commit. Do not accumulate unpushed commits.
 
-8. **Update MEMORY.md** — After completing a sprint, update `~/.claude/projects/-Users-steve-code-smj10j-cat-tracker/memory/MEMORY.md`.
+9. **Update MEMORY.md** — After completing a sprint, update `~/.claude/projects/-Users-steve-code-smj10j-cat-tracker/memory/MEMORY.md`.
 
 ### Common failure modes to avoid
 
@@ -145,6 +150,8 @@ Follow these steps **in order**. Do not skip, reorder, or batch steps.
 - **Committing without pushing** — push is part of the same step, not optional.
 - **Implementing before a PRD is Approved** — Draft status means do not implement.
 - **Batching multiple unrelated changes into one commit** — each logical unit gets its own commit.
+- **Skipping tests** — run `npm test` in both `worker/` and `frontend/` before every deploy; never deploy with failing tests.
+- **Adding code without tests** — every new route, lib function, or component needs accompanying tests in `worker/src/__tests__/` or `frontend/src/__tests__/`.
 - **Forgetting to deploy** — both Worker and frontend must be deployed after any change to either.
 - **Forgetting to update REGISTRY.md status** — when a PRD's implementation is complete, mark it `Implemented` before committing.
 

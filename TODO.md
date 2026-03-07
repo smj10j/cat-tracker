@@ -380,6 +380,37 @@
 - [x] Deploy worker
 - [x] Deploy frontend
 
+## Phase 27: Test Suite + CropModal Bug Fix (2026-03-07)
+
+### Testing infrastructure
+- [x] docs/TESTING.md: strategy, tooling, directory structure, naming conventions, patterns
+- [x] worker/vitest.config.ts: defineWorkersConfig with wrangler.toml; vitest downgraded to ^3.2.4 for pool compatibility
+- [x] worker/package.json: add test + test:watch scripts
+- [x] worker/src/__tests__/helpers.ts: TEST_SCHEMA, applySchema(), clearDb(), seedUser(), seedSession(), authedHeaders()
+- [x] frontend/vitest.config.ts + vitest.setup.ts: jsdom environment, @testing-library/jest-dom
+- [x] frontend/package.json: add test + test:watch scripts + devDependencies
+- [x] frontend/tsconfig.json: exclude src/__tests__ from tsc (avoids noUnusedLocals errors in test files)
+
+### Worker tests (57 passing)
+- [x] worker/src/__tests__/lib/medications.test.ts: generateDoses (daily/twice_daily/weekly/monthly/custom), windowEnd90 (13 tests)
+- [x] worker/src/__tests__/lib/household.test.ts: ROLE_LEVEL, hasRole, ensureHousehold (create/idempotent/null-name/migration), getCatRole (legacy/shared/no-access/nonexistent) (13 tests)
+- [x] worker/src/__tests__/routes/cats.test.ts: auth guard, GET/POST/GET:id/PUT/DELETE (16 tests)
+- [x] worker/src/__tests__/routes/measurements.test.ts: GET/POST/DELETE with validation and auth (15 tests)
+
+### Frontend tests (52 passing)
+- [x] frontend/src/__tests__/lib/healthMetrics.test.ts: empty/single/stable/watch/concerning/urgent/peakLoss/period/sort/direction (11 tests)
+- [x] frontend/src/__tests__/lib/correlations.test.ts: bucketByWeek/normalize/lagCorrelation/detectTrend/detectCorrelations (18 tests)
+- [x] frontend/src/__tests__/lib/measurementPresets.test.ts: PRESET_TYPES/PRESETS/getPresetLabel/getPresetTicks (12 tests)
+- [x] frontend/src/__tests__/components/CatAvatar.test.tsx: render/emoji-fallback/sizes/border/className/error-hide (7 tests)
+- [x] frontend/src/__tests__/components/CropModal.test.tsx: data-URL behavior/no-blob/buttons/cancel (4 tests)
+
+### CropModal bug fix
+- [x] frontend/src/components/CropModal.tsx: switch from URL.createObjectURL() (blob: URL — ERR_ACCESS_DENIED) to FileReader.readAsDataURL() (data: URL — no security/timing issues)
+
+### Process
+- [x] CLAUDE.md Execution Loop: add step 4 (Run tests before deploy); add test failure modes to common pitfalls
+- [x] Deploy frontend (CropModal fix)
+
 ---
 
 ## Phase 25: Email infra docs + Cat Photos PRD (2026-03-07)

@@ -31,7 +31,7 @@ Cat Tracker is single-user today. Households with multiple caretakers — partne
 - Household entity: a named group that owns cats and has members
 - Four roles: Viewer, Contributor, Editor, Admin (see permission matrix)
 - A single owner per household (elevated Admin who cannot be removed)
-- Email-based invitations (via Cloudflare Workers + MailChannels)
+- Email-based invitations (via Resend transactional email, `noreply@01j.me`)
 - Invite management: send, revoke, view pending, accept, decline
 - Member management: view members, change roles, remove members
 - Household settings page (name, members, invites) accessible from profile
@@ -128,7 +128,7 @@ HouseholdMember
    c. Checks if a non-expired invite already exists for that email (reject with `invite_pending` — Admin can revoke and resend if needed).
    d. Generates a cryptographically random 32-byte token. Stores SHA-256 hash in DB; keeps raw token for the email link.
    e. Creates `household_members` row: `status='pending'`, `user_id=null`, `invite_token=hash`, `invite_expires_at=now+7d`.
-   f. Sends invite email via MailChannels (see email template section).
+   f. Sends invite email via Resend (see email template section).
 4. Returns the new pending-invite row (without the token hash).
 
 ### Receiving the invite
@@ -378,7 +378,7 @@ WHERE household_id IS NULL AND user_id IS NOT NULL;
 
 ## Email Invite Template
 
-Delivered via Cloudflare Workers → MailChannels transactional API (same mechanism as medication reminder emails planned in PRD-medication-reminders.md Phase C).
+Delivered via Cloudflare Workers → Resend transactional API (`noreply@01j.me`; same helper used for any future medication reminder emails in PRD-medication-reminders.md Phase C).
 
 **Subject**: `{InviterName} invited you to {HouseholdName} on Cat Tracker`
 
@@ -427,7 +427,7 @@ All questions from the initial draft have been answered by the product owner.
 
 3. **Data retention on member removal** → **Confirmed.** When a member is removed, their access is revoked immediately. All cats, measurements, and medication records they contributed remain in the household — they are household data, not personal data. Removing someone does not delete any history.
 
-4. **MailChannels integration** → **Shared utility.** Implement a single `sendEmail(to, subject, text, html)` helper in the Worker (e.g., `worker/src/lib/email.ts`) callable from any route handler. Both household invites and future medication reminder emails (PRD-medication-reminders.md Phase C) use this utility. Do not implement the same MailChannels call twice.
+4. **Resend integration** → **Shared utility.** A single `sendEmail(params, apiKey)` helper in `worker/src/lib/email.ts` is callable from any route handler. Both household invites and future medication reminder emails (PRD-medication-reminders.md Phase C) use this utility. From address: `noreply@01j.me` (verified domain). `RESEND_API_KEY` Worker secret required.
 
 5. **Household name on vet export** → **Include it.** The vet export page will show the household name alongside the cat's information. For multi-cat households and especially shelter/clinic deployments, the household name (e.g., "Happy Paws Rescue — Room 3") is clinically relevant context for the vet. Add it near the top of the export, below the cat's name and birthdate.
 
@@ -444,7 +444,7 @@ All questions from the initial draft have been answered by the product owner.
 2. Migration script: create personal households for all existing users; assign cats
 3. Worker middleware: update auth/ownership checks to use household membership
 4. Worker: `GET/PUT /api/household` endpoints
-5. Worker: `POST /api/household/invites` (generate token, store hash, send email via MailChannels)
+5. Worker: `POST /api/household/invites` (generate token, store hash, send email via Resend)
 6. Worker: `GET /api/household/invites/preview?token=`, `POST .../accept`, `POST .../decline`
 7. Worker: `DELETE /api/household/invites/:id` (revoke), `DELETE /api/household/members/:id` (remove member), `PUT .../role` (change role)
 8. Worker: extend cron to expire old pending invites

@@ -10,19 +10,7 @@ This document captures the product roadmap following the MVP. Items are roughly 
 
 ### 1a. Photo Upload
 
-**Problem:** The cat emoji placeholder is a fine stand-in, but the app would feel much more personal with real photos.
-
-**Proposal:**
-- Upload a photo when adding or editing a cat
-- Store in Cloudflare R2 (free tier: 10 GB storage, 1M requests/month)
-- Display as a circular avatar on the cat list, profile header, and comparison chart legend
-- Accept JPEG/PNG/WebP; resize on the client to ≤800px before upload to save R2 bandwidth
-
-**API changes:**
-- Add `POST /api/cats/:id/photo` → returns `{ photo_url }` after uploading to R2
-- Existing `photo_url` field on the cats table is already wired up
-
-**Notes:** R2 requires a public bucket or a signed-URL strategy. Simplest MVP: make the bucket public and store the object URL directly in `photo_url`.
+> **Superseded by PRD-cat-photos.md** — see that document for the full spec including crop/zoom UX, CatAvatar component, display locations, R2 infrastructure, and API design.
 
 ---
 
@@ -144,7 +132,7 @@ A floating "+" button on the home screen that opens a bottom sheet to log a meas
 A lightweight Cloudflare Worker Cron job that generates a monthly summary:
 - Weight trend for each cat (up/down/stable)
 - Any health flags from the past month
-- Sent as a plain HTML email via Resend or Mailgun (both have free tiers)
+- Sent as a plain HTML email via Resend (already integrated; `noreply@01j.me` on verified domain `01j.me`)
 
 ### 7b. Comparison vs. breed average
 

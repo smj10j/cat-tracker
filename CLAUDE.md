@@ -91,6 +91,15 @@ Logic is in `frontend/src/lib/healthMetrics.ts`. Thresholds are based on feline 
 | D1 database | `cat-tracker-db` | `9c923aa8-47a3-4029-b07f-3b67d208f9e6` |
 | Cloudflare account | — | `67ba5425d0189fa7d4cf1ada3239e058` |
 
+## Email infrastructure
+
+Transactional email is sent via **Resend** (https://resend.com).
+
+- **From address**: `noreply@01j.me` (verified domain `01j.me`)
+- **Worker secret**: `RESEND_API_KEY` (set via `wrangler secret put RESEND_API_KEY`)
+- **Helper**: `worker/src/lib/email.ts` — `sendEmail(params, apiKey)` calls `POST https://api.resend.com/emails`
+- **Note**: MailChannels ended their free Cloudflare Workers integration; do not use it.
+
 ## Git workflow
 
 - Commit after each logical chunk of work
@@ -100,23 +109,50 @@ Logic is in `frontend/src/lib/healthMetrics.ts`. Thresholds are based on feline 
 
 ## Execution Loop
 
-Follow these steps in order for every task or sprint. **Do not skip steps.**
+**THIS IS MANDATORY. Follow every step, every time — including doc-only work.**
 
-1. **Documentation first** — Write or update PRDs, TDD.md, API.md, REGISTRY.md, and any decision docs before touching code. If a feature has no `Approved` PRD, write one and stop — do not implement until approved.
-2. **Update TODO.md** — Add tasks for everything you plan to implement; mark them `[-]` (in progress). Commit this TODO update before writing implementation code.
+### At the start of every session (no exceptions)
+
+1. Read `docs/PRDs/REGISTRY.md` — know what exists and its status.
+2. Read `TODO.md` — know what was done and what remains.
+3. Read `~/.claude/projects/-Users-steve-code-smj10j-cat-tracker/memory/MEMORY.md` — already loaded, but confirm it's current.
+
+### For every task (documentation, code, or mixed)
+
+Follow these steps **in order**. Do not skip, reorder, or batch steps.
+
+1. **Documentation first** — Write or update PRDs, TDD.md, API.md, REGISTRY.md, and decision docs before touching code. If a feature has no `Approved` PRD, write one and stop — do not implement until approved. This applies even for small changes: update the relevant doc before the code.
+
+2. **Update TODO.md** — Add a new Phase entry for the work about to be done (even if doc-only). Mark tasks `[-]` (in progress) before starting. **This step is required for all work, not just implementation sprints.**
+
 3. **Implement** — Write the code.
-4. **Deploy** — `npx wrangler deploy` (Worker) and/or `npm run build && npx wrangler pages deploy dist --project-name cat-tracker --commit-dirty=true` (frontend) after changes.
-5. **Mark TODO items complete** — Change `[-]` → `[x]` for all finished tasks. Update REGISTRY.md status to `Implemented` for completed PRDs.
-6. **Commit to git** — One logical unit = one commit. Message should reference the feature area. Never batch unrelated changes. Never skip hooks (`--no-verify`).
-7. **Push to remote** — `git push origin main` after every commit.
-8. **Update MEMORY.md** — After completing a sprint, update `~/.claude/projects/.../memory/MEMORY.md` so the next session has context.
+
+4. **Deploy** — After any change:
+   - Worker: `cd worker && npx wrangler deploy`
+   - Frontend: `cd frontend && npm run build && npx wrangler pages deploy dist --project-name cat-tracker --commit-dirty=true`
+
+5. **Mark TODO items complete** — Change `[-]` → `[x]` for all finished tasks. Update REGISTRY.md status to `Implemented` for completed PRDs. Do this before committing.
+
+6. **Commit to git** — One logical unit = one commit. Message must reference the feature area. Never batch unrelated changes. Never use `--no-verify`.
+
+7. **Push to remote** — `git push origin main` immediately after every commit. Do not accumulate unpushed commits.
+
+8. **Update MEMORY.md** — After completing a sprint, update `~/.claude/projects/-Users-steve-code-smj10j-cat-tracker/memory/MEMORY.md`.
+
+### Common failure modes to avoid
+
+- **Skipping TODO.md for "quick" or doc-only tasks** — every task needs a TODO entry.
+- **Committing without pushing** — push is part of the same step, not optional.
+- **Implementing before a PRD is Approved** — Draft status means do not implement.
+- **Batching multiple unrelated changes into one commit** — each logical unit gets its own commit.
+- **Forgetting to deploy** — both Worker and frontend must be deployed after any change to either.
+- **Forgetting to update REGISTRY.md status** — when a PRD's implementation is complete, mark it `Implemented` before committing.
 
 ### Additional working style notes
 
-- **Read REGISTRY.md + TODO.md first** at the start of every session
-- **Fix bugs before features** — address cleanup items first
-- **Parallelize when safe** — split backend vs. frontend work when files don't overlap; integrate at the end
-- **Never ask the user unless truly blocked** — make reasonable decisions, document them in the commit message
+- **Fix bugs before features** — address cleanup items first.
+- **Parallelize when safe** — split backend vs. frontend work when files don't overlap; integrate at the end.
+- **Never ask the user unless truly blocked** — make reasonable decisions, document them in the commit message.
 
 ## Docs
 

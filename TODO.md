@@ -352,6 +352,16 @@
 - [x] frontend/pages/CatProfile.tsx: display microchip badge for real IDs (spaced formatting)
 - [x] Deploy worker + frontend
 
+## Phase 25: Email infra docs + Cat Photos PRD (2026-03-07)
+
+- [x] Update all MailChannels references across docs to Resend + noreply@01j.me (PRD-household-sharing.md, PRD-medication-reminders.md, PRD-features-backlog.md, REGISTRY.md)
+- [x] Add Email infrastructure section to CLAUDE.md
+- [x] Write PRD-cat-photos.md (Draft): R2 storage, canvas crop/zoom UI, CatAvatar component, display specs for all locations, API design, security considerations, phased implementation plan
+- [x] REGISTRY.md: add PRD-cat-photos.md entry + detail block; mark PRD-features-backlog.md §1a as superseded
+- [x] PRD-features-backlog.md §1a: collapse to superseded pointer
+
+---
+
 ## Phase 24: Household Sharing Implementation (2026-03-07)
 
 ### Backend

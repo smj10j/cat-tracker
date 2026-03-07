@@ -29,6 +29,7 @@
 | [PRD-medication-reminders.md](PRD-medication-reminders.md) | Medication Reminders | `Implemented` | 2026-03-07 12:00 |
 | [PRD-household-sharing.md](PRD-household-sharing.md) | Household Sharing & Multi-User Access | `Implemented` | 2026-03-07 18:00 |
 | [PRD-household-sharing-phase2.md](PRD-household-sharing-phase2.md) | Household Sharing — Phase 2 (lifecycle + audit) | `Draft` | 2026-03-07 13:00 |
+| [PRD-cat-photos.md](PRD-cat-photos.md) | Cat Photo Uploads | `Draft` | 2026-03-07 19:00 |
 
 ---
 
@@ -308,7 +309,7 @@ Each entry below provides full implementation notes and open questions. The summ
 
 **Problem:** Cat Tracker is single-user. Multi-person households (spouses, family members, pet sitters) can't share access to the same cats.
 
-**Scope:** Household entity owns cats; 4-role permission system (Viewer/Contributor/Editor/Admin); email invite flow via MailChannels; household settings UI accessible from profile popover; migration from current per-user cat ownership to household-based ownership.
+**Scope:** Household entity owns cats; 4-role permission system (Viewer/Contributor/Editor/Admin); email invite flow via Resend (`noreply@01j.me`); household settings UI accessible from profile popover; migration from current per-user cat ownership to household-based ownership.
 
 **Implemented Phase A** (household model, invite system, role-based access, member management, household settings page, invite acceptance page, home screen household labels, household-scoped cat and measurement authorization).
 
@@ -330,13 +331,29 @@ Each entry below provides full implementation notes and open questions. The summ
 
 ---
 
+### PRD-cat-photos.md — Cat Photo Uploads
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-03-07 19:00 |
+| **Supersedes** | PRD-features-backlog.md §1a |
+
+**Problem:** Every cat card and profile shows a generic 🐱 emoji. Real photos make the app feel personal and drive retention.
+
+**Scope:** Upload from Add/Edit Cat form or by tapping the profile hero avatar; client-side crop/zoom modal (Canvas API, no library) that outputs 400×400 JPEG; store in Cloudflare R2 public bucket (`cat-tracker-photos`); display via reusable `CatAvatar` component across Home, Cat Profile, Add/Edit Cat form, and Vet Export; remove/reset to emoji; Worker proxy upload (`POST /api/cats/:id/photo`) with Editor-role authorization.
+
+**Do not implement** — status is `Draft`. Requires product owner approval.
+
+---
+
 ## Planned (no PRD written)
 
 Items mentioned or implied by existing PRDs that have not yet been formally specified. A PRD must be written and approved before implementation.
 
 | Feature | Origin | Notes |
 |---------|--------|-------|
-| Photo upload (R2) | PRD-features-backlog.md | Straightforward; needs PRD |
+| ~~Photo upload (R2)~~ | ~~PRD-features-backlog.md~~ | Superseded by PRD-cat-photos.md |
 | Date range filter on charts | PRD-features-backlog.md | Low priority so far |
 | Daily check-in screen | PRD-killer-app.md P1 | High value; needs PRD |
 | Streak tracking | PRD-killer-app.md P2 | Habit-forming; needs PRD |

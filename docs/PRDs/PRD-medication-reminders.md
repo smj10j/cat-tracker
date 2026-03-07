@@ -41,7 +41,7 @@ Cat owners who give recurring medications — monthly flea/tick prevention, dail
 - Per-notification preferences (opt-in push, quiet hours)
 
 ### Out of scope (first version)
-- Email notifications (Phase 2 — needs MailChannels integration)
+- Email notifications (Phase 2 — via Resend transactional email)
 - SMS notifications
 - Multi-cat single reminder ("give all cats flea meds") — Phase 2
 - Medication interaction checking
@@ -375,7 +375,7 @@ CREATE TABLE push_subscriptions (
 
 5. **Multi-cat same medication**: Should a user be able to create one schedule entry that applies to multiple cats? Simpler: create one entry per cat with the same medication. The inbox groups by cat name for clarity. Shared schedules can be addressed in Phase 2.
 
-6. **Email notifications via MailChannels**: Cloudflare Workers has a partnership with MailChannels allowing free transactional email sends. This is a natural Phase 2 addition using the user's Google email already on file. The Worker would call `https://api.mailchannels.net/tx/v1/send` with the user's email as the recipient.
+6. **Email notifications via Resend**: Transactional email is already integrated via Resend (`noreply@01j.me`, verified domain `01j.me`). Phase C email fallback would reuse the existing `sendEmail()` helper in `worker/src/lib/email.ts` with the user's Google email as the recipient. Note: MailChannels ended their free Cloudflare Workers integration — do not use it.
 
 ---
 
@@ -401,7 +401,7 @@ CREATE TABLE push_subscriptions (
 5. Worker: cron extended to send push notifications
 
 ### Phase C — Email fallback
-1. Worker: integrate MailChannels for email delivery
+1. Worker: use Resend for email delivery (already integrated via `worker/src/lib/email.ts`; reuse `sendEmail()`)
 2. Worker: send email when no push subscription exists and dose becomes overdue
 3. Frontend: notification preferences page (opt out of email)
 

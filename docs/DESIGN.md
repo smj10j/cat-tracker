@@ -134,12 +134,12 @@ Soft pill with matching background opacity (15%) and border. The dot before the 
 ### Charts
 - Line: 2.5px stroke, gradient from `lavender` to `amber` along the x-axis
 - Area fill: subtle gradient from lavender-glow to transparent
-- Dots: Colored by health status, white stroke, soft glow (`box-shadow` equivalent via SVG filter)
+- Dots: Emoji SVG text nodes (`<text>` element) showing health status emoji on weight charts; plain colored circles on scale charts
 - Y-axis: Zoomed to data range always — never starts at zero
 - Gridlines: `rgba(255,255,255,0.04)` — barely visible
 
 ### Bottom Navigation
-Fixed bottom bar, `surface` background with `backdrop-filter: blur(20px)`. 3 tabs: Cats (home), Compare, Add (+). The Add tab is a lavender pill that floats above the bar slightly. Active tab icon and label in lavender; inactive in `ink-dim`.
+Fixed bottom bar, `surface` background with `backdrop-filter: blur(20px)`. 3 tabs: Home, Compare, Log. The Log tab is a lavender pill that floats above the bar slightly — tapping it opens the QuickAdd bottom sheet. Active tab icon and label in lavender; inactive in `ink-dim`.
 
 ---
 
@@ -214,7 +214,7 @@ Each cat gets a card. The card shows:
 - A large circular avatar (emoji or photo, `72px`)
 - Cat name in display font
 - Age + last measurement as subtitle
-- A small health status dot (glowing if not OK)
+- A health status emoji (✅ stable, 👀 watch, ⚠️ concerning, 🚨 urgent)
 
 Cards are arranged in a vertical list with `16px` gaps. They enter with staggered `slideUpFade`.
 
@@ -229,7 +229,7 @@ The profile is the emotional heart of the app. It should feel like a dedicated p
 - **Hero**: Cat name in large display font, avatar prominent, key stats (current weight, age) in glowing amber numerals
 - **Health alert** (if any): Appears as a soft colored card with the cat's name in it — "Gemini has lost 8% of her weight recently." Personal and warm, not clinical
 - **Chart**: Full-width, generous height (`280px`), the visual centerpiece of the page
-- **Measurement tabs**: Weight / Food / Water — simple pill tabs
+- **Measurement tabs**: Weight / Food / Water / Behavior / All — simple pill tabs
 
 ---
 

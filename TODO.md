@@ -8,7 +8,7 @@
 ---
 
 ## Phase 0: Planning
-- [x] Write PRD (docs/PRD.md)
+- [x] Write PRD (docs/PRDs/PRD-mvp.md)
 - [x] Write TDD (docs/TDD.md)
 - [x] Create this TODO list
 
@@ -78,10 +78,8 @@
 - [ ] "Due for weigh-in" badge on home screen based on reminder_interval_days
 
 ### Sharing
-- [ ] Add household token to D1 schema
-- [ ] Backend: generate/rotate token endpoint
-- [ ] Frontend: settings page with shareable link + rotate button
-- [ ] Middleware: accept ?token= on all API routes
+> **Superseded** by PRD-auth.md — token sharing replaced by full OAuth user accounts
+- [ ] See PRD-auth.md for the approved approach
 
 ## Phase 6b: Design Overhaul (docs/DESIGN.md)
 
@@ -137,6 +135,7 @@
 - [x] Monthly self-check card (weigh, coat, gums, eyes, ears)
 - [x] Normal vitals reference card
 - [x] Urgent signs quick-reference (always call vet)
+
 
 ## Phase 7: Infrastructure
 - [ ] GitHub Actions: auto-deploy Worker + Pages on push to main
@@ -196,3 +195,35 @@
 - [ ] REVIEW: P5 Household sharing / token auth
 - [ ] REVIEW: P6 Shelter mode
 - [ ] REVIEW: P7 AI health narrative
+
+## Phase 10: Auth — User Accounts & Data Isolation (PRD-auth.md)
+
+### Schema
+- [-] Add users table (id, email, display_name, avatar_url, oauth_provider, oauth_id)
+- [-] Add sessions table (id, user_id, expires_at)
+- [-] Add nullable user_id column to cats table
+
+### Worker — Auth Routes
+- [ ] GET /api/auth/login?provider=google — redirect to OAuth consent
+- [ ] GET /api/auth/callback — exchange code, upsert user, create session, set cookie
+- [ ] POST /api/auth/logout — delete session, clear cookie
+- [ ] GET /api/auth/me — return current user
+
+### Worker — Auth Middleware & Query Scoping
+- [ ] Auth middleware: validate session cookie, inject userId into context
+- [ ] Scope GET /api/cats to user_id
+- [ ] Scope POST /api/cats to user_id
+- [ ] Scope GET/PUT/DELETE /api/cats/:id to user_id
+- [ ] Scope GET/POST /api/cats/:id/measurements to user_id (via cat ownership)
+- [ ] Scope DELETE /api/measurements/:id to user_id
+- [ ] Scope POST /api/import to user_id
+
+### Worker — Session Cleanup Cron
+- [ ] Add Cron trigger (0 3 * * *) to delete expired sessions
+
+### Frontend — Auth
+- [ ] AuthContext: fetch /api/auth/me on mount; provide user, loading, logout()
+- [ ] /login page: "Sign in with Google" button
+- [ ] ProtectedRoute wrapper: redirect to /login if not authenticated
+- [ ] User avatar in BottomNav (or top corner): name + Sign out
+- [ ] First-login "claim existing cats" prompt

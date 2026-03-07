@@ -21,11 +21,20 @@ export interface Measurement {
   created_at: string
 }
 
+export interface User {
+  id: string
+  email: string
+  display_name: string | null
+  avatar_url: string | null
+  hasOrphanedCats: boolean
+}
+
 const BASE = '/api'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(BASE + path, {
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     ...init,
   })
   if (!res.ok) {
@@ -52,3 +61,8 @@ export const createMeasurement = (catId: string, data: Omit<Measurement, 'id' | 
   request<Measurement>(`/cats/${catId}/measurements`, { method: 'POST', body: JSON.stringify(data) })
 export const deleteMeasurement = (id: string) =>
   request<{ success: boolean }>(`/measurements/${id}`, { method: 'DELETE' })
+
+// Auth
+export const getMe = () => request<User>('/auth/me')
+export const logout = () => request<{ success: boolean }>('/auth/logout', { method: 'POST' })
+export const claimCats = () => request<{ claimed: number }>('/auth/claim-cats', { method: 'POST' })

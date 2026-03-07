@@ -1,12 +1,11 @@
 import { Hono } from 'hono'
-import type { D1Database } from '@cloudflare/workers-types'
+import type { AppEnv } from '../types'
 
-type Env = { DB: D1Database }
-
-const importRoute = new Hono<{ Bindings: Env }>()
+const importRoute = new Hono<AppEnv>()
 
 // POST /api/import
 importRoute.post('/import', async (c) => {
+  const userId = c.get('userId')
   const body = await c.req.text()
   const lines = body.split('\n')
 
@@ -86,22 +85,22 @@ importRoute.post('/import', async (c) => {
     }
   }
 
-  // Look up or create each cat, building a map of lowercase name → id
-  const catIdMap = new Map<string, number>()
+  // Look up or create each cat (scoped to this user), building a map of lowercase name → id
+  const catIdMap = new Map<string, string>()
 
   for (const [lowerName, originalName] of catNameMap) {
     const existing = await c.env.DB.prepare(
-      'SELECT id, name FROM cats WHERE LOWER(name) = ?'
-    ).bind(lowerName).first<{ id: number; name: string }>()
+      'SELECT id FROM cats WHERE LOWER(name) = ? AND user_id = ?'
+    ).bind(lowerName, userId).first<{ id: string }>()
 
     if (existing) {
       catIdMap.set(lowerName, existing.id)
     } else {
       const created = await c.env.DB.prepare(
-        `INSERT INTO cats (name, birthdate, notes)
-         VALUES (?, '2020-01-01', 'Created via CSV import')
+        `INSERT INTO cats (name, birthdate, notes, user_id)
+         VALUES (?, '2020-01-01', 'Created via CSV import', ?)
          RETURNING id`
-      ).bind(originalName).first<{ id: number }>()
+      ).bind(originalName, userId).first<{ id: string }>()
 
       if (!created) {
         errors.push(`Failed to create cat "${originalName}"`)

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getCats, type Cat } from '../lib/api'
+import { getCats, getMeasurements, claimCats, type Cat } from '../lib/api'
 import { assessHealth, STATUS_COLORS, STATUS_LABEL } from '../lib/healthMetrics'
-import { getMeasurements } from '../lib/api'
+import { useAuth } from '../contexts/AuthContext'
 
 function catAge(birthdate: string): string {
   const birth = new Date(birthdate)
@@ -73,9 +73,11 @@ const AVATAR_STYLE: Record<string, React.CSSProperties> = {
 }
 
 export default function Home() {
+  const { user, refresh: refreshUser } = useAuth()
   const [catData, setCatData] = useState<{ cat: Cat; latestWeight: number | null; latestUnit: string; healthStatus: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [claiming, setClaiming] = useState(false)
 
   useEffect(() => {
     loadCats()
@@ -111,6 +113,16 @@ export default function Home() {
     }
   }
 
+  async function handleClaimCats() {
+    setClaiming(true)
+    try {
+      await claimCats()
+      await Promise.all([loadCats(), refreshUser()])
+    } finally {
+      setClaiming(false)
+    }
+  }
+
   const catCount = catData.length
 
   return (
@@ -124,6 +136,31 @@ export default function Home() {
       </header>
 
       {error && <div className="glass-card p-4 mb-4 text-rose text-sm">{error}</div>}
+
+      {/* Claim existing cats prompt */}
+      {user?.hasOrphanedCats && (
+        <div className="glass-card p-4 mb-6 space-y-3" style={{ border: '1px solid rgba(192,132,252,0.25)' }}>
+          <div>
+            <p className="text-sm font-semibold text-ink">Existing cats found</p>
+            <p className="text-xs text-ink-mid mt-0.5">There are cats in this app not yet linked to your account. Claim them as yours?</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleClaimCats}
+              disabled={claiming}
+              className="btn-primary py-2 px-4 text-xs"
+            >
+              {claiming ? 'Claiming…' : 'Yes, claim them'}
+            </button>
+            <button
+              onClick={() => refreshUser()}
+              className="text-xs text-ink-dim px-3 py-2"
+            >
+              Skip
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Cat list */}
       <div className="space-y-3">

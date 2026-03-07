@@ -1,6 +1,6 @@
 # Cat Tracker
 
-A lightweight web app for tracking health measurements (starting with weight) for your cats over time. Built on Cloudflare's free tier — no server to maintain, no monthly bill.
+A lightweight web app for tracking health measurements for your cats over time. Built on Cloudflare's free tier — no server to maintain, no monthly bill.
 
 **Live app:** https://cat-tracker.pages.dev
 
@@ -9,10 +9,16 @@ A lightweight web app for tracking health measurements (starting with weight) fo
 ## Features
 
 - Add and manage multiple cats with profile info (name, birthdate, breed, coloring, notes)
-- Log weight measurements with date/time and optional notes
-- Per-cat weight chart with zoomed scale to make changes visually meaningful
-- Multi-cat comparison chart with per-series toggles
-- Research-based health indicators: dots and banners flag concerning weight loss/gain rates based on feline veterinary thresholds
+- Log multiple measurement types: weight, food, water, litter box, grooming, activity, vomiting
+- **QuickAdd bottom sheet** — tap the center nav button to log any measurement in 2 taps
+- **One-tap behavioral presets** — litter, grooming, activity, and vomiting use simple preset buttons (e.g., "Normal / Straining / Loose / Not used") instead of manual numeric entry
+- Per-cat profile tabs: Weight | Food | Water | Behavior | All
+- Per-cat measurement charts: weight chart with health emoji dots; scale chart for food/water
+- **Multi-cat comparison chart** with per-series toggles and measurement type selector
+- **Emoji health indicators** (✅👀⚠️🚨) on chart dots and cat cards, based on feline veterinary thresholds
+- Wellness Guide page with cat health reference cards (vitals, monthly self-check, urgent signs)
+- CSV import for bulk data entry
+- PWA — installable on home screen
 
 ---
 
@@ -21,18 +27,25 @@ A lightweight web app for tracking health measurements (starting with weight) fo
 ```
 cat-tracker/
 ├── docs/
-│   ├── PRDs/               # Product requirement documents
-│   │   ├── PRD-mvp.md      # Original MVP requirements
-│   │   ├── PRD-features-backlog.md  # Feature backlog
-│   │   └── PRD-ux-simplification.md # UX simplification PRD
-│   ├── TDD.md              # Technical design doc
-│   └── DESIGN.md           # Visual design system
+│   ├── PRDs/
+│   │   ├── REGISTRY.md               # Canonical PRD status tracker
+│   │   ├── PRD-mvp.md                # Original MVP requirements
+│   │   ├── PRD-features-backlog.md   # Feature backlog
+│   │   ├── PRD-ux-simplification.md  # UX simplification
+│   │   ├── PRD-health-status-visuals.md  # Emoji health dots
+│   │   ├── PRD-measurement-ux.md     # Measurement UX fixes
+│   │   ├── PRD-charts-expansion.md   # Multi-type charts
+│   │   ├── PRD-killer-app.md         # Roadmap research (under review)
+│   │   └── PRD-auth.md               # User accounts & data isolation (under review)
+│   ├── TDD.md                        # Technical design doc
+│   └── DESIGN.md                     # Visual design system
 ├── worker/                 # Cloudflare Worker — REST API
 │   ├── src/
 │   │   ├── index.ts        # Hono app entry point + CORS
 │   │   ├── routes/
-│   │   │   ├── cats.ts     # CRUD for /api/cats
-│   │   │   └── measurements.ts  # CRUD for /api/measurements
+│   │   │   ├── cats.ts           # CRUD for /api/cats
+│   │   │   ├── measurements.ts   # CRUD for /api/measurements
+│   │   │   └── import.ts         # POST /api/import (CSV bulk insert)
 │   │   └── db/
 │   │       └── schema.sql  # D1 schema (cats + measurements tables)
 │   ├── wrangler.toml       # Worker config + D1 binding
@@ -41,18 +54,27 @@ cat-tracker/
 │   ├── src/
 │   │   ├── App.tsx         # Router setup
 │   │   ├── pages/
-│   │   │   ├── Home.tsx        # Cat list
-│   │   │   ├── CatProfile.tsx  # Per-cat chart, measurements, health alerts
-│   │   │   ├── AddEditCat.tsx  # Add/edit cat form
-│   │   │   └── CompareChart.tsx  # Multi-cat comparison chart
+│   │   │   ├── Home.tsx            # Cat list + wellness link
+│   │   │   ├── CatProfile.tsx      # Per-cat chart, tabs, health alerts
+│   │   │   ├── AddEditCat.tsx      # Add/edit cat form
+│   │   │   ├── CompareChart.tsx    # Multi-cat comparison chart
+│   │   │   ├── ImportPage.tsx      # CSV upload/preview/import
+│   │   │   └── WellnessGuide.tsx   # Cat health reference page
 │   │   ├── components/
-│   │   │   ├── WeightChart.tsx     # Recharts line chart w/ health dots
-│   │   │   └── MeasurementForm.tsx # Inline measurement entry form
+│   │   │   ├── WeightChart.tsx       # Recharts line chart w/ emoji health dots
+│   │   │   ├── MeasurementChart.tsx  # 0-3 scale chart for behavioral types
+│   │   │   ├── MeasurementForm.tsx   # Inline measurement entry form
+│   │   │   ├── QuickAdd.tsx          # Bottom sheet for quick measurement logging
+│   │   │   ├── PageShell.tsx         # Layout wrapper; owns QuickAdd state
+│   │   │   └── BottomNav.tsx         # Fixed bottom nav (Home/Compare/Log)
 │   │   └── lib/
-│   │       ├── api.ts          # Typed fetch wrappers for all API routes
-│   │       └── healthMetrics.ts  # Vet-threshold health status logic
+│   │       ├── api.ts                # Typed fetch wrappers for all API routes
+│   │       ├── healthMetrics.ts      # Vet-threshold health status logic + emoji
+│   │       └── measurementPresets.ts # Preset definitions for behavioral types
 │   ├── functions/
 │   │   └── api/[[path]].ts   # Pages Function: proxies /api/* → Worker
+│   ├── public/
+│   │   └── manifest.json     # PWA manifest
 │   ├── vite.config.ts        # Dev proxy: /api → localhost:8787
 │   └── package.json
 ├── TODO.md                 # Task tracking
@@ -67,7 +89,7 @@ cat-tracker/
 | Layer | Technology |
 |-------|-----------|
 | Frontend | React 18 + TypeScript + Vite |
-| Styling | Tailwind CSS |
+| Styling | Tailwind CSS (custom dark design system) |
 | Charts | Recharts |
 | Routing | React Router v6 |
 | Backend | Cloudflare Workers (Hono framework) |
@@ -188,9 +210,15 @@ Base URL: `https://cat-tracker-api.stevej-67b.workers.dev` (or `/api` via Pages 
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/cats/:id/measurements?type=weight` | List measurements |
+| `GET` | `/api/cats/:id/measurements?type=weight` | List measurements (filter by type) |
 | `POST` | `/api/cats/:id/measurements` | Add a measurement |
 | `DELETE` | `/api/measurements/:id` | Delete a measurement |
+
+### Import
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/import` | Bulk import cats + measurements from CSV |
 
 ### Health check
 
@@ -204,22 +232,25 @@ GET /api/health  →  { "status": "ok" }
 
 The app uses feline veterinary research to classify weight change rates:
 
-| Status | Color | Trigger |
+| Status | Emoji | Trigger |
 |--------|-------|---------|
-| Stable | Green | < 0.5%/week change |
-| Watch | Yellow | 0.5–1%/week loss, or rapid gain > 1.5%/week |
-| Concerning | Orange | 1–2%/week loss, or > 7% total loss from peak |
-| Urgent | Red | > 2%/week loss, or > 10% total loss from peak |
+| Stable | ✅ | < 0.5%/week change |
+| Watch | 👀 | 0.5–1%/week loss, or rapid gain > 1.5%/week |
+| Concerning | ⚠️ | 1–2%/week loss, or > 7% total loss from peak |
+| Urgent | 🚨 | > 2%/week loss, or > 10% total loss from peak |
 
-Logic lives in `frontend/src/lib/healthMetrics.ts`.
+Emoji dots appear on chart data points and as badges on cat cards. Logic lives in `frontend/src/lib/healthMetrics.ts`.
 
 ---
 
 ## Documents
 
+- [`docs/PRDs/REGISTRY.md`](docs/PRDs/REGISTRY.md) — Canonical PRD status tracker
 - [`docs/PRDs/PRD-mvp.md`](docs/PRDs/PRD-mvp.md) — Original MVP requirements
 - [`docs/PRDs/PRD-features-backlog.md`](docs/PRDs/PRD-features-backlog.md) — Feature backlog
 - [`docs/PRDs/PRD-ux-simplification.md`](docs/PRDs/PRD-ux-simplification.md) — UX simplification
+- [`docs/PRDs/PRD-auth.md`](docs/PRDs/PRD-auth.md) — User accounts & data isolation
+- [`docs/PRDs/PRD-killer-app.md`](docs/PRDs/PRD-killer-app.md) — Roadmap research
 - [`docs/TDD.md`](docs/TDD.md) — Technical design
 - [`docs/DESIGN.md`](docs/DESIGN.md) — Visual design system
 - [`TODO.md`](TODO.md) — Task tracking

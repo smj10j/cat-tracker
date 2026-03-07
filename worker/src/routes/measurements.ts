@@ -1,33 +1,34 @@
 import { Hono } from 'hono'
-import type { D1Database } from '@cloudflare/workers-types'
+import type { AppEnv } from '../types'
 
-type Env = { DB: D1Database }
-
-const measurements = new Hono<{ Bindings: Env }>()
+const measurements = new Hono<AppEnv>()
 
 // GET /api/cats/:id/measurements?type=weight
 measurements.get('/cats/:id/measurements', async (c) => {
+  const userId = c.get('userId')
   const catId = c.req.param('id')
   const type = c.req.query('type')
 
-  const cat = await c.env.DB.prepare('SELECT id FROM cats WHERE id = ?')
-    .bind(catId)
-    .first()
+  // Verify cat belongs to this user (or is unclaimed)
+  const cat = await c.env.DB.prepare(
+    'SELECT id FROM cats WHERE id = ? AND (user_id = ? OR user_id IS NULL)'
+  ).bind(catId, userId).first()
   if (!cat) return c.json({ error: 'Cat not found' }, 404)
 
-  const query = type
-    ? 'SELECT * FROM measurements WHERE cat_id = ? AND type = ? ORDER BY measured_at ASC'
-    : 'SELECT * FROM measurements WHERE cat_id = ? ORDER BY measured_at ASC'
-
   const result = type
-    ? await c.env.DB.prepare(query).bind(catId, type).all()
-    : await c.env.DB.prepare(query).bind(catId).all()
+    ? await c.env.DB.prepare(
+        'SELECT * FROM measurements WHERE cat_id = ? AND type = ? ORDER BY measured_at ASC'
+      ).bind(catId, type).all()
+    : await c.env.DB.prepare(
+        'SELECT * FROM measurements WHERE cat_id = ? ORDER BY measured_at ASC'
+      ).bind(catId).all()
 
   return c.json(result.results)
 })
 
 // POST /api/cats/:id/measurements
 measurements.post('/cats/:id/measurements', async (c) => {
+  const userId = c.get('userId')
   const catId = c.req.param('id')
   const body = await c.req.json<{
     type: string
@@ -37,9 +38,9 @@ measurements.post('/cats/:id/measurements', async (c) => {
     notes?: string
   }>()
 
-  const cat = await c.env.DB.prepare('SELECT id FROM cats WHERE id = ?')
-    .bind(catId)
-    .first()
+  const cat = await c.env.DB.prepare(
+    'SELECT id FROM cats WHERE id = ? AND (user_id = ? OR user_id IS NULL)'
+  ).bind(catId, userId).first()
   if (!cat) return c.json({ error: 'Cat not found' }, 404)
 
   if (!body.type || body.value === undefined || !body.unit || !body.measured_at) {
@@ -59,10 +60,15 @@ measurements.post('/cats/:id/measurements', async (c) => {
 
 // DELETE /api/measurements/:id
 measurements.delete('/measurements/:id', async (c) => {
+  const userId = c.get('userId')
   const id = c.req.param('id')
-  const existing = await c.env.DB.prepare('SELECT id FROM measurements WHERE id = ?')
-    .bind(id)
-    .first()
+
+  // Verify the measurement belongs to a cat owned by this user
+  const existing = await c.env.DB.prepare(
+    `SELECT m.id FROM measurements m
+     JOIN cats c ON c.id = m.cat_id
+     WHERE m.id = ? AND (c.user_id = ? OR c.user_id IS NULL)`
+  ).bind(id, userId).first()
   if (!existing) return c.json({ error: 'Not found' }, 404)
 
   await c.env.DB.prepare('DELETE FROM measurements WHERE id = ?').bind(id).run()

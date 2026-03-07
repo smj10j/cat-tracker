@@ -7,3 +7,6 @@ compatibility_flags = ["nodejs_compat"]
 binding = "DB"
 database_name = "cat-tracker-db"
 database_id = "9c923aa8-47a3-4029-b07f-3b67d208f9e6"
+
+[triggers]
+crons = ["0 3 * * *"]

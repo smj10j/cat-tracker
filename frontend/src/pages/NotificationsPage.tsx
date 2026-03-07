@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { getNotifications, administerDose, skipDose, type NotificationInbox, type DoseWithContext, type Medication } from '../lib/api'
+import { getNotifications, administerDose, skipDose, CARE_TYPE_ICONS, type NotificationInbox, type DoseWithContext, type Medication } from '../lib/api'
 
 function formatDueAt(dueAt: string): string {
   // dueAt is 'YYYY-MM-DD HH:MM:00'
@@ -70,6 +70,7 @@ function DoseCard({ dose, variant, onAdminister, onSkip, acting }: DoseCardProps
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-ink text-sm truncate">
+            <span className="mr-1">{CARE_TYPE_ICONS[dose.med_type] ?? '📅'}</span>
             {dose.cat_name}
             <span className="text-ink-dim font-normal"> &middot; </span>
             {dose.med_name}

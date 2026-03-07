@@ -352,16 +352,30 @@
 - [x] frontend/pages/CatProfile.tsx: display microchip badge for real IDs (spaced formatting)
 - [x] Deploy worker + frontend
 
-## Phase 28: UX Redesign PRD — Competitive Analysis (2026-03-07)
+## Phase 28: UX Redesign (PRD-ux-redesign.md)
 
-### Documentation (no implementation)
+### Documentation
 - [x] Analyze 5 screenshots from vet practice pet management app
 - [x] Write PRD-ux-redesign.md: competitive analysis, 5 design proposals, 5 killer app promotions
 - [x] Add PRD to REGISTRY.md (status: Draft)
-- [ ] REVIEW: 2A Profile Hero Redesign (full-bleed photo) — HIGH priority, STRONGLY recommended
-- [ ] REVIEW: 2B Structured Pet Details with Icons + neuter status — MEDIUM
-- [ ] REVIEW: 2C Care Schedule rename + event types + emoji icons — MEDIUM
-- [ ] REVIEW: 2D CatProfile tab reorganization (Health / Care / About) — MEDIUM
+
+### Implementation (2A/2B/2C/2D — 2026-03-07)
+- [x] 2A: Full-bleed hero photo on CatProfile (~42vh, gradient overlays, name/weight over gradient)
+- [x] 2A: Camera button with overlaid file input (PWA-safe) + remove photo button in hero
+- [x] 2B: is_neutered INTEGER column added to cats table + D1 migration applied
+- [x] 2B: Worker routes/cats.ts reads/writes is_neutered in POST + PUT
+- [x] 2B: Cat interface in api.ts includes is_neutered; CARE_TYPE_ICONS map exported
+- [x] 2B: AddEditCat.tsx adds neuter status selector (Neutered/Spayed / Intact / Unknown)
+- [x] 2B: CatProfile About tab shows structured icon-prefixed detail rows (breed/sex/neuter/age/weight/microchip)
+- [x] 2C: CARE_TYPE_ICONS map (flea/heartworm/pill/vaccine/supplement/dental/exam/bloodwork/surgery/other)
+- [x] 2C: MedicationFormPage: added dental/exam/bloodwork/surgery types; fixed Annual exam preset type
+- [x] 2C: MedicationFormPage: renamed "Add Medication" → "Add Care Item" title and button
+- [x] 2C: CatProfile: MedicationsSection → CareScheduleSection with type emoji icons per row
+- [x] 2C: NotificationsPage: DoseCard shows care type icon before cat/med name
+- [x] 2D: CatProfile 5-tab measurement system → 3-tab top-level: Health / Care / About
+- [x] 2D: Health tab: InsightsPanel + chart + MeasurementForm + history timeline
+- [x] 2D: Care tab: CareScheduleSection + "View all notifications" link
+- [x] 2D: About tab: icon detail rows + notes + Edit profile button
 - [ ] REVIEW: 2E Photo gallery/timeline — LOW, DEFER
 - [ ] REVIEW: 3A Daily Check-In screen (P1 promotion) — HIGH
 - [ ] REVIEW: 3B Streak & Consistency Tracking (P2 promotion) — HIGH

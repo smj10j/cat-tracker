@@ -29,7 +29,8 @@ const PRESETS: Preset[] = [
   { name: 'Dewormer', type: 'other', frequency: 'custom', frequency_days: 90 },
   { name: 'FVRCP vaccine', type: 'vaccine', frequency: 'custom', frequency_days: 1095 },
   { name: 'Rabies vaccine', type: 'vaccine', frequency: 'custom', frequency_days: 1095 },
-  { name: 'Annual exam', type: 'vaccine', frequency: 'custom', frequency_days: 365 },
+  { name: 'Annual exam', type: 'exam', frequency: 'custom', frequency_days: 365 },
+  { name: 'Dental cleaning', type: 'dental', frequency: 'custom', frequency_days: 365 },
 ]
 
 const FREQ_LABELS: Record<string, string> = {
@@ -44,8 +45,12 @@ const TYPE_LABELS: Record<string, string> = {
   flea: 'Flea/Tick prevention',
   heartworm: 'Heartworm prevention',
   pill: 'Pill / Oral medication',
-  vaccine: 'Vaccine / Annual',
+  vaccine: 'Vaccine',
   supplement: 'Supplement',
+  dental: 'Dental cleaning',
+  exam: 'Vet exam / Checkup',
+  bloodwork: 'Bloodwork / Lab work',
+  surgery: 'Surgery / Procedure',
   other: 'Other',
 }
 
@@ -203,7 +208,7 @@ export default function MedicationFormPage() {
         <Link to={backPath} className="text-ink-dim hover:text-ink text-lg leading-none">←</Link>
         <div>
           <h1 className="font-display text-2xl font-bold text-ink">
-            {isEdit ? 'Edit Medication' : 'Add Medication'}
+            {isEdit ? 'Edit Care Item' : 'Add Care Item'}
           </h1>
           {cat && <p className="text-ink-dim text-sm mt-0.5">for {cat.name}</p>}
         </div>
@@ -388,7 +393,7 @@ export default function MedicationFormPage() {
           type="submit" disabled={saving || deleting}
           className="btn-primary w-full py-3 text-sm font-semibold"
         >
-          {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Add Medication'}
+          {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Add Care Item'}
         </button>
 
         {isEdit && (

@@ -14,7 +14,7 @@ export default function AddEditCat() {
   const isEdit = Boolean(id)
 
   const [form, setForm] = useState({
-    name: '', birthdate: '', breed: '', coloring: '', notes: '', sex: '', microchip_id: '',
+    name: '', birthdate: '', breed: '', coloring: '', notes: '', sex: '', microchip_id: '', is_neutered: '',
   })
   const [loading, setLoading] = useState(isEdit)
   const [saving, setSaving] = useState(false)
@@ -39,6 +39,7 @@ export default function AddEditCat() {
           notes: cat.notes ?? '',
           sex: cat.sex ?? '',
           microchip_id: isTempMicrochip(cat.microchip_id) ? '' : (cat.microchip_id ?? ''),
+          is_neutered: cat.is_neutered != null ? String(cat.is_neutered) : '',
         })
         setExistingPhotoUrl(cat.photo_url)
       })
@@ -77,6 +78,7 @@ export default function AddEditCat() {
         sex: form.sex || null,
         photo_url: null as string | null,
         microchip_id: form.microchip_id.trim() || null,
+        is_neutered: form.is_neutered !== '' ? parseInt(form.is_neutered, 10) : null,
       }
       if (isEdit && id) {
         await updateCat(id, payload)
@@ -260,6 +262,14 @@ export default function AddEditCat() {
               <option value="Female">Female</option>
             </select>
           </div>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Neuter status</label>
+          <select name="is_neutered" value={form.is_neutered} onChange={handleChange} className="input-dark w-full px-4 py-3 text-sm">
+            <option value="">Unknown</option>
+            <option value="1">{form.sex === 'Female' ? 'Spayed' : 'Neutered'}</option>
+            <option value="0">Intact (not neutered)</option>
+          </select>
         </div>
         <div>
           <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Coloring</label>

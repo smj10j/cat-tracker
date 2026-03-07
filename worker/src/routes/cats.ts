@@ -69,6 +69,7 @@ cats.post('/', async (c) => {
     photo_url?: string | null
     sex?: string | null
     microchip_id?: string | null
+    is_neutered?: number | null
   }>()
 
   if (!body.name?.trim() || !body.birthdate?.trim()) {
@@ -96,8 +97,8 @@ cats.post('/', async (c) => {
   }
 
   const result = await c.env.DB.prepare(
-    `INSERT INTO cats (name, birthdate, breed, coloring, notes, photo_url, sex, microchip_id, user_id, household_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO cats (name, birthdate, breed, coloring, notes, photo_url, sex, microchip_id, is_neutered, user_id, household_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      RETURNING *`
   )
     .bind(
@@ -109,6 +110,7 @@ cats.post('/', async (c) => {
       body.photo_url ?? null,
       body.sex ?? null,
       microchipId,
+      body.is_neutered ?? null,
       userId,
       householdId,
     )
@@ -147,6 +149,7 @@ cats.put('/:id', async (c) => {
     photo_url?: string | null
     sex?: string | null
     microchip_id?: string | null
+    is_neutered?: number | null
   }>()
 
   const existing = await c.env.DB.prepare('SELECT * FROM cats WHERE id = ?')
@@ -180,7 +183,7 @@ cats.put('/:id', async (c) => {
   const updated = await c.env.DB.prepare(
     `UPDATE cats
      SET name = ?, birthdate = ?, breed = ?, coloring = ?, notes = ?, photo_url = ?, sex = ?, microchip_id = ?,
-         updated_at = datetime('now')
+         is_neutered = ?, updated_at = datetime('now')
      WHERE id = ?
      RETURNING *`
   )
@@ -193,6 +196,7 @@ cats.put('/:id', async (c) => {
       body.photo_url !== undefined ? body.photo_url : existing.photo_url,
       body.sex !== undefined ? body.sex : existing.sex,
       newMicrochipId !== undefined ? newMicrochipId : existing.microchip_id,
+      body.is_neutered !== undefined ? body.is_neutered : existing.is_neutered,
       id
     )
     .first()

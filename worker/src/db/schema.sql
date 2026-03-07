@@ -19,6 +19,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_cats_microchip
 
 -- Run once: ALTER TABLE cats ADD COLUMN sex TEXT;
 -- Run once: ALTER TABLE cats ADD COLUMN microchip_id TEXT;
+-- Run once: ALTER TABLE cats ADD COLUMN is_neutered INTEGER;
 
 CREATE TABLE IF NOT EXISTS measurements (
   id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),

@@ -7,11 +7,25 @@ export interface Cat {
   notes: string | null
   photo_url: string | null
   sex: string | null
+  is_neutered: number | null
   microchip_id: string | null
   household_id: string | null
   household_name: string | null
   created_at: string
   updated_at: string
+}
+
+export const CARE_TYPE_ICONS: Record<string, string> = {
+  flea: '🦟',
+  heartworm: '❤️',
+  pill: '💊',
+  vaccine: '💉',
+  supplement: '🌿',
+  dental: '🦷',
+  exam: '🩺',
+  bloodwork: '🩸',
+  surgery: '🩹',
+  other: '📅',
 }
 
 export function catPronouns(sex: string | null | undefined): { subject: string; possessive: string; object: string } {

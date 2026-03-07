@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { getCat, getMeasurements, deleteMeasurement, getMedications, uploadCatPhoto, deleteCatPhoto, type Cat, type Measurement, type Medication } from '../lib/api'
+import { getCat, getMeasurements, deleteMeasurement, getMedications, uploadCatPhoto, deleteCatPhoto, CARE_TYPE_ICONS, type Cat, type Measurement, type Medication } from '../lib/api'
 import CatAvatar from '../components/CatAvatar'
 import CropModal from '../components/CropModal'
 import {
@@ -61,30 +61,27 @@ function groupByDay(measurements: Measurement[]): DayGroup[] {
 
 const BEHAVIORAL_TYPES = new Set(['grooming', 'play', 'activity', 'vomiting', 'litter'])
 
-const TYPE_LABELS: Record<string, string> = {
+const MEAS_TYPE_LABELS: Record<string, string> = {
   weight: 'Weight', food: 'Food', water: 'Water',
   grooming: 'Grooming', play: 'Play', activity: 'Activity',
   vomiting: 'Vomiting', litter: 'Litter Box',
 }
 
-type Tab = 'weight' | 'food' | 'water' | 'behavior' | 'all'
+type ChartTab = 'weight' | 'food' | 'water' | 'behavior' | 'all'
+type ProfileTab = 'health' | 'care' | 'about'
 
 function SkeletonProfile() {
   return (
-    <div className="px-4 pt-6 space-y-4">
-      <div className="skeleton h-8 w-32 rounded mb-6" />
-      <div className="glass-card p-6">
-        <div className="flex gap-4 items-center">
-          <div className="skeleton w-16 h-16 rounded-full" />
-          <div className="space-y-2 flex-1">
-            <div className="skeleton h-6 w-40 rounded" />
-            <div className="skeleton h-4 w-24 rounded" />
-          </div>
+    <div>
+      <div className="skeleton" style={{ height: '42vh', minHeight: 220, maxHeight: 380 }} />
+      <div className="px-4 pt-4 space-y-4">
+        <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+          {[1,2,3].map(i => <div key={i} className="flex-1 skeleton h-8 rounded-lg" />)}
         </div>
-      </div>
-      <div className="glass-card p-6">
-        <div className="skeleton h-4 w-24 rounded mb-4" />
-        <div className="skeleton h-52 w-full rounded-lg" />
+        <div className="glass-card p-6">
+          <div className="skeleton h-4 w-24 rounded mb-4" />
+          <div className="skeleton h-52 w-full rounded-lg" />
+        </div>
       </div>
     </div>
   )
@@ -112,33 +109,14 @@ function formatNextDue(nextDueAt: string | null | undefined): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ` at ${timeStr}`
 }
 
-function MedicationsSection({ catId, meds }: { catId: string; meds: Medication[] }) {
-  // Default open when there are no meds so the Add button is immediately visible
-  const [open, setOpen] = useState(meds.length === 0)
-
+function CareScheduleSection({ catId, meds }: { catId: string; meds: Medication[] }) {
   const overdueCount = meds.reduce((sum, m) => sum + (m.overdue_count ?? 0), 0)
 
   return (
-    <div
-      className="rounded-2xl overflow-hidden"
-      style={{ border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)' }}
-    >
-      {/* Header row — always visible */}
-      <button
-        type="button"
-        onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between px-4 py-3"
-      >
+    <div className="glass-card p-5">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold uppercase tracking-widest text-ink-mid">Medications</span>
-          {meds.length > 0 && (
-            <span
-              className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-              style={{ background: 'rgba(255,255,255,0.06)', color: '#8b7fb0' }}
-            >
-              {meds.length}
-            </span>
-          )}
+          <h3 className="font-display font-semibold text-ink">Care Schedule</h3>
           {overdueCount > 0 && (
             <span
               className="text-[10px] font-bold px-2 py-0.5 rounded-full"
@@ -148,21 +126,27 @@ function MedicationsSection({ catId, meds }: { catId: string; meds: Medication[]
             </span>
           )}
         </div>
-        <span className="text-ink-dim text-sm">{open ? '↑' : '↓'}</span>
-      </button>
+        <Link
+          to={`/cats/${catId}/medications/new`}
+          className="text-xs font-semibold transition-colors"
+          style={{ color: '#c084fc' }}
+        >
+          + Add
+        </Link>
+      </div>
 
-      {open && (
-        <div className="px-4 pb-4 space-y-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-          {meds.length === 0 && (
-            <p className="text-xs text-ink-dim pt-3 pb-1">No active medications tracked yet.</p>
-          )}
+      {meds.length === 0 ? (
+        <p className="text-xs text-ink-dim py-1">No care items tracked yet.</p>
+      ) : (
+        <div className="space-y-1">
           {meds.map(med => (
             <Link
               key={med.id}
               to={`/medications/${med.id}/edit`}
-              className="flex items-center justify-between py-3 px-1 rounded-xl transition-all"
+              className="flex items-center gap-3 py-2.5 px-1 rounded-xl transition-all"
               style={{ color: 'inherit' }}
             >
+              <span className="text-lg w-7 text-center shrink-0">{CARE_TYPE_ICONS[med.type] ?? '📅'}</span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-ink truncate">{med.name}</span>
@@ -174,24 +158,25 @@ function MedicationsSection({ catId, meds }: { catId: string; meds: Medication[]
                   )}
                 </div>
                 <p className="text-xs text-ink-dim mt-0.5">{FREQ_SHORT[med.frequency] ?? med.frequency} &middot; {formatNextDue(med.next_due_at)}</p>
-                {med.dose && <p className="text-xs text-ink-dim">{med.dose}</p>}
               </div>
-              <span className="text-ink-dim text-sm ml-3">→</span>
+              <span className="text-ink-dim text-sm ml-1 shrink-0">→</span>
             </Link>
           ))}
-
-          {/* Always-visible Add button */}
-          <Link
-            to={`/cats/${catId}/medications/new`}
-            className="flex items-center justify-center gap-1 w-full py-2.5 rounded-xl text-xs font-semibold transition-all mt-1"
-            style={{ border: '1px dashed rgba(192,132,252,0.3)', color: '#c084fc' }}
-          >
-            + Add medication
-          </Link>
         </div>
       )}
     </div>
   )
+}
+
+function formatSexNeuter(sex: string | null, isNeutered: number | null): string {
+  if (!sex && isNeutered === null) return 'Unknown'
+  const sexStr = sex ?? 'Unknown sex'
+  if (isNeutered === 1) {
+    const neuterStr = sex === 'Female' ? 'Spayed' : 'Neutered'
+    return `${sexStr} · ${neuterStr}`
+  }
+  if (isNeutered === 0) return `${sexStr} · Intact`
+  return sexStr
 }
 
 export default function CatProfile() {
@@ -201,16 +186,15 @@ export default function CatProfile() {
   const [cat, setCat] = useState<Cat | null>(null)
   const [measurements, setMeasurements] = useState<Measurement[]>([])
   const [meds, setMeds] = useState<Medication[]>([])
-  const [tab, setTab] = useState<Tab>('weight')
+  const [profileTab, setProfileTab] = useState<ProfileTab>('health')
+  const [chartTab, setChartTab] = useState<ChartTab>('weight')
   const [showOlderHistory, setShowOlderHistory] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const [cropFile, setCropFile] = useState<File | null>(null)
-  const [photoMenuOpen, setPhotoMenuOpen] = useState(false)
   const [photoUploading, setPhotoUploading] = useState(false)
   const [photoError, setPhotoError] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!id) return
@@ -220,8 +204,7 @@ export default function CatProfile() {
       .finally(() => setLoading(false))
   }, [id])
 
-  // Reset "show older" when tab changes
-  useEffect(() => { setShowOlderHistory(false) }, [tab])
+  useEffect(() => { setShowOlderHistory(false) }, [chartTab])
 
   async function handleDeleteMeasurement(m: Measurement) {
     if (!confirm('Delete this measurement?')) return
@@ -252,7 +235,6 @@ export default function CatProfile() {
 
   async function handleRemovePhoto() {
     if (!id || !cat) return
-    setPhotoMenuOpen(false)
     if (!confirm('Remove this photo?')) return
     setPhotoUploading(true)
     setPhotoError(null)
@@ -289,15 +271,13 @@ export default function CatProfile() {
   }
   const availableTypes = Object.keys(measurementsByType)
 
-  // Tab-filtered measurements for history
-  const tabMeasurements = (() => {
-    if (tab === 'all') return [...measurements]
-    if (tab === 'behavior') return measurements.filter((m) => BEHAVIORAL_TYPES.has(m.type))
-    return measurements.filter((m) => m.type === tab)
+  const chartTabMeasurements = (() => {
+    if (chartTab === 'all') return [...measurements]
+    if (chartTab === 'behavior') return measurements.filter((m) => BEHAVIORAL_TYPES.has(m.type))
+    return measurements.filter((m) => m.type === chartTab)
   })()
 
-  // Group by day for history timeline
-  const allDayGroups = groupByDay(tabMeasurements)
+  const allDayGroups = groupByDay(chartTabMeasurements)
   const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toLocaleDateString('en-CA')
   const recentGroups = allDayGroups.filter((g) => g.dateStr >= cutoff)
   const olderGroups = allDayGroups.filter((g) => g.dateStr < cutoff)
@@ -305,309 +285,413 @@ export default function CatProfile() {
   const visibleGroups = showOlderHistory ? allDayGroups : defaultGroups
   const olderCount = olderGroups.reduce((sum, g) => sum + g.items.length, 0)
 
-  const tabs: { key: Tab; label: string }[] = [
+  const chartTabs: { key: ChartTab; label: string }[] = [
     { key: 'weight', label: 'Weight' },
-    ...(typeSet.has('food') ? [{ key: 'food' as Tab, label: 'Food' }] : []),
-    ...(typeSet.has('water') ? [{ key: 'water' as Tab, label: 'Water' }] : []),
-    ...(hasBehavior ? [{ key: 'behavior' as Tab, label: 'Behavior' }] : []),
-    ...(measurements.length > 0 ? [{ key: 'all' as Tab, label: 'All' }] : []),
+    ...(typeSet.has('food') ? [{ key: 'food' as ChartTab, label: 'Food' }] : []),
+    ...(typeSet.has('water') ? [{ key: 'water' as ChartTab, label: 'Water' }] : []),
+    ...(hasBehavior ? [{ key: 'behavior' as ChartTab, label: 'Behavior' }] : []),
+    ...(measurements.length > 0 ? [{ key: 'all' as ChartTab, label: 'All' }] : []),
   ]
 
   const isUrgent = status === 'urgent'
   const isConcerning = status === 'concerning'
 
+  // Night background color (approx from DESIGN.md)
+  const nightBg = 'rgba(13,9,24,0.96)'
+
+  const hasRealMicrochip = cat.microchip_id && !cat.microchip_id.startsWith('temp-microchip-id-')
+
   return (
     <div className="min-h-screen">
-      {/* Hero header */}
-      <div
-        className="px-4 pt-6 pb-8"
-        style={{
-          background: isUrgent
-            ? 'linear-gradient(180deg, rgba(248,113,113,0.12) 0%, transparent 100%)'
-            : isConcerning
-            ? 'linear-gradient(180deg, rgba(249,115,22,0.1) 0%, transparent 100%)'
-            : 'linear-gradient(180deg, rgba(192,132,252,0.08) 0%, transparent 100%)',
-        }}
-      >
-        <div className="flex items-center gap-3 mb-6">
-          <button onClick={() => navigate('/')} className="text-ink-dim hover:text-ink-mid transition-colors text-xl leading-none">←</button>
-          <div className="flex-1" />
-          <Link to={`/cats/${cat.id}/export`} className="btn-ghost text-xs px-3 py-1.5">Export</Link>
-          <Link to={`/cats/${cat.id}/edit`} className="btn-ghost text-xs px-3 py-1.5">Edit</Link>
-        </div>
-
-        {/* Hidden file input for photo selection */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file) { setCropFile(file); setPhotoMenuOpen(false) }
-            e.target.value = ''
-          }}
+      {/* Crop modal */}
+      {cropFile && (
+        <CropModal
+          file={cropFile}
+          onCrop={handleCropSave}
+          onCancel={() => setCropFile(null)}
         />
+      )}
 
-        {/* Crop modal */}
-        {cropFile && (
-          <CropModal
-            file={cropFile}
-            onCrop={handleCropSave}
-            onCancel={() => setCropFile(null)}
+      {/* ── Full-bleed hero ── */}
+      <div
+        className="relative overflow-hidden"
+        style={{ height: '42vh', minHeight: 220, maxHeight: 380, opacity: photoUploading ? 0.85 : 1, transition: 'opacity 0.2s' }}
+      >
+        {/* Background: photo or gradient */}
+        {cat.photo_url ? (
+          <img
+            src={cat.photo_url}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
           />
+        ) : (
+          <div
+            className="absolute inset-0 flex items-center justify-center"
+            style={{
+              background: isUrgent
+                ? 'linear-gradient(135deg, rgba(248,113,113,0.3) 0%, rgba(248,113,113,0.1) 100%)'
+                : isConcerning
+                ? 'linear-gradient(135deg, rgba(249,115,22,0.25) 0%, rgba(249,115,22,0.08) 100%)'
+                : 'linear-gradient(135deg, rgba(192,132,252,0.25) 0%, rgba(251,146,60,0.15) 100%)',
+            }}
+          >
+            <CatAvatar photoUrl={null} name={cat.name} size={120} />
+          </div>
         )}
 
-        <div className="flex items-center gap-5">
-          <div className="relative shrink-0">
-            {/* Avatar ring */}
-            <button
-              type="button"
-              onClick={() => setPhotoMenuOpen((v) => !v)}
-              className="w-20 h-20 rounded-full flex items-center justify-center text-4xl overflow-hidden relative"
-              style={{
-                background: isUrgent
-                  ? 'linear-gradient(135deg, rgba(248,113,113,0.25) 0%, rgba(248,113,113,0.15) 100%)'
-                  : isConcerning
-                  ? 'linear-gradient(135deg, rgba(249,115,22,0.25) 0%, rgba(249,115,22,0.15) 100%)'
-                  : 'linear-gradient(135deg, rgba(192,132,252,0.25) 0%, rgba(251,146,60,0.2) 100%)',
-                border: `2px solid ${status !== 'ok' ? statusColor + '60' : 'rgba(255,255,255,0.12)'}`,
-                boxShadow: status !== 'ok' ? `0 0 24px ${statusColor}30` : '0 0 24px rgba(192,132,252,0.2)',
-                opacity: photoUploading ? 0.6 : 1,
-              }}
-            >
-              <CatAvatar photoUrl={cat.photo_url} name={cat.name} size={80} />
-              {/* Camera hint overlay */}
-              <div
-                className="absolute inset-0 flex items-end justify-center pb-1 opacity-0 hover:opacity-100 transition-opacity"
-                style={{ background: 'rgba(0,0,0,0.35)', borderRadius: '50%' }}
-              >
-                <span className="text-[9px] text-white font-semibold tracking-wide">EDIT</span>
-              </div>
-            </button>
+        {/* Top gradient: nav button visibility */}
+        <div
+          className="absolute top-0 left-0 right-0"
+          style={{ height: 100, background: `linear-gradient(180deg, ${nightBg} 0%, transparent 100%)` }}
+        />
+        {/* Bottom gradient: name/weight text visibility */}
+        <div
+          className="absolute bottom-0 left-0 right-0"
+          style={{ height: 160, background: `linear-gradient(0deg, ${nightBg} 0%, rgba(13,9,24,0.7) 50%, transparent 100%)` }}
+        />
 
-            {/* Photo action menu */}
-            {photoMenuOpen && (
-              <div
-                className="absolute left-0 top-full mt-2 rounded-2xl overflow-hidden z-10"
-                style={{ minWidth: 160, background: '#1e1730', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}
-              >
-                <button
-                  type="button"
-                  onClick={() => { setPhotoMenuOpen(false); fileInputRef.current?.click() }}
-                  className="w-full text-left px-4 py-3 text-sm font-medium text-ink hover:bg-white/5 transition-colors"
-                >
-                  {cat.photo_url ? 'Change photo' : 'Add photo'}
-                </button>
-                {cat.photo_url && (
-                  <button
-                    type="button"
-                    onClick={handleRemovePhoto}
-                    className="w-full text-left px-4 py-3 text-sm font-medium transition-colors border-t"
-                    style={{ color: '#f87171', borderColor: 'rgba(255,255,255,0.06)' }}
+        {/* Top nav */}
+        <div className="absolute top-0 left-0 right-0 flex items-center px-4 pt-12 gap-3">
+          <button
+            onClick={() => navigate('/')}
+            className="text-white/60 hover:text-white transition-colors text-xl leading-none"
+          >
+            ←
+          </button>
+          <div className="flex-1" />
+          <Link to={`/cats/${cat.id}/export`} className="btn-ghost text-xs px-3 py-1.5">Export</Link>
+        </div>
+
+        {/* Camera button (overlaid file input — PWA safe) */}
+        <div
+          className="absolute rounded-full flex items-center justify-center"
+          style={{
+            right: 16,
+            bottom: cat.photo_url ? 68 : 72,
+            width: 32,
+            height: 32,
+            background: 'rgba(0,0,0,0.55)',
+            border: '1px solid rgba(255,255,255,0.2)',
+          }}
+        >
+          <span className="text-sm pointer-events-none">📷</span>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) setCropFile(file)
+              e.target.value = ''
+            }}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer rounded-full"
+          />
+        </div>
+
+        {/* Remove photo button (only when photo exists) */}
+        {cat.photo_url && (
+          <button
+            type="button"
+            onClick={handleRemovePhoto}
+            className="absolute rounded-full flex items-center justify-center transition-opacity hover:opacity-100"
+            style={{
+              right: 54,
+              bottom: cat.photo_url ? 68 : 72,
+              width: 32,
+              height: 32,
+              background: 'rgba(0,0,0,0.55)',
+              border: '1px solid rgba(248,113,113,0.3)',
+              opacity: 0.8,
+            }}
+          >
+            <span className="text-xs" style={{ color: '#f87171' }}>✕</span>
+          </button>
+        )}
+
+        {/* Bottom: name + age + weight */}
+        <div className="absolute bottom-0 left-0 right-0 px-4 pb-4">
+          <div className="flex items-end justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <h1 className="font-display font-bold text-3xl text-white leading-tight truncate">{cat.name}</h1>
+              <p className="text-white/50 text-sm mt-0.5">{catAge(cat.birthdate)}</p>
+            </div>
+            {latestWeight && (
+              <div className="text-right shrink-0">
+                <div className="font-display font-bold text-2xl tabular-nums" style={{ color: status !== 'ok' ? statusColor : '#fb923c' }}>
+                  {latestWeight.value} <span className="text-sm font-normal" style={{ color: 'rgba(255,255,255,0.4)' }}>{latestWeight.unit}</span>
+                </div>
+                {weightMeasurements.length >= 2 && (
+                  <div
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full inline-block mt-0.5 ${isUrgent ? 'animate-pulse' : ''}`}
+                    style={{ color: statusColor, background: `${statusColor}25`, border: `1px solid ${statusColor}50` }}
                   >
-                    Remove photo
-                  </button>
+                    {STATUS_LABEL[status]}
+                  </div>
                 )}
               </div>
             )}
           </div>
+        </div>
+      </div>
 
-          <div className="flex-1 min-w-0">
-            <h1 className="font-display font-bold text-2xl text-ink leading-tight">{cat.name}</h1>
-            <p className="text-ink-mid text-sm mt-0.5">{catAge(cat.birthdate)}</p>
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {cat.microchip_id && !cat.microchip_id.startsWith('temp-microchip-id-') && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-mono text-ink-dim"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
-                  title="Microchip ID">
-                  # {cat.microchip_id.replace(/(.{3})/g, '$1 ').trim()}
-                </span>
-              )}
-              {cat.breed && (
-                <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                  style={{ background: 'rgba(192,132,252,0.12)', color: '#c084fc', border: '1px solid rgba(192,132,252,0.2)' }}>
-                  {cat.breed}
-                </span>
-              )}
-              {cat.coloring && (
-                <span className="text-xs px-2 py-0.5 rounded-full font-medium text-ink-mid"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                  {cat.coloring}
-                </span>
+      {/* ── Profile tabs ── */}
+      <div className="flex gap-1 mx-4 mt-4 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+        {(['health', 'care', 'about'] as const).map((key) => (
+          <button
+            key={key}
+            onClick={() => setProfileTab(key)}
+            className="flex-1 py-2 text-xs font-semibold rounded-lg transition-all capitalize"
+            style={{
+              background: profileTab === key ? 'rgba(192,132,252,0.15)' : 'transparent',
+              color: profileTab === key ? '#c084fc' : '#6b5f85',
+              border: profileTab === key ? '1px solid rgba(192,132,252,0.25)' : '1px solid transparent',
+            }}
+          >
+            {key === 'health' ? 'Health' : key === 'care' ? 'Care' : 'About'}
+          </button>
+        ))}
+      </div>
+
+      {photoError && (
+        <div className="mx-4 mt-3 glass-card p-3 text-rose text-xs" style={{ borderColor: 'rgba(248,113,113,0.2)' }}>{photoError}</div>
+      )}
+
+      {/* ── Health tab ── */}
+      {profileTab === 'health' && (
+        <div className="px-4 space-y-4 mt-4 pb-8">
+          <InsightsPanel
+            cat={cat}
+            status={status}
+            health={health}
+            measurementsByType={measurementsByType}
+            availableTypes={availableTypes}
+            hasWeightData={weightMeasurements.length >= 2}
+          />
+
+          {/* Chart */}
+          {(chartTab === 'weight' || chartTab === 'food' || chartTab === 'water') && (
+            <div className="glass-card p-5 animate-slide-up opacity-0" style={{ animationDelay: '60ms', animationFillMode: 'forwards' }}>
+              {chartTab === 'weight' ? (
+                <>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-display font-semibold text-ink">Weight Over Time</h3>
+                    <div className="flex gap-3 text-[10px] text-ink-dim">
+                      {(['ok', 'watch', 'concerning', 'urgent'] as const).map((s) => (
+                        <span key={s} className="flex items-center gap-1">
+                          {STATUS_EMOJI[s]} {s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <WeightChart measurements={weightMeasurements} />
+                </>
+              ) : (
+                <>
+                  <h3 className="font-display font-semibold text-ink mb-4">
+                    {chartTab === 'food' ? 'Food Intake' : 'Water Intake'} Over Time
+                  </h3>
+                  <MeasurementChart
+                    measurements={measurements.filter((m) => m.type === chartTab).sort((a, b) => a.measured_at.localeCompare(b.measured_at))}
+                    type={chartTab}
+                  />
+                </>
               )}
             </div>
-          </div>
+          )}
 
-          {latestWeight && (
-            <div className="text-right shrink-0">
-              <div className="font-display font-bold text-3xl tabular-nums" style={{ color: status !== 'ok' ? statusColor : '#fb923c' }}>
-                {latestWeight.value}
+          {/* Add measurement */}
+          {id && <MeasurementForm catId={id} onAdded={handleMeasurementAdded} />}
+
+          {/* History */}
+          {measurements.length > 0 && (
+            <div className="glass-card p-5">
+              <h3 className="font-display font-semibold text-ink mb-4">History</h3>
+
+              {/* Chart/history type filter tabs */}
+              <div className="flex gap-1 mb-5 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                {chartTabs.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setChartTab(key)}
+                    className="flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all"
+                    style={{
+                      background: chartTab === key ? 'rgba(192,132,252,0.15)' : 'transparent',
+                      color: chartTab === key ? '#c084fc' : '#6b5f85',
+                      border: chartTab === key ? '1px solid rgba(192,132,252,0.25)' : '1px solid transparent',
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
-              <div className="text-ink-dim text-xs">{latestWeight.unit}</div>
-              {weightMeasurements.length >= 2 && (
-                <div
-                  className={`text-[10px] font-bold mt-1 px-1.5 py-0.5 rounded-full ${isUrgent ? 'animate-pulse' : ''}`}
-                  style={{ color: statusColor, background: `${statusColor}20`, border: `1px solid ${statusColor}50` }}
-                >
-                  {STATUS_LABEL[status]}
+
+              {chartTabMeasurements.length === 0 ? (
+                <p className="text-ink-dim text-sm text-center py-6">No {chartTab} measurements yet</p>
+              ) : (
+                <div className="space-y-5">
+                  {visibleGroups.map((group) => (
+                    <div key={group.dateStr}>
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-xs font-bold text-ink-dim">{group.label}</span>
+                        <span className="text-[10px] text-ink-dim/60">
+                          {group.items.length} {group.items.length === 1 ? 'entry' : 'entries'}
+                        </span>
+                        <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.05)' }} />
+                      </div>
+                      <div className="space-y-0.5">
+                        {group.items.map((m) => (
+                          <div
+                            key={m.id}
+                            className="flex items-center justify-between py-2.5 border-b last:border-0"
+                            style={{ borderColor: 'rgba(255,255,255,0.04)' }}
+                          >
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <span className="text-ink-dim text-xs w-16 shrink-0 tabular-nums">{formatTime(m.measured_at)}</span>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-semibold text-sm text-ink tabular-nums">
+                                  {m.unit === 'scale' ? getPresetLabel(m.type, m.value) : `${m.value} ${m.unit}`}
+                                </span>
+                                {(chartTab === 'all' || chartTab === 'behavior') && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full text-ink-dim"
+                                    style={{ background: 'rgba(255,255,255,0.06)' }}>
+                                    {MEAS_TYPE_LABELS[m.type] ?? m.type}
+                                  </span>
+                                )}
+                                {m.notes && <span className="text-xs text-ink-dim">— {m.notes}</span>}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleDeleteMeasurement(m)}
+                              className="text-xs text-rose/60 hover:text-rose transition-colors ml-3 shrink-0"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+
+                  {!showOlderHistory && olderGroups.length > 0 && (
+                    <button
+                      onClick={() => setShowOlderHistory(true)}
+                      className="w-full py-2.5 text-xs font-semibold rounded-xl transition-all"
+                      style={{
+                        color: '#6b5f85',
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                      }}
+                    >
+                      View {olderCount} older {olderCount === 1 ? 'entry' : 'entries'}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
           )}
         </div>
-      </div>
+      )}
 
-      <div className="px-4 space-y-4">
-        {photoError && (
-          <div className="glass-card p-3 text-rose text-xs" style={{ borderColor: 'rgba(248,113,113,0.2)' }}>{photoError}</div>
-        )}
-        {/* Insights panel — health alerts + correlations */}
-        <InsightsPanel
-          cat={cat}
-          status={status}
-          health={health}
-          measurementsByType={measurementsByType}
-          availableTypes={availableTypes}
-          hasWeightData={weightMeasurements.length >= 2}
-        />
+      {/* ── Care tab ── */}
+      {profileTab === 'care' && (
+        <div className="px-4 space-y-4 mt-4 pb-8">
+          <CareScheduleSection catId={id!} meds={meds} />
+          {meds.length > 0 && (
+            <Link
+              to="/notifications"
+              className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-semibold transition-all"
+              style={{ border: '1px solid rgba(255,255,255,0.08)', color: '#8b7fb0' }}
+            >
+              View all notifications →
+            </Link>
+          )}
+        </div>
+      )}
 
-        {/* Medications section */}
-        <MedicationsSection catId={id!} meds={meds} />
-
-        {/* Chart — follows active tab */}
-        {(tab === 'weight' || tab === 'food' || tab === 'water') && (
-          <div className="glass-card p-5 animate-slide-up opacity-0" style={{ animationDelay: '60ms', animationFillMode: 'forwards' }}>
-            {tab === 'weight' ? (
-              <>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-display font-semibold text-ink">Weight Over Time</h3>
-                  <div className="flex gap-3 text-[10px] text-ink-dim">
-                    {(['ok', 'watch', 'concerning', 'urgent'] as const).map((s) => (
-                      <span key={s} className="flex items-center gap-1">
-                        {STATUS_EMOJI[s]} {s}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <WeightChart measurements={weightMeasurements} />
-              </>
-            ) : (
-              <>
-                <h3 className="font-display font-semibold text-ink mb-4">
-                  {tab === 'food' ? 'Food Intake' : 'Water Intake'} Over Time
-                </h3>
-                <MeasurementChart
-                  measurements={measurements.filter((m) => m.type === tab).sort((a, b) => a.measured_at.localeCompare(b.measured_at))}
-                  type={tab}
-                />
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Add measurement */}
-        {id && <MeasurementForm catId={id} onAdded={handleMeasurementAdded} />}
-
-        {/* History — grouped timeline */}
-        {measurements.length > 0 && (
-          <div className="glass-card p-5">
-            <h3 className="font-display font-semibold text-ink mb-4">History</h3>
-
-            {/* Type filter tabs */}
-            <div className="flex gap-1 mb-5 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
-              {tabs.map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => setTab(key)}
-                  className="flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all"
-                  style={{
-                    background: tab === key ? 'rgba(192,132,252,0.15)' : 'transparent',
-                    color: tab === key ? '#c084fc' : '#6b5f85',
-                    border: tab === key ? '1px solid rgba(192,132,252,0.25)' : '1px solid transparent',
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {/* Day-grouped entries */}
-            {tabMeasurements.length === 0 ? (
-              <p className="text-ink-dim text-sm text-center py-6">No {tab} measurements yet</p>
-            ) : (
-              <div className="space-y-5">
-                {visibleGroups.map((group) => (
-                  <div key={group.dateStr}>
-                    {/* Day header */}
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="text-xs font-bold text-ink-dim">{group.label}</span>
-                      <span className="text-[10px] text-ink-dim/60">
-                        {group.items.length} {group.items.length === 1 ? 'entry' : 'entries'}
-                      </span>
-                      <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.05)' }} />
-                    </div>
-
-                    {/* Entries for this day */}
-                    <div className="space-y-0.5">
-                      {group.items.map((m) => (
-                        <div
-                          key={m.id}
-                          className="flex items-center justify-between py-2.5 border-b last:border-0"
-                          style={{ borderColor: 'rgba(255,255,255,0.04)' }}
-                        >
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <span className="text-ink-dim text-xs w-16 shrink-0 tabular-nums">{formatTime(m.measured_at)}</span>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-semibold text-sm text-ink tabular-nums">
-                                {m.unit === 'scale' ? getPresetLabel(m.type, m.value) : `${m.value} ${m.unit}`}
-                              </span>
-                              {(tab === 'all' || tab === 'behavior') && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-full text-ink-dim"
-                                  style={{ background: 'rgba(255,255,255,0.06)' }}>
-                                  {TYPE_LABELS[m.type] ?? m.type}
-                                </span>
-                              )}
-                              {m.notes && <span className="text-xs text-ink-dim">— {m.notes}</span>}
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => handleDeleteMeasurement(m)}
-                            className="text-xs text-rose/60 hover:text-rose transition-colors ml-3 shrink-0"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-
-                {/* Show older entries */}
-                {!showOlderHistory && olderGroups.length > 0 && (
-                  <button
-                    onClick={() => setShowOlderHistory(true)}
-                    className="w-full py-2.5 text-xs font-semibold rounded-xl transition-all"
-                    style={{
-                      color: '#6b5f85',
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                    }}
-                  >
-                    View {olderCount} older {olderCount === 1 ? 'entry' : 'entries'}
-                  </button>
-                )}
+      {/* ── About tab ── */}
+      {profileTab === 'about' && (
+        <div className="px-4 space-y-4 mt-4 pb-8">
+          <div className="glass-card px-5 py-4">
+            <div className="space-y-0">
+              {/* Breed */}
+              <div className="flex items-center gap-3 py-3 border-b" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+                <span className="text-base w-6 text-center">🐾</span>
+                <span className="text-xs text-ink-dim w-20 shrink-0">Breed</span>
+                <span className="text-sm text-ink flex-1">{cat.breed ?? '—'}</span>
               </div>
-            )}
-          </div>
-        )}
 
-        {cat.notes && (
-          <div className="glass-card px-5 py-4 text-ink-mid text-sm italic">
-            {cat.notes}
+              {/* Sex / Neuter */}
+              <div className="flex items-center gap-3 py-3 border-b" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+                <span className="text-base w-6 text-center">
+                  {cat.sex === 'Female' ? '♀' : cat.sex === 'Male' ? '♂' : '⚥'}
+                </span>
+                <span className="text-xs text-ink-dim w-20 shrink-0">Sex</span>
+                <span className="text-sm text-ink flex-1">{formatSexNeuter(cat.sex, cat.is_neutered)}</span>
+              </div>
+
+              {/* Coloring */}
+              {cat.coloring && (
+                <div className="flex items-center gap-3 py-3 border-b" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+                  <span className="text-base w-6 text-center">🎨</span>
+                  <span className="text-xs text-ink-dim w-20 shrink-0">Coloring</span>
+                  <span className="text-sm text-ink flex-1">{cat.coloring}</span>
+                </div>
+              )}
+
+              {/* Age */}
+              <div className="flex items-center gap-3 py-3 border-b" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+                <span className="text-base w-6 text-center">🎂</span>
+                <span className="text-xs text-ink-dim w-20 shrink-0">Age</span>
+                <span className="text-sm text-ink flex-1">{catAge(cat.birthdate)}</span>
+              </div>
+
+              {/* Latest weight */}
+              {latestWeight && (
+                <div className="flex items-center gap-3 py-3 border-b" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+                  <span className="text-base w-6 text-center">⚖️</span>
+                  <span className="text-xs text-ink-dim w-20 shrink-0">Weight</span>
+                  <span className="text-sm flex-1">
+                    <span className="font-semibold tabular-nums" style={{ color: status !== 'ok' ? statusColor : '#fb923c' }}>
+                      {latestWeight.value} {latestWeight.unit}
+                    </span>
+                    {weightMeasurements.length >= 2 && (
+                      <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                        style={{ color: statusColor, background: `${statusColor}20`, border: `1px solid ${statusColor}40` }}>
+                        {STATUS_LABEL[status]}
+                      </span>
+                    )}
+                  </span>
+                </div>
+              )}
+
+              {/* Microchip */}
+              {hasRealMicrochip && (
+                <div className="flex items-center gap-3 py-3" style={{}}>
+                  <span className="text-base w-6 text-center">#</span>
+                  <span className="text-xs text-ink-dim w-20 shrink-0">Microchip</span>
+                  <span className="text-sm font-mono text-ink-mid flex-1 tracking-wide">
+                    {cat.microchip_id!.replace(/(.{3})/g, '$1 ').trim()}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
-        )}
-      </div>
+
+          {cat.notes && (
+            <div className="glass-card px-5 py-4 text-ink-mid text-sm italic">
+              {cat.notes}
+            </div>
+          )}
+
+          <Link
+            to={`/cats/${cat.id}/edit`}
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-semibold transition-all"
+            style={{ border: '1px solid rgba(192,132,252,0.25)', color: '#c084fc', background: 'rgba(192,132,252,0.06)' }}
+          >
+            Edit profile
+          </Link>
+        </div>
+      )}
+
     </div>
   )
 }

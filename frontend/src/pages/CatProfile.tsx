@@ -111,21 +111,8 @@ function formatNextDue(nextDueAt: string | null | undefined): string {
 }
 
 function MedicationsSection({ catId, meds }: { catId: string; meds: Medication[] }) {
-  const [open, setOpen] = useState(false)
-  if (meds.length === 0 && !open) {
-    return (
-      <div className="flex items-center justify-between px-1">
-        <span className="text-xs text-ink-dim">No active medications</span>
-        <Link
-          to={`/cats/${catId}/medications/new`}
-          className="text-xs font-semibold"
-          style={{ color: '#c084fc' }}
-        >
-          + Add medication
-        </Link>
-      </div>
-    )
-  }
+  // Default open when there are no meds so the Add button is immediately visible
+  const [open, setOpen] = useState(meds.length === 0)
 
   const overdueCount = meds.reduce((sum, m) => sum + (m.overdue_count ?? 0), 0)
 
@@ -134,7 +121,7 @@ function MedicationsSection({ catId, meds }: { catId: string; meds: Medication[]
       className="rounded-2xl overflow-hidden"
       style={{ border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)' }}
     >
-      {/* Header row */}
+      {/* Header row — always visible */}
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
@@ -164,6 +151,9 @@ function MedicationsSection({ catId, meds }: { catId: string; meds: Medication[]
 
       {open && (
         <div className="px-4 pb-4 space-y-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+          {meds.length === 0 && (
+            <p className="text-xs text-ink-dim pt-3 pb-1">No active medications tracked yet.</p>
+          )}
           {meds.map(med => (
             <Link
               key={med.id}
@@ -188,10 +178,11 @@ function MedicationsSection({ catId, meds }: { catId: string; meds: Medication[]
             </Link>
           ))}
 
+          {/* Always-visible Add button */}
           <Link
             to={`/cats/${catId}/medications/new`}
             className="flex items-center justify-center gap-1 w-full py-2.5 rounded-xl text-xs font-semibold transition-all mt-1"
-            style={{ border: '1px dashed rgba(192,132,252,0.25)', color: '#8b7fb0' }}
+            style={{ border: '1px dashed rgba(192,132,252,0.3)', color: '#c084fc' }}
           >
             + Add medication
           </Link>

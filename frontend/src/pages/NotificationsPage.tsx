@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { getNotifications, administerDose, skipDose, type NotificationInbox, type DoseWithContext, type Medication } from '../lib/api'
 
 function formatDueAt(dueAt: string): string {
@@ -164,6 +164,7 @@ function SectionHeader({ label, count, color }: { label: string; count: number; 
 }
 
 export default function NotificationsPage() {
+  const navigate = useNavigate()
   const [inbox, setInbox] = useState<NotificationInbox | null>(null)
   const [loading, setLoading] = useState(true)
   const [acting, setActing] = useState<string | null>(null)
@@ -204,6 +205,7 @@ export default function NotificationsPage() {
   return (
     <div className="min-h-screen px-4 pt-6 pb-4">
       <header className="mb-8">
+        <button onClick={() => navigate(-1)} className="text-ink-dim hover:text-ink text-xl leading-none mb-4 block">←</button>
         <h1 className="font-display text-2xl font-bold text-ink">Reminders</h1>
         <p className="text-ink-dim text-sm mt-0.5">
           {loading ? 'Loading…' : totalUrgent > 0

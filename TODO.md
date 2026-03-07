@@ -191,10 +191,17 @@
 - [ ] REVIEW: P1 Daily check-in multi-log screen
 - [ ] REVIEW: P2 Streak & consistency tracking
 - [ ] REVIEW: P3 Weigh-in reminders
-- [ ] REVIEW: P4 Correlation insights
+- [x] REVIEW: P4 Correlation insights — implemented Phase 11
 - [ ] REVIEW: P5 Household sharing / token auth
 - [ ] REVIEW: P6 Shelter mode
 - [ ] REVIEW: P7 AI health narrative
+
+## Phase 11: Correlations (PRD-correlations.md)
+
+- [x] New lib: correlations.ts (bucketByWeek, normalize, lagCorrelation, detectCorrelations, describeCorrelation, getHomeBadge)
+- [x] New component: CorrelationChart.tsx (normalized dual-line chart, type selectors, pattern insight prose)
+- [x] CatProfile: Trends tab (shows when 2+ measurement types available)
+- [x] Home: correlation badge on cat cards for active predictive signals
 
 ## Phase 10: Auth — User Accounts & Data Isolation (PRD-auth.md)
 

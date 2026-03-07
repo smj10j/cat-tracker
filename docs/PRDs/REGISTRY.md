@@ -99,10 +99,9 @@ Canonical list of all product requirement documents, their status, and implement
 ---
 
 ### PRD-correlations.md — Measurement Correlations
-**Status:** `Draft`
-**Implemented:** Nothing yet
-**Summary:** Dual-axis "Trends" tab on CatProfile showing how two measurement types correlate over time; lag-based correlation detection (food drop → weight drop ~2wks later); home card badge for active predictive signals; frontend-only computation on existing data
-**Open questions:** See PRD-correlations.md §Open Questions
+**Status:** `Implemented`
+**Implemented:** `correlations.ts` (weekly buckets, normalize, Pearson lag correlation, detectCorrelations, describeCorrelation, getHomeBadge); `CorrelationChart.tsx` (normalized dual-line chart, type selectors, pattern prose); CatProfile Trends tab; Home correlation badge for predictive signals. Frontend-only, no new API.
+**Open questions resolved:** Min data = 4 aligned weekly buckets (lenient; works with our test data). Hyperthyroidism pattern flagged without naming the disease. Copy avoids causation language. Sparse data shows "X more weeks needed".
 
 ---
 

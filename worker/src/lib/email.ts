@@ -21,7 +21,7 @@ export async function sendEmail(params: {
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      from: 'Cat Tracker <onboarding@resend.dev>',
+      from: 'Cat Tracker <noreply@01j.me>',
       to: params.toName ? [`${params.toName} <${params.to}>`] : [params.to],
       subject: params.subject,
       text: params.text,

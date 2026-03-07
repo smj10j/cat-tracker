@@ -1,0 +1,54 @@
+export interface Cat {
+  id: string
+  name: string
+  birthdate: string
+  breed: string | null
+  coloring: string | null
+  notes: string | null
+  photo_url: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface Measurement {
+  id: string
+  cat_id: string
+  type: string
+  value: number
+  unit: string
+  measured_at: string
+  notes: string | null
+  created_at: string
+}
+
+const BASE = '/api'
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(BASE + path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...init,
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }))
+    throw new Error((err as { error: string }).error ?? 'Request failed')
+  }
+  return res.json() as Promise<T>
+}
+
+// Cats
+export const getCats = () => request<Cat[]>('/cats')
+export const getCat = (id: string) => request<Cat>(`/cats/${id}`)
+export const createCat = (data: Omit<Cat, 'id' | 'created_at' | 'updated_at'>) =>
+  request<Cat>('/cats', { method: 'POST', body: JSON.stringify(data) })
+export const updateCat = (id: string, data: Partial<Omit<Cat, 'id' | 'created_at' | 'updated_at'>>) =>
+  request<Cat>(`/cats/${id}`, { method: 'PUT', body: JSON.stringify(data) })
+export const deleteCat = (id: string) =>
+  request<{ success: boolean }>(`/cats/${id}`, { method: 'DELETE' })
+
+// Measurements
+export const getMeasurements = (catId: string, type?: string) =>
+  request<Measurement[]>(`/cats/${catId}/measurements${type ? `?type=${type}` : ''}`)
+export const createMeasurement = (catId: string, data: Omit<Measurement, 'id' | 'cat_id' | 'created_at'>) =>
+  request<Measurement>(`/cats/${catId}/measurements`, { method: 'POST', body: JSON.stringify(data) })
+export const deleteMeasurement = (id: string) =>
+  request<{ success: boolean }>(`/measurements/${id}`, { method: 'DELETE' })

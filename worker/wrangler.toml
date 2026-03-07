@@ -1,0 +1,9 @@
+name = "cat-tracker-api"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cat-tracker-db"
+database_id = "9c923aa8-47a3-4029-b07f-3b67d208f9e6"

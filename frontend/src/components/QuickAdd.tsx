@@ -87,6 +87,36 @@ export default function QuickAdd({ onAdded }: Props) {
 
   return (
     <>
+      {/* Floating trigger button — bottom-right, above BottomNav */}
+      {!open && (
+        <button
+          onClick={() => setOpen(true)}
+          aria-label="Quick add measurement"
+          style={{
+            position: 'fixed',
+            bottom: 'calc(72px + env(safe-area-inset-bottom))',
+            right: '20px',
+            zIndex: 40,
+            width: 48,
+            height: 48,
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #c084fc 0%, #a855f7 100%)',
+            boxShadow: '0 4px 20px rgba(168,85,247,0.5)',
+            border: 'none',
+            color: 'white',
+            fontSize: 24,
+            fontWeight: 300,
+            lineHeight: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          📊
+        </button>
+      )}
+
       {open && (
         <div
           className="fixed inset-0 z-50 flex items-end"

@@ -117,26 +117,26 @@
 ## Phase 6c: Health Signals & Behavioral Tracking
 
 ### Visual Health Hierarchy
-- [ ] Home cat cards: status-tinted borders/backgrounds, text badges for non-ok states
-- [ ] Home: sort cats by severity (urgent first)
-- [ ] CatProfile: more dramatic health alert visual treatment for urgent (pulsing border, larger footprint)
-- [ ] Update STATUS_COLORS in healthMetrics.ts to match design tokens (jade/honey/coral/rose)
+- [x] Home cat cards: status-tinted borders/backgrounds, text badges for non-ok states
+- [x] Home: sort cats by severity (urgent first)
+- [x] CatProfile: more dramatic health alert visual treatment for urgent (pulsing border, larger footprint)
+- [x] Update STATUS_COLORS in healthMetrics.ts to match design tokens (jade/honey/coral/rose)
 
 ### Behavioral Measurement Types
-- [ ] QuickAdd: add grooming, play, activity, vomiting, litter types with proper units
-- [ ] MeasurementForm: same new types
-- [ ] CatProfile: "Behavior" tab showing grooming/play/activity/vomiting/litter entries
+- [x] QuickAdd: add grooming, play, activity, vomiting, litter types with proper units
+- [x] MeasurementForm: same new types
+- [x] CatProfile: "Behavior" tab showing grooming/play/activity/vomiting/litter entries
 
 ### Contextual Health Guidance
-- [ ] healthMetrics.ts: add WATCH_ATTENTION, CONCERNING_ATTENTION, URGENT_VET_SIGNS arrays
-- [ ] CatProfile: "Pay attention to..." section for watch/concerning status
-- [ ] CatProfile: "Take to the vet NOW if..." section for concerning/urgent status
+- [x] healthMetrics.ts: add WATCH_ATTENTION, CONCERNING_ATTENTION, URGENT_VET_SIGNS arrays
+- [x] CatProfile: "Pay attention to..." section for watch/concerning status
+- [x] CatProfile: "Take to the vet NOW if..." section for concerning/urgent status
 
 ### Home Wellness Section
-- [ ] Home: add "Cat Wellness" section below cat list
-- [ ] Monthly self-check card (weigh, coat, gums, eyes, ears)
-- [ ] Normal vitals reference card
-- [ ] Urgent signs quick-reference (always call vet)
+- [x] Home: add "Cat Wellness" section below cat list
+- [x] Monthly self-check card (weigh, coat, gums, eyes, ears)
+- [x] Normal vitals reference card
+- [x] Urgent signs quick-reference (always call vet)
 
 ## Phase 7: Infrastructure
 - [ ] GitHub Actions: auto-deploy Worker + Pages on push to main

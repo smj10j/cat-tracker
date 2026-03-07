@@ -27,7 +27,7 @@ importRoute.post('/import', async (c) => {
   const rows: ParsedRow[] = []
 
   for (let i = 0; i < dataLines.length; i++) {
-    const line = dataLines[i].trim()
+    const line = (dataLines[i] ?? '').trim()
     if (!line) continue
 
     const rowNum = i + 2 // +2: 1-indexed, skipping header
@@ -52,9 +52,9 @@ importRoute.post('/import', async (c) => {
       continue
     }
     const [month, day, year] = dateParts
-    const monthNum = parseInt(month, 10)
-    const dayNum = parseInt(day, 10)
-    const yearNum = parseInt(year, 10)
+    const monthNum = parseInt(month ?? '', 10)
+    const dayNum = parseInt(day ?? '', 10)
+    const yearNum = parseInt(year ?? '', 10)
 
     if (isNaN(monthNum) || isNaN(dayNum) || isNaN(yearNum) ||
         monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) {
@@ -118,6 +118,7 @@ importRoute.post('/import', async (c) => {
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i]
+    if (!row) continue
     const catId = catIdMap.get(row.catName.toLowerCase())
     if (catId === undefined) {
       skipped.push(i)

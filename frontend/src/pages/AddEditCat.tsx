@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { createCat, updateCat, getCat, deleteCat, uploadCatPhoto, deleteCatPhoto, ApiError } from '../lib/api'
 import CatAvatar from '../components/CatAvatar'
@@ -26,7 +26,6 @@ export default function AddEditCat() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [cropFile, setCropFile] = useState<File | null>(null)
   const [photoRemoved, setPhotoRemoved] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!id) return
@@ -163,9 +162,9 @@ export default function AddEditCat() {
         />
       )}
 
-      {/* Hidden file input */}
+      {/* File input — visually hidden, triggered via <label> so the OS picker always opens */}
       <input
-        ref={fileInputRef}
+        id="cat-photo-input"
         type="file"
         accept="image/*"
         className="hidden"
@@ -179,10 +178,9 @@ export default function AddEditCat() {
       <form onSubmit={handleSubmit} className="glass-card p-6 space-y-5">
         {/* Photo slot */}
         <div className="flex flex-col items-center gap-2 pb-2">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="relative w-16 h-16 rounded-full overflow-hidden flex items-center justify-center text-2xl transition-opacity hover:opacity-80"
+          <label
+            htmlFor="cat-photo-input"
+            className="relative w-16 h-16 rounded-full overflow-hidden flex items-center justify-center text-2xl transition-opacity hover:opacity-80 cursor-pointer"
             style={{
               background: previewUrl || existingPhotoUrl
                 ? undefined
@@ -197,13 +195,13 @@ export default function AddEditCat() {
               name={form.name || 'cat'}
               size={64}
             />
-          </button>
+          </label>
           {(previewUrl || (!photoRemoved && existingPhotoUrl)) ? (
             <div className="flex items-center gap-3">
-              <button type="button" onClick={() => fileInputRef.current?.click()}
-                className="text-xs text-ink-dim hover:text-ink-mid transition-colors">
+              <label htmlFor="cat-photo-input"
+                className="text-xs text-ink-dim hover:text-ink-mid transition-colors cursor-pointer">
                 Change photo
-              </button>
+              </label>
               <span className="text-ink-dim text-xs">·</span>
               <button
                 type="button"
@@ -215,10 +213,10 @@ export default function AddEditCat() {
               </button>
             </div>
           ) : (
-            <button type="button" onClick={() => fileInputRef.current?.click()}
-              className="text-xs text-ink-dim hover:text-ink-mid transition-colors">
+            <label htmlFor="cat-photo-input"
+              className="text-xs text-ink-dim hover:text-ink-mid transition-colors cursor-pointer">
               Add photo
-            </button>
+            </label>
           )}
         </div>
 

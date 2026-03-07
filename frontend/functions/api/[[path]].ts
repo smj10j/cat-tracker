@@ -11,5 +11,8 @@ export const onRequest: PagesFunction = async (context) => {
     body: ['GET', 'HEAD'].includes(context.request.method) ? undefined : context.request.body,
   })
 
-  return fetch(request)
+  // Use redirect:'manual' so the Worker's 302 responses (OAuth redirects)
+  // are returned as-is to the browser instead of being followed server-side.
+  // Without this, the proxy fetches Google's HTML and serves it under our domain.
+  return fetch(request, { redirect: 'manual' })
 }

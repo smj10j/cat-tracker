@@ -27,7 +27,7 @@
 | [PRD-profile-clarity.md](PRD-profile-clarity.md) | Cat Profile — Insights Panel Clarity | `Implemented` | 2026-03-07 10:25 |
 | [PRD-security.md](PRD-security.md) | Security Hardening | `Implemented` | 2026-03-07 10:39 |
 | [PRD-medication-reminders.md](PRD-medication-reminders.md) | Medication Reminders | `Implemented` | 2026-03-07 12:00 |
-| [PRD-household-sharing.md](PRD-household-sharing.md) | Household Sharing & Multi-User Access | `Draft` | 2026-03-07 12:30 |
+| [PRD-household-sharing.md](PRD-household-sharing.md) | Household Sharing & Multi-User Access | `Implemented` | 2026-03-07 18:00 |
 | [PRD-household-sharing-phase2.md](PRD-household-sharing-phase2.md) | Household Sharing — Phase 2 (lifecycle + audit) | `Draft` | 2026-03-07 13:00 |
 
 ---
@@ -310,7 +310,7 @@ Each entry below provides full implementation notes and open questions. The summ
 
 **Scope:** Household entity owns cats; 4-role permission system (Viewer/Contributor/Editor/Admin); email invite flow via MailChannels; household settings UI accessible from profile popover; migration from current per-user cat ownership to household-based ownership.
 
-**Do not implement** — status is `Draft`. Requires product owner approval.
+**Implemented Phase A** (household model, invite system, role-based access, member management, household settings page, invite acceptance page, home screen household labels, household-scoped cat and measurement authorization).
 
 ---
 
@@ -350,4 +350,4 @@ Nothing rejected yet.
 
 ---
 
-*Last updated: 2026-03-07 13:00*
+*Last updated: 2026-03-07 18:00*

@@ -352,6 +352,35 @@
 - [x] frontend/pages/CatProfile.tsx: display microchip badge for real IDs (spaced formatting)
 - [x] Deploy worker + frontend
 
+## Phase 24: Household Sharing Implementation (2026-03-07)
+
+### Backend
+- [x] schema.sql: households + household_members tables; household_id on cats; next_url on oauth_states
+- [x] D1 migration applied to remote
+- [x] lib/household.ts: ensureHousehold() lazy migration, getCatRole(), hasRole(), ROLE_LEVEL
+- [x] lib/email.ts: MailChannels sendEmail() utility
+- [x] routes/household.ts: GET/PUT /api/household, GET /api/household/list, full invite CRUD, member management, public preview endpoint
+- [x] routes/cats.ts: all operations scoped to household membership; role gates (editor+ for writes)
+- [x] routes/measurements.ts: scoped to household membership; contributor+ for writes
+- [x] routes/import.ts: set household_id on created cats
+- [x] routes/auth.ts: next_url in oauth_states; claim-cats migrates to household
+- [x] index.ts: household routes registered; cron expiry for stale invites
+- [x] Deploy worker
+
+### Frontend
+- [x] api.ts: Cat interface adds household_id + household_name; household types + API functions
+- [x] HouseholdPage.tsx: members, pending invites, invite form, rename
+- [x] InvitePage.tsx: public accept/decline page with login redirect for unauthenticated users
+- [x] Home.tsx: household settings link in profile popover; household labels on multi-household cat cards
+- [x] App.tsx: /household and /invite routes
+- [x] Deploy frontend
+
+### Docs
+- [x] REGISTRY.md: update status to Implemented
+- [x] PRD-household-sharing.md: update status to Implemented
+
+---
+
 ## Phase 23: Household Sharing PRDs (2026-03-07)
 
 - [x] Write PRD-household-sharing.md (Draft): household model, 4-role permission matrix, invite flow, migration strategy, API endpoints, security considerations, phased implementation plan

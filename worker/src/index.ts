@@ -3,6 +3,7 @@ import { cors } from 'hono/cors'
 import type { D1Database } from '@cloudflare/workers-types'
 import cats from './routes/cats'
 import measurements from './routes/measurements'
+import importRoute from './routes/import'
 
 type Env = { DB: D1Database }
 
@@ -16,6 +17,7 @@ app.use('*', cors({
 
 app.route('/api/cats', cats)
 app.route('/api', measurements)
+app.route('/api', importRoute)
 
 app.get('/api/health', (c) => c.json({ status: 'ok' }))
 

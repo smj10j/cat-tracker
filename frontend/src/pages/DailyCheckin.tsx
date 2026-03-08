@@ -117,7 +117,7 @@ export default function DailyCheckin() {
   }
 
   return (
-    <div className="min-h-dvh" style={{ background: '#16111f' }}>
+    <div className="min-h-dvh" style={{ background: 'var(--color-bg)' }}>
       {/* Header */}
       <div
         className="flex items-center gap-3 px-4 pt-4 pb-3"
@@ -172,7 +172,7 @@ export default function DailyCheckin() {
         {cats.length !== 1 && (
           <div
             className="rounded-2xl px-4 py-3"
-            style={{ background: 'rgba(42,32,64,0.8)', border: '1px solid rgba(255,255,255,0.08)' }}
+            style={{ background: 'var(--color-section-bg)', border: '1px solid var(--color-section-border)' }}
           >
             <label htmlFor="checkin-cat" className="block text-xs font-semibold text-ink-mid uppercase tracking-wider mb-2">Cat</label>
             <select
@@ -192,7 +192,7 @@ export default function DailyCheckin() {
         {/* Date & Time */}
         <div
           className="rounded-2xl px-4 py-3"
-          style={{ background: 'rgba(42,32,64,0.8)', border: '1px solid rgba(255,255,255,0.08)' }}
+          style={{ background: 'var(--color-section-bg)', border: '1px solid var(--color-section-border)' }}
         >
           <label htmlFor="checkin-date" className="block text-xs font-semibold text-ink-mid uppercase tracking-wider mb-2">When</label>
           <div className="flex gap-2">
@@ -221,7 +221,7 @@ export default function DailyCheckin() {
         {/* Weight */}
         <div
           className="rounded-2xl px-4 pt-3 pb-4"
-          style={{ background: 'rgba(42,32,64,0.8)', border: '1px solid rgba(255,255,255,0.08)' }}
+          style={{ background: 'var(--color-section-bg)', border: '1px solid var(--color-section-border)' }}
         >
           <label htmlFor="checkin-weight" className="block text-xs font-semibold text-ink-mid uppercase tracking-wider mb-3">Weight</label>
           <div className="flex gap-2 items-center">
@@ -250,7 +250,7 @@ export default function DailyCheckin() {
         {/* Behavioral observations */}
         <div
           className="rounded-2xl px-4 pt-3 pb-2"
-          style={{ background: 'rgba(42,32,64,0.8)', border: '1px solid rgba(255,255,255,0.08)' }}
+          style={{ background: 'var(--color-section-bg)', border: '1px solid var(--color-section-border)' }}
         >
           <p className="text-xs font-semibold text-ink-mid uppercase tracking-wider mb-1">
             Observations — tap to select, skip any row

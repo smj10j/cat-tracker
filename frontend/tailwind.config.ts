@@ -9,9 +9,9 @@ export default {
         body: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
       },
       colors: {
-        night: '#16111f',
-        surface: '#1f1830',
-        'surface-hi': '#2a2040',
+        night: 'var(--color-bg, #16111f)',
+        surface: 'var(--color-surface-hi, #1f1830)',
+        'surface-hi': 'var(--color-surface-hi, #2a2040)',
         lavender: {
           DEFAULT: '#c084fc',
           dim: '#7c3aed',
@@ -22,11 +22,11 @@ export default {
           dim: 'rgba(251,146,60,0.15)',
         },
         ink: {
-          DEFAULT: '#ede9f6',
-          mid: '#a899c0',
-          dim: '#6b5f85',
+          DEFAULT: 'var(--color-ink, #ede9f6)',
+          mid: 'var(--color-ink-mid, #a899c0)',
+          dim: 'var(--color-ink-dim, #6b5f85)',
         },
-        rim: 'rgba(255,255,255,0.07)',
+        rim: 'var(--color-rim, rgba(255,255,255,0.07))',
         jade: '#4ade80',
         honey: '#fbbf24',
         coral: '#f97316',

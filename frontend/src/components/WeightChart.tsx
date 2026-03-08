@@ -49,19 +49,19 @@ function CustomTooltip({ active, payload, label }: {
 
   return (
     <div style={{
-      background: 'rgba(42,32,64,0.95)',
-      border: '1px solid rgba(255,255,255,0.1)',
+      background: 'var(--color-tooltip-bg)',
+      border: '1px solid var(--color-tooltip-border)',
       borderRadius: 12,
       padding: '10px 14px',
       backdropFilter: 'blur(10px)',
       fontSize: 12,
     }}>
-      <div style={{ color: '#a899c0', marginBottom: 4, fontSize: 11 }}>{label}</div>
-      <div style={{ color: '#ede9f6', fontWeight: 700, fontSize: 16 }}>{value} {unit}</div>
+      <div style={{ color: 'var(--color-ink-mid)', marginBottom: 4, fontSize: 11 }}>{label}</div>
+      <div style={{ color: 'var(--color-ink)', fontWeight: 700, fontSize: 16 }}>{value} {unit}</div>
       {period && period.direction !== 'stable' && (
-        <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.07)', color: STATUS_COLORS[period.status] }}>
+        <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--color-rim)', color: STATUS_COLORS[period.status] }}>
           {STATUS_EMOJI[period.status]} {period.direction === 'loss' ? '▼' : '▲'} {Math.abs(period.lbsChange)} {unit} in {period.days}d
-          <span style={{ color: '#6b5f85', marginLeft: 6 }}>{Math.abs(period.changePerWeek)}%/wk</span>
+          <span style={{ color: 'var(--color-ink-dim)', marginLeft: 6 }}>{Math.abs(period.changePerWeek)}%/wk</span>
         </div>
       )}
     </div>
@@ -108,11 +108,11 @@ export default function WeightChart({ measurements }: Props) {
             <stop offset="100%" stopColor="#c084fc" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-        <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#6b5f85' }} tickLine={false} axisLine={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-grid)" vertical={false} />
+        <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--color-ink-dim)' }} tickLine={false} axisLine={false} />
         <YAxis
           domain={yDomain}
-          tick={{ fontSize: 10, fill: '#6b5f85' }}
+          tick={{ fontSize: 10, fill: 'var(--color-ink-dim)' }}
           tickLine={false}
           axisLine={false}
           tickFormatter={(v: number) => `${v}`}
@@ -126,7 +126,9 @@ export default function WeightChart({ measurements }: Props) {
           strokeWidth={2.5}
           fill="url(#areaGrad)"
           dot={(props: DotProps) => <HealthDot key={props.index} {...props} periods={periods} />}
-          activeDot={{ r: 7, fill: '#c084fc', stroke: '#16111f', strokeWidth: 2 }}
+          activeDot={(props: { cx?: number; cy?: number }) => (
+            <circle cx={props.cx} cy={props.cy} r={7} fill="#c084fc" style={{ stroke: 'var(--color-dot-ring)', strokeWidth: 2 }} />
+          )}
         />
       </AreaChart>
     </ResponsiveContainer>

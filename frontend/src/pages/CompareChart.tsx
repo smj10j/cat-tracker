@@ -59,18 +59,18 @@ function WeightTooltip({ active, payload, label }: {
   if (!active || !payload?.length) return null
   return (
     <div style={{
-      background: 'rgba(42,32,64,0.95)', border: '1px solid rgba(255,255,255,0.1)',
+      background: 'var(--color-tooltip-bg)', border: '1px solid var(--color-tooltip-border)',
       borderRadius: 12, padding: '10px 14px', backdropFilter: 'blur(10px)',
       fontSize: 12, minWidth: 130,
     }}>
-      <div style={{ color: '#a899c0', marginBottom: 6, fontSize: 11 }}>{label}</div>
+      <div style={{ color: 'var(--color-ink-mid)', marginBottom: 6, fontSize: 11 }}>{label}</div>
       {payload.map((p) => (
         <div key={p.name} className="flex items-center justify-between gap-4" style={{ marginBottom: 3 }}>
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
-            <span style={{ color: '#a899c0', fontSize: 11 }}>{p.name}</span>
+            <span style={{ color: 'var(--color-ink-mid)', fontSize: 11 }}>{p.name}</span>
           </div>
-          <span style={{ color: '#ede9f6', fontWeight: 600 }}>{p.value} lbs</span>
+          <span style={{ color: 'var(--color-ink)', fontWeight: 600 }}>{p.value} lbs</span>
         </div>
       ))}
     </div>
@@ -86,18 +86,18 @@ function ScaleTooltip({ active, payload, label, type }: {
   if (!active || !payload?.length) return null
   return (
     <div style={{
-      background: 'rgba(42,32,64,0.95)', border: '1px solid rgba(255,255,255,0.1)',
+      background: 'var(--color-tooltip-bg)', border: '1px solid var(--color-tooltip-border)',
       borderRadius: 12, padding: '10px 14px', backdropFilter: 'blur(10px)',
       fontSize: 12, minWidth: 130,
     }}>
-      <div style={{ color: '#a899c0', marginBottom: 6, fontSize: 11 }}>{label}</div>
+      <div style={{ color: 'var(--color-ink-mid)', marginBottom: 6, fontSize: 11 }}>{label}</div>
       {payload.map((p) => (
         <div key={p.name} className="flex items-center justify-between gap-4" style={{ marginBottom: 3 }}>
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
-            <span style={{ color: '#a899c0', fontSize: 11 }}>{p.name}</span>
+            <span style={{ color: 'var(--color-ink-mid)', fontSize: 11 }}>{p.name}</span>
           </div>
-          <span style={{ color: '#ede9f6', fontWeight: 600 }}>{getPresetLabel(type, p.value)}</span>
+          <span style={{ color: 'var(--color-ink)', fontWeight: 600 }}>{getPresetLabel(type, p.value)}</span>
         </div>
       ))}
     </div>
@@ -237,7 +237,7 @@ export default function CompareChart() {
                 <>
                   <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={chartData} margin={{ top: 14, right: 8, left: 0, bottom: 4 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--color-grid)" vertical={false} />
                       <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#6b5f85' }} tickLine={false} axisLine={false} />
                       <YAxis
                         domain={yDomain}
@@ -264,7 +264,9 @@ export default function CompareChart() {
                             stroke={lineColor}
                             strokeWidth={2.5}
                             connectNulls
-                            activeDot={{ r: 6, stroke: '#16111f', strokeWidth: 2 }}
+                            activeDot={(props: { cx?: number; cy?: number }) => (
+                              <circle cx={props.cx} cy={props.cy} r={6} fill={lineColor} style={{ stroke: 'var(--color-dot-ring)', strokeWidth: 2 }} />
+                            )}
                             dot={(dotProps: { cx?: number; cy?: number; index?: number }) => {
                               const { cx, cy, index } = dotProps
                               if (cx == null || cy == null || index == null) return <g key={index} />
@@ -283,7 +285,7 @@ export default function CompareChart() {
                               // Non-weight: plain dot in line color
                               return (
                                 <g key={`dot-${cat.id}-${index}`}>
-                                  <circle cx={cx} cy={cy} r={4} fill={lineColor} stroke="#16111f" strokeWidth={2} />
+                                  <circle cx={cx} cy={cy} r={4} fill={lineColor} style={{ stroke: 'var(--color-dot-ring)', strokeWidth: 2 }} />
                                 </g>
                               )
                             }}

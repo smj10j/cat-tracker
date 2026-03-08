@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Home from './pages/Home'
 import CatProfile from './pages/CatProfile'
@@ -15,6 +16,7 @@ import MedicationFormPage from './pages/MedicationFormPage'
 import HouseholdPage from './pages/HouseholdPage'
 import InvitePage from './pages/InvitePage'
 import DailyCheckin from './pages/DailyCheckin'
+import SettingsPage from './pages/SettingsPage'
 import PageShell from './components/PageShell'
 import ScrollToTop from './components/ScrollToTop'
 
@@ -22,6 +24,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <ThemeProvider>
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
@@ -44,12 +47,14 @@ export default function App() {
                   <Route path="/notifications" element={<NotificationsPage />} />
                   <Route path="/household" element={<HouseholdPage />} />
                   <Route path="/checkin" element={<DailyCheckin />} />
+                  <Route path="/settings" element={<SettingsPage />} />
                 </Routes>
               </PageShell>
             </ProtectedRoute>
           } />
         </Routes>
       </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   )
 }

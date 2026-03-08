@@ -162,8 +162,8 @@ export default function Home() {
             style={{
               top: '72px',
               left: '16px',
-              background: '#2a2040',
-              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'var(--color-surface-hi)',
+              border: '1px solid var(--color-rim-hi)',
               boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
             }}
             onClick={e => e.stopPropagation()}
@@ -173,12 +173,18 @@ export default function Home() {
               <p className="text-xs text-ink-dim truncate">{user?.email}</p>
             </div>
             <button
+              onClick={() => { setShowProfile(false); navigate('/settings') }}
+              className="w-full text-left text-sm text-ink-dim py-1 hover:text-ink"
+            >
+              Settings →
+            </button>
+            <button
               onClick={() => { setShowProfile(false); navigate('/household') }}
               className="w-full text-left text-sm text-ink-dim py-1 hover:text-ink"
             >
-              Household settings →
+              Household →
             </button>
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: 2, marginBottom: 2 }} />
+            <div style={{ borderTop: '1px solid var(--color-rim)', marginTop: 2, marginBottom: 2 }} />
             <button
               onClick={() => { setShowProfile(false); logout() }}
               className="w-full text-left text-sm text-rose py-1"

@@ -27,10 +27,10 @@ export default function BottomNav() {
         left: 0,
         right: 0,
         zIndex: 50,
-        background: 'rgba(31, 24, 48, 0.85)',
+        background: 'var(--color-nav-bg)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        borderTop: '1px solid rgba(255,255,255,0.07)',
+        borderTop: '1px solid var(--color-nav-border)',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
@@ -65,7 +65,7 @@ export default function BottomNav() {
               color: 'white',
               fontWeight: 300,
               lineHeight: 1,
-              border: '3px solid #16111f',
+              border: '3px solid var(--color-bg)',
             }}
           >
             +

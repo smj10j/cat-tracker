@@ -75,7 +75,7 @@ function SkeletonProfile() {
     <div>
       <div className="skeleton" style={{ height: '42vh', minHeight: 220, maxHeight: 380 }} />
       <div className="px-4 pt-4 space-y-4">
-        <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+        <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'var(--color-tab-bar)' }}>
           {[1,2,3].map(i => <div key={i} className="flex-1 skeleton h-8 rounded-lg" />)}
         </div>
         <div className="glass-card p-6">
@@ -298,8 +298,7 @@ export default function CatProfile() {
   const isUrgent = status === 'urgent'
   const isConcerning = status === 'concerning'
 
-  // Night background color (approx from DESIGN.md)
-  const nightBg = 'rgba(13,9,24,0.96)'
+  const nightBg = 'var(--color-hero-overlay)'
 
   const hasRealMicrochip = cat.microchip_id && !cat.microchip_id.startsWith('temp-microchip-id-')
 
@@ -349,7 +348,7 @@ export default function CatProfile() {
         {/* Bottom gradient: name/weight text visibility */}
         <div
           className="absolute bottom-0 left-0 right-0"
-          style={{ height: 160, background: `linear-gradient(0deg, ${nightBg} 0%, rgba(13,9,24,0.7) 50%, transparent 100%)` }}
+          style={{ height: 160, background: `linear-gradient(0deg, ${nightBg} 0%, var(--color-hero-overlay-mid, rgba(13,9,24,0.5)) 50%, transparent 100%)` }}
         />
 
         {/* Top nav */}
@@ -436,7 +435,7 @@ export default function CatProfile() {
       </div>
 
       {/* ── Profile tabs ── */}
-      <div role="tablist" aria-label="Profile sections" className="flex gap-1 mx-4 mt-4 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+      <div role="tablist" aria-label="Profile sections" className="flex gap-1 mx-4 mt-4 p-1 rounded-xl" style={{ background: 'var(--color-tab-bar)' }}>
         {(['health', 'care', 'about'] as const).map((key) => (
           <button
             key={key}
@@ -511,7 +510,7 @@ export default function CatProfile() {
               <h3 className="font-display font-semibold text-ink mb-4">History</h3>
 
               {/* Chart/history type filter tabs */}
-              <div role="tablist" aria-label="Measurement type" className="flex gap-1 mb-5 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+              <div role="tablist" aria-label="Measurement type" className="flex gap-1 mb-5 p-1 rounded-xl" style={{ background: 'var(--color-tab-bar)' }}>
                 {chartTabs.map(({ key, label }) => (
                   <button
                     key={key}
@@ -548,7 +547,7 @@ export default function CatProfile() {
                           <div
                             key={m.id}
                             className="flex items-center justify-between py-2.5 border-b last:border-0"
-                            style={{ borderColor: 'rgba(255,255,255,0.04)' }}
+                            style={{ borderColor: 'var(--color-tab-bar)' }}
                           >
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                               <span className="text-ink-dim text-xs w-16 shrink-0 tabular-nums">{formatTime(m.measured_at)}</span>

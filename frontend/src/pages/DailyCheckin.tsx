@@ -121,15 +121,15 @@ export default function DailyCheckin() {
       {/* Header */}
       <div
         className="flex items-center gap-3 px-4 pt-4 pb-3"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
+        style={{ borderBottom: '1px solid var(--color-rim)' }}
       >
         <button
           onClick={() => navigate(-1)}
-          className="w-9 h-9 flex items-center justify-center rounded-full"
-          style={{ background: 'rgba(255,255,255,0.06)' }}
+          className="w-9 h-9 flex items-center justify-center rounded-full text-ink"
+          style={{ background: 'var(--color-tab-bar)' }}
           aria-label="Back"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ede9f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
@@ -265,12 +265,12 @@ export default function DailyCheckin() {
               <div
                 key={key}
                 className="flex items-center gap-2 py-2"
-                style={isLast ? undefined : { borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                style={isLast ? undefined : { borderBottom: '1px solid var(--color-rim)' }}
               >
                 {/* Type label */}
                 <span
                   className="text-xs font-medium flex-shrink-0"
-                  style={{ width: 64, color: selectedVal !== undefined ? '#ede9f6' : '#6b5f85' }}
+                  style={{ width: 64, color: selectedVal !== undefined ? 'var(--color-ink)' : 'var(--color-ink-dim)' }}
                 >
                   {label}
                 </span>
@@ -294,13 +294,13 @@ export default function DailyCheckin() {
                           minHeight: 44,
                           background: isSelected
                             ? (preset.concern ? 'rgba(248,113,113,0.18)' : 'rgba(74,222,128,0.13)')
-                            : 'rgba(255,255,255,0.05)',
+                            : 'var(--color-card)',
                           border: isSelected
                             ? (preset.concern ? '1.5px solid rgba(248,113,113,0.45)' : '1.5px solid rgba(74,222,128,0.35)')
-                            : '1px solid rgba(255,255,255,0.07)',
+                            : '1px solid var(--color-rim)',
                           color: isSelected
                             ? (preset.concern ? '#f87171' : '#4ade80')
-                            : '#6b5f85',
+                            : 'var(--color-ink-dim)',
                         }}
                       >
                         {preset.label}
@@ -331,7 +331,7 @@ export default function DailyCheckin() {
             {saving ? 'Saving…' : 'Log Check-In'}
           </button>
           {!canSubmit && !saving && (
-            <p className="text-center text-xs mt-2" style={{ color: '#6b5f85' }}>
+            <p className="text-center text-xs mt-2 text-ink-dim">
               {!selectedCatId
                 ? 'Select a cat above to continue'
                 : 'Select at least one measurement above to log'}

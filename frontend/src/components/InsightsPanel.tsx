@@ -67,7 +67,7 @@ export default function InsightsPanel({
     ? 'rgba(249,115,22,0.15)'
     : isWatch
     ? 'rgba(251,191,36,0.12)'
-    : 'rgba(255,255,255,0.06)'
+    : 'var(--color-rim)'
 
   const strengthDot = (s: string) => (
     <span
@@ -138,9 +138,9 @@ export default function InsightsPanel({
             <span
               className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0"
               style={{
-                background: correlations.length > 0 ? 'rgba(192,132,252,0.15)' : 'rgba(255,255,255,0.05)',
-                color: correlations.length > 0 ? '#c084fc' : '#6b5f85',
-                border: correlations.length > 0 ? '1px solid rgba(192,132,252,0.25)' : '1px solid rgba(255,255,255,0.08)',
+                background: correlations.length > 0 ? 'rgba(192,132,252,0.15)' : 'var(--color-card)',
+                color: correlations.length > 0 ? '#c084fc' : 'var(--color-ink-dim)',
+                border: correlations.length > 0 ? '1px solid rgba(192,132,252,0.25)' : '1px solid var(--color-rim)',
               }}
             >
               {correlations.length > 0 ? `${correlations.length} detected` : 'None yet'}

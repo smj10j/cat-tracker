@@ -187,13 +187,13 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
                   style={{
                     background: isSelected
                       ? (preset.concern ? 'rgba(248,113,113,0.18)' : 'rgba(192,132,252,0.15)')
-                      : (preset.concern ? 'rgba(248,113,113,0.08)' : 'rgba(255,255,255,0.05)'),
+                      : (preset.concern ? 'rgba(248,113,113,0.08)' : 'var(--color-card)'),
                     border: isSelected
                       ? (preset.concern ? '1.5px solid rgba(248,113,113,0.5)' : '1.5px solid rgba(192,132,252,0.4)')
-                      : (preset.concern ? '1px solid rgba(248,113,113,0.25)' : '1px solid rgba(255,255,255,0.08)'),
+                      : (preset.concern ? '1px solid rgba(248,113,113,0.25)' : '1px solid var(--color-rim)'),
                     color: isSelected
                       ? (preset.concern ? '#f87171' : '#c084fc')
-                      : (preset.concern ? '#f87171cc' : '#ede9f6'),
+                      : (preset.concern ? '#f87171cc' : 'var(--color-ink)'),
                   }}
                 >
                   {preset.concern ? '! ' : ''}{saving ? '…' : preset.label}

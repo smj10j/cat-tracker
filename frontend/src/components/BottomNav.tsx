@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 
 function HomeIcon({ active }: { active: boolean }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#c084fc' : '#6b5f85'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#c084fc' : 'var(--color-ink-dim)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
       <polyline points="9 22 9 12 15 12 15 22" />
     </svg>
@@ -11,7 +11,7 @@ function HomeIcon({ active }: { active: boolean }) {
 
 function ChartIcon({ active }: { active: boolean }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#c084fc' : '#6b5f85'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#c084fc' : 'var(--color-ink-dim)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
     </svg>
   )
@@ -40,7 +40,7 @@ export default function BottomNav() {
           {({ isActive }) => (
             <>
               <HomeIcon active={isActive} />
-              <span className="text-xs font-medium" style={{ color: isActive ? '#c084fc' : '#6b5f85' }}>Cats</span>
+              <span className="text-xs font-medium" style={{ color: isActive ? '#c084fc' : 'var(--color-ink-dim)' }}>Cats</span>
             </>
           )}
         </NavLink>
@@ -70,7 +70,7 @@ export default function BottomNav() {
           >
             +
           </div>
-          <span className="text-xs font-medium mt-1" style={{ color: '#6b5f85' }}>Log</span>
+          <span className="text-xs font-medium mt-1 text-ink-dim">Log</span>
         </button>
 
         {/* Compare */}
@@ -78,7 +78,7 @@ export default function BottomNav() {
           {({ isActive }) => (
             <>
               <ChartIcon active={isActive} />
-              <span className="text-xs font-medium" style={{ color: isActive ? '#c084fc' : '#6b5f85' }}>Compare</span>
+              <span className="text-xs font-medium" style={{ color: isActive ? '#c084fc' : 'var(--color-ink-dim)' }}>Compare</span>
             </>
           )}
         </NavLink>

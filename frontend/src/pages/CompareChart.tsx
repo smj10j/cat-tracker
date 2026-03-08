@@ -216,7 +216,7 @@ export default function CompareChart() {
                       style={{
                         border: `1.5px solid ${lineColor}`,
                         background: on ? `${lineColor}22` : 'transparent',
-                        color: on ? lineColor : '#6b5f85',
+                        color: on ? lineColor : 'var(--color-ink-dim)',
                       }}
                     >
                       <span>{cat.name}</span>
@@ -238,11 +238,11 @@ export default function CompareChart() {
                   <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={chartData} margin={{ top: 14, right: 8, left: 0, bottom: 4 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--color-grid)" vertical={false} />
-                      <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#6b5f85' }} tickLine={false} axisLine={false} />
+                      <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--color-ink-dim)' }} tickLine={false} axisLine={false} />
                       <YAxis
                         domain={yDomain}
                         ticks={isScaleType ? [0, 1, 2, 3] : undefined}
-                        tick={{ fontSize: 10, fill: '#6b5f85' }}
+                        tick={{ fontSize: 10, fill: 'var(--color-ink-dim)' }}
                         tickLine={false}
                         axisLine={false}
                         tickFormatter={(v: number) => isScaleType ? (scaleTicks[v] ?? String(v)) : String(v)}
@@ -297,7 +297,7 @@ export default function CompareChart() {
 
                   {/* Legend */}
                   {isWeightType && (
-                    <div className="flex gap-4 text-xs text-ink-dim pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div className="flex gap-4 text-xs text-ink-dim pt-1" style={{ borderTop: '1px solid var(--color-rim)' }}>
                       <span className="text-ink-dim font-medium mr-1">Dots:</span>
                       {(['ok', 'watch', 'concerning', 'urgent'] as const).map((s) => (
                         <span key={s} className="flex items-center gap-1">

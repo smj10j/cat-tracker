@@ -73,8 +73,8 @@ export default function WellnessGuide() {
               key={card.title}
               className="rounded-2xl overflow-hidden transition-all"
               style={{
-                background: isUrgentCard ? 'rgba(248,113,113,0.06)' : 'rgba(255,255,255,0.03)',
-                border: isUrgentCard ? '1px solid rgba(248,113,113,0.2)' : '1px solid rgba(255,255,255,0.06)',
+                background: isUrgentCard ? 'rgba(248,113,113,0.06)' : 'var(--color-card)',
+                border: isUrgentCard ? '1px solid rgba(248,113,113,0.2)' : '1px solid var(--color-card-border)',
               }}
             >
               <button
@@ -87,7 +87,7 @@ export default function WellnessGuide() {
                   <span className="text-xl">{card.icon}</span>
                   <span
                     className="font-semibold text-sm"
-                    style={{ color: isUrgentCard ? '#f87171' : '#ede9f6' }}
+                    style={{ color: isUrgentCard ? '#f87171' : 'var(--color-ink)' }}
                   >
                     {card.title}
                   </span>
@@ -104,7 +104,7 @@ export default function WellnessGuide() {
                   <ul className="space-y-2">
                     {card.items.map((item, j) => (
                       <li key={j} className="flex items-start gap-2 text-sm text-ink-mid">
-                        <span className="shrink-0 mt-0.5" style={{ color: isUrgentCard ? '#f87171' : '#6b5f85' }}>
+                        <span className="shrink-0 mt-0.5" style={{ color: isUrgentCard ? '#f87171' : 'var(--color-ink-dim)' }}>
                           {isUrgentCard ? '•' : '·'}
                         </span>
                         {item}
@@ -121,13 +121,13 @@ export default function WellnessGuide() {
       {/* Source attribution */}
       <div
         className="rounded-2xl px-4 py-3 text-xs leading-relaxed"
-        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: '#6b5f85' }}
+        style={{ background: 'var(--color-card)', border: '1px solid var(--color-card-border)', color: 'var(--color-ink-dim)' }}
       >
-        <p className="font-semibold mb-1" style={{ color: '#8b7aaa' }}>About this guide</p>
+        <p className="font-semibold mb-1" style={{ color: 'var(--color-ink-mid)' }}>About this guide</p>
         <p>
           Health thresholds and urgent-sign criteria follow{' '}
-          <strong style={{ color: '#8b7aaa' }}>AAFP</strong> (American Association of Feline Practitioners) and{' '}
-          <strong style={{ color: '#8b7aaa' }}>WSAVA</strong> (World Small Animal Veterinary Association) feline
+          <strong style={{ color: 'var(--color-ink-mid)' }}>AAFP</strong> (American Association of Feline Practitioners) and{' '}
+          <strong style={{ color: 'var(--color-ink-mid)' }}>WSAVA</strong> (World Small Animal Veterinary Association) feline
           nutritional and clinical care guidelines. Behavioral indicators reference ISFM and AAFP consensus
           documents on feline pain recognition and stress. This guide is a reference tool, not a substitute
           for veterinary care. When in doubt, call your vet.

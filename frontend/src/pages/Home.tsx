@@ -34,11 +34,11 @@ const STATUS_RANK: Record<string, number> = { urgent: 3, concerning: 2, watch: 1
 
 const CARD_STYLE: Record<string, React.CSSProperties> = {
   ok: {
-    background: 'rgba(30,24,46,0.7)',
-    border: '1px solid rgba(255,255,255,0.07)',
+    background: 'var(--color-card)',
+    border: '1px solid var(--color-card-border)',
   },
   watch: {
-    background: 'rgba(30,24,46,0.7)',
+    background: 'var(--color-card)',
     border: '1.5px solid rgba(251,191,36,0.4)',
   },
   concerning: {
@@ -56,7 +56,7 @@ const CARD_STYLE: Record<string, React.CSSProperties> = {
 const AVATAR_STYLE: Record<string, React.CSSProperties> = {
   ok: {
     background: 'linear-gradient(135deg, rgba(192,132,252,0.2) 0%, rgba(251,146,60,0.15) 100%)',
-    border: '1px solid rgba(255,255,255,0.1)',
+    border: '1px solid var(--color-rim-hi)',
   },
   watch: {
     background: 'linear-gradient(135deg, rgba(251,191,36,0.15) 0%, rgba(251,191,36,0.08) 100%)',
@@ -225,7 +225,7 @@ export default function Home() {
           </p>
         </div>
         <Link to="/notifications" className="relative p-2" aria-label="Medication reminders">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6b5f85" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-ink-dim)' }}>
             <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
             <path d="M13.73 21a2 2 0 01-3.46 0" />
           </svg>
@@ -354,10 +354,10 @@ export default function Home() {
               className="flex items-center justify-center gap-2 py-4 rounded-[20px] transition-all"
               style={{
                 border: '1.5px dashed rgba(192,132,252,0.25)',
-                color: '#6b5f85',
+                color: 'var(--color-ink-dim)',
               }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#c084fc'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(192,132,252,0.5)' }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#6b5f85'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(192,132,252,0.25)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--color-ink-dim)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(192,132,252,0.25)' }}
             >
               <span className="text-lg font-light">＋</span>
               <span className="text-sm font-semibold">Add a cat</span>
@@ -373,11 +373,11 @@ export default function Home() {
             to="/wellness"
             className="flex items-center justify-between w-full px-5 py-4 rounded-2xl transition-all"
             style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              background: 'var(--color-card)',
+              border: '1px solid var(--color-card-border)',
             }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(192,132,252,0.06)' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'var(--color-card)' }}
           >
             <div className="flex items-center gap-3">
               <span className="text-xl">🐾</span>

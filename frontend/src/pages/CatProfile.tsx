@@ -298,7 +298,9 @@ export default function CatProfile() {
   const isUrgent = status === 'urgent'
   const isConcerning = status === 'concerning'
 
-  const nightBg = 'var(--color-hero-overlay)'
+  // Always use a dark overlay regardless of theme — the hero is a photo area
+  // and the text (white) must be readable over any photo content.
+  const nightBg = 'rgba(0,0,0,0.65)'
 
   const hasRealMicrochip = cat.microchip_id && !cat.microchip_id.startsWith('temp-microchip-id-')
 
@@ -348,7 +350,7 @@ export default function CatProfile() {
         {/* Bottom gradient: name/weight text visibility */}
         <div
           className="absolute bottom-0 left-0 right-0"
-          style={{ height: 160, background: `linear-gradient(0deg, ${nightBg} 0%, var(--color-hero-overlay-mid, rgba(13,9,24,0.5)) 50%, transparent 100%)` }}
+          style={{ height: 160, background: `linear-gradient(0deg, ${nightBg} 0%, rgba(0,0,0,0.35) 50%, transparent 100%)` }}
         />
 
         {/* Top nav */}
@@ -445,7 +447,7 @@ export default function CatProfile() {
             className="flex-1 py-2 text-xs font-semibold rounded-lg transition-all capitalize"
             style={{
               background: profileTab === key ? 'rgba(192,132,252,0.15)' : 'transparent',
-              color: profileTab === key ? '#c084fc' : '#6b5f85',
+              color: profileTab === key ? '#c084fc' : 'var(--color-ink-dim)',
               border: profileTab === key ? '1px solid rgba(192,132,252,0.25)' : '1px solid transparent',
             }}
           >
@@ -520,7 +522,7 @@ export default function CatProfile() {
                     className="flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all"
                     style={{
                       background: chartTab === key ? 'rgba(192,132,252,0.15)' : 'transparent',
-                      color: chartTab === key ? '#c084fc' : '#6b5f85',
+                      color: chartTab === key ? '#c084fc' : 'var(--color-ink-dim)',
                       border: chartTab === key ? '1px solid rgba(192,132,252,0.25)' : '1px solid transparent',
                     }}
                   >
@@ -540,7 +542,7 @@ export default function CatProfile() {
                         <span className="text-xs text-ink-dim/60">
                           {group.items.length} {group.items.length === 1 ? 'entry' : 'entries'}
                         </span>
-                        <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.05)' }} />
+                        <div className="flex-1 h-px" style={{ background: 'var(--color-rim)' }} />
                       </div>
                       <div className="space-y-0.5">
                         {group.items.map((m) => (
@@ -557,7 +559,7 @@ export default function CatProfile() {
                                 </span>
                                 {(chartTab === 'all' || chartTab === 'behavior') && (
                                   <span className="text-xs px-1.5 py-0.5 rounded-full text-ink-dim"
-                                    style={{ background: 'rgba(255,255,255,0.06)' }}>
+                                    style={{ background: 'var(--color-card)' }}>
                                     {MEAS_TYPE_LABELS[m.type] ?? m.type}
                                   </span>
                                 )}
@@ -569,7 +571,7 @@ export default function CatProfile() {
                                 <button
                                   onClick={() => setPendingDeleteId(null)}
                                   className="text-xs px-2 py-1 rounded-lg transition-colors"
-                                  style={{ color: '#8b7aaa', background: 'rgba(255,255,255,0.05)' }}
+                                  style={{ color: 'var(--color-ink-dim)', background: 'var(--color-card)' }}
                                 >
                                   Cancel
                                 </button>
@@ -600,9 +602,9 @@ export default function CatProfile() {
                       onClick={() => setShowOlderHistory(true)}
                       className="w-full py-2.5 text-xs font-semibold rounded-xl transition-all"
                       style={{
-                        color: '#6b5f85',
-                        background: 'rgba(255,255,255,0.03)',
-                        border: '1px solid rgba(255,255,255,0.06)',
+                        color: 'var(--color-ink-dim)',
+                        background: 'var(--color-card)',
+                        border: '1px solid var(--color-card-border)',
                       }}
                     >
                       View {olderCount} older {olderCount === 1 ? 'entry' : 'entries'}
@@ -623,7 +625,7 @@ export default function CatProfile() {
             <Link
               to="/notifications"
               className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-semibold transition-all"
-              style={{ border: '1px solid rgba(255,255,255,0.08)', color: '#8b7fb0' }}
+              style={{ border: '1px solid var(--color-rim)', color: 'var(--color-ink-mid)' }}
             >
               View all notifications →
             </Link>
@@ -637,14 +639,14 @@ export default function CatProfile() {
           <div className="glass-card px-5 py-4">
             <div className="space-y-0">
               {/* Breed */}
-              <div className="flex items-center gap-3 py-3 border-b" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+              <div className="flex items-center gap-3 py-3 border-b" style={{ borderColor: 'var(--color-rim)' }}>
                 <span className="text-base w-6 text-center">🐾</span>
                 <span className="text-xs text-ink-dim w-20 shrink-0">Breed</span>
                 <span className="text-sm text-ink flex-1">{cat.breed ?? '—'}</span>
               </div>
 
               {/* Sex / Neuter */}
-              <div className="flex items-center gap-3 py-3 border-b" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+              <div className="flex items-center gap-3 py-3 border-b" style={{ borderColor: 'var(--color-rim)' }}>
                 <span className="text-base w-6 text-center">
                   {cat.sex === 'Female' ? '♀' : cat.sex === 'Male' ? '♂' : '⚥'}
                 </span>
@@ -654,7 +656,7 @@ export default function CatProfile() {
 
               {/* Coloring */}
               {cat.coloring && (
-                <div className="flex items-center gap-3 py-3 border-b" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+                <div className="flex items-center gap-3 py-3 border-b" style={{ borderColor: 'var(--color-rim)' }}>
                   <span className="text-base w-6 text-center">🎨</span>
                   <span className="text-xs text-ink-dim w-20 shrink-0">Coloring</span>
                   <span className="text-sm text-ink flex-1">{cat.coloring}</span>
@@ -662,7 +664,7 @@ export default function CatProfile() {
               )}
 
               {/* Age */}
-              <div className="flex items-center gap-3 py-3 border-b" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+              <div className="flex items-center gap-3 py-3 border-b" style={{ borderColor: 'var(--color-rim)' }}>
                 <span className="text-base w-6 text-center">🎂</span>
                 <span className="text-xs text-ink-dim w-20 shrink-0">Age</span>
                 <span className="text-sm text-ink flex-1">{catAge(cat.birthdate)}</span>
@@ -670,7 +672,7 @@ export default function CatProfile() {
 
               {/* Latest weight */}
               {latestWeight && (
-                <div className="flex items-center gap-3 py-3 border-b" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+                <div className="flex items-center gap-3 py-3 border-b" style={{ borderColor: 'var(--color-rim)' }}>
                   <span className="text-base w-6 text-center">⚖️</span>
                   <span className="text-xs text-ink-dim w-20 shrink-0">Weight</span>
                   <span className="text-sm flex-1">

@@ -35,7 +35,7 @@
 | [PRD-evidence-base.md](PRD-evidence-base.md) | Veterinary Evidence Base — Sources, Citations, and Research Infrastructure | `Implemented` | 2026-03-07 |
 | [PRD-accessibility.md](PRD-accessibility.md) | Accessibility — Color Independence, Touch Targets, Screen Reader Support | `Partial` | 2026-03-07 |
 | [PRD-usability.md](PRD-usability.md) | Usability Polish — Scroll, Feedback, Disabled States, Delete Confirmation | `Partial` | 2026-03-07 |
-| [PRD-app-settings.md](PRD-app-settings.md) | App Settings — Dark/Light/System Mode Toggle | `Draft` | 2026-03-07 |
+| [PRD-app-settings.md](PRD-app-settings.md) | App Settings — Dark/Light/System Mode Toggle | `Implemented` | 2026-03-08 |
 
 ---
 

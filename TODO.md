@@ -549,6 +549,12 @@
 - [x] CLAUDE.md: replace "Working Style" with formal Execution Loop (7 ordered steps); remove stale PRD status table; add API.md to docs references
 - [x] Deploy worker with security fixes
 
+## Phase 14: PRD Writing — Accessibility and Usability
+- [x] Audit codebase: aria attributes, label associations, touch targets, text sizes, color usage, scroll behavior
+- [x] Write PRD-accessibility.md (Draft): color independence, touch targets, screen reader support, focus visibility, text size
+- [x] Write PRD-usability.md (Draft): scroll-to-top, preset save model, disabled states, delete confirmation, back nav, loading/empty states
+- [x] Add both PRDs to REGISTRY.md
+
 ## Phase 13: Veterinary Evidence Base (PRD-evidence-base.md)
 - [x] Update PRD status to Implemented in REGISTRY.md
 - [x] Create docs/research/README.md — sourcing principles and process

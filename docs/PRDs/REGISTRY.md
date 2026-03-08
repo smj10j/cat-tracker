@@ -33,6 +33,8 @@
 | [PRD-ux-redesign.md](PRD-ux-redesign.md) | UX Redesign — Competitive Analysis & Next-Gen Features | `Draft` | 2026-03-07 |
 | [PRD-daily-checkin.md](PRD-daily-checkin.md) | Daily Check-In — Multi-Measurement Entry Screen | `Implemented` | 2026-03-07 |
 | [PRD-evidence-base.md](PRD-evidence-base.md) | Veterinary Evidence Base — Sources, Citations, and Research Infrastructure | `Implemented` | 2026-03-07 |
+| [PRD-accessibility.md](PRD-accessibility.md) | Accessibility — Color Independence, Touch Targets, Screen Reader Support | `Draft` | 2026-03-07 |
+| [PRD-usability.md](PRD-usability.md) | Usability Polish — Scroll, Feedback, Disabled States, Delete Confirmation | `Draft` | 2026-03-07 |
 
 ---
 
@@ -419,6 +421,36 @@ Items mentioned or implied by existing PRDs that have not yet been formally spec
 ## Rejected
 
 Nothing rejected yet.
+
+---
+
+### PRD-accessibility.md — Accessibility
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-03-07 |
+
+**Problem:** The app was built mobile-first without an accessibility pass. Key gaps: color-only health signals (affects ~8% of males with color vision deficiency), 31 instances of `text-[10px]` below WCAG minimum, `<label>` elements not associated to inputs via `htmlFor`/`id`, no `aria-live` for dynamic feedback, no visible focus ring, preset buttons at 34px below 44px touch target minimum.
+
+**Scope:** Three phases — (A) zero-visual-impact fixes: label associations, `aria-live`/`role="alert"`, `aria-expanded`, `role="tablist"`, `:focus-visible` ring; (B) text and touch targets: min 12px text, min 44px touch targets; (C) color independence: text labels on concern-tier presets, stroke dash patterns in CompareChart, STATUS_LABEL always alongside STATUS_EMOJI.
+
+**Do not implement** — status is `Draft`. Requires product owner approval.
+
+---
+
+### PRD-usability.md — Usability Polish
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-03-07 |
+
+**Problem:** Several interaction patterns create friction or data-loss risk: pages don't scroll to top on navigation; MeasurementForm behavioral preset buttons save immediately on tap (no undo); disabled buttons say "Nothing to log yet" instead of explaining how to enable; delete is single-tap with no confirmation; back navigation is inconsistent across pages; error messages lack actionable recovery guidance.
+
+**Scope:** Three phases — (A) zero-risk wins: `ScrollToTop` component, disabled button copy, actionable error messages, save confirmation in MeasurementForm; (B) interaction model: two-step preset save in MeasurementForm, two-step delete confirmation, back nav audit; (C) state and hierarchy: loading state standardization, empty state improvements, CatProfile health status visibility.
+
+**Do not implement** — status is `Draft`. Requires product owner approval.
 
 ---
 

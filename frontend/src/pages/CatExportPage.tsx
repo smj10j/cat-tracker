@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import { useGoBack } from '../hooks/useGoBack'
 import { getCat, getMeasurements, type Cat, type Measurement } from '../lib/api'
 import { assessHealth } from '../lib/healthMetrics'
 import { detectCorrelations, describeCorrelation, detectConfluence } from '../lib/correlations'
@@ -45,7 +46,7 @@ function formatDateTime(iso: string): string {
 
 export default function CatExportPage() {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
+  const goBack = useGoBack(id ? `/cats/${id}` : '/')
 
   const [cat, setCat] = useState<Cat | null>(null)
   const [measurements, setMeasurements] = useState<Measurement[]>([])
@@ -110,7 +111,7 @@ export default function CatExportPage() {
         {/* Action bar (screen only) */}
         <div className="no-print flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: '#e5e7eb' }}>
           <button
-            onClick={() => window.history.length > 1 ? navigate(-1) : navigate(`/cats/${cat.id}`)}
+            onClick={goBack}
             className="flex items-center gap-2 text-sm font-medium"
             style={{ color: '#6b7280' }}
           >

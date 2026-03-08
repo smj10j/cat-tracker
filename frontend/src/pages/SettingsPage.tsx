@@ -1,5 +1,5 @@
-import { useNavigate } from 'react-router-dom'
 import { useTheme, type Theme } from '../contexts/ThemeContext'
+import { useGoBack } from '../hooks/useGoBack'
 
 const THEME_OPTIONS: { value: Theme; label: string; icon: string }[] = [
   { value: 'dark',   label: 'Dark',   icon: '🌙' },
@@ -8,7 +8,7 @@ const THEME_OPTIONS: { value: Theme; label: string; icon: string }[] = [
 ]
 
 export default function SettingsPage() {
-  const navigate = useNavigate()
+  const goBack = useGoBack('/')
   const { theme, setTheme } = useTheme()
 
   return (
@@ -16,7 +16,7 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <button
-          onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/')}
+          onClick={goBack}
           className="text-ink-dim hover:text-ink-mid transition-colors text-xl"
           aria-label="Back"
         >←</button>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
+import { useGoBack } from '../hooks/useGoBack'
 import { getCat, getMeasurements, deleteMeasurement, getMedications, uploadCatPhoto, deleteCatPhoto, CARE_TYPE_ICONS, type Cat, type Measurement, type Medication } from '../lib/api'
 import CatAvatar from '../components/CatAvatar'
 import CropModal from '../components/CropModal'
@@ -181,7 +182,7 @@ function formatSexNeuter(sex: string | null, isNeutered: number | null): string 
 
 export default function CatProfile() {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
+  const goBack = useGoBack('/')
 
   const [cat, setCat] = useState<Cat | null>(null)
   const [measurements, setMeasurements] = useState<Measurement[]>([])
@@ -356,13 +357,24 @@ export default function CatProfile() {
         {/* Top nav */}
         <div className="absolute top-0 left-0 right-0 flex items-center px-4 pt-12 gap-3">
           <button
-            onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/')}
+            onClick={goBack}
             className="text-white/60 hover:text-white transition-colors text-xl leading-none"
           >
             ←
           </button>
           <div className="flex-1" />
-          <Link to={`/cats/${cat.id}/export`} className="btn-ghost text-xs px-3 py-1.5">Export</Link>
+          <Link
+            to={`/cats/${cat.id}/export`}
+            className="text-xs font-semibold px-3 py-1.5 rounded-full transition-all"
+            style={{
+              background: 'rgba(0,0,0,0.45)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              color: 'rgba(255,255,255,0.9)',
+              backdropFilter: 'blur(6px)',
+            }}
+          >
+            Export
+          </Link>
         </div>
 
         {/* Camera button (overlaid file input — PWA safe) */}

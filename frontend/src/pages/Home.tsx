@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { getCats, getMeasurements, claimCats, getNotifications, getHouseholdList, type Cat, type Measurement, type HouseholdListItem } from '../lib/api'
+import { getCats, getMeasurements, claimCats, getNotifications, type Cat, type Measurement } from '../lib/api'
 import CatAvatar from '../components/CatAvatar'
 import { assessHealth, STATUS_COLORS, STATUS_LABEL } from '../lib/healthMetrics'
 import { detectCorrelations, getHomeBadge } from '../lib/correlations'
@@ -83,12 +83,9 @@ export default function Home() {
   const [claiming, setClaiming] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
   const [notifCount, setNotifCount] = useState(0)
-  const [households, setHouseholds] = useState<HouseholdListItem[]>([])
-
   useEffect(() => {
     loadCats()
     loadNotifCount()
-    getHouseholdList().then(setHouseholds).catch(() => {})
 
     // Re-fetch when a measurement is added via the QuickAdd sheet
     const handler = () => loadCats()
@@ -318,13 +315,8 @@ export default function Home() {
                       <span>{catAge(cat.birthdate)}</span>
                       {cat.breed && <span>· {cat.breed}</span>}
                     </div>
-                    {households.length > 1 && cat.household_name && (
-                      <div className="text-xs mt-0.5" style={{ color: 'rgba(192,132,252,0.5)' }}>
-                        {cat.household_name}
-                      </div>
-                    )}
                     {!isOk && (
-                      <div className="text-xs mt-1.5" style={{ color: `${statusColor}bb` }}>
+                      <div className="text-xs mt-1.5 font-medium" style={{ color: statusColor }}>
                         {isUrgent ? 'Vet visit recommended' : isConcerning ? 'Monitor closely' : 'Keep an eye on weight trend'}
                       </div>
                     )}

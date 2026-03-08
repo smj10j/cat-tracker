@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom'
 import { createCat, updateCat, getCat, deleteCat, uploadCatPhoto, deleteCatPhoto, ApiError } from '../lib/api'
 import CatAvatar from '../components/CatAvatar'
 import CropModal from '../components/CropModal'
+import { useGoBack } from '../hooks/useGoBack'
 
 function isTempMicrochip(id: string | null | undefined): boolean {
   return !id || id.startsWith('temp-microchip-id-')
@@ -12,6 +13,7 @@ export default function AddEditCat() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const isEdit = Boolean(id)
+  const goBack = useGoBack(isEdit && id ? `/cats/${id}` : '/')
 
   const [form, setForm] = useState({
     name: '', birthdate: '', breed: '', coloring: '', notes: '', sex: '', microchip_id: '', is_neutered: '',
@@ -85,7 +87,11 @@ export default function AddEditCat() {
         // Photo upload already happened immediately on crop completion.
         // Only handle explicit removal here.
         if (photoRemoved && existingPhotoUrl) await deleteCatPhoto(id)
-        navigate(`/cats/${id}`)
+        // Use navigate(-1) so the edit form doesn't stack an extra history entry.
+        // If there's no back history (direct URL access), fall back to the cat profile.
+        const histIdx = (window.history.state as { idx?: number } | null)?.idx ?? 0
+        if (histIdx > 0) navigate(-1)
+        else navigate(`/cats/${id}`, { replace: true })
       } else {
         const cat = await createCat(payload)
         if (pendingBlob) await uploadCatPhoto(cat.id, pendingBlob)
@@ -154,7 +160,7 @@ export default function AddEditCat() {
     <div className="min-h-screen px-4 pt-6">
       <div className="flex items-center gap-3 mb-8">
         <button
-          onClick={() => window.history.length > 1 ? navigate(-1) : navigate(isEdit && id ? `/cats/${id}` : '/')}
+          onClick={goBack}
           className="text-ink-dim hover:text-ink-mid transition-colors text-xl"
         >←</button>
         <h1 className="font-display font-bold text-2xl text-ink">{isEdit ? 'Edit Cat' : 'New Cat'}</h1>

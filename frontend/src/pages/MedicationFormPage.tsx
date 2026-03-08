@@ -4,6 +4,7 @@ import {
   getCat, getMedication, createMedication, updateMedication, archiveMedication,
   type Cat, type Medication,
 } from '../lib/api'
+import { useGoBack } from '../hooks/useGoBack'
 
 // ---------------------------------------------------------------------------
 // Preset medications
@@ -65,6 +66,7 @@ function todayStr(): string {
 export default function MedicationFormPage() {
   const navigate = useNavigate()
   const { catId, medId } = useParams<{ catId?: string; medId?: string }>()
+  const goBack = useGoBack('/')
   const isEdit = Boolean(medId)
 
   const [cat, setCat] = useState<Cat | null>(null)
@@ -162,10 +164,13 @@ export default function MedicationFormPage() {
 
       if (isEdit && medId) {
         await updateMedication(medId, payload)
-        navigate(`/cats/${existing?.cat_id}`)
+        goBack()
       } else {
         const med = await createMedication(payload)
-        navigate(`/cats/${med.cat_id}`)
+        // New medication: navigate back to the cat profile (which is the parent page)
+        const histIdx = (window.history.state as { idx?: number } | null)?.idx ?? 0
+        if (histIdx > 0) navigate(-1)
+        else navigate(`/cats/${med.cat_id}`, { replace: true })
       }
     } catch (e: unknown) {
       setError((e as Error).message)
@@ -180,7 +185,7 @@ export default function MedicationFormPage() {
     setDeleting(true)
     try {
       await archiveMedication(medId)
-      navigate(`/cats/${existing?.cat_id}`)
+      goBack()
     } finally {
       setDeleting(false)
     }

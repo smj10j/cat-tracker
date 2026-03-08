@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { getCat, getMeasurements, type Cat, type Measurement } from '../lib/api'
+import { useGoBack } from '../hooks/useGoBack'
 import {
   assessHealth, STATUS_COLORS, STATUS_LABEL,
   WATCH_ATTENTION, CONCERNING_ATTENTION, URGENT_VET_SIGNS,
@@ -20,7 +21,7 @@ function catAge(birthdate: string): string {
 
 export default function CatHealthGuidance() {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
+  const goBack = useGoBack(id ? `/cats/${id}` : '/')
 
   const [cat, setCat] = useState<Cat | null>(null)
   const [weightMs, setWeightMs] = useState<Measurement[]>([])
@@ -83,7 +84,7 @@ export default function CatHealthGuidance() {
       <div className="px-4 pt-6 pb-8" style={{ background: headerGradient }}>
         <div className="flex items-center justify-between mb-6">
           <button
-            onClick={() => navigate(`/cats/${cat.id}`)}
+            onClick={goBack}
             className="flex items-center gap-2 text-ink-dim hover:text-ink-mid transition-colors"
           >
             <span className="text-xl leading-none">←</span>
@@ -183,7 +184,7 @@ export default function CatHealthGuidance() {
 
         {/* Back to profile */}
         <button
-          onClick={() => navigate(`/cats/${cat.id}`)}
+          onClick={goBack}
           className="w-full py-3 text-sm font-semibold rounded-2xl transition-all"
           style={{ color: '#6b5f85', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
         >

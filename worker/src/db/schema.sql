@@ -7,7 +7,10 @@ CREATE TABLE IF NOT EXISTS cats (
   notes        TEXT,
   photo_url    TEXT,
   sex          TEXT,
+  is_neutered  INTEGER,
   microchip_id TEXT,
+  user_id      TEXT REFERENCES users(id),
+  household_id TEXT REFERENCES households(id),
   created_at   TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -17,9 +20,15 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_cats_microchip
   ON cats(microchip_id)
   WHERE microchip_id IS NOT NULL AND microchip_id NOT LIKE 'temp-microchip-id-%';
 
--- Run once: ALTER TABLE cats ADD COLUMN sex TEXT;
--- Run once: ALTER TABLE cats ADD COLUMN microchip_id TEXT;
--- Run once: ALTER TABLE cats ADD COLUMN is_neutered INTEGER;
+CREATE INDEX IF NOT EXISTS idx_cats_user ON cats(user_id);
+CREATE INDEX IF NOT EXISTS idx_cats_household ON cats(household_id);
+
+-- Production migration history (already applied; do not re-run):
+-- ALTER TABLE cats ADD COLUMN sex TEXT;
+-- ALTER TABLE cats ADD COLUMN microchip_id TEXT;
+-- ALTER TABLE cats ADD COLUMN is_neutered INTEGER;
+-- ALTER TABLE cats ADD COLUMN user_id TEXT REFERENCES users(id);
+-- ALTER TABLE cats ADD COLUMN household_id TEXT REFERENCES households(id);
 
 CREATE TABLE IF NOT EXISTS measurements (
   id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
@@ -54,8 +63,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   created_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- Run once: ALTER TABLE cats ADD COLUMN user_id TEXT REFERENCES users(id);
--- Run once: CREATE INDEX IF NOT EXISTS idx_cats_user ON cats(user_id);
+-- (user_id and idx_cats_user are now in the CREATE TABLE above)
 
 CREATE TABLE IF NOT EXISTS oauth_states (
   state       TEXT PRIMARY KEY,
@@ -130,6 +138,5 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_hm_active_user
   ON household_members(household_id, user_id)
   WHERE status = 'active';
 
--- Run once: ALTER TABLE cats ADD COLUMN household_id TEXT REFERENCES households(id);
--- Run once: CREATE INDEX IF NOT EXISTS idx_cats_household ON cats(household_id);
+-- (household_id and idx_cats_household are now in the CREATE TABLE above)
 -- Run once: ALTER TABLE oauth_states ADD COLUMN next_url TEXT;

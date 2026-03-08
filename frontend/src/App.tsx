@@ -14,6 +14,7 @@ import NotificationsPage from './pages/NotificationsPage'
 import MedicationFormPage from './pages/MedicationFormPage'
 import HouseholdPage from './pages/HouseholdPage'
 import InvitePage from './pages/InvitePage'
+import DailyCheckin from './pages/DailyCheckin'
 import PageShell from './components/PageShell'
 
 export default function App() {
@@ -40,6 +41,7 @@ export default function App() {
                   <Route path="/medications/:medId/edit" element={<MedicationFormPage />} />
                   <Route path="/notifications" element={<NotificationsPage />} />
                   <Route path="/household" element={<HouseholdPage />} />
+                  <Route path="/checkin" element={<DailyCheckin />} />
                 </Routes>
               </PageShell>
             </ProtectedRoute>

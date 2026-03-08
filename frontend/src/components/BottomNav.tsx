@@ -1,8 +1,4 @@
-import { NavLink } from 'react-router-dom'
-
-interface Props {
-  onLog: () => void
-}
+import { NavLink, useNavigate } from 'react-router-dom'
 
 function HomeIcon({ active }: { active: boolean }) {
   return (
@@ -21,7 +17,8 @@ function ChartIcon({ active }: { active: boolean }) {
   )
 }
 
-export default function BottomNav({ onLog }: Props) {
+export default function BottomNav() {
+  const navigate = useNavigate()
   return (
     <nav
       style={{
@@ -50,7 +47,7 @@ export default function BottomNav({ onLog }: Props) {
 
         {/* Center Log button */}
         <button
-          onClick={onLog}
+          onClick={() => navigate('/checkin')}
           className="flex flex-col items-center -mt-6"
           aria-label="Log a measurement"
         >

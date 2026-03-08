@@ -548,3 +548,13 @@
 - [x] Overhaul docs/TDD.md — bring current: full schema with all columns (sex, user_id), all routes including auth/export/health, complete component/lib file list, all frontend routes, key design decisions section, auth flow, QuickAdd flow, correlation engine description
 - [x] CLAUDE.md: replace "Working Style" with formal Execution Loop (7 ordered steps); remove stale PRD status table; add API.md to docs references
 - [x] Deploy worker with security fixes
+
+## Phase 12: Daily Check-In (PRD-daily-checkin.md)
+- [x] Create DailyCheckin.tsx — all measurement types on one screen, unselected = not logged, hourly date/time picker
+- [x] Update BottomNav — center "Log" button navigates to /checkin; remove onLog prop
+- [x] Update PageShell — remove QuickAdd state and import (QuickAdd retired)
+- [x] Add /checkin route to App.tsx
+- [x] Write tests: DailyCheckin component (11 tests)
+- [x] Fix pre-existing worker test failure: is_neutered column missing from helpers.ts TEST_SCHEMA
+- [x] Deploy frontend
+- [x] Mark PRD-daily-checkin.md Implemented in REGISTRY.md

@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS cats (
   notes        TEXT,
   photo_url    TEXT,
   sex          TEXT,
+  is_neutered  INTEGER,
   microchip_id TEXT,
   user_id      TEXT REFERENCES users(id),
   household_id TEXT REFERENCES households(id),

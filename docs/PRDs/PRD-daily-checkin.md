@@ -1,6 +1,9 @@
 # PRD: Daily Check-In — Multi-Measurement Entry Screen
 
-**Status:** Draft
+**Status:** Approved — open questions resolved:
+1. Weight at top (current proposal) — approved
+2. Hourly granularity for time picker
+3. Form resets to empty after submit
 **Last updated:** 2026-03-07
 **Supersedes:** PRD-killer-app.md P1 (Daily Check-In concept)
 **Related:** PRD-ux-redesign.md §3A

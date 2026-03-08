@@ -73,8 +73,7 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
     }
   }
 
-  async function handleWeightSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleWeightSubmit() {
     const num = parseFloat(weightValue)
     if (isNaN(num) || num <= 0) { setError('Enter a valid positive number.'); return }
     await save(num, weightUnit)

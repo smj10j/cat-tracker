@@ -206,6 +206,7 @@ export default function CatProfile() {
   }, [id])
 
   useEffect(() => { setShowOlderHistory(false) }, [chartTab])
+  useEffect(() => { setPendingDeleteId(null) }, [profileTab, chartTab])
 
   async function executeDeleteMeasurement(id: string) {
     try {

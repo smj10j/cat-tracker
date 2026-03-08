@@ -303,7 +303,7 @@ export default function DailyCheckin() {
                             : '#6b5f85',
                         }}
                       >
-                        {preset.concern ? '! ' : ''}{preset.label}
+                        {preset.label}
                       </button>
                     )
                   })}

@@ -153,7 +153,10 @@ export default function AddEditCat() {
   return (
     <div className="min-h-screen px-4 pt-6">
       <div className="flex items-center gap-3 mb-8">
-        <Link to={isEdit && id ? `/cats/${id}` : '/'} className="text-ink-dim hover:text-ink-mid transition-colors text-xl">←</Link>
+        <button
+          onClick={() => window.history.length > 1 ? navigate(-1) : navigate(isEdit && id ? `/cats/${id}` : '/')}
+          className="text-ink-dim hover:text-ink-mid transition-colors text-xl"
+        >←</button>
         <h1 className="font-display font-bold text-2xl text-ink">{isEdit ? 'Edit Cat' : 'New Cat'}</h1>
         <div className="flex-1" />
         {!isEdit && <Link to="/import" className="btn-ghost text-xs px-3 py-1.5">Import CSV</Link>}

@@ -28,20 +28,17 @@ A lightweight web app for tracking health measurements for your cats over time. 
 ```
 cat-tracker/
 ├── docs/
-│   ├── PRDs/
-│   │   ├── REGISTRY.md               # Canonical PRD status tracker
-│   │   ├── PRD-mvp.md                # Original MVP requirements
-│   │   ├── PRD-features-backlog.md   # Feature backlog
-│   │   ├── PRD-ux-simplification.md  # UX simplification
-│   │   ├── PRD-health-status-visuals.md  # Emoji health dots
-│   │   ├── PRD-measurement-ux.md     # Measurement UX fixes
-│   │   ├── PRD-charts-expansion.md   # Multi-type charts
-│   │   ├── PRD-killer-app.md         # Roadmap research (under review)
-│   │   └── PRD-auth.md               # User accounts & data isolation (under review)
+│   ├── PRDs/                         # Product requirements (see REGISTRY.md)
+│   │   └── REGISTRY.md               #   Canonical PRD status tracker
 │   ├── TDD/                          # Technical design docs
 │   │   ├── README.md                 #   Index
 │   │   ├── web.md                    #   Current web architecture
 │   │   └── cross-platform.md        #   iOS/Android/web unified plan
+│   ├── research/                     # Veterinary evidence base
+│   │   ├── README.md                 #   Sourcing standards and process
+│   │   ├── weight-thresholds.md      #   Citations for numeric thresholds
+│   │   ├── behavioral-indicators.md  #   Citations for behavioral alert lists
+│   │   └── feline-resources.md       #   Reference directory
 │   └── DESIGN.md                     # Visual design system
 ├── worker/                 # Cloudflare Worker — REST API
 │   ├── src/
@@ -263,6 +260,7 @@ Emoji dots appear on chart data points and as badges on cat cards. Logic lives i
 |---|---|
 | [`docs/PRDs/REGISTRY.md`](docs/PRDs/REGISTRY.md) | Canonical index of all product requirements and their status — start here for any feature work |
 | [`docs/TDD/README.md`](docs/TDD/README.md) | Technical design docs: current web architecture and cross-platform (iOS/Android) plan |
+| [`docs/research/README.md`](docs/research/README.md) | Veterinary evidence base: sourcing standards, threshold citations, and process for adding new clinical content |
 | [`docs/API.md`](docs/API.md) | Full API specification: every endpoint, request/response shapes, auth and authorization rules |
 | [`docs/DESIGN.md`](docs/DESIGN.md) | Visual design system: color tokens, Tailwind configuration, component patterns |
 | [`docs/SECURITY.md`](docs/SECURITY.md) | Security model, auth guidelines, and known limitations |

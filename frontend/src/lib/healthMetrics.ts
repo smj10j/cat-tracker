@@ -19,13 +19,20 @@ export interface HealthAssessment {
   summary: string       // human-readable explanation
 }
 
-// Thresholds based on feline veterinary literature:
-//   - Clinically significant loss: >10% of body weight (vet urgently)
-//   - Concerning loss: >5-7% of body weight
-//   - Safe intentional loss rate: <1% body weight/week
-//   - Concerning rate: 1-2%/week loss
-//   - Urgent rate: >2%/week loss
-//   - Rapid gain (>2%/week) can indicate fluid retention or other issues
+// Weight loss/gain thresholds — see docs/research/weight-thresholds.md for full citations.
+//
+// Rate-of-change thresholds (classifyRate):
+//   >2%/week loss  → urgent     (hepatic lipidosis risk; AAFP Nutritional Guidelines;
+//                                 Armstrong & Blanchard, VCNA 2009; WSAVA Nutrition Guidelines)
+//   1–2%/week loss → concerning (exceeds safe intentional loss rate; WSAVA/AAFP Weight Mgmt Guidelines)
+//   0.5–1%/week loss → watch    (low-end of clinically significant; AAFP clinical convention)
+//   >3%/week gain  → concerning (fluid retention or metabolic dysfunction; AAFP Hyperthyroidism Guidelines)
+//   1.5–3%/week gain → watch
+//
+// Total-loss-from-peak thresholds (assessHealth):
+//   >10% from peak → urgent     (clinically significant; Merck Vet Manual; JVIM; Ettinger & Feldman)
+//   7–10% from peak → concerning (ISFM Feline Nutrition Guidelines)
+//   4–7% from peak → watch      (conservative lower bound; AAFP guidance)
 
 function classifyRate(changePerWeek: number): HealthStatus {
   const loss = -changePerWeek // positive = losing weight
@@ -117,13 +124,13 @@ function buildSummary(
   if (status === 'urgent') {
     if (peakLossPct >= 10)
       return `Lost ${peakLossPct}% of peak body weight (${(peakWeight - latestWeight).toFixed(1)} ${unit}). Veterinary evaluation is strongly recommended.`
-    return `Fastest recorded rate: ${Math.abs(worstPeriod?.changePerWeek ?? 0).toFixed(1)}%/week loss. This exceeds 2%/week — a threshold associated with hepatic lipidosis risk. Vet visit recommended.`
+    return `Fastest recorded rate: ${Math.abs(worstPeriod?.changePerWeek ?? 0).toFixed(1)}%/week loss. This exceeds 2%/week — the AAFP/WSAVA clinical threshold associated with hepatic lipidosis risk. Vet visit recommended.`
   }
 
   if (status === 'concerning') {
     if (peakLossPct >= 7)
       return `Lost ${peakLossPct}% from peak weight. Clinically significant loss — worth discussing with my vet.`
-    return `Fastest rate: ${Math.abs(worstPeriod?.changePerWeek ?? 0).toFixed(1)}%/week loss. Cats should not lose more than ~1% body weight per week without veterinary guidance.`
+    return `Fastest rate: ${Math.abs(worstPeriod?.changePerWeek ?? 0).toFixed(1)}%/week loss. AAFP and WSAVA guidelines recommend no more than ~1% body weight loss per week without veterinary guidance.`
   }
 
   // watch
@@ -160,8 +167,11 @@ export const STATUS_LABEL: Record<HealthStatus, string> = {
   urgent: 'Urgent',
 }
 
-// Evidence-based behavioral observations for each alert level
-// Sources: feline veterinary medicine guidelines (AAFP, Merck Vet Manual)
+// Evidence-based behavioral observations for each alert level.
+// See docs/research/behavioral-indicators.md for full citations per item.
+// Key sources: AAFP Pain Management Guidelines (2022); ISFM Feline Stress Consensus (2020);
+//              AAFP FLUTD/FIC Consensus; Armstrong & Blanchard VCNA 2009 (hepatic lipidosis);
+//              ACVIM Consensus on HCM; IRIS CKD Guidelines; Merck Veterinary Manual.
 
 export const WATCH_ATTENTION: string[] = [
   'Changes in grooming — bathing less or more than is normal for them',

@@ -32,7 +32,7 @@
 | [PRD-cat-photos.md](PRD-cat-photos.md) | Cat Photo Uploads | `Implemented` | 2026-03-07 20:00 |
 | [PRD-ux-redesign.md](PRD-ux-redesign.md) | UX Redesign — Competitive Analysis & Next-Gen Features | `Draft` | 2026-03-07 |
 | [PRD-daily-checkin.md](PRD-daily-checkin.md) | Daily Check-In — Multi-Measurement Entry Screen | `Implemented` | 2026-03-07 |
-| [PRD-evidence-base.md](PRD-evidence-base.md) | Veterinary Evidence Base — Sources, Citations, and Research Infrastructure | `Draft` | 2026-03-07 |
+| [PRD-evidence-base.md](PRD-evidence-base.md) | Veterinary Evidence Base — Sources, Citations, and Research Infrastructure | `Implemented` | 2026-03-07 |
 
 ---
 
@@ -398,9 +398,7 @@ Plus 5 Killer App promotions: Daily Check-In (P1), Streaks (P2), Weigh-In Remind
 
 **Problem:** The app makes specific clinical claims (weight loss thresholds, hepatic lipidosis risk, behavioral warning signs) that are grounded in veterinary literature but have no documented sources. This reduces trust and makes future threshold updates unmaintainable.
 
-**Proposal:** Three-component plan — (A) create `docs/research/` folder with full citations for every threshold and behavioral indicator; (B) update inline code comments in `healthMetrics.ts` with specific references; (C) add source attribution to the vet export, Wellness Guide, and alert copy. Establishes a process for evaluating and adding future evidence.
-
-**Do not implement** — status is `Draft`. Requires product owner approval.
+**Implemented:** All five phases — (A) `docs/research/` folder with four files: sourcing principles, weight-threshold citations, behavioral-indicator citations, and a curated feline resource directory; (B) inline citations in `healthMetrics.ts`; (C) Methodology section added to the vet export footer; (D) source attribution footer on WellnessGuide; (E) CLAUDE.md updated with clinical content process rules to prevent regression.
 
 ---
 

@@ -30,6 +30,11 @@ docs/
     README.md       TDD index — read this first
     web.md          Current production architecture
     cross-platform.md  iOS/Android/web unified app plan (not yet implemented)
+  research/   Veterinary evidence base — required companion to healthMetrics.ts
+    README.md          Sourcing standards and process
+    weight-thresholds.md  Citations for every numeric threshold
+    behavioral-indicators.md  Citations for behavioral alert lists
+    feline-resources.md       Reference directory (journals, guidelines, orgs)
   DESIGN.md   Visual design system
 TODO.md       Task tracking — keep this updated
 ```
@@ -69,9 +74,23 @@ The measurements table is generic (`type`, `value`, `unit`). To add a new type:
 3. Wire it into `CatProfile.tsx` — fetch with `getMeasurements(id, 'new-type')`
 4. No DB schema changes needed
 
-### Health metrics
+### Health metrics and clinical content
 
-Logic is in `frontend/src/lib/healthMetrics.ts`. Thresholds are based on feline veterinary literature. If adding thresholds for new measurement types (e.g., food intake), create a parallel function in the same file.
+Logic is in `frontend/src/lib/healthMetrics.ts`. Every threshold and clinical claim in this file (and in `WellnessGuide.tsx`, `CatHealthGuidance.tsx`, `InsightsPanel.tsx`, `CatExportPage.tsx`) is backed by veterinary literature documented in `docs/research/`.
+
+**Mandatory process for any clinical content change:**
+1. Find the primary source (Tier 1 preferred — AAFP, WSAVA, ISFM, JVIM, JFMS)
+2. Update `docs/research/weight-thresholds.md` or `docs/research/behavioral-indicators.md` with the citation
+3. Update the inline comment in `healthMetrics.ts` to reference the guideline by name
+4. Only then update the threshold value or copy
+
+**Never:**
+- Add a numeric threshold without a citation in `docs/research/`
+- State a clinical claim (e.g., "associated with hepatic lipidosis") without the guideline named in the code comment
+- Derive thresholds from secondary sources (articles citing articles) — go to the primary guideline
+- Use AI-generated clinical content as a source
+
+See `docs/research/README.md` for the full sourcing standard and tier definitions.
 
 ### TypeScript
 
@@ -195,6 +214,7 @@ See **`docs/PRDs/REGISTRY.md`** — it is the single source of truth and is alwa
 - `docs/TDD/web.md` — current web architecture, design decisions, schema, auth flow, correlation engine
 - `docs/TDD/cross-platform.md` — iOS/Android/web unified app plan (Expo + Expo Router; not yet implemented)
 - `docs/DESIGN.md` — visual design system
+- `docs/research/README.md` — **required reading before adding or changing any clinical content**; sourcing standards, tier definitions, and the process for adding new evidence
 
 ## What NOT to do
 
@@ -202,3 +222,5 @@ See **`docs/PRDs/REGISTRY.md`** — it is the single source of truth and is alwa
 - Don't change the measurements schema shape — it's intentionally generic
 - Don't install a component library; keep the UI hand-rolled with Tailwind
 - Don't start from zero on new pages — reuse the layout pattern from `CatProfile.tsx`
+- Don't add or change health thresholds without updating `docs/research/` first — threshold changes without citations will cause clinical regression
+- Don't add clinical claims (condition names, risk associations, guideline references) to alert copy or the Wellness Guide without a Tier 1 source documented in `docs/research/`

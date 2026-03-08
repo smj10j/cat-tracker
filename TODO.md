@@ -549,6 +549,19 @@
 - [x] CLAUDE.md: replace "Working Style" with formal Execution Loop (7 ordered steps); remove stale PRD status table; add API.md to docs references
 - [x] Deploy worker with security fixes
 
+## Phase 13: Veterinary Evidence Base (PRD-evidence-base.md)
+- [x] Update PRD status to Implemented in REGISTRY.md
+- [x] Create docs/research/README.md — sourcing principles and process
+- [x] Create docs/research/weight-thresholds.md — full citations for each numeric threshold
+- [x] Create docs/research/behavioral-indicators.md — sources for behavioral signal lists
+- [x] Create docs/research/feline-resources.md — curated reference directory
+- [x] Update healthMetrics.ts inline comments with specific citations
+- [x] Add Methodology section to CatExportPage.tsx (vet export footer)
+- [x] Add source attribution footer to WellnessGuide.tsx
+- [x] Update CLAUDE.md — health metrics section + "What NOT to do"
+- [x] Verify README.md docs/research/ reference is in place
+- [x] Deploy frontend
+
 ## Phase 12: Daily Check-In (PRD-daily-checkin.md)
 - [x] Create DailyCheckin.tsx — all measurement types on one screen, unselected = not logged, hourly date/time picker
 - [x] Update BottomNav — center "Log" button navigates to /checkin; remove onLog prop

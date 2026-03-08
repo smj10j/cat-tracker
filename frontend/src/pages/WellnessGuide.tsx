@@ -64,7 +64,7 @@ export default function WellnessGuide() {
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2 mb-6">
         {WELLNESS_CARDS.map((card, i) => {
           const isOpen = openCard === i
           const isUrgentCard = card.title === 'Always Call the Vet'
@@ -114,6 +114,22 @@ export default function WellnessGuide() {
             </div>
           )
         })}
+      </div>
+
+      {/* Source attribution */}
+      <div
+        className="rounded-2xl px-4 py-3 text-xs leading-relaxed"
+        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: '#6b5f85' }}
+      >
+        <p className="font-semibold mb-1" style={{ color: '#8b7aaa' }}>About this guide</p>
+        <p>
+          Health thresholds and urgent-sign criteria follow{' '}
+          <strong style={{ color: '#8b7aaa' }}>AAFP</strong> (American Association of Feline Practitioners) and{' '}
+          <strong style={{ color: '#8b7aaa' }}>WSAVA</strong> (World Small Animal Veterinary Association) feline
+          nutritional and clinical care guidelines. Behavioral indicators reference ISFM and AAFP consensus
+          documents on feline pain recognition and stress. This guide is a reference tool, not a substitute
+          for veterinary care. When in doubt, call your vet.
+        </p>
       </div>
     </div>
   )

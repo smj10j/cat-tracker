@@ -24,7 +24,8 @@ function currentHour(): number {
 }
 
 function buildMeasuredAt(localDate: string, hour: number): string {
-  return new Date(`${localDate}T${String(hour).padStart(2, '0')}:00:00`).toISOString()
+  const [y, mo, d] = localDate.split('-').map(Number)
+  return new Date(y!, mo! - 1, d!, hour, 0, 0).toISOString()
 }
 
 function formatHour(hour: number): string {

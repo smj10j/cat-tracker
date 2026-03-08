@@ -49,7 +49,8 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
     setSaving(true)
     setError(null)
     try {
-      const measured_at = new Date(`${date}T${String(hour).padStart(2, '0')}:00:00`).toISOString()
+      const [y, mo, d] = date.split('-').map(Number)
+      const measured_at = new Date(y!, mo! - 1, d!, hour, 0, 0).toISOString()
       const m = await createMeasurement(catId, { type, value, unit, measured_at, notes: null })
       onAdded(m)
       setWeightValue('')

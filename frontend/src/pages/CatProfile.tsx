@@ -45,7 +45,7 @@ interface DayGroup {
 function groupByDay(measurements: Measurement[]): DayGroup[] {
   const map = new Map<string, Measurement[]>()
   for (const m of measurements) {
-    const dateStr = m.measured_at.slice(0, 10)
+    const dateStr = new Date(m.measured_at).toLocaleDateString('en-CA')
     const bucket = map.get(dateStr) ?? []
     bucket.push(m)
     map.set(dateStr, bucket)

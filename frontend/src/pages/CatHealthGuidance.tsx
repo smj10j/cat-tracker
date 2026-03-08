@@ -99,7 +99,7 @@ export default function CatHealthGuidance() {
 
         <div className="flex items-center gap-2 mb-1">
           <span
-            className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+            className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
             style={{ color: statusColor, background: `${statusColor}18`, border: `1px solid ${statusColor}40` }}
           >
             {STATUS_LABEL[status]}

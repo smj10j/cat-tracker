@@ -307,7 +307,7 @@ function MemberRow({
       <div className="flex-1 min-w-0">
         <div className="text-sm font-semibold text-ink truncate">
           {member.display_name ?? member.email ?? 'Unknown'}
-          {isOwner && <span className="text-[10px] text-ink-dim ml-1.5">Owner</span>}
+          {isOwner && <span className="text-xs text-ink-dim ml-1.5">Owner</span>}
         </div>
         {member.email && member.display_name && (
           <div className="text-xs text-ink-dim truncate">{member.email}</div>

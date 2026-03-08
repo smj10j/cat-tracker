@@ -156,7 +156,7 @@ export default function CorrelationChart({ catName, catSex, allMeasurements, ava
       {/* Constrained selectors: input → outcome */}
       <div className="flex items-center gap-2 mb-5">
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-dim mb-1.5">Input / behavior</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-ink-dim mb-1.5">Input / behavior</p>
           <select
             value={typeA}
             onChange={(e) => setTypeA(e.target.value)}
@@ -171,7 +171,7 @@ export default function CorrelationChart({ catName, catSex, allMeasurements, ava
         </div>
         <span className="text-ink-dim text-sm shrink-0 mt-4">→</span>
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-dim mb-1.5">Health outcome</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-ink-dim mb-1.5">Health outcome</p>
           <select
             value={typeB}
             onChange={(e) => setTypeB(e.target.value)}
@@ -262,7 +262,7 @@ export default function CorrelationChart({ catName, catSex, allMeasurements, ava
       >
         {result?.strength === 'notable' && (
           <div
-            className="text-[10px] font-bold uppercase tracking-wider mb-1.5"
+            className="text-xs font-bold uppercase tracking-wider mb-1.5"
             style={{ color: strengthColor }}
           >
             Notable pattern detected
@@ -270,7 +270,7 @@ export default function CorrelationChart({ catName, catSex, allMeasurements, ava
         )}
         {result?.strength === 'weak' && (
           <div
-            className="text-[10px] font-bold uppercase tracking-wider mb-1.5"
+            className="text-xs font-bold uppercase tracking-wider mb-1.5"
             style={{ color: strengthColor }}
           >
             Weak pattern

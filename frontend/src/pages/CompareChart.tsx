@@ -221,7 +221,7 @@ export default function CompareChart() {
                     >
                       <span>{cat.name}</span>
                       {showBadge && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold"
+                        <span className="text-xs px-1.5 py-0.5 rounded-full font-bold"
                           style={{ background: `${healthColor}25`, color: healthColor }}>
                           {STATUS_EMOJI[healthStatus]} {STATUS_LABEL[healthStatus]}
                         </span>
@@ -295,7 +295,7 @@ export default function CompareChart() {
 
                   {/* Legend */}
                   {isWeightType && (
-                    <div className="flex gap-4 text-[10px] text-ink-dim pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div className="flex gap-4 text-xs text-ink-dim pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                       <span className="text-ink-dim font-medium mr-1">Dots:</span>
                       {(['ok', 'watch', 'concerning', 'urgent'] as const).map((s) => (
                         <span key={s} className="flex items-center gap-1">

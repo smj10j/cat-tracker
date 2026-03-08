@@ -146,6 +146,8 @@ export default function DailyCheckin() {
         {/* Success banner */}
         {saved && (
           <div
+            role="status"
+            aria-live="polite"
             className="flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold"
             style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.3)', color: '#4ade80' }}
           >
@@ -157,6 +159,8 @@ export default function DailyCheckin() {
         {/* Error */}
         {error && (
           <div
+            role="alert"
+            aria-live="assertive"
             className="px-4 py-3 rounded-2xl text-sm"
             style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)', color: '#f87171' }}
           >
@@ -170,8 +174,9 @@ export default function DailyCheckin() {
             className="rounded-2xl px-4 py-3"
             style={{ background: 'rgba(42,32,64,0.8)', border: '1px solid rgba(255,255,255,0.08)' }}
           >
-            <label className="block text-[10px] font-semibold text-ink-mid uppercase tracking-wider mb-2">Cat</label>
+            <label htmlFor="checkin-cat" className="block text-xs font-semibold text-ink-mid uppercase tracking-wider mb-2">Cat</label>
             <select
+              id="checkin-cat"
               value={selectedCatId}
               onChange={(e) => setSelectedCatId(e.target.value)}
               className="input-dark w-full px-3 py-2.5 text-sm"
@@ -189,9 +194,10 @@ export default function DailyCheckin() {
           className="rounded-2xl px-4 py-3"
           style={{ background: 'rgba(42,32,64,0.8)', border: '1px solid rgba(255,255,255,0.08)' }}
         >
-          <label className="block text-[10px] font-semibold text-ink-mid uppercase tracking-wider mb-2">When</label>
+          <label htmlFor="checkin-date" className="block text-xs font-semibold text-ink-mid uppercase tracking-wider mb-2">When</label>
           <div className="flex gap-2">
             <input
+              id="checkin-date"
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
@@ -203,6 +209,7 @@ export default function DailyCheckin() {
               onChange={(e) => setHour(Number(e.target.value))}
               className="input-dark px-3 py-2.5 text-sm"
               style={{ minWidth: 110 }}
+              aria-label="Hour"
             >
               {Array.from({ length: 24 }, (_, i) => (
                 <option key={i} value={i}>{formatHour(i)}</option>
@@ -216,9 +223,10 @@ export default function DailyCheckin() {
           className="rounded-2xl px-4 pt-3 pb-4"
           style={{ background: 'rgba(42,32,64,0.8)', border: '1px solid rgba(255,255,255,0.08)' }}
         >
-          <label className="block text-[10px] font-semibold text-ink-mid uppercase tracking-wider mb-3">Weight</label>
+          <label htmlFor="checkin-weight" className="block text-xs font-semibold text-ink-mid uppercase tracking-wider mb-3">Weight</label>
           <div className="flex gap-2 items-center">
             <input
+              id="checkin-weight"
               type="number"
               step="0.01"
               min="0"
@@ -231,6 +239,7 @@ export default function DailyCheckin() {
               value={weightUnit}
               onChange={(e) => setWeightUnit(e.target.value as 'lbs' | 'kg')}
               className="input-dark px-3 py-2.5 text-sm"
+              aria-label="Weight unit"
             >
               <option value="lbs">lbs</option>
               <option value="kg">kg</option>
@@ -243,7 +252,7 @@ export default function DailyCheckin() {
           className="rounded-2xl px-4 pt-3 pb-2"
           style={{ background: 'rgba(42,32,64,0.8)', border: '1px solid rgba(255,255,255,0.08)' }}
         >
-          <p className="text-[10px] font-semibold text-ink-mid uppercase tracking-wider mb-1">
+          <p className="text-xs font-semibold text-ink-mid uppercase tracking-wider mb-1">
             Observations — tap to select, skip any row
           </p>
 
@@ -255,7 +264,7 @@ export default function DailyCheckin() {
             return (
               <div
                 key={key}
-                className="flex items-center gap-2 py-2.5"
+                className="flex items-center gap-2 py-2"
                 style={isLast ? undefined : { borderBottom: '1px solid rgba(255,255,255,0.05)' }}
               >
                 {/* Type label */}
@@ -275,14 +284,14 @@ export default function DailyCheckin() {
                         key={preset.value}
                         onClick={() => handlePreset(key, preset.value)}
                         disabled={saving}
-                        className="flex-1 rounded-lg font-semibold transition-all leading-tight"
+                        aria-pressed={isSelected}
+                        className="flex-1 rounded-lg text-xs font-semibold transition-all leading-tight"
                         style={{
-                          fontSize: 10,
                           paddingTop: 6,
                           paddingBottom: 6,
                           paddingLeft: 2,
                           paddingRight: 2,
-                          minHeight: 34,
+                          minHeight: 44,
                           background: isSelected
                             ? (preset.concern ? 'rgba(248,113,113,0.18)' : 'rgba(74,222,128,0.13)')
                             : 'rgba(255,255,255,0.05)',
@@ -294,7 +303,7 @@ export default function DailyCheckin() {
                             : '#6b5f85',
                         }}
                       >
-                        {preset.label}
+                        {preset.concern ? '! ' : ''}{preset.label}
                       </button>
                     )
                   })}
@@ -315,11 +324,19 @@ export default function DailyCheckin() {
           <button
             onClick={handleSubmit}
             disabled={!canSubmit || saving}
+            aria-busy={saving}
             className="btn-primary w-full py-4 text-sm font-semibold"
             style={!canSubmit ? { opacity: 0.4, cursor: 'default' } : undefined}
           >
-            {saving ? 'Saving…' : canSubmit ? 'Log Check-In' : 'Nothing to log yet'}
+            {saving ? 'Saving…' : 'Log Check-In'}
           </button>
+          {!canSubmit && !saving && (
+            <p className="text-center text-xs mt-2" style={{ color: '#6b5f85' }}>
+              {!selectedCatId
+                ? 'Select a cat above to continue'
+                : 'Select at least one measurement above to log'}
+            </p>
+          )}
         </div>
       </div>
     </div>

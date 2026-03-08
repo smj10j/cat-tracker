@@ -119,7 +119,7 @@ function CareScheduleSection({ catId, meds }: { catId: string; meds: Medication[
           <h3 className="font-display font-semibold text-ink">Care Schedule</h3>
           {overdueCount > 0 && (
             <span
-              className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+              className="text-xs font-bold px-2 py-0.5 rounded-full"
               style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171' }}
             >
               {overdueCount} overdue
@@ -151,7 +151,7 @@ function CareScheduleSection({ catId, meds }: { catId: string; meds: Medication[
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-ink truncate">{med.name}</span>
                   {(med.overdue_count ?? 0) > 0 && (
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
+                    <span className="text-xs font-bold px-1.5 py-0.5 rounded-full shrink-0"
                       style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171' }}>
                       overdue
                     </span>
@@ -191,6 +191,7 @@ export default function CatProfile() {
   const [showOlderHistory, setShowOlderHistory] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
 
   const [cropFile, setCropFile] = useState<File | null>(null)
   const [photoUploading, setPhotoUploading] = useState(false)
@@ -206,12 +207,12 @@ export default function CatProfile() {
 
   useEffect(() => { setShowOlderHistory(false) }, [chartTab])
 
-  async function handleDeleteMeasurement(m: Measurement) {
-    if (!confirm('Delete this measurement?')) return
+  async function executeDeleteMeasurement(id: string) {
     try {
-      await deleteMeasurement(m.id)
-      setMeasurements((prev) => prev.filter((x) => x.id !== m.id))
+      await deleteMeasurement(id)
+      setMeasurements((prev) => prev.filter((x) => x.id !== id))
     } catch (e: unknown) { alert((e as Error).message) }
+    setPendingDeleteId(null)
   }
 
   function handleMeasurementAdded(m: Measurement) {
@@ -353,7 +354,7 @@ export default function CatProfile() {
         {/* Top nav */}
         <div className="absolute top-0 left-0 right-0 flex items-center px-4 pt-12 gap-3">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/')}
             className="text-white/60 hover:text-white transition-colors text-xl leading-none"
           >
             ←
@@ -421,7 +422,7 @@ export default function CatProfile() {
                 </div>
                 {weightMeasurements.length >= 2 && (
                   <div
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full inline-block mt-0.5 ${isUrgent ? 'animate-pulse' : ''}`}
+                    className={`text-xs font-bold px-2 py-0.5 rounded-full inline-block mt-0.5 ${isUrgent ? 'animate-pulse' : ''}`}
                     style={{ color: statusColor, background: `${statusColor}25`, border: `1px solid ${statusColor}50` }}
                   >
                     {STATUS_LABEL[status]}
@@ -434,10 +435,12 @@ export default function CatProfile() {
       </div>
 
       {/* ── Profile tabs ── */}
-      <div className="flex gap-1 mx-4 mt-4 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+      <div role="tablist" aria-label="Profile sections" className="flex gap-1 mx-4 mt-4 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
         {(['health', 'care', 'about'] as const).map((key) => (
           <button
             key={key}
+            role="tab"
+            aria-selected={profileTab === key}
             onClick={() => setProfileTab(key)}
             className="flex-1 py-2 text-xs font-semibold rounded-lg transition-all capitalize"
             style={{
@@ -474,7 +477,7 @@ export default function CatProfile() {
                 <>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-display font-semibold text-ink">Weight Over Time</h3>
-                    <div className="flex gap-3 text-[10px] text-ink-dim">
+                    <div className="flex gap-3 text-xs text-ink-dim">
                       {(['ok', 'watch', 'concerning', 'urgent'] as const).map((s) => (
                         <span key={s} className="flex items-center gap-1">
                           {STATUS_EMOJI[s]} {s}
@@ -507,10 +510,12 @@ export default function CatProfile() {
               <h3 className="font-display font-semibold text-ink mb-4">History</h3>
 
               {/* Chart/history type filter tabs */}
-              <div className="flex gap-1 mb-5 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+              <div role="tablist" aria-label="Measurement type" className="flex gap-1 mb-5 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
                 {chartTabs.map(({ key, label }) => (
                   <button
                     key={key}
+                    role="tab"
+                    aria-selected={chartTab === key}
                     onClick={() => setChartTab(key)}
                     className="flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all"
                     style={{
@@ -532,7 +537,7 @@ export default function CatProfile() {
                     <div key={group.dateStr}>
                       <div className="flex items-center gap-3 mb-2">
                         <span className="text-xs font-bold text-ink-dim">{group.label}</span>
-                        <span className="text-[10px] text-ink-dim/60">
+                        <span className="text-xs text-ink-dim/60">
                           {group.items.length} {group.items.length === 1 ? 'entry' : 'entries'}
                         </span>
                         <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.05)' }} />
@@ -551,7 +556,7 @@ export default function CatProfile() {
                                   {m.unit === 'scale' ? getPresetLabel(m.type, m.value) : `${m.value} ${m.unit}`}
                                 </span>
                                 {(chartTab === 'all' || chartTab === 'behavior') && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full text-ink-dim"
+                                  <span className="text-xs px-1.5 py-0.5 rounded-full text-ink-dim"
                                     style={{ background: 'rgba(255,255,255,0.06)' }}>
                                     {MEAS_TYPE_LABELS[m.type] ?? m.type}
                                   </span>
@@ -559,12 +564,31 @@ export default function CatProfile() {
                                 {m.notes && <span className="text-xs text-ink-dim">— {m.notes}</span>}
                               </div>
                             </div>
-                            <button
-                              onClick={() => handleDeleteMeasurement(m)}
-                              className="text-xs text-rose/60 hover:text-rose transition-colors ml-3 shrink-0"
-                            >
-                              Delete
-                            </button>
+                            {pendingDeleteId === m.id ? (
+                              <div className="flex items-center gap-1 ml-3 shrink-0">
+                                <button
+                                  onClick={() => setPendingDeleteId(null)}
+                                  className="text-xs px-2 py-1 rounded-lg transition-colors"
+                                  style={{ color: '#8b7aaa', background: 'rgba(255,255,255,0.05)' }}
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={() => executeDeleteMeasurement(m.id)}
+                                  className="text-xs px-2 py-1 rounded-lg transition-colors font-semibold"
+                                  style={{ color: '#f87171', background: 'rgba(248,113,113,0.1)' }}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setPendingDeleteId(m.id)}
+                                className="text-xs text-rose/60 hover:text-rose transition-colors ml-3 shrink-0"
+                              >
+                                Delete
+                              </button>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -654,7 +678,7 @@ export default function CatProfile() {
                       {latestWeight.value} {latestWeight.unit}
                     </span>
                     {weightMeasurements.length >= 2 && (
-                      <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                      <span className="ml-2 text-xs font-bold px-1.5 py-0.5 rounded-full"
                         style={{ color: statusColor, background: `${statusColor}20`, border: `1px solid ${statusColor}40` }}>
                         {STATUS_LABEL[status]}
                       </span>

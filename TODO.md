@@ -549,6 +549,55 @@
 - [x] CLAUDE.md: replace "Working Style" with formal Execution Loop (7 ordered steps); remove stale PRD status table; add API.md to docs references
 - [x] Deploy worker with security fixes
 
+## Phase 29: Accessibility & Usability Implementation (2026-03-07)
+
+### Phase A Usability (zero-risk wins)
+- [x] Create frontend/src/components/ScrollToTop.tsx + wire into App.tsx
+- [x] DailyCheckin.tsx: disabled submit button always says "Log Check-In"; contextual hint below when disabled
+- [x] MeasurementForm.tsx: actionable error messages ("Couldn't save. Check your connection and try again.")
+- [x] MeasurementForm.tsx: show "Saved!" flash for 1s before closing panel
+
+### Phase A Accessibility (zero-visual-impact)
+- [x] frontend/src/index.css: add :focus-visible ring (2px brand lavender, offset 2px)
+- [x] MeasurementForm.tsx: add htmlFor/id to all label-input pairs
+- [x] AddEditCat.tsx: add htmlFor/id to all label-input pairs (field() helper + inline labels)
+- [x] DailyCheckin.tsx: add htmlFor/id to all label-input pairs
+- [x] MedicationFormPage.tsx: add htmlFor/id to all label-input pairs (12 pairs)
+- [x] DailyCheckin.tsx: add role="status" to save banner; role="alert" to error; aria-busy on submit
+- [x] MeasurementForm.tsx: role="alert" on error div; role="status" on saved flash; aria-busy on save buttons
+- [x] InsightsPanel.tsx: aria-expanded on patterns toggle + explore toggle; aria-controls pointing to panel IDs
+- [x] WellnessGuide.tsx: aria-expanded on accordion cards toggle buttons
+- [x] CatProfile.tsx: role="tablist"/role="tab"/aria-selected on profile tabs (Health/Care/About) + chart sub-tabs
+
+### Phase B Usability (interaction model)
+- [x] MeasurementForm.tsx: preset buttons — first tap selects (no save); "Save [Type] Observation" button appears; second tap deselects
+- [x] CatProfile.tsx: two-step inline delete confirmation (Cancel/Delete buttons replace Delete link)
+- [x] CatProfile.tsx: back button navigate('/') → navigate(-1) with fallback
+- [x] CatExportPage.tsx: back nav → navigate(-1) with fallback
+
+### Phase B Accessibility (text and touch targets)
+- [x] Replace all text-[10px] with text-xs across all files (31 instances) via sed
+- [x] DailyCheckin.tsx: preset buttons min-h-[44px] (was 34px)
+- [x] MeasurementForm.tsx: × close button min 44px tap target (minWidth/minHeight 44px)
+
+### Phase C Accessibility (color independence)
+- [x] DailyCheckin.tsx + MeasurementForm.tsx: add "! " prefix to concern-tier preset buttons
+- [ ] CompareChart.tsx: add stroke dash patterns (solid vs dashed) as second per-cat differentiator
+- [ ] InsightsPanel.tsx: ensure STATUS_LABEL text badge always appears alongside STATUS_EMOJI
+
+### Phase C Usability (state & hierarchy)
+- [ ] Create LoadingShell component for consistent loading states
+- [ ] Empty state improvements (CatProfile no-measurement state with call to action)
+- [ ] CatProfile health status always visible without scrolling
+
+### Deploy & docs
+- [x] Run frontend tests (63 passing)
+- [x] Deploy frontend (https://d73ec733.cat-tracker.pages.dev)
+- [x] Update REGISTRY.md status to Partial for both PRDs
+- [ ] Commit + push
+
+---
+
 ## Phase 14: PRD Writing — Accessibility and Usability
 - [x] Audit codebase: aria attributes, label associations, touch targets, text sizes, color usage, scroll behavior
 - [x] Write PRD-accessibility.md (Draft): color independence, touch targets, screen reader support, focus visibility, text size

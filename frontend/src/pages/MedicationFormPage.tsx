@@ -261,17 +261,17 @@ export default function MedicationFormPage() {
           <h2 className="text-xs font-bold uppercase tracking-widest text-ink-mid">Medication</h2>
 
           <div>
-            <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Name</label>
+            <label htmlFor="med-name" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Name</label>
             <input
-              value={name} onChange={e => setName(e.target.value)}
+              id="med-name" value={name} onChange={e => setName(e.target.value)}
               placeholder="e.g. Revolution Plus" maxLength={200}
               className="input-dark w-full px-3 py-2.5 text-sm" required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Type</label>
-            <select value={type} onChange={e => setType(e.target.value)} className="input-dark w-full px-3 py-2.5 text-sm">
+            <label htmlFor="med-type" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Type</label>
+            <select id="med-type" value={type} onChange={e => setType(e.target.value)} className="input-dark w-full px-3 py-2.5 text-sm">
               {Object.entries(TYPE_LABELS).map(([v, l]) => (
                 <option key={v} value={v}>{l}</option>
               ))}
@@ -279,18 +279,18 @@ export default function MedicationFormPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Dose amount</label>
+            <label htmlFor="med-dose" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Dose amount</label>
             <input
-              value={dose} onChange={e => setDose(e.target.value)}
+              id="med-dose" value={dose} onChange={e => setDose(e.target.value)}
               placeholder="e.g. 2.5mg or 1 tube" maxLength={100}
               className="input-dark w-full px-3 py-2.5 text-sm"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Notes</label>
+            <label htmlFor="med-notes" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Notes</label>
             <input
-              value={notes} onChange={e => setNotes(e.target.value)}
+              id="med-notes" value={notes} onChange={e => setNotes(e.target.value)}
               placeholder="e.g. Give with food" maxLength={1000}
               className="input-dark w-full px-3 py-2.5 text-sm"
             />
@@ -304,8 +304,8 @@ export default function MedicationFormPage() {
           <h2 className="text-xs font-bold uppercase tracking-widest text-ink-mid">Schedule</h2>
 
           <div>
-            <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Frequency</label>
-            <select value={frequency} onChange={e => setFrequency(e.target.value)} className="input-dark w-full px-3 py-2.5 text-sm">
+            <label htmlFor="med-frequency" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Frequency</label>
+            <select id="med-frequency" value={frequency} onChange={e => setFrequency(e.target.value)} className="input-dark w-full px-3 py-2.5 text-sm">
               {Object.entries(FREQ_LABELS).map(([v, l]) => (
                 <option key={v} value={v}>{l}</option>
               ))}
@@ -314,9 +314,9 @@ export default function MedicationFormPage() {
 
           {frequency === 'custom' && (
             <div>
-              <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Every N days</label>
+              <label htmlFor="med-freq-days" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Every N days</label>
               <input
-                type="number" min="1" max="3650"
+                id="med-freq-days" type="number" min="1" max="3650"
                 value={frequencyDays} onChange={e => setFrequencyDays(e.target.value)}
                 className="input-dark w-full px-3 py-2.5 text-sm"
               />
@@ -325,37 +325,37 @@ export default function MedicationFormPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Start date</label>
+              <label htmlFor="med-start-date" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Start date</label>
               <input
-                type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+                id="med-start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
                 className="input-dark w-full px-3 py-2.5 text-sm" required
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Reminder time</label>
+              <label htmlFor="med-reminder-time" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Reminder time</label>
               <input
-                type="time" value={reminderTime} onChange={e => setReminderTime(e.target.value)}
+                id="med-reminder-time" type="time" value={reminderTime} onChange={e => setReminderTime(e.target.value)}
                 className="input-dark w-full px-3 py-2.5 text-sm"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">
+            <label htmlFor="med-end-date" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">
               Stop date <span className="font-normal normal-case text-ink-dim">(leave blank for ongoing)</span>
             </label>
             <input
-              type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+              id="med-end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
               className="input-dark w-full px-3 py-2.5 text-sm"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">
+            <label htmlFor="med-doses-total" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">
               Course length <span className="font-normal normal-case text-ink-dim">(total doses, blank = ongoing)</span>
             </label>
             <input
-              type="number" min="1" value={dosesTotal} onChange={e => setDosesTotal(e.target.value)}
+              id="med-doses-total" type="number" min="1" value={dosesTotal} onChange={e => setDosesTotal(e.target.value)}
               placeholder="e.g. 14 for a 14-day course"
               className="input-dark w-full px-3 py-2.5 text-sm"
             />
@@ -369,20 +369,20 @@ export default function MedicationFormPage() {
           <h2 className="text-xs font-bold uppercase tracking-widest text-ink-mid">Stock tracking <span className="font-normal normal-case text-ink-dim">(optional)</span></h2>
 
           <div>
-            <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Doses currently in stock</label>
+            <label htmlFor="med-doses-remaining" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Doses currently in stock</label>
             <input
-              type="number" min="0" value={dosesRemaining} onChange={e => setDosesRemaining(e.target.value)}
+              id="med-doses-remaining" type="number" min="0" value={dosesRemaining} onChange={e => setDosesRemaining(e.target.value)}
               placeholder="e.g. 3"
               className="input-dark w-full px-3 py-2.5 text-sm"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">
+            <label htmlFor="med-refill-threshold" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">
               Refill alert threshold <span className="font-normal normal-case text-ink-dim">(alert when stock falls to this)</span>
             </label>
             <input
-              type="number" min="1" value={refillThreshold} onChange={e => setRefillThreshold(e.target.value)}
+              id="med-refill-threshold" type="number" min="1" value={refillThreshold} onChange={e => setRefillThreshold(e.target.value)}
               placeholder="e.g. 2"
               className="input-dark w-full px-3 py-2.5 text-sm"
             />

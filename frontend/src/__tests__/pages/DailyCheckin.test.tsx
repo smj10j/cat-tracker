@@ -78,7 +78,7 @@ describe('DailyCheckin', () => {
     await waitFor(() => expect(screen.getByText('Simba')).toBeInTheDocument())
 
     // With one cat it auto-selects, but no measurements chosen yet
-    const button = screen.getByRole('button', { name: /nothing to log yet/i })
+    const button = screen.getByRole('button', { name: /log check-in/i })
     expect(button).toBeDisabled()
   })
 

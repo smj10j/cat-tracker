@@ -114,7 +114,7 @@ export default function InsightsPanel({
               <p className="text-xs font-semibold" style={{ color: statusColor }}>
                 What to watch for &amp; when to go to the vet
               </p>
-              <p className="text-[10px] text-ink-dim mt-0.5">Behavioral signs, vet thresholds, and what this means</p>
+              <p className="text-xs text-ink-dim mt-0.5">Behavioral signs, vet thresholds, and what this means</p>
             </div>
             <span className="text-sm ml-3 shrink-0" style={{ color: statusColor }}>→</span>
           </Link>
@@ -127,6 +127,8 @@ export default function InsightsPanel({
           {/* Collapsed header / toggle */}
           <button
             onClick={() => setPatternsOpen((o) => !o)}
+            aria-expanded={patternsOpen}
+            aria-controls="insights-patterns-panel"
             className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
           >
             <span className="text-sm shrink-0">&#128200;</span>
@@ -134,7 +136,7 @@ export default function InsightsPanel({
 
             {/* Count badge */}
             <span
-              className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
+              className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0"
               style={{
                 background: correlations.length > 0 ? 'rgba(192,132,252,0.15)' : 'rgba(255,255,255,0.05)',
                 color: correlations.length > 0 ? '#c084fc' : '#6b5f85',
@@ -147,7 +149,7 @@ export default function InsightsPanel({
             {/* Confluence pill — visible even when collapsed */}
             {confluence && !patternsOpen && (
               <span
-                className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
+                className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0"
                 style={{
                   background: 'rgba(249,115,22,0.12)',
                   color: '#f97316',
@@ -168,7 +170,7 @@ export default function InsightsPanel({
 
           {/* Expanded content */}
           {patternsOpen && (
-            <div className="px-4 pb-4 space-y-3">
+            <div id="insights-patterns-panel" className="px-4 pb-4 space-y-3">
               {/* Confluence alert */}
               {confluence && (
                 <div
@@ -178,7 +180,7 @@ export default function InsightsPanel({
                     border: '1.5px solid rgba(249,115,22,0.4)',
                   }}
                 >
-                  <p className="text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: '#f97316' }}>
+                  <p className="text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: '#f97316' }}>
                     Multiple signals — {confluence.clusterName}
                   </p>
                   <p className="text-sm leading-snug" style={{ color: '#fdba74' }}>
@@ -209,6 +211,8 @@ export default function InsightsPanel({
               <div className="pt-1">
                 <button
                   onClick={() => setExploreOpen((o) => !o)}
+                  aria-expanded={exploreOpen}
+                  aria-controls="insights-explore-panel"
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left"
                   style={{
                     background: exploreOpen ? 'rgba(192,132,252,0.12)' : 'rgba(192,132,252,0.07)',
@@ -218,7 +222,7 @@ export default function InsightsPanel({
                   <span className="text-base shrink-0">&#128202;</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold" style={{ color: '#c084fc' }}>Explore measurement patterns</p>
-                    <p className="text-[10px] text-ink-dim mt-0.5">Compare any two types to see how they relate over time</p>
+                    <p className="text-xs text-ink-dim mt-0.5">Compare any two types to see how they relate over time</p>
                   </div>
                   <span
                     className="text-ink-dim text-sm shrink-0"
@@ -229,7 +233,7 @@ export default function InsightsPanel({
                 </button>
 
                 {exploreOpen && (
-                  <div className="mt-3">
+                  <div id="insights-explore-panel" className="mt-3">
                     <CorrelationChart
                       catName={cat.name}
                       catSex={cat.sex}

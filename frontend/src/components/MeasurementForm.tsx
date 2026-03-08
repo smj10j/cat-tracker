@@ -36,12 +36,15 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
   const [weightUnit, setWeightUnit] = useState('lbs')
   const [date, setDate] = useState(todayLocalDate)
   const [hour, setHour] = useState(() => new Date().getHours())
+  const [selectedPreset, setSelectedPreset] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [savedFlash, setSavedFlash] = useState(false)
 
   function handleTypeChange(newType: string) {
     setType(newType)
     setWeightValue('')
+    setSelectedPreset(null)
     setError(null)
   }
 
@@ -54,11 +57,17 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
       const m = await createMeasurement(catId, { type, value, unit, measured_at, notes: null })
       onAdded(m)
       setWeightValue('')
+      setSelectedPreset(null)
       setDate(todayLocalDate())
       setHour(new Date().getHours())
-      setOpen(false)
+      // Show "Saved!" for 1 second then close
+      setSavedFlash(true)
+      setTimeout(() => {
+        setSavedFlash(false)
+        setOpen(false)
+      }, 1000)
     } catch (e: unknown) {
-      setError((e as Error).message)
+      setError('Couldn\'t save. Check your connection and try again.')
     } finally {
       setSaving(false)
     }
@@ -71,12 +80,19 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
     await save(num, weightUnit)
   }
 
-  async function handlePresetTap(value: number) {
-    await save(value, 'scale')
+  async function handlePresetSave() {
+    if (selectedPreset === null) return
+    await save(selectedPreset, 'scale')
+  }
+
+  function handlePresetTap(value: number) {
+    setSelectedPreset((prev) => prev === value ? null : value)
+    setError(null)
   }
 
   const isPresetType = PRESET_TYPES.has(type)
   const presets = PRESETS[type] ?? []
+  const typeLabel = TYPE_OPTIONS.find((o) => o.value === type)?.label ?? type
 
   if (!open) {
     return (
@@ -99,27 +115,55 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
     >
       <div className="flex items-center justify-between">
         <h3 className="font-display font-semibold text-ink">New Measurement</h3>
-        <button onClick={() => setOpen(false)} className="text-ink-dim hover:text-ink-mid text-xl leading-none w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-all">×</button>
+        <button
+          onClick={() => setOpen(false)}
+          className="text-ink-dim hover:text-ink-mid text-xl leading-none flex items-center justify-center rounded-full hover:bg-white/5 transition-all"
+          style={{ minWidth: 44, minHeight: 44 }}
+          aria-label="Close"
+        >
+          ×
+        </button>
       </div>
 
-      {error && <div className="text-rose text-sm p-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.1)' }}>{error}</div>}
+      {savedFlash && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="text-sm font-semibold text-center py-1"
+          style={{ color: '#4ade80' }}
+        >
+          ✓ Saved!
+        </div>
+      )}
+
+      {error && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="text-rose text-sm p-2 rounded-lg"
+          style={{ background: 'rgba(248,113,113,0.1)' }}
+        >
+          {error}
+        </div>
+      )}
 
       {/* Type selector */}
       <div>
-        <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Type</label>
-        <select value={type} onChange={(e) => handleTypeChange(e.target.value)} className="input-dark w-full px-3 py-2.5 text-sm">
+        <label htmlFor="mform-type" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Type</label>
+        <select id="mform-type" value={type} onChange={(e) => handleTypeChange(e.target.value)} className="input-dark w-full px-3 py-2.5 text-sm">
           {TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       </div>
 
       {/* Date/time (always shown) */}
       <div>
-        <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Date &amp; Time</label>
+        <label htmlFor="mform-date" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Date &amp; Time</label>
         <div className="flex gap-2">
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
+          <input id="mform-date" type="date" value={date} onChange={(e) => setDate(e.target.value)}
             max={todayLocalDate()} className="input-dark flex-1 px-3 py-2.5 text-sm" />
           <select value={hour} onChange={(e) => setHour(Number(e.target.value))}
-            className="input-dark px-3 py-2.5 text-sm" style={{ minWidth: 110 }}>
+            className="input-dark px-3 py-2.5 text-sm" style={{ minWidth: 110 }}
+            aria-label="Hour">
             {Array.from({ length: 24 }, (_, i) => (
               <option key={i} value={i}>{formatHour(i)}</option>
             ))}
@@ -132,41 +176,62 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
         <div>
           <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Observation</label>
           <div className="grid grid-cols-2 gap-2">
-            {presets.map((preset) => (
-              <button
-                key={preset.value}
-                onClick={() => handlePresetTap(preset.value)}
-                disabled={saving}
-                className="py-3.5 rounded-xl text-sm font-semibold transition-all"
-                style={{
-                  background: preset.concern ? 'rgba(248,113,113,0.08)' : 'rgba(255,255,255,0.05)',
-                  border: preset.concern ? '1px solid rgba(248,113,113,0.25)' : '1px solid rgba(255,255,255,0.08)',
-                  color: preset.concern ? '#f87171cc' : '#ede9f6',
-                }}
-              >
-                {saving ? '…' : preset.label}
-              </button>
-            ))}
+            {presets.map((preset) => {
+              const isSelected = selectedPreset === preset.value
+              return (
+                <button
+                  key={preset.value}
+                  onClick={() => handlePresetTap(preset.value)}
+                  disabled={saving}
+                  aria-pressed={isSelected}
+                  className="py-3.5 rounded-xl text-sm font-semibold transition-all"
+                  style={{
+                    background: isSelected
+                      ? (preset.concern ? 'rgba(248,113,113,0.18)' : 'rgba(192,132,252,0.15)')
+                      : (preset.concern ? 'rgba(248,113,113,0.08)' : 'rgba(255,255,255,0.05)'),
+                    border: isSelected
+                      ? (preset.concern ? '1.5px solid rgba(248,113,113,0.5)' : '1.5px solid rgba(192,132,252,0.4)')
+                      : (preset.concern ? '1px solid rgba(248,113,113,0.25)' : '1px solid rgba(255,255,255,0.08)'),
+                    color: isSelected
+                      ? (preset.concern ? '#f87171' : '#c084fc')
+                      : (preset.concern ? '#f87171cc' : '#ede9f6'),
+                  }}
+                >
+                  {preset.concern ? '! ' : ''}{saving ? '…' : preset.label}
+                </button>
+              )
+            })}
           </div>
+          {selectedPreset !== null && (
+            <button
+              type="button"
+              onClick={handlePresetSave}
+              disabled={saving}
+              aria-busy={saving}
+              className="btn-primary w-full py-3 text-sm mt-3"
+            >
+              {saving ? 'Saving…' : `Save ${typeLabel} Observation`}
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-3">
           <div className="grid grid-cols-3 gap-2">
             <div className="col-span-2">
-              <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Weight</label>
-              <input type="number" step="0.01" min="0" value={weightValue}
+              <label htmlFor="mform-weight" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Weight</label>
+              <input id="mform-weight" type="number" step="0.01" min="0" value={weightValue}
                 onChange={(e) => setWeightValue(e.target.value)}
                 placeholder="e.g. 9.4" className="input-dark w-full px-3 py-2.5 text-sm" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Unit</label>
-              <select value={weightUnit} onChange={(e) => setWeightUnit(e.target.value)} className="input-dark w-full px-2 py-2.5 text-sm">
+              <label htmlFor="mform-unit" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Unit</label>
+              <select id="mform-unit" value={weightUnit} onChange={(e) => setWeightUnit(e.target.value)} className="input-dark w-full px-2 py-2.5 text-sm">
                 <option value="lbs">lbs</option>
                 <option value="kg">kg</option>
               </select>
             </div>
           </div>
-          <button type="button" onClick={handleWeightSubmit} disabled={saving} className="btn-primary w-full py-3 text-sm">
+          <button type="button" onClick={handleWeightSubmit} disabled={saving} aria-busy={saving} className="btn-primary w-full py-3 text-sm">
             {saving ? 'Saving…' : 'Save Weight'}
           </button>
         </div>

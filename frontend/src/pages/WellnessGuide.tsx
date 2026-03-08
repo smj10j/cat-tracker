@@ -79,6 +79,8 @@ export default function WellnessGuide() {
             >
               <button
                 onClick={() => setOpenCard(isOpen ? null : i)}
+                aria-expanded={isOpen}
+                aria-controls={`wellness-card-${i}`}
                 className="w-full flex items-center justify-between px-4 py-3.5 text-left"
               >
                 <div className="flex items-center gap-3">
@@ -98,7 +100,7 @@ export default function WellnessGuide() {
                 </span>
               </button>
               {isOpen && (
-                <div className="px-4 pb-4">
+                <div id={`wellness-card-${i}`} className="px-4 pb-4">
                   <ul className="space-y-2">
                     {card.items.map((item, j) => (
                       <li key={j} className="flex items-start gap-2 text-sm text-ink-mid">

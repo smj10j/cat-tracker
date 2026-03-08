@@ -133,10 +133,11 @@ export default function AddEditCat() {
 
   const field = (label: string, name: keyof typeof form, type = 'text', required = false, placeholder = '', maxLength?: number) => (
     <div>
-      <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">
+      <label htmlFor={`cat-field-${name}`} className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">
         {label}{required && <span className="text-rose ml-1">*</span>}
       </label>
       <input
+        id={`cat-field-${name}`}
         name={name}
         type={type}
         value={form[name]}
@@ -250,13 +251,13 @@ export default function AddEditCat() {
         {field('Birthdate', 'birthdate', 'date', true)}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Breed</label>
-            <input name="breed" value={form.breed} onChange={handleChange} placeholder="Domestic Shorthair"
+            <label htmlFor="cat-field-breed" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Breed</label>
+            <input id="cat-field-breed" name="breed" value={form.breed} onChange={handleChange} placeholder="Domestic Shorthair"
               maxLength={200} className="input-dark w-full px-4 py-3 text-sm" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Sex</label>
-            <select name="sex" value={form.sex} onChange={handleChange} className="input-dark w-full px-4 py-3 text-sm">
+            <label htmlFor="cat-field-sex" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Sex</label>
+            <select id="cat-field-sex" name="sex" value={form.sex} onChange={handleChange} className="input-dark w-full px-4 py-3 text-sm">
               <option value="">Unknown</option>
               <option value="Male">Male</option>
               <option value="Female">Female</option>
@@ -264,31 +265,32 @@ export default function AddEditCat() {
           </div>
         </div>
         <div>
-          <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Neuter status</label>
-          <select name="is_neutered" value={form.is_neutered} onChange={handleChange} className="input-dark w-full px-4 py-3 text-sm">
+          <label htmlFor="cat-field-is_neutered" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Neuter status</label>
+          <select id="cat-field-is_neutered" name="is_neutered" value={form.is_neutered} onChange={handleChange} className="input-dark w-full px-4 py-3 text-sm">
             <option value="">Unknown</option>
             <option value="1">{form.sex === 'Female' ? 'Spayed' : 'Neutered'}</option>
             <option value="0">Intact (not neutered)</option>
           </select>
         </div>
         <div>
-          <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Coloring</label>
-          <input name="coloring" value={form.coloring} onChange={handleChange} placeholder="Orange tabby"
+          <label htmlFor="cat-field-coloring" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Coloring</label>
+          <input id="cat-field-coloring" name="coloring" value={form.coloring} onChange={handleChange} placeholder="Orange tabby"
             maxLength={200} className="input-dark w-full px-4 py-3 text-sm" />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Notes</label>
-          <textarea name="notes" value={form.notes} onChange={handleChange} rows={3}
+          <label htmlFor="cat-field-notes" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Notes</label>
+          <textarea id="cat-field-notes" name="notes" value={form.notes} onChange={handleChange} rows={3}
             placeholder="Anything worth remembering…" maxLength={4000}
             className="input-dark w-full px-4 py-3 text-sm resize-none" />
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">
+          <label htmlFor="cat-field-microchip_id" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">
             Microchip ID
             <span className="ml-2 normal-case font-normal text-ink-dim">(optional)</span>
           </label>
           <input
+            id="cat-field-microchip_id"
             name="microchip_id"
             value={form.microchip_id}
             onChange={handleChange}
@@ -296,7 +298,7 @@ export default function AddEditCat() {
             maxLength={50}
             className="input-dark w-full px-4 py-3 text-sm font-mono tracking-wide"
           />
-          <p className="text-[10px] text-ink-dim mt-1.5">Leave blank to fill in later. Used to identify your cat if found by a vet or shelter.</p>
+          <p className="text-xs text-ink-dim mt-1.5">Leave blank to fill in later. Used to identify your cat if found by a vet or shelter.</p>
         </div>
 
         <button type="submit" disabled={saving || deleting} className="btn-primary w-full py-3.5 text-sm mt-2">

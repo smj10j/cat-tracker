@@ -16,10 +16,12 @@ import HouseholdPage from './pages/HouseholdPage'
 import InvitePage from './pages/InvitePage'
 import DailyCheckin from './pages/DailyCheckin'
 import PageShell from './components/PageShell'
+import ScrollToTop from './components/ScrollToTop'
 
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />

@@ -30,11 +30,11 @@
 | [PRD-household-sharing.md](PRD-household-sharing.md) | Household Sharing & Multi-User Access | `Implemented` | 2026-03-07 18:00 |
 | [PRD-household-sharing-phase2.md](PRD-household-sharing-phase2.md) | Household Sharing — Phase 2 (lifecycle + audit) | `Draft` | 2026-03-07 13:00 |
 | [PRD-cat-photos.md](PRD-cat-photos.md) | Cat Photo Uploads | `Implemented` | 2026-03-07 20:00 |
-| [PRD-ux-redesign.md](PRD-ux-redesign.md) | UX Redesign — Competitive Analysis & Next-Gen Features | `Draft` | 2026-03-07 |
+| [PRD-ux-redesign.md](PRD-ux-redesign.md) | UX Redesign — Competitive Analysis & Next-Gen Features | `Partial` | 2026-03-07 |
 | [PRD-daily-checkin.md](PRD-daily-checkin.md) | Daily Check-In — Multi-Measurement Entry Screen | `Implemented` | 2026-03-07 |
 | [PRD-evidence-base.md](PRD-evidence-base.md) | Veterinary Evidence Base — Sources, Citations, and Research Infrastructure | `Implemented` | 2026-03-07 |
-| [PRD-accessibility.md](PRD-accessibility.md) | Accessibility — Color Independence, Touch Targets, Screen Reader Support | `Draft` | 2026-03-07 |
-| [PRD-usability.md](PRD-usability.md) | Usability Polish — Scroll, Feedback, Disabled States, Delete Confirmation | `Draft` | 2026-03-07 |
+| [PRD-accessibility.md](PRD-accessibility.md) | Accessibility — Color Independence, Touch Targets, Screen Reader Support | `Partial` | 2026-03-07 |
+| [PRD-usability.md](PRD-usability.md) | Usability Polish — Scroll, Feedback, Disabled States, Delete Confirmation | `Partial` | 2026-03-07 |
 
 ---
 
@@ -155,7 +155,7 @@ Each entry below provides full implementation notes and open questions. The summ
 | Priority | Feature | Status |
 |----------|---------|--------|
 | P0 | Vet export / shareable visit summary | Implemented (see PRD-vet-export.md) |
-| P1 | Daily check-in (multi-measurement single screen) | Not started |
+| P1 | Daily check-in (multi-measurement single screen) | Implemented (see PRD-daily-checkin.md) |
 | P2 | Streak & consistency tracking | Not started |
 | P3 | Weigh-in reminders (`reminder_interval_days` per cat) | Not started |
 | P4 | Correlation insights (food drop → weight drop) | Implemented (see PRD-correlations.md) |
@@ -294,7 +294,7 @@ Each entry below provides full implementation notes and open questions. The summ
 
 | | |
 |---|---|
-| **Status** | `Draft` |
+| **Status** | `Partial` |
 | **Last updated** | 2026-03-07 11:00 |
 
 **Problem:** Cat owners with recurring medications (flea prevention, daily pills, heartworm) have no reminder system. Missing doses can have serious health consequences (thyroid crisis, flea infestation).
@@ -309,7 +309,7 @@ Each entry below provides full implementation notes and open questions. The summ
 
 | | |
 |---|---|
-| **Status** | `Draft` |
+| **Status** | `Partial` |
 | **Last updated** | 2026-03-07 12:30 |
 
 **Problem:** Cat Tracker is single-user. Multi-person households (spouses, family members, pet sitters) can't share access to the same cats.
@@ -348,7 +348,7 @@ Each entry below provides full implementation notes and open questions. The summ
 
 **Scope:** Upload from Add/Edit Cat form or by tapping the profile hero avatar; client-side crop/zoom modal (Canvas API, no library) that outputs 400×400 JPEG; store in Cloudflare R2 public bucket (`cat-tracker-photos`); display via reusable `CatAvatar` component across Home, Cat Profile, Add/Edit Cat form, and Vet Export; remove/reset to emoji; Worker proxy upload (`POST /api/cats/:id/photo`) with Editor-role authorization.
 
-**Do not implement** — status is `Draft`. Requires product owner approval.
+**Phase A implemented** — core cat photo upload via R2, CropModal, CatAvatar component. Full scope delivered.
 
 ---
 
@@ -363,15 +363,13 @@ Each entry below provides full implementation notes and open questions. The summ
 **Origin:** Competitive analysis of a vet practice pet management app (PetDesk-like). Five screens analyzed covering pet profile, reminder system, and reminder creation flow.
 
 **Scope:** 5 proposals across 5 phases:
-- **2A** Profile Hero Redesign (full-bleed photo, gradient overlay, structured details) — HIGH
-- **2B** Structured Pet Details with Icons + neuter/spay status field — MEDIUM
-- **2C** Rename Medications to "Care Schedule," add vet event types, emoji icon system — MEDIUM
-- **2D** CatProfile tab reorganization (Health / Care / About) — MEDIUM
-- **2E** Photo gallery/timeline — LOW
+- **2A** Profile Hero Redesign (full-bleed photo, gradient overlay, structured details) — **Implemented**
+- **2B** Structured Pet Details with Icons + neuter/spay status field — **Implemented**
+- **2C** Rename Medications to "Care Schedule," add vet event types, emoji icon system — **Implemented**
+- **2D** CatProfile tab reorganization (Health / Care / About) — **Implemented**
+- **2E** Photo gallery/timeline — Not started
 
 Plus 5 Killer App promotions: Daily Check-In (P1), Streaks (P2), Weigh-In Reminders (P3), AI Health Narrative (P7), Vet Integration concept (future).
-
-**Do not implement** — status is `Draft`. Requires product owner review and selective approval.
 
 ---
 
@@ -379,15 +377,13 @@ Plus 5 Killer App promotions: Daily Check-In (P1), Streaks (P2), Weigh-In Remind
 
 | | |
 |---|---|
-| **Status** | `Draft` |
+| **Status** | `Implemented` |
 | **Last updated** | 2026-03-07 |
 | **Supersedes** | PRD-killer-app.md P1 (Daily Check-In concept) |
 
 **Problem:** Logging a full daily health observation requires 4–7 separate QuickAdd interactions — too much friction to become a daily habit.
 
-**Proposal:** A single screen showing all measurement types simultaneously. Unselected rows generate no record ("no selection = no data"). Adjustable date/time. One submit creates all records with the same timestamp. Replaces QuickAdd as the primary "Log" entry point.
-
-**Do not implement** — status is `Draft`. Requires product owner approval.
+**Implemented:** Single `/checkin` screen showing all measurement types simultaneously; unselected rows generate no record; adjustable date/time; one submit creates all records with the same timestamp; replaces QuickAdd as the primary "Log" entry point from BottomNav.
 
 ---
 
@@ -395,7 +391,7 @@ Plus 5 Killer App promotions: Daily Check-In (P1), Streaks (P2), Weigh-In Remind
 
 | | |
 |---|---|
-| **Status** | `Draft` |
+| **Status** | `Implemented` |
 | **Last updated** | 2026-03-07 |
 
 **Problem:** The app makes specific clinical claims (weight loss thresholds, hepatic lipidosis risk, behavioral warning signs) that are grounded in veterinary literature but have no documented sources. This reduces trust and makes future threshold updates unmaintainable.
@@ -428,14 +424,14 @@ Nothing rejected yet.
 
 | | |
 |---|---|
-| **Status** | `Draft` |
+| **Status** | `Partial` |
 | **Last updated** | 2026-03-07 |
 
 **Problem:** The app was built mobile-first without an accessibility pass. Key gaps: color-only health signals (affects ~8% of males with color vision deficiency), 31 instances of `text-[10px]` below WCAG minimum, `<label>` elements not associated to inputs via `htmlFor`/`id`, no `aria-live` for dynamic feedback, no visible focus ring, preset buttons at 34px below 44px touch target minimum.
 
 **Scope:** Three phases — (A) zero-visual-impact fixes: label associations, `aria-live`/`role="alert"`, `aria-expanded`, `role="tablist"`, `:focus-visible` ring; (B) text and touch targets: min 12px text, min 44px touch targets; (C) color independence: text labels on concern-tier presets, stroke dash patterns in CompareChart, STATUS_LABEL always alongside STATUS_EMOJI.
 
-**Do not implement** — status is `Draft`. Requires product owner approval.
+**Phases A and B implemented** — `:focus-visible` ring, `htmlFor`/`id` on all forms, `aria-live`/`role="status"/"alert"` on dynamic feedback, `aria-busy` on save buttons, `aria-expanded` on toggles (InsightsPanel, WellnessGuide), `role="tablist"/"tab"/"aria-selected"` on CatProfile tabs. All `text-[10px]` replaced with `text-xs`. `min-h-[44px]` on DailyCheckin preset buttons and MeasurementForm close button. Phase C (color-independence signals, CompareChart dash patterns) remains.
 
 ---
 
@@ -443,14 +439,14 @@ Nothing rejected yet.
 
 | | |
 |---|---|
-| **Status** | `Draft` |
+| **Status** | `Partial` |
 | **Last updated** | 2026-03-07 |
 
 **Problem:** Several interaction patterns create friction or data-loss risk: pages don't scroll to top on navigation; MeasurementForm behavioral preset buttons save immediately on tap (no undo); disabled buttons say "Nothing to log yet" instead of explaining how to enable; delete is single-tap with no confirmation; back navigation is inconsistent across pages; error messages lack actionable recovery guidance.
 
 **Scope:** Three phases — (A) zero-risk wins: `ScrollToTop` component, disabled button copy, actionable error messages, save confirmation in MeasurementForm; (B) interaction model: two-step preset save in MeasurementForm, two-step delete confirmation, back nav audit; (C) state and hierarchy: loading state standardization, empty state improvements, CatProfile health status visibility.
 
-**Do not implement** — status is `Draft`. Requires product owner approval.
+**Phases A and B implemented** — `ScrollToTop` component, disabled button always says "Log Check-In" with contextual hint below, `role="alert"` on errors, `role="status"` on save banners, `aria-busy` on save buttons, MeasurementForm preset select-then-save model (no accidental immediate saves), two-step inline delete confirmation in CatProfile, back nav fixed to `navigate(-1)` with fallback. Phase C (loading state standardization, empty state improvements, CatProfile hierarchy) remains.
 
 ---
 

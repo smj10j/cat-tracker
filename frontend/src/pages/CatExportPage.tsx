@@ -110,7 +110,7 @@ export default function CatExportPage() {
         {/* Action bar (screen only) */}
         <div className="no-print flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: '#e5e7eb' }}>
           <button
-            onClick={() => navigate(`/cats/${cat.id}`)}
+            onClick={() => window.history.length > 1 ? navigate(-1) : navigate(`/cats/${cat.id}`)}
             className="flex items-center gap-2 text-sm font-medium"
             style={{ color: '#6b7280' }}
           >

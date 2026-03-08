@@ -40,7 +40,7 @@ export default function BottomNav() {
           {({ isActive }) => (
             <>
               <HomeIcon active={isActive} />
-              <span className="text-[10px] font-medium" style={{ color: isActive ? '#c084fc' : '#6b5f85' }}>Cats</span>
+              <span className="text-xs font-medium" style={{ color: isActive ? '#c084fc' : '#6b5f85' }}>Cats</span>
             </>
           )}
         </NavLink>
@@ -70,7 +70,7 @@ export default function BottomNav() {
           >
             +
           </div>
-          <span className="text-[10px] font-medium mt-1" style={{ color: '#6b5f85' }}>Log</span>
+          <span className="text-xs font-medium mt-1" style={{ color: '#6b5f85' }}>Log</span>
         </button>
 
         {/* Compare */}
@@ -78,7 +78,7 @@ export default function BottomNav() {
           {({ isActive }) => (
             <>
               <ChartIcon active={isActive} />
-              <span className="text-[10px] font-medium" style={{ color: isActive ? '#c084fc' : '#6b5f85' }}>Compare</span>
+              <span className="text-xs font-medium" style={{ color: isActive ? '#c084fc' : '#6b5f85' }}>Compare</span>
             </>
           )}
         </NavLink>

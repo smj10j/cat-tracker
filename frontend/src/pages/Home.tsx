@@ -295,7 +295,7 @@ export default function Home() {
                       <span className="font-display font-bold text-ink text-base truncate">{cat.name}</span>
                       {!isOk && (
                         <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${isUrgent ? 'animate-pulse' : ''}`}
+                          className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${isUrgent ? 'animate-pulse' : ''}`}
                           style={{
                             color: statusColor,
                             background: `${statusColor}20`,
@@ -313,7 +313,7 @@ export default function Home() {
                       {cat.breed && <span>· {cat.breed}</span>}
                     </div>
                     {households.length > 1 && cat.household_name && (
-                      <div className="text-[10px] mt-0.5" style={{ color: 'rgba(192,132,252,0.5)' }}>
+                      <div className="text-xs mt-0.5" style={{ color: 'rgba(192,132,252,0.5)' }}>
                         {cat.household_name}
                       </div>
                     )}
@@ -335,7 +335,7 @@ export default function Home() {
                       <div className="font-display font-bold text-lg tabular-nums" style={{ color: isOk ? '#fb923c' : statusColor }}>
                         {latestWeight}
                       </div>
-                      <div className="text-ink-dim text-[10px]">{latestUnit}</div>
+                      <div className="text-ink-dim text-xs">{latestUnit}</div>
                     </div>
                   )}
                 </Link>

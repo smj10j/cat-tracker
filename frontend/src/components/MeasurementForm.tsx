@@ -17,9 +17,16 @@ const TYPE_OPTIONS = [
   { value: 'vomiting', label: 'Vomiting' },
 ]
 
-function toLocalDatetimeString(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+function todayLocalDate(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function formatHour(hour: number): string {
+  if (hour === 0) return '12:00 AM'
+  if (hour < 12) return `${hour}:00 AM`
+  if (hour === 12) return '12:00 PM'
+  return `${hour - 12}:00 PM`
 }
 
 export default function MeasurementForm({ catId, onAdded }: Props) {
@@ -27,8 +34,8 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
   const [type, setType] = useState('weight')
   const [weightValue, setWeightValue] = useState('')
   const [weightUnit, setWeightUnit] = useState('lbs')
-  const [measuredAt, setMeasuredAt] = useState(toLocalDatetimeString(new Date()))
-  const [notes, setNotes] = useState('')
+  const [date, setDate] = useState(todayLocalDate)
+  const [hour, setHour] = useState(() => new Date().getHours())
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -42,15 +49,12 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
     setSaving(true)
     setError(null)
     try {
-      const m = await createMeasurement(catId, {
-        type, value, unit,
-        measured_at: new Date(measuredAt).toISOString(),
-        notes: notes.trim() || null,
-      })
+      const measured_at = new Date(`${date}T${String(hour).padStart(2, '0')}:00:00`).toISOString()
+      const m = await createMeasurement(catId, { type, value, unit, measured_at, notes: null })
       onAdded(m)
       setWeightValue('')
-      setNotes('')
-      setMeasuredAt(toLocalDatetimeString(new Date()))
+      setDate(todayLocalDate())
+      setHour(new Date().getHours())
       setOpen(false)
     } catch (e: unknown) {
       setError((e as Error).message)
@@ -110,8 +114,16 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
       {/* Date/time (always shown) */}
       <div>
         <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Date &amp; Time</label>
-        <input type="datetime-local" value={measuredAt} onChange={(e) => setMeasuredAt(e.target.value)}
-          className="input-dark w-full px-3 py-2.5 text-sm" />
+        <div className="flex gap-2">
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
+            max={todayLocalDate()} className="input-dark flex-1 px-3 py-2.5 text-sm" />
+          <select value={hour} onChange={(e) => setHour(Number(e.target.value))}
+            className="input-dark px-3 py-2.5 text-sm" style={{ minWidth: 110 }}>
+            {Array.from({ length: 24 }, (_, i) => (
+              <option key={i} value={i}>{formatHour(i)}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Input: presets for behavioral types, numeric for weight */}
@@ -152,11 +164,6 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
                 <option value="kg">kg</option>
               </select>
             </div>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Notes</label>
-            <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Before breakfast"
-              maxLength={1000} className="input-dark w-full px-3 py-2.5 text-sm" />
           </div>
           <button type="button" onClick={handleWeightSubmit} disabled={saving} className="btn-primary w-full py-3 text-sm">
             {saving ? 'Saving…' : 'Save Weight'}

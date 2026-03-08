@@ -35,6 +35,7 @@
 | [PRD-evidence-base.md](PRD-evidence-base.md) | Veterinary Evidence Base — Sources, Citations, and Research Infrastructure | `Implemented` | 2026-03-07 |
 | [PRD-accessibility.md](PRD-accessibility.md) | Accessibility — Color Independence, Touch Targets, Screen Reader Support | `Partial` | 2026-03-07 |
 | [PRD-usability.md](PRD-usability.md) | Usability Polish — Scroll, Feedback, Disabled States, Delete Confirmation | `Partial` | 2026-03-07 |
+| [PRD-app-settings.md](PRD-app-settings.md) | App Settings — Dark/Light/System Mode Toggle | `Draft` | 2026-03-07 |
 
 ---
 
@@ -447,6 +448,23 @@ Nothing rejected yet.
 **Scope:** Three phases — (A) zero-risk wins: `ScrollToTop` component, disabled button copy, actionable error messages, save confirmation in MeasurementForm; (B) interaction model: two-step preset save in MeasurementForm, two-step delete confirmation, back nav audit; (C) state and hierarchy: loading state standardization, empty state improvements, CatProfile health status visibility.
 
 **Phases A and B implemented** — `ScrollToTop` component, disabled button always says "Log Check-In" with contextual hint below, `role="alert"` on errors, `role="status"` on save banners, `aria-busy` on save buttons, MeasurementForm preset select-then-save model (no accidental immediate saves), two-step inline delete confirmation in CatProfile, back nav fixed to `navigate(-1)` with fallback. Phase C (loading state standardization, empty state improvements, CatProfile hierarchy) remains.
+
+---
+
+### PRD-app-settings.md — App Settings
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-03-07 |
+
+**Problem:** No user-configurable settings. Immediate request: dark/light/system mode toggle accessible from the profile menu.
+
+**Scope:** `/settings` route + `SettingsPage.tsx`; profile popover "Settings" link; theme toggle with localStorage persistence; CSS token layer for light theme.
+
+**Three phases:** (A) Settings screen + toggle UI only, no light theme yet; (B) full CSS token migration and functional light theme; (C) system mode + D1 sync.
+
+**Do not implement** — status is `Draft`. Requires product owner approval.
 
 ---
 

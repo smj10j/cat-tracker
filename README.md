@@ -253,21 +253,19 @@ The app uses feline veterinary research to classify weight change rates:
 | Concerning | ⚠️ | 1–2%/week loss, or > 7% total loss from peak |
 | Urgent | 🚨 | > 2%/week loss, or > 10% total loss from peak |
 
-Emoji dots appear on chart data points and as badges on cat cards. Logic lives in `frontend/src/lib/healthMetrics.ts`.
+Emoji dots appear on chart data points and as badges on cat cards. Logic lives in `frontend/src/lib/healthMetrics.ts`. Thresholds follow [AAFP](https://aafponline.org) and [WSAVA](https://wsava.org) feline nutritional guidelines; full citations in [`docs/research/`](docs/research/) (see PRD-evidence-base.md).
 
 ---
 
 ## Documents
 
-- [`docs/PRDs/REGISTRY.md`](docs/PRDs/REGISTRY.md) — Canonical PRD status tracker
-- [`docs/PRDs/PRD-mvp.md`](docs/PRDs/PRD-mvp.md) — Original MVP requirements
-- [`docs/PRDs/PRD-features-backlog.md`](docs/PRDs/PRD-features-backlog.md) — Feature backlog
-- [`docs/PRDs/PRD-ux-simplification.md`](docs/PRDs/PRD-ux-simplification.md) — UX simplification
-- [`docs/PRDs/PRD-auth.md`](docs/PRDs/PRD-auth.md) — User accounts & data isolation
-- [`docs/PRDs/PRD-killer-app.md`](docs/PRDs/PRD-killer-app.md) — Roadmap research
-- [`docs/TDD/README.md`](docs/TDD/README.md) — Technical design docs index
-  - [`docs/TDD/web.md`](docs/TDD/web.md) — Current web architecture
-  - [`docs/TDD/cross-platform.md`](docs/TDD/cross-platform.md) — iOS / Android / web unified plan
-- [`docs/DESIGN.md`](docs/DESIGN.md) — Visual design system
-- [`TODO.md`](TODO.md) — Task tracking
-- [`CLAUDE.md`](CLAUDE.md) — Instructions for AI assistants
+| Document | Purpose |
+|---|---|
+| [`docs/PRDs/REGISTRY.md`](docs/PRDs/REGISTRY.md) | Canonical index of all product requirements and their status — start here for any feature work |
+| [`docs/TDD/README.md`](docs/TDD/README.md) | Technical design docs: current web architecture and cross-platform (iOS/Android) plan |
+| [`docs/API.md`](docs/API.md) | Full API specification: every endpoint, request/response shapes, auth and authorization rules |
+| [`docs/DESIGN.md`](docs/DESIGN.md) | Visual design system: color tokens, Tailwind configuration, component patterns |
+| [`docs/SECURITY.md`](docs/SECURITY.md) | Security model, auth guidelines, and known limitations |
+| [`docs/TESTING.md`](docs/TESTING.md) | Testing strategy and infrastructure for Worker and frontend |
+| [`TODO.md`](TODO.md) | Task tracking |
+| [`CLAUDE.md`](CLAUDE.md) | Instructions for AI assistants working in this repo |

@@ -31,6 +31,8 @@
 | [PRD-household-sharing-phase2.md](PRD-household-sharing-phase2.md) | Household Sharing — Phase 2 (lifecycle + audit) | `Draft` | 2026-03-07 13:00 |
 | [PRD-cat-photos.md](PRD-cat-photos.md) | Cat Photo Uploads | `Implemented` | 2026-03-07 20:00 |
 | [PRD-ux-redesign.md](PRD-ux-redesign.md) | UX Redesign — Competitive Analysis & Next-Gen Features | `Draft` | 2026-03-07 |
+| [PRD-daily-checkin.md](PRD-daily-checkin.md) | Daily Check-In — Multi-Measurement Entry Screen | `Draft` | 2026-03-07 |
+| [PRD-evidence-base.md](PRD-evidence-base.md) | Veterinary Evidence Base — Sources, Citations, and Research Infrastructure | `Draft` | 2026-03-07 |
 
 ---
 
@@ -371,6 +373,37 @@ Plus 5 Killer App promotions: Daily Check-In (P1), Streaks (P2), Weigh-In Remind
 
 ---
 
+### PRD-daily-checkin.md — Daily Check-In: Multi-Measurement Entry Screen
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-03-07 |
+| **Supersedes** | PRD-killer-app.md P1 (Daily Check-In concept) |
+
+**Problem:** Logging a full daily health observation requires 4–7 separate QuickAdd interactions — too much friction to become a daily habit.
+
+**Proposal:** A single screen showing all measurement types simultaneously. Unselected rows generate no record ("no selection = no data"). Adjustable date/time. One submit creates all records with the same timestamp. Replaces QuickAdd as the primary "Log" entry point.
+
+**Do not implement** — status is `Draft`. Requires product owner approval.
+
+---
+
+### PRD-evidence-base.md — Veterinary Evidence Base: Sources, Citations, and Research Infrastructure
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-03-07 |
+
+**Problem:** The app makes specific clinical claims (weight loss thresholds, hepatic lipidosis risk, behavioral warning signs) that are grounded in veterinary literature but have no documented sources. This reduces trust and makes future threshold updates unmaintainable.
+
+**Proposal:** Three-component plan — (A) create `docs/research/` folder with full citations for every threshold and behavioral indicator; (B) update inline code comments in `healthMetrics.ts` with specific references; (C) add source attribution to the vet export, Wellness Guide, and alert copy. Establishes a process for evaluating and adding future evidence.
+
+**Do not implement** — status is `Draft`. Requires product owner approval.
+
+---
+
 ## Planned (no PRD written)
 
 Items mentioned or implied by existing PRDs that have not yet been formally specified. A PRD must be written and approved before implementation.
@@ -379,7 +412,7 @@ Items mentioned or implied by existing PRDs that have not yet been formally spec
 |---------|--------|-------|
 | ~~Photo upload (R2)~~ | ~~PRD-features-backlog.md~~ | Superseded by PRD-cat-photos.md |
 | Date range filter on charts | PRD-features-backlog.md | Low priority so far |
-| ~~Daily check-in screen~~ | ~~PRD-killer-app.md P1~~ | Now fully specified in PRD-ux-redesign.md 3A |
+| ~~Daily check-in screen~~ | ~~PRD-killer-app.md P1~~ | Now specified in PRD-daily-checkin.md |
 | ~~Streak tracking~~ | ~~PRD-killer-app.md P2~~ | Now fully specified in PRD-ux-redesign.md 3B |
 | AI Health Narrative | PRD-killer-app.md P7, PRD-ux-redesign.md 3D | Needs separate detailed PRD if approved |
 

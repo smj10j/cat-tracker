@@ -7,7 +7,7 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <StatusBar style="light" />
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack screenOptions={{ headerShown: false, animation: 'none' }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(auth)/login" />
         <Stack.Screen name="cats/[id]/index" />

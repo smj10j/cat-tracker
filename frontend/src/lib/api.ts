@@ -88,9 +88,56 @@ export const updateCat = (id: string, data: Partial<Omit<Cat, 'id' | 'created_at
 export const deleteCat = (id: string) =>
   request<{ success: boolean }>(`/cats/${id}`, { method: 'DELETE' })
 
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024 // 5MB
+const MAX_CANVAS_DIM = 2048 // scale down images larger than this
+
+// Converts any image Blob to a JPEG Blob via canvas.
+// Always goes through canvas (never sends raw File bytes) so the output is a
+// clean JPEG with no EXIF, predictable size, and correct MIME type — matching
+// the behaviour that previously went through CropModal.
+function toJpegBlob(file: Blob): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error('Could not read image file'))
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string
+      const img = new Image()
+      img.onerror = () => reject(new Error('Could not decode image — try a different file'))
+      img.onload = () => {
+        let { naturalWidth: w, naturalHeight: h } = img
+        // Scale down if either dimension exceeds MAX_CANVAS_DIM
+        if (w > MAX_CANVAS_DIM || h > MAX_CANVAS_DIM) {
+          const ratio = Math.min(MAX_CANVAS_DIM / w, MAX_CANVAS_DIM / h)
+          w = Math.round(w * ratio)
+          h = Math.round(h * ratio)
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = w
+        canvas.height = h
+        const ctx = canvas.getContext('2d')
+        if (!ctx) { reject(new Error('Canvas not available')); return }
+        ctx.drawImage(img, 0, 0, w, h)
+        canvas.toBlob(
+          (blob) => blob ? resolve(blob) : reject(new Error('Image conversion failed')),
+          'image/jpeg',
+          0.9,
+        )
+      }
+      img.src = dataUrl
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
 export async function uploadCatPhoto(catId: string, blob: Blob): Promise<{ photo_url: string }> {
+  // Always convert through canvas — ensures a clean bounded-size JPEG blob
+  // regardless of original format or size. Raw File bytes are never sent directly.
+  const jpeg = await toJpegBlob(blob)
+  if (jpeg.size > MAX_PHOTO_BYTES) {
+    throw new Error(`Photo is too large after compression (${(jpeg.size / 1024 / 1024).toFixed(1)} MB). Try a smaller image.`)
+  }
   const form = new FormData()
-  form.append('photo', blob, 'photo.jpg')
+  form.append('photo', jpeg, 'photo.jpg')
   const res = await fetch(`${BASE}/cats/${catId}/photo`, {
     method: 'POST',
     credentials: 'include',

@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useGoBack } from '../hooks/useGoBack'
 import { getCat, getMeasurements, deleteMeasurement, getMedications, uploadCatPhoto, deleteCatPhoto, CARE_TYPE_ICONS, type Cat, type Measurement, type Medication } from '../lib/api'
 import CatAvatar from '../components/CatAvatar'
-import CropModal from '../components/CropModal'
+
 import {
   assessHealth, STATUS_COLORS, STATUS_EMOJI, STATUS_LABEL,
 } from '../lib/healthMetrics'
@@ -194,7 +194,6 @@ export default function CatProfile() {
   const [error, setError] = useState<string | null>(null)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
 
-  const [cropFile, setCropFile] = useState<File | null>(null)
   const [photoUploading, setPhotoUploading] = useState(false)
   const [photoError, setPhotoError] = useState<string | null>(null)
 
@@ -221,13 +220,12 @@ export default function CatProfile() {
     setMeasurements((prev) => [...prev, m].sort((a, b) => a.measured_at.localeCompare(b.measured_at)))
   }
 
-  async function handleCropSave(blob: Blob) {
+  async function handlePhotoUpload(file: File) {
     if (!id || !cat) return
-    setCropFile(null)
     setPhotoUploading(true)
     setPhotoError(null)
     try {
-      const { photo_url } = await uploadCatPhoto(id, blob)
+      const { photo_url } = await uploadCatPhoto(id, file)
       setCat((c) => c ? { ...c, photo_url } : c)
     } catch (e: unknown) {
       setPhotoError((e as Error).message)
@@ -307,14 +305,6 @@ export default function CatProfile() {
 
   return (
     <div className="min-h-screen">
-      {/* Crop modal */}
-      {cropFile && (
-        <CropModal
-          file={cropFile}
-          onCrop={handleCropSave}
-          onCancel={() => setCropFile(null)}
-        />
-      )}
 
       {/* ── Full-bleed hero ── */}
       <div
@@ -395,7 +385,7 @@ export default function CatProfile() {
             accept="image/*"
             onChange={(e) => {
               const file = e.target.files?.[0]
-              if (file) setCropFile(file)
+              if (file) void handlePhotoUpload(file)
               e.target.value = ''
             }}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer rounded-full"

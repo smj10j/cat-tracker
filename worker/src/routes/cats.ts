@@ -218,7 +218,7 @@ cats.delete('/:id', async (c) => {
 })
 
 const PHOTOS_BASE = 'https://pub-40305f88ebb54339b47a48224f195f92.r2.dev'
-const MAX_PHOTO_BYTES = 2 * 1024 * 1024 // 2MB
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024 // 5MB
 
 cats.post('/:id/photo', async (c) => {
   const userId = c.get('userId')
@@ -235,7 +235,7 @@ cats.post('/:id/photo', async (c) => {
   if (file.type !== 'image/jpeg') return c.json({ error: 'Only JPEG images are accepted' }, 400)
 
   const bytes = await file.arrayBuffer()
-  if (bytes.byteLength > MAX_PHOTO_BYTES) return c.json({ error: 'Photo must be under 2MB' }, 400)
+  if (bytes.byteLength > MAX_PHOTO_BYTES) return c.json({ error: 'Photo must be under 5MB' }, 400)
 
   const key = `cats/${id}/photo.jpg`
   await c.env.PHOTOS.put(key, bytes, { httpMetadata: { contentType: 'image/jpeg' } })

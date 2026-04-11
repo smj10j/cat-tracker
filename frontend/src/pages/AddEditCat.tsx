@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { createCat, updateCat, getCat, deleteCat, uploadCatPhoto, deleteCatPhoto, ApiError } from '../lib/api'
 import CatAvatar from '../components/CatAvatar'
-import CropModal from '../components/CropModal'
+
 import { useGoBack } from '../hooks/useGoBack'
 
 function isTempMicrochip(id: string | null | undefined): boolean {
@@ -26,7 +26,6 @@ export default function AddEditCat() {
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null)
   const [pendingBlob, setPendingBlob] = useState<Blob | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [cropFile, setCropFile] = useState<File | null>(null)
   const [photoRemoved, setPhotoRemoved] = useState(false)
 
   useEffect(() => {
@@ -49,21 +48,23 @@ export default function AddEditCat() {
       .finally(() => setLoading(false))
   }, [id])
 
-  useEffect(() => {
-    if (!pendingBlob) return
-    const url = URL.createObjectURL(pendingBlob)
-    setPreviewUrl(url)
-    return () => URL.revokeObjectURL(url)
-  }, [pendingBlob])
-
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (file) setCropFile(file)
+    if (!file) return
     e.target.value = ''
+    // Use FileReader (data: URL) for preview — blob: URLs are blocked by CSP in PWA/CF Pages context
+    const reader = new FileReader()
+    reader.onload = (ev) => setPreviewUrl((ev.target?.result as string) ?? null)
+    reader.readAsDataURL(file)
+    if (isEdit && id) {
+      uploadCatPhoto(id, file).catch((err: Error) => setError(err.message))
+    } else {
+      setPendingBlob(file)
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -78,13 +79,12 @@ export default function AddEditCat() {
         coloring: form.coloring.trim() || null,
         notes: form.notes.trim() || null,
         sex: form.sex || null,
-        photo_url: null as string | null,
         microchip_id: form.microchip_id.trim() || null,
         is_neutered: form.is_neutered !== '' ? parseInt(form.is_neutered, 10) : null,
       }
       if (isEdit && id) {
         await updateCat(id, payload)
-        // Photo upload already happened immediately on crop completion.
+        // Photo upload already happened immediately on file selection (edit mode).
         // Only handle explicit removal here.
         if (photoRemoved && existingPhotoUrl) await deleteCatPhoto(id)
         // Use navigate(-1) so the edit form doesn't stack an extra history entry.
@@ -93,7 +93,7 @@ export default function AddEditCat() {
         if (histIdx > 0) navigate(-1)
         else navigate(`/cats/${id}`, { replace: true })
       } else {
-        const cat = await createCat(payload)
+        const cat = await createCat({ ...payload, photo_url: null })
         if (pendingBlob) await uploadCatPhoto(cat.id, pendingBlob)
         navigate(`/cats/${cat.id}`)
       }
@@ -170,28 +170,6 @@ export default function AddEditCat() {
 
       {error && (
         <div className="glass-card p-4 text-rose text-sm mb-4" style={{ borderColor: 'rgba(248,113,113,0.2)' }}>{error}</div>
-      )}
-
-      {/* Crop modal */}
-      {cropFile && (
-        <CropModal
-          file={cropFile}
-          onCrop={(blob) => {
-            setCropFile(null)
-            if (isEdit && id) {
-              // Edit mode: upload immediately so the photo is saved even if the
-              // user navigates away without hitting "Save Changes".
-              const reader = new FileReader()
-              reader.onload = (ev) => setPreviewUrl((ev.target?.result as string) ?? '')
-              reader.readAsDataURL(blob)
-              uploadCatPhoto(id, blob).catch((e: Error) => setError(e.message))
-            } else {
-              // New cat: hold the blob and upload after the cat is created.
-              setPendingBlob(blob)
-            }
-          }}
-          onCancel={() => setCropFile(null)}
-        />
       )}
 
       <form onSubmit={handleSubmit} className="glass-card p-6 space-y-5">

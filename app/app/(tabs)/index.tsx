@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, FlatList, Pressable, RefreshControl, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../lib/api';
 import type { Cat, Measurement } from '../../lib/api';
@@ -89,6 +89,15 @@ export default function HomeScreen() {
     fetchCats();
     loadNotifCount();
   }, [fetchCats, loadNotifCount]);
+
+  // Re-fetch when tab regains focus (e.g. returning from edit with new photo or new measurements)
+  useFocusEffect(
+    useCallback(() => {
+      if (loading) return;
+      fetchCats();
+      loadNotifCount();
+    }, [fetchCats, loadNotifCount, loading]),
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

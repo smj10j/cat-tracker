@@ -115,10 +115,12 @@ export default function CatProfileScreen() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  // Re-fetch medications when returning from care-item form
+  // Re-fetch cat data when screen regains focus (e.g. returning from edit with new photo)
   useFocusEffect(
     useCallback(() => {
       if (!id || loading) return;
+      api.getCat(id).then(setCat).catch(() => {});
+      api.getMeasurements(id).then(setMeasurements).catch(() => {});
       api.getMedications(id).then(setMeds).catch(() => {});
     }, [id, loading]),
   );

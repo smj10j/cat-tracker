@@ -3,7 +3,11 @@ import type { Context, Next } from 'hono'
 import type { AppEnv } from '../types'
 
 export async function requireAuth(c: Context<AppEnv>, next: Next) {
-  const sessionId = getCookie(c, 'session')
+  // Dual-path auth: Bearer token (native app) or session cookie (web)
+  const authHeader = c.req.header('Authorization')
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined
+  const sessionId = bearerToken ?? getCookie(c, 'session')
+
   if (!sessionId) return c.json({ error: 'Unauthorized' }, 401)
 
   const session = await c.env.DB.prepare(

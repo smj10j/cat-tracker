@@ -11,6 +11,14 @@ export type AppEnv = {
     OAUTH_REDIRECT_BASE: string
     /** Resend API key for transactional email (https://resend.com) */
     RESEND_API_KEY: string
+    /** Apple Sign In — Service ID registered in Apple Developer portal */
+    APPLE_SERVICE_ID: string
+    /** Apple Sign In — ES256 private key (PEM format) for generating client secrets */
+    APPLE_PRIVATE_KEY: string
+    /** Apple Sign In — Team ID from Apple Developer portal */
+    APPLE_TEAM_ID: string
+    /** Apple Sign In — Key ID for the private key */
+    APPLE_KEY_ID: string
   }
   Variables: {
     userId: string

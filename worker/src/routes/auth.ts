@@ -3,6 +3,7 @@ import { getCookie } from 'hono/cookie'
 import type { AppEnv } from '../types'
 import { requireAuth } from '../middleware/auth'
 import { ensureHousehold } from '../lib/household'
+import { generateAppleClientSecret, verifyAppleIdToken } from '../lib/apple-auth'
 
 const auth = new Hono<AppEnv>()
 
@@ -10,26 +11,90 @@ function sessionCookie(value: string, maxAge: number) {
   return `session=${value}; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}; Path=/`
 }
 
-// GET /api/auth/login?provider=google&next=/invite?token=xxx
+/** Create a session and return session ID + user ID. */
+async function createSession(db: D1Database, userId: string): Promise<string> {
+  const sessionId = crypto.randomUUID().replace(/-/g, '')
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+  await db.prepare('INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)')
+    .bind(sessionId, userId, expiresAt).run()
+
+  // SEC-07: Cap sessions per user at 20 (delete oldest beyond that)
+  await db.prepare(`
+    DELETE FROM sessions WHERE id IN (
+      SELECT id FROM sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT -1 OFFSET 20
+    )
+  `).bind(userId).run()
+
+  return sessionId
+}
+
+/** Return either a redirect (web) or JSON (native) depending on mode. */
+function authResponse(
+  c: { req: { query: (key: string) => string | undefined }; env: { OAUTH_REDIRECT_BASE: string } },
+  sessionId: string,
+  userId: string,
+  redirectPath: string,
+) {
+  const mode = c.req.query('mode')
+
+  // Native app: return JSON with session token
+  if (mode === 'native') {
+    return new Response(JSON.stringify({ sessionId, userId }), {
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  // Web: redirect with session cookie
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: `${c.env.OAUTH_REDIRECT_BASE}${redirectPath}`,
+      'Set-Cookie': sessionCookie(sessionId, 7 * 24 * 60 * 60),
+    },
+  })
+}
+
+// GET /api/auth/login?provider=google|apple&next=/invite?token=xxx&mode=native
 auth.get('/auth/login', async (c) => {
   const redirectBase = c.env.OAUTH_REDIRECT_BASE
   const nextUrl = c.req.query('next') ?? null
+  const provider = c.req.query('provider') ?? 'google'
+  const mode = c.req.query('mode') ?? null
   const state = crypto.randomUUID().replace(/-/g, '')
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString()
 
   // Store state in D1 (avoids cookie round-trip through redirect proxy)
   await c.env.DB.prepare(
-    "INSERT INTO oauth_states (state, expires_at, next_url) VALUES (?, ?, ?) ON CONFLICT(state) DO NOTHING"
-  ).bind(state, expiresAt, nextUrl).run()
+    "INSERT INTO oauth_states (state, expires_at, next_url, provider) VALUES (?, ?, ?, ?) ON CONFLICT(state) DO NOTHING"
+  ).bind(state, expiresAt, nextUrl, provider).run()
 
   // Clean up old states opportunistically
   c.executionCtx.waitUntil(
     c.env.DB.prepare("DELETE FROM oauth_states WHERE expires_at < datetime('now')").run()
   )
 
+  const callbackUrl = `${redirectBase}/api/auth/callback${mode ? `?mode=${mode}` : ''}`
+
+  if (provider === 'apple') {
+    const appleUrl = `https://appleid.apple.com/auth/authorize?${new URLSearchParams({
+      client_id: c.env.APPLE_SERVICE_ID,
+      redirect_uri: callbackUrl,
+      response_type: 'code id_token',
+      response_mode: 'form_post',
+      scope: 'name email',
+      state,
+    })}`
+
+    return new Response(null, {
+      status: 302,
+      headers: { Location: appleUrl },
+    })
+  }
+
+  // Default: Google OAuth
   const googleUrl = `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({
     client_id: c.env.GOOGLE_CLIENT_ID,
-    redirect_uri: `${redirectBase}/api/auth/callback`,
+    redirect_uri: callbackUrl,
     response_type: 'code',
     scope: 'email profile',
     state,
@@ -42,11 +107,12 @@ auth.get('/auth/login', async (c) => {
   })
 })
 
-// GET /api/auth/callback
+// GET /api/auth/callback — Google OAuth callback (query params)
 auth.get('/auth/callback', async (c) => {
   const code = c.req.query('code')
   const state = c.req.query('state')
   const redirectBase = c.env.OAUTH_REDIRECT_BASE
+  const mode = c.req.query('mode') ?? undefined
 
   if (!code || !state) {
     return new Response(null, { status: 302, headers: { Location: `${redirectBase}/login?error=missing_params` } })
@@ -54,14 +120,15 @@ auth.get('/auth/callback', async (c) => {
 
   // SEC-01: Atomically consume the state token via DELETE...RETURNING.
   const consumed = await c.env.DB.prepare(
-    "DELETE FROM oauth_states WHERE state = ? AND expires_at > datetime('now') RETURNING state, next_url"
-  ).bind(state).first<{ state: string; next_url: string | null }>()
+    "DELETE FROM oauth_states WHERE state = ? AND expires_at > datetime('now') RETURNING state, next_url, provider"
+  ).bind(state).first<{ state: string; next_url: string | null; provider: string }>()
 
   if (!consumed) {
     return new Response(null, { status: 302, headers: { Location: `${redirectBase}/login?error=invalid_state` } })
   }
 
   const postLoginRedirect = consumed.next_url ?? '/'
+  const callbackUrl = `${redirectBase}/api/auth/callback${mode ? `?mode=${mode}` : ''}`
 
   // Exchange authorization code for access token
   const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -71,7 +138,7 @@ auth.get('/auth/callback', async (c) => {
       code,
       client_id: c.env.GOOGLE_CLIENT_ID,
       client_secret: c.env.GOOGLE_CLIENT_SECRET,
-      redirect_uri: `${redirectBase}/api/auth/callback`,
+      redirect_uri: callbackUrl,
       grant_type: 'authorization_code',
     }),
   })
@@ -111,33 +178,89 @@ auth.get('/auth/callback', async (c) => {
     return new Response(null, { status: 302, headers: { Location: `${redirectBase}/login?error=user_creation_failed` } })
   }
 
-  // Create session
-  const sessionId = crypto.randomUUID().replace(/-/g, '')
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-  await c.env.DB.prepare('INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)')
-    .bind(sessionId, user.id, expiresAt).run()
+  const sessionId = await createSession(c.env.DB, user.id)
 
-  // SEC-07: Cap sessions per user at 20 (delete oldest beyond that)
-  c.executionCtx.waitUntil(
-    c.env.DB.prepare(`
-      DELETE FROM sessions WHERE id IN (
-        SELECT id FROM sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT -1 OFFSET 20
-      )
-    `).bind(user.id).run()
-  )
+  // Patch mode onto c.req for authResponse
+  const fakeC = { req: { query: () => mode }, env: c.env }
+  return authResponse(fakeC as typeof c, sessionId, user.id, postLoginRedirect)
+})
 
-  return new Response(null, {
-    status: 302,
-    headers: {
-      Location: `${redirectBase}${postLoginRedirect}`,
-      'Set-Cookie': sessionCookie(sessionId, 7 * 24 * 60 * 60),
-    },
-  })
+// POST /api/auth/callback — Apple OAuth callback (form_urlencoded POST)
+auth.post('/auth/callback', async (c) => {
+  const redirectBase = c.env.OAUTH_REDIRECT_BASE
+  const mode = c.req.query('mode') ?? undefined
+
+  const body = await c.req.parseBody() as Record<string, string>
+  const { id_token: idToken, state, user: userJson } = body
+
+  if (!idToken || !state) {
+    return new Response(null, { status: 302, headers: { Location: `${redirectBase}/login?error=missing_params` } })
+  }
+
+  // SEC-01: Atomically consume the state token
+  const consumed = await c.env.DB.prepare(
+    "DELETE FROM oauth_states WHERE state = ? AND expires_at > datetime('now') RETURNING state, next_url, provider"
+  ).bind(state).first<{ state: string; next_url: string | null; provider: string }>()
+
+  if (!consumed || consumed.provider !== 'apple') {
+    return new Response(null, { status: 302, headers: { Location: `${redirectBase}/login?error=invalid_state` } })
+  }
+
+  const postLoginRedirect = consumed.next_url ?? '/'
+
+  // Verify the Apple id_token JWT
+  let payload
+  try {
+    payload = await verifyAppleIdToken(idToken, c.env.APPLE_SERVICE_ID)
+  } catch {
+    return new Response(null, { status: 302, headers: { Location: `${redirectBase}/login?error=apple_token_invalid` } })
+  }
+
+  if (!payload.sub || !payload.email) {
+    return new Response(null, { status: 302, headers: { Location: `${redirectBase}/login?error=apple_missing_profile` } })
+  }
+
+  // Apple sends the user's name ONLY on the first authorization
+  let displayName: string | null = null
+  if (userJson) {
+    try {
+      const userData = JSON.parse(userJson) as { name?: { firstName?: string; lastName?: string } }
+      const first = userData.name?.firstName ?? ''
+      const last = userData.name?.lastName ?? ''
+      displayName = [first, last].filter(Boolean).join(' ') || null
+    } catch {
+      // Ignore malformed user JSON — name is optional
+    }
+  }
+
+  // Upsert user — only update display_name if it's provided (first auth) or currently null
+  await c.env.DB.prepare(`
+    INSERT INTO users (email, display_name, avatar_url, oauth_provider, oauth_id)
+    VALUES (?, ?, NULL, 'apple', ?)
+    ON CONFLICT(oauth_provider, oauth_id) DO UPDATE SET
+      email = excluded.email,
+      display_name = COALESCE(excluded.display_name, users.display_name)
+  `).bind(payload.email, displayName, payload.sub).run()
+
+  const user = await c.env.DB.prepare(
+    "SELECT id FROM users WHERE oauth_provider = 'apple' AND oauth_id = ?"
+  ).bind(payload.sub).first<{ id: string }>()
+
+  if (!user) {
+    return new Response(null, { status: 302, headers: { Location: `${redirectBase}/login?error=user_creation_failed` } })
+  }
+
+  const sessionId = await createSession(c.env.DB, user.id)
+
+  const fakeC = { req: { query: () => mode }, env: c.env }
+  return authResponse(fakeC as typeof c, sessionId, user.id, postLoginRedirect)
 })
 
 // POST /api/auth/logout
 auth.post('/auth/logout', requireAuth, async (c) => {
-  const sessionId = getCookie(c, 'session')
+  const authHeader = c.req.header('Authorization')
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined
+  const sessionId = bearerToken ?? getCookie(c, 'session')
   if (sessionId) {
     await c.env.DB.prepare('DELETE FROM sessions WHERE id = ?').bind(sessionId).run()
   }
@@ -153,8 +276,8 @@ auth.post('/auth/logout', requireAuth, async (c) => {
 auth.get('/auth/me', requireAuth, async (c) => {
   const userId = c.get('userId')
   const user = await c.env.DB.prepare(
-    'SELECT id, email, display_name, avatar_url FROM users WHERE id = ?'
-  ).bind(userId).first<{ id: string; email: string; display_name: string | null; avatar_url: string | null }>()
+    'SELECT id, email, display_name, avatar_url, oauth_provider FROM users WHERE id = ?'
+  ).bind(userId).first<{ id: string; email: string; display_name: string | null; avatar_url: string | null; oauth_provider: string }>()
 
   if (!user) return c.json({ error: 'User not found' }, 404)
 
@@ -167,6 +290,7 @@ auth.get('/auth/me', requireAuth, async (c) => {
     email: user.email,
     display_name: user.display_name,
     avatar_url: user.avatar_url,
+    oauth_provider: user.oauth_provider,
     hasOrphanedCats: (orphaned?.count ?? 0) > 0,
   })
 })
@@ -187,6 +311,193 @@ auth.post('/auth/claim-cats', requireAuth, async (c) => {
   }
 
   return c.json({ claimed: result.meta.changes })
+})
+
+// DELETE /api/auth/account — Apple requires in-app account deletion
+auth.delete('/auth/account', requireAuth, async (c) => {
+  const userId = c.get('userId')
+
+  // Check if user is the sole Admin of any household
+  const soleAdminHouseholds = await c.env.DB.prepare(`
+    SELECT h.id, h.name FROM households h
+    WHERE h.owner_user_id = ?
+    AND (SELECT COUNT(*) FROM household_members hm
+         WHERE hm.household_id = h.id AND hm.role = 'admin' AND hm.status = 'active') <= 1
+  `).bind(userId).all<{ id: string; name: string }>()
+
+  if (soleAdminHouseholds.results.length > 0) {
+    return c.json({
+      error: 'Cannot delete account: you are the sole admin of one or more households',
+      households: soleAdminHouseholds.results.map(h => ({ id: h.id, name: h.name })),
+      hint: 'Transfer ownership or delete the household first',
+    }, 409)
+  }
+
+  // Get all cats owned by this user (for R2 photo cleanup)
+  const userCats = await c.env.DB.prepare(
+    'SELECT id FROM cats WHERE user_id = ?'
+  ).bind(userId).all<{ id: string }>()
+
+  // Delete in order (respecting foreign keys):
+  // 1. medication_doses for user's medications
+  await c.env.DB.prepare(`
+    DELETE FROM medication_doses WHERE medication_id IN (
+      SELECT id FROM medications WHERE user_id = ?
+    )
+  `).bind(userId).run()
+
+  // 2. medications
+  await c.env.DB.prepare('DELETE FROM medications WHERE user_id = ?').bind(userId).run()
+
+  // 3. measurements for user's cats
+  await c.env.DB.prepare(`
+    DELETE FROM measurements WHERE cat_id IN (
+      SELECT id FROM cats WHERE user_id = ?
+    )
+  `).bind(userId).run()
+
+  // 4. R2 photos (best-effort; don't block account deletion on R2 failures)
+  if (c.env.PHOTOS) {
+    for (const cat of userCats.results) {
+      try {
+        await c.env.PHOTOS.delete(`cats/${cat.id}/photo.jpg`)
+      } catch {
+        // Ignore R2 errors during account deletion
+      }
+    }
+  }
+
+  // 5. cats
+  await c.env.DB.prepare('DELETE FROM cats WHERE user_id = ?').bind(userId).run()
+
+  // 6. Transfer household ownership where this user is owner but other admins exist
+  const ownedHouseholds = await c.env.DB.prepare(
+    'SELECT id FROM households WHERE owner_user_id = ?'
+  ).bind(userId).all<{ id: string }>()
+
+  for (const household of ownedHouseholds.results) {
+    // Find another active admin to transfer to
+    const newOwner = await c.env.DB.prepare(`
+      SELECT user_id FROM household_members
+      WHERE household_id = ? AND user_id != ? AND role = 'admin' AND status = 'active'
+      LIMIT 1
+    `).bind(household.id, userId).first<{ user_id: string }>()
+
+    if (newOwner) {
+      await c.env.DB.prepare('UPDATE households SET owner_user_id = ? WHERE id = ?')
+        .bind(newOwner.user_id, household.id).run()
+    } else {
+      // No other admin — delete the household (members were already checked above)
+      await c.env.DB.prepare('DELETE FROM household_members WHERE household_id = ?')
+        .bind(household.id).run()
+      await c.env.DB.prepare('DELETE FROM households WHERE id = ?')
+        .bind(household.id).run()
+    }
+  }
+
+  // 7. household_members
+  await c.env.DB.prepare('DELETE FROM household_members WHERE user_id = ?').bind(userId).run()
+
+  // 8. device_tokens
+  await c.env.DB.prepare('DELETE FROM device_tokens WHERE user_id = ?').bind(userId).run()
+
+  // 9. sessions
+  await c.env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId).run()
+
+  // 10. user
+  await c.env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId).run()
+
+  return new Response(JSON.stringify({ success: true, deleted: true }), {
+    headers: {
+      'Content-Type': 'application/json',
+      'Set-Cookie': sessionCookie('', 0),
+    },
+  })
+})
+
+// GET /api/auth/export — Full data export (GDPR Article 20, Apple recommendation)
+auth.get('/auth/export', requireAuth, async (c) => {
+  const userId = c.get('userId')
+
+  const user = await c.env.DB.prepare(
+    'SELECT id, email, display_name, avatar_url, oauth_provider, created_at FROM users WHERE id = ?'
+  ).bind(userId).first()
+
+  const cats = await c.env.DB.prepare(
+    'SELECT * FROM cats WHERE user_id = ?'
+  ).bind(userId).all()
+
+  const catIds = cats.results.map((cat: Record<string, unknown>) => cat.id as string)
+
+  let measurements = { results: [] as Record<string, unknown>[] }
+  if (catIds.length > 0) {
+    // Build parameterized query for cat IDs
+    const placeholders = catIds.map(() => '?').join(',')
+    measurements = await c.env.DB.prepare(
+      `SELECT * FROM measurements WHERE cat_id IN (${placeholders}) ORDER BY measured_at DESC`
+    ).bind(...catIds).all()
+  }
+
+  const medications = await c.env.DB.prepare(
+    'SELECT * FROM medications WHERE user_id = ?'
+  ).bind(userId).all()
+
+  const householdMemberships = await c.env.DB.prepare(`
+    SELECT hm.*, h.name as household_name FROM household_members hm
+    JOIN households h ON h.id = hm.household_id
+    WHERE hm.user_id = ? AND hm.status = 'active'
+  `).bind(userId).all()
+
+  const exportData = {
+    exported_at: new Date().toISOString(),
+    user,
+    cats: cats.results,
+    measurements: measurements.results,
+    medications: medications.results,
+    household_memberships: householdMemberships.results,
+  }
+
+  return new Response(JSON.stringify(exportData, null, 2), {
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Disposition': `attachment; filename="cat-tracker-export-${new Date().toISOString().slice(0, 10)}.json"`,
+    },
+  })
+})
+
+// POST /api/auth/device-token — Register push notification device token
+auth.post('/auth/device-token', requireAuth, async (c) => {
+  const userId = c.get('userId')
+  const body = await c.req.json<{ token: string; platform: string }>()
+
+  if (!body.token || !body.platform) {
+    return c.json({ error: 'token and platform are required' }, 400)
+  }
+  if (!['ios', 'android', 'web'].includes(body.platform)) {
+    return c.json({ error: 'platform must be ios, android, or web' }, 400)
+  }
+
+  await c.env.DB.prepare(
+    'INSERT INTO device_tokens (user_id, token, platform) VALUES (?, ?, ?) ON CONFLICT(user_id, token) DO NOTHING'
+  ).bind(userId, body.token, body.platform).run()
+
+  return c.json({ success: true })
+})
+
+// DELETE /api/auth/device-token — Unregister push notification device token
+auth.delete('/auth/device-token', requireAuth, async (c) => {
+  const userId = c.get('userId')
+  const body = await c.req.json<{ token: string }>()
+
+  if (!body.token) {
+    return c.json({ error: 'token is required' }, 400)
+  }
+
+  await c.env.DB.prepare(
+    'DELETE FROM device_tokens WHERE user_id = ? AND token = ?'
+  ).bind(userId, body.token).run()
+
+  return c.json({ success: true })
 })
 
 export default auth

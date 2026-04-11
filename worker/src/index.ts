@@ -24,7 +24,7 @@ app.use('*', cors({
     return null // block all other origins
   },
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type'],
+  allowHeaders: ['Content-Type', 'Authorization'],
 }))
 
 // SEC-03: Security headers on every API response.

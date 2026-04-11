@@ -24,7 +24,17 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE TABLE IF NOT EXISTS oauth_states (
   state       TEXT PRIMARY KEY,
   next_url    TEXT,
-  expires_at  TEXT NOT NULL
+  expires_at  TEXT NOT NULL,
+  provider    TEXT NOT NULL DEFAULT 'google'
+);
+
+CREATE TABLE IF NOT EXISTS device_tokens (
+  id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token       TEXT NOT NULL,
+  platform    TEXT NOT NULL,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(user_id, token)
 );
 
 CREATE TABLE IF NOT EXISTS households (
@@ -133,6 +143,7 @@ export async function applySchema(): Promise<void> {
 
 export async function clearDb(): Promise<void> {
   await env.DB.exec(`
+    DELETE FROM device_tokens;
     DELETE FROM medication_doses;
     DELETE FROM medications;
     DELETE FROM measurements;
@@ -177,4 +188,8 @@ export async function seedSession(userId: string, sessionId = 'session-1'): Prom
 
 export function authedHeaders(sessionId: string): Record<string, string> {
   return { Cookie: `session=${sessionId}` }
+}
+
+export function bearerHeaders(sessionId: string): Record<string, string> {
+  return { Authorization: `Bearer ${sessionId}` }
 }

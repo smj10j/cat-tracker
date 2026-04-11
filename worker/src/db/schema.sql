@@ -71,7 +71,9 @@ CREATE TABLE IF NOT EXISTS sessions (
 
 CREATE TABLE IF NOT EXISTS oauth_states (
   state       TEXT PRIMARY KEY,
-  expires_at  TEXT NOT NULL
+  expires_at  TEXT NOT NULL,
+  next_url    TEXT,
+  provider    TEXT NOT NULL DEFAULT 'google'
 );
 
 -- Medication reminders (added 2026-03-07)
@@ -143,4 +145,19 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_hm_active_user
   WHERE status = 'active';
 
 -- (household_id and idx_cats_household are now in the CREATE TABLE above)
--- Run once: ALTER TABLE oauth_states ADD COLUMN next_url TEXT;
+
+-- Production migration history for oauth_states (already applied):
+-- ALTER TABLE oauth_states ADD COLUMN next_url TEXT;
+-- ALTER TABLE oauth_states ADD COLUMN provider TEXT NOT NULL DEFAULT 'google';
+
+-- Push notification device tokens (added for iOS App Store)
+CREATE TABLE IF NOT EXISTS device_tokens (
+  id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token       TEXT NOT NULL,
+  platform    TEXT NOT NULL,  -- 'ios' | 'android' | 'web'
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(user_id, token)
+);
+
+CREATE INDEX IF NOT EXISTS idx_device_tokens_user ON device_tokens(user_id);

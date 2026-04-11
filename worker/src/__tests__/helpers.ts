@@ -62,11 +62,13 @@ CREATE TABLE IF NOT EXISTS cats (
   photo_url    TEXT,
   sex          TEXT,
   is_neutered  INTEGER,
-  microchip_id TEXT,
-  user_id      TEXT REFERENCES users(id),
-  household_id TEXT REFERENCES households(id),
-  created_at   TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
+  microchip_id  TEXT,
+  user_id       TEXT REFERENCES users(id),
+  household_id  TEXT REFERENCES households(id),
+  deceased_at   TEXT,
+  memorial_note TEXT,
+  created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_cats_microchip

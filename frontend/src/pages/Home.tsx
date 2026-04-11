@@ -78,6 +78,7 @@ export default function Home() {
   const { user, logout, refresh: refreshUser } = useAuth()
   const navigate = useNavigate()
   const [catData, setCatData] = useState<{ cat: Cat; latestWeight: number | null; latestUnit: string; healthStatus: string; correlationBadge: string | null }[]>([])
+  const [memorialCats, setMemorialCats] = useState<Cat[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [claiming, setClaiming] = useState(false)
@@ -96,9 +97,11 @@ export default function Home() {
   async function loadCats() {
     setLoading(true)
     try {
-      const allCats = await getCats()
+      const allCats = await getCats('all')
+      const activeCats = allCats.filter(c => !c.deceased_at)
+      setMemorialCats(allCats.filter(c => !!c.deceased_at))
       const enriched = await Promise.all(
-        allCats.map(async (cat) => {
+        activeCats.map(async (cat) => {
           try {
             const ms = await getMeasurements(cat.id)
             const weightMs = ms.filter((m: Measurement) => m.type === 'weight')
@@ -145,7 +148,7 @@ export default function Home() {
     }
   }
 
-  const catCount = catData.length
+  const catCount = catData.length + memorialCats.length
 
   const initial = (user?.display_name?.[0] ?? user?.email?.[0] ?? '?').toUpperCase()
 
@@ -354,6 +357,42 @@ export default function Home() {
               <span className="text-lg font-light">＋</span>
               <span className="text-sm font-semibold">Add a cat</span>
             </Link>
+
+            {/* In Memoriam section */}
+            {memorialCats.length > 0 && (
+              <div className="mt-6">
+                <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--color-ink-dim)' }}>
+                  In Memoriam
+                </p>
+                <div className="space-y-2">
+                  {memorialCats.map((cat) => (
+                    <Link
+                      key={cat.id}
+                      to={`/cats/${cat.id}/memorial`}
+                      className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all"
+                      style={{
+                        background: 'var(--color-card)',
+                        border: '1px solid var(--color-card-border)',
+                        opacity: 0.75,
+                      }}
+                    >
+                      <div className="shrink-0 w-10 h-10 rounded-full overflow-hidden" style={{ filter: 'grayscale(0.6)', border: '1px solid var(--color-rim)' }}>
+                        <CatAvatar photoUrl={cat.photo_url} name={cat.name} size={40} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-ink-mid truncate">{cat.name}</p>
+                        {cat.deceased_at && (
+                          <p className="text-xs text-ink-dim mt-0.5">
+                            {new Date(cat.deceased_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                          </p>
+                        )}
+                      </div>
+                      <span className="text-ink-dim text-sm shrink-0">→</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

@@ -36,8 +36,8 @@
 | [PRD-accessibility.md](PRD-accessibility.md) | Accessibility — Color Independence, Touch Targets, Screen Reader Support | `Partial` | 2026-03-07 |
 | [PRD-usability.md](PRD-usability.md) | Usability Polish — Scroll, Feedback, Disabled States, Delete Confirmation | `Partial` | 2026-03-07 |
 | [PRD-app-settings.md](PRD-app-settings.md) | App Settings — Dark/Light/System Mode Toggle | `Implemented` | 2026-03-08 |
-| [PRD-deceased-cat.md](PRD-deceased-cat.md) | In Memoriam — Marking a Cat as Deceased | `In Progress` | 2026-04-10 |
-| [PRD-weight-alert-sensitivity.md](PRD-weight-alert-sensitivity.md) | Weight Alert Sensitivity Review | `In Progress` | 2026-04-10 |
+| [PRD-deceased-cat.md](PRD-deceased-cat.md) | In Memoriam — Marking a Cat as Deceased | `Implemented` | 2026-04-10 |
+| [PRD-weight-alert-sensitivity.md](PRD-weight-alert-sensitivity.md) | Weight Alert Sensitivity Review | `Implemented` | 2026-04-10 |
 
 ---
 

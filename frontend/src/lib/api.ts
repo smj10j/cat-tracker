@@ -11,6 +11,8 @@ export interface Cat {
   microchip_id: string | null
   household_id: string | null
   household_name: string | null
+  deceased_at: string | null
+  memorial_note: string | null
   created_at: string
   updated_at: string
 }
@@ -79,12 +81,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 // Cats
-export const getCats = () => request<Cat[]>('/cats')
+export const getCats = (status?: 'active' | 'memorial' | 'all') =>
+  request<Cat[]>(`/cats${status ? `?status=${status}` : ''}`)
 export const getCat = (id: string) => request<Cat>(`/cats/${id}`)
 export const createCat = (data: Omit<Cat, 'id' | 'created_at' | 'updated_at' | 'household_id' | 'household_name'>) =>
   request<Cat>('/cats', { method: 'POST', body: JSON.stringify(data) })
 export const updateCat = (id: string, data: Partial<Omit<Cat, 'id' | 'created_at' | 'updated_at' | 'household_id' | 'household_name'>>) =>
   request<Cat>(`/cats/${id}`, { method: 'PUT', body: JSON.stringify(data) })
+export const markDeceased = (id: string, deceased_at: string, memorial_note?: string) =>
+  request<Cat>(`/cats/${id}`, { method: 'PUT', body: JSON.stringify({ deceased_at, memorial_note: memorial_note ?? null }) })
+export const markAlive = (id: string) =>
+  request<Cat>(`/cats/${id}`, { method: 'PUT', body: JSON.stringify({ deceased_at: null, memorial_note: null }) })
 export const deleteCat = (id: string) =>
   request<{ success: boolean }>(`/cats/${id}`, { method: 'DELETE' })
 

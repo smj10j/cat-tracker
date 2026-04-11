@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS cats (
   microchip_id TEXT,
   user_id      TEXT REFERENCES users(id),
   household_id TEXT REFERENCES households(id),
+  deceased_at  TEXT,
+  memorial_note TEXT,
   created_at   TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -29,6 +31,8 @@ CREATE INDEX IF NOT EXISTS idx_cats_household ON cats(household_id);
 -- ALTER TABLE cats ADD COLUMN is_neutered INTEGER;
 -- ALTER TABLE cats ADD COLUMN user_id TEXT REFERENCES users(id);
 -- ALTER TABLE cats ADD COLUMN household_id TEXT REFERENCES households(id);
+-- ALTER TABLE cats ADD COLUMN deceased_at TEXT;
+-- ALTER TABLE cats ADD COLUMN memorial_note TEXT;
 
 CREATE TABLE IF NOT EXISTS measurements (
   id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),

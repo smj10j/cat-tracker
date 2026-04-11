@@ -44,13 +44,23 @@ cats.get('/', async (c) => {
   // Trigger lazy migration so this user's cats have household_id set
   await ensureHousehold(c.env.DB, userId)
 
+  const status = c.req.query('status') ?? 'active' // default: only active cats
+
+  let statusFilter = ''
+  if (status === 'active') statusFilter = 'AND c.deceased_at IS NULL'
+  else if (status === 'memorial') statusFilter = 'AND c.deceased_at IS NOT NULL'
+  // 'all' → no filter
+
   const result = await c.env.DB.prepare(`
     SELECT c.*, h.name as household_name
     FROM cats c
     LEFT JOIN households h ON h.id = c.household_id
-    WHERE c.household_id IN (
-      SELECT household_id FROM household_members WHERE user_id = ? AND status = 'active'
-    ) OR (c.user_id = ? AND c.household_id IS NULL)
+    WHERE (
+      c.household_id IN (
+        SELECT household_id FROM household_members WHERE user_id = ? AND status = 'active'
+      ) OR (c.user_id = ? AND c.household_id IS NULL)
+    )
+    ${statusFilter}
     ORDER BY c.name ASC
   `).bind(userId, userId).all()
   return c.json(result.results)
@@ -150,6 +160,8 @@ cats.put('/:id', async (c) => {
     sex?: string | null
     microchip_id?: string | null
     is_neutered?: number | null
+    deceased_at?: string | null
+    memorial_note?: string | null
   }>()
 
   const existing = await c.env.DB.prepare('SELECT * FROM cats WHERE id = ?')
@@ -180,10 +192,16 @@ cats.put('/:id', async (c) => {
     }
   }
 
+  // Detect transition to deceased so we can fire side-effects
+  const becomingDeceased =
+    'deceased_at' in body &&
+    body.deceased_at !== null &&
+    (existing.deceased_at === null || existing.deceased_at === undefined)
+
   const updated = await c.env.DB.prepare(
     `UPDATE cats
      SET name = ?, birthdate = ?, breed = ?, coloring = ?, notes = ?, photo_url = ?, sex = ?, microchip_id = ?,
-         is_neutered = ?, updated_at = datetime('now')
+         is_neutered = ?, deceased_at = ?, memorial_note = ?, updated_at = datetime('now')
      WHERE id = ?
      RETURNING *`
   )
@@ -197,9 +215,25 @@ cats.put('/:id', async (c) => {
       body.sex !== undefined ? body.sex : existing.sex,
       newMicrochipId !== undefined ? newMicrochipId : existing.microchip_id,
       body.is_neutered !== undefined ? body.is_neutered : existing.is_neutered,
+      body.deceased_at !== undefined ? body.deceased_at : existing.deceased_at ?? null,
+      body.memorial_note !== undefined ? body.memorial_note : existing.memorial_note ?? null,
       id
     )
     .first()
+
+  // Side-effects when a cat is marked deceased:
+  // 1. Deactivate all medications (prevent future reminder generation).
+  // 2. Delete all pending (unactioned) future doses.
+  if (becomingDeceased) {
+    await c.env.DB.prepare(
+      `UPDATE medications SET is_active = 0 WHERE cat_id = ?`
+    ).bind(id).run()
+    await c.env.DB.prepare(
+      `DELETE FROM medication_doses
+       WHERE medication_id IN (SELECT id FROM medications WHERE cat_id = ?)
+         AND administered_at IS NULL AND skipped = 0`
+    ).bind(id).run()
+  }
 
   return c.json(updated)
 })

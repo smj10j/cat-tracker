@@ -17,6 +17,7 @@ import HouseholdPage from './pages/HouseholdPage'
 import InvitePage from './pages/InvitePage'
 import DailyCheckin from './pages/DailyCheckin'
 import SettingsPage from './pages/SettingsPage'
+import MemorialPage from './pages/MemorialPage'
 import PageShell from './components/PageShell'
 import ScrollToTop from './components/ScrollToTop'
 
@@ -42,6 +43,7 @@ export default function App() {
                   <Route path="/cats/:id/health" element={<CatHealthGuidance />} />
                   <Route path="/cats/:id/export" element={<CatExportPage />} />
                   <Route path="/cats/:id/edit" element={<AddEditCat />} />
+                  <Route path="/cats/:id/memorial" element={<MemorialPage />} />
                   <Route path="/cats/:catId/medications/new" element={<MedicationFormPage />} />
                   <Route path="/medications/:medId/edit" element={<MedicationFormPage />} />
                   <Route path="/notifications" element={<NotificationsPage />} />

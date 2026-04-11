@@ -13,6 +13,7 @@ interface User {
   display_name: string | null;
   avatar_url: string | null;
   oauth_provider: string;
+  hasOrphanedCats: boolean;
 }
 
 interface AuthContextValue {

@@ -20,6 +20,8 @@ function RootNavigator() {
           <Stack.Screen name="(auth)/login" />
         )}
         <Stack.Screen name="cats/[id]/index" />
+        <Stack.Screen name="cats/[id]/edit" />
+        <Stack.Screen name="cats/new" />
         <Stack.Screen name="settings" />
       </Stack>
     </>

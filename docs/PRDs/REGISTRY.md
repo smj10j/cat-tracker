@@ -41,6 +41,7 @@
 | [PRD-ios-app-store.md](PRD-ios-app-store.md) | iOS App Store Deployment | `In Progress` | 2026-04-10 |
 | [PRD-api-versioning.md](PRD-api-versioning.md) | API Versioning & Backend-Driven Updates | `Draft` | 2026-04-11 |
 | [PRD-security-phase2.md](PRD-security-phase2.md) | Security Hardening Phase 2 — Native App & Multi-Client | `Draft` | 2026-04-11 |
+| [PRD-chart-time-navigation.md](PRD-chart-time-navigation.md) | Chart Time Range & Swipe Navigation | `Draft` | 2026-04-11 |
 
 ---
 
@@ -551,6 +552,21 @@ Nothing rejected yet.
 **Problem:** The iOS app introduces new attack surface not covered by Phase 1: Bearer tokens (no cookie binding), Apple OAuth (JWT replay), account deletion (no re-auth gate), device token registration (no format validation), data export (no rate limit), and no audit logging for sensitive operations.
 
 **Scope:** 7 findings (SEC-10 through SEC-16). Phase A (critical, before launch): re-auth gate on account deletion, Apple token replay prevention. Phase B (30 days): rate limiting, device token validation, audit logging. Phase C (90 days): device fingerprint binding, accepted risk documentation.
+
+**Do not implement** — status is `Draft`. Requires product owner approval.
+
+---
+
+### PRD-chart-time-navigation.md — Chart Time Range & Swipe Navigation
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-04-11 |
+
+**Problem:** Charts show all-time data with no way to zoom into a specific period. For cats with months of data, trends within a timeframe are hard to read. No quick way to compare periods or focus around a vet visit.
+
+**Scope:** Preset range selector (1W/1M/3M/6M/1Y/All, default 3M), swipe-to-navigate (shift window forward/backward), adaptive x-axis labels, synchronized range across CompareChart series. Applies to all chart types.
 
 **Do not implement** — status is `Draft`. Requires product owner approval.
 

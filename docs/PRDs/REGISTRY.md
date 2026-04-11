@@ -39,9 +39,10 @@
 | [PRD-deceased-cat.md](PRD-deceased-cat.md) | In Memoriam — Marking a Cat as Deceased | `Implemented` | 2026-04-11 |
 | [PRD-weight-alert-sensitivity.md](PRD-weight-alert-sensitivity.md) | Weight Alert Sensitivity Review | `Implemented` | 2026-04-11 |
 | [PRD-ios-app-store.md](PRD-ios-app-store.md) | iOS App Store Deployment | `In Progress` | 2026-04-10 |
-| [PRD-api-versioning.md](PRD-api-versioning.md) | API Versioning & Backend-Driven Updates | `Approved` | 2026-04-11 |
+| [PRD-api-versioning.md](PRD-api-versioning.md) | API Versioning & Backend-Driven Updates | `In Progress` | 2026-04-11 |
 | [PRD-security-phase2.md](PRD-security-phase2.md) | Security Hardening Phase 2 — Native App & Multi-Client | `Approved` | 2026-04-11 |
 | [PRD-chart-time-navigation.md](PRD-chart-time-navigation.md) | Chart Time Range & Swipe Navigation | `Approved` | 2026-04-11 |
+| [PRD-alert-acknowledgment.md](PRD-alert-acknowledgment.md) | Health Alert Acknowledgment | `Draft` | 2026-04-11 |
 
 ---
 
@@ -548,13 +549,21 @@ Nothing rejected yet.
 
 | | |
 |---|---|
-| **Status** | `Approved` |
+| **Status** | `In Progress` |
 | **Last updated** | 2026-04-11 |
 | **Depends on** | PRD-ios-app-store.md |
 
 **Problem:** With the iOS app shipping via App Store, frontend and backend deployments are no longer atomic. Breaking API changes can crash older app versions. Health thresholds are hardcoded in the client — updating them requires an app update or OTA push.
 
 **Scope:** API compatibility header (`X-API-Version`), server-driven config endpoint (`GET /api/config`) with feature flags and threshold overrides, minimum version enforcement, additive-only API change policy, deprecation protocol with `Sunset` header.
+
+**Implemented Phase A** — KV namespace (`cat-tracker-config`, ID `7fc5a67f7e774458a99bf41dc7fe761c`), `CONFIG_KV` binding, `GET /api/config` endpoint (no auth, 5-min cache, KV validation with safe defaults fallback), `X-API-Version` middleware and header on all frontend requests, 6 tests in `config.test.ts`. Initial config seeded in production KV.
+
+**Not yet implemented:**
+- Phase B — Threshold overrides (client reads config thresholds and merges with local defaults)
+- Phase C — Feature flags (client checks `features.*` before enabling UI)
+- Minimum version enforcement middleware (compare X-API-Version against minSupportedVersion, return 426)
+- Deprecation protocol with `Sunset` header
 
 ---
 

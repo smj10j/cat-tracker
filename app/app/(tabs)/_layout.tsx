@@ -1,10 +1,24 @@
 import { useState } from 'react';
-import { Tabs } from 'expo-router';
-import { Text, View } from 'react-native';
+import { Tabs, Redirect } from 'expo-router';
+import { Text, View, ActivityIndicator } from 'react-native';
+import { useAuth } from '../../contexts/AuthContext';
 import QuickAdd from '../../components/QuickAdd';
 
 export default function TabLayout() {
+  const { isAuthenticated, isLoading } = useAuth();
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#16111f', alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color="#c084fc" size="large" />
+      </View>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Redirect href="/(auth)/login" />;
+  }
 
   return (
     <>

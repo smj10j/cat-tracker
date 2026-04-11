@@ -12,6 +12,13 @@
 - [x] Write TDD (docs/TDD.md)
 - [x] Create this TODO list
 
+## Phase 32: iOS App Store Planning (PRD-ios-app-store.md)
+- [x] Write PRD-ios-app-store.md (Draft): product requirements, asset strategy, automated deployment, App Store metadata, privacy, phased delivery (Phases 0–8), success metrics
+- [x] Update docs/TDD/cross-platform.md: Sign in with Apple technical scope, OTA updates, deep linking/universal links, error monitoring, versioning strategy, CI/CD pipeline, performance budgets, account deletion, web migration safety protocol
+- [x] Add PRD to REGISTRY.md (status: Draft)
+- [x] Add Phase 32 to TODO.md
+- [ ] Product owner review and approval → move to Approved
+
 ## Phase 1: Project Setup
 - [x] Scaffold Worker project (Hono + TypeScript + wrangler.toml)
 - [x] Scaffold Frontend project (React + Vite + Tailwind + React Router)

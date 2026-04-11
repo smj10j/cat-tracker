@@ -4,6 +4,7 @@
 > This document describes the target architecture for a unified iOS / Android / web app.
 > The current production system is documented in [web.md](web.md).
 > The Worker API and D1 schema described in web.md remain authoritative for both architectures.
+> Product requirements and phased delivery plan: [PRD-ios-app-store.md](../PRDs/PRD-ios-app-store.md).
 
 ---
 
@@ -56,12 +57,15 @@ React Native UI layer; shared TypeScript business logic; Expo Router targets iOS
 
 Verdict: **recommended**. Best balance of code reuse, native quality, and implementation speed.
 
-### Decision: Expo SDK 52 + Expo Router v4 + NativeWind v4
+### Decision: Expo SDK 52+ + Expo Router v4 + NativeWind v4
+
+> **Version note:** Pin to the latest stable Expo SDK at time of project init (`npx create-expo-app@latest`). SDK 52 was current when this TDD was written; use whatever is stable at implementation time. The architecture decisions below are SDK-version-independent.
 
 - **Expo Router v4** — file-based routing (same mental model as current React Router); ships web support that generates a static site deployable to Cloudflare Pages
 - **NativeWind v4** — Tailwind utility classes in React Native via `className` prop; design tokens from the existing `tailwind.config.ts` carry over directly
-- **Victory Native XL** — Skia-based chart library; replaces Recharts; same data shapes
+- **Victory Native XL** — Skia-based chart library; replaces Recharts; same data shapes. **Risk:** Skia WASM adds to web bundle size — measure in Phase 3 and evaluate a platform split (Victory on native, Recharts on web via `.web.tsx` / `.native.tsx` files) if the increase exceeds 500 KB
 - **EAS Build + EAS Submit** — cloud compilation and App Store / Play Store submission without local native toolchains
+- **EAS Update** — over-the-air JS bundle updates for post-release fixes without App Store review (see OTA Updates section)
 
 ---
 
@@ -274,6 +278,26 @@ A new OAuth 2.0 Client ID (type: iOS or Android) must be created in Google Cloud
 - Android: `me.01j.cattracker:/oauth`
 
 The existing web client ID (`cat-tracker.pages.dev/api/auth/callback`) is unchanged and continues to serve the web target.
+
+### Sign in with Apple (required for App Store)
+
+Apple Review Guideline 4.8 requires apps offering any social login (Google) to also offer Sign in with Apple. This is **not optional** — submission will be rejected without it.
+
+Apple OAuth differs significantly from Google OAuth:
+- **Callback is `POST` with `application/x-www-form-urlencoded` body**, not a `GET` with query params
+- **Apple returns a JWT `id_token` directly** — no token exchange step. Verify against Apple's JWKS (`https://appleid.apple.com/auth/keys`)
+- **User's name is delivered only on the first authorization** — the Worker must persist `display_name` on first callback; subsequent logins only provide the `sub` (user ID) and email
+- **"Hide My Email"** generates a `@privaterelay.appleid.com` address — household invites via Resend must work with these relay addresses (Resend supports them, but test explicitly)
+
+Worker changes:
+1. Register a Service ID in Apple Developer portal (Certificates, Identifiers & Profiles)
+2. Generate a client secret (ES256 JWT signed with Apple's private key, rotated every 6 months)
+3. `GET /api/auth/login?provider=apple` → redirect to `appleid.apple.com/auth/authorize`
+4. `POST /api/auth/callback` handler (Apple POSTs) — verify `id_token` JWT, upsert user with `oauth_provider='apple'`
+5. `users` table: `oauth_provider` column now accepts `'apple'` in addition to `'google'`
+
+Native app (iOS): use `expo-apple-authentication` for the native Sign in with Apple sheet.
+Web: use Apple JS SDK or redirect-based flow (both work).
 
 ### `useAuth` hook
 
@@ -875,7 +899,250 @@ Two new OAuth 2.0 client IDs in Google Cloud Console (in addition to the existin
 
 ---
 
+## OTA Updates (EAS Update)
+
+EAS Update enables over-the-air JS bundle updates. When a fix is JS-only (no native module changes), it can be pushed to all installed apps without going through App Store review.
+
+```bash
+# Push an OTA update to all production iOS users
+cd app && eas update --branch production --platform ios --message "Fix weight chart Y-axis label"
+```
+
+### How it works
+1. On app launch, `expo-updates` checks for a new JS bundle from EAS
+2. If found, it downloads in the background
+3. On the next app restart, the new bundle loads
+4. If the new bundle crashes, `expo-updates` automatically rolls back to the previous working bundle
+
+### When to use OTA vs full build
+| Change type | OTA (EAS Update) | Full build (EAS Build + Submit) |
+|---|---|---|
+| Bug fix in TypeScript/JSX | Yes | No |
+| Copy/text change | Yes | No |
+| New Expo plugin or native module | No | Yes |
+| `app.json` change (permissions, scheme, etc.) | No | Yes |
+| New npm package with native code | No | Yes |
+
+### Configuration
+```json
+// app.json
+{
+  "expo": {
+    "updates": {
+      "url": "https://u.expo.dev/<project-id>",
+      "fallbackToCacheTimeout": 3000
+    },
+    "runtimeVersion": { "policy": "sdkVersion" }
+  }
+}
+```
+
+`runtimeVersion` ensures OTA updates only apply to compatible native builds. When the SDK version changes, old builds won't receive incompatible updates.
+
+---
+
+## Deep Linking & Universal Links
+
+### Why this matters
+Household invite emails contain links like `https://cat-tracker.pages.dev/invite?token=abc123`. On iOS, these should open in the native app if installed, falling back to the web app if not.
+
+### Apple Universal Links
+1. Host an `apple-app-site-association` file at `https://cat-tracker.pages.dev/.well-known/apple-app-site-association`:
+```json
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["<TEAM_ID>.me.01j.cattracker"],
+        "paths": ["/invite*", "/cats/*"]
+      }
+    ]
+  }
+}
+```
+2. This file must be served with `Content-Type: application/json` (no redirect). Add it to `app/public/.well-known/` so it deploys with the Pages site.
+3. In `app.json`, add the `associatedDomains` entitlement:
+```json
+{
+  "expo": {
+    "ios": {
+      "associatedDomains": ["applinks:cat-tracker.pages.dev"]
+    }
+  }
+}
+```
+
+### Expo Router deep link handling
+Expo Router handles deep links automatically — a universal link to `/invite?token=abc` routes to `app/invite.tsx` with the token available via `useLocalSearchParams()`. No manual linking configuration needed.
+
+### Custom scheme fallback
+For OAuth redirects and other in-app flows, the custom scheme `me.01j.cattracker://` is used. This is configured in `app.json` under `scheme` and works independently of universal links.
+
+---
+
+## Error Monitoring
+
+Native apps crash silently. Without monitoring, bugs are invisible until a 1-star App Store review appears.
+
+### Recommended: Sentry + `sentry-expo`
+```bash
+npx expo install sentry-expo
+```
+
+Configuration in `app/_layout.tsx`:
+```typescript
+import * as Sentry from 'sentry-expo';
+Sentry.init({
+  dsn: 'FILL_IN',
+  enableInExpoDevelopment: false,
+  debug: false,
+});
+```
+
+### What to monitor
+- Unhandled JS exceptions and native crashes
+- API call failures (4xx/5xx from the Worker)
+- Auth flow failures (OAuth redirect errors)
+- Chart rendering errors (Skia is less battle-tested than DOM SVG)
+
+### Source maps
+EAS Build automatically uploads source maps to Sentry when configured, enabling readable stack traces from minified production JS.
+
+---
+
+## Versioning & Release Strategy
+
+### Version scheme
+```
+{MAJOR}.{MINOR}.{PATCH}  (e.g., 1.0.0, 1.1.0, 1.1.1)
+```
+
+- `app.json` → `expo.version`: the human-readable version string
+- `app.json` → `expo.ios.buildNumber`: auto-incremented by EAS Build (`autoIncrement: true` in `eas.json`)
+- Display version in Settings page: `Constants.expoConfig?.version`
+
+### Release flow
+1. Bump version in `app.json` (manual decision: patch/minor/major)
+2. `eas build --platform ios --profile production --non-interactive`
+3. `eas submit --platform ios --latest --non-interactive` → TestFlight
+4. Internal testing (minimum 1 day for non-critical, 1 week for major)
+5. Promote to App Store review from App Store Connect (or via `eas submit` with release flag)
+6. OTA-eligible fixes can skip steps 2–5 and go directly via `eas update`
+
+### Rollback
+- OTA updates can be rolled back by publishing a previous bundle version
+- Binary builds cannot be rolled back — submit a new build with the fix
+- Apple typically reviews expedited submissions within 24 hours for critical fixes
+
+---
+
+## CI/CD Pipeline (GitHub Actions)
+
+Automates build and deployment on push to `main`. This is an enhancement over manual `eas build` commands.
+
+```yaml
+# .github/workflows/deploy.yml
+name: Deploy
+on:
+  push:
+    branches: [main]
+
+jobs:
+  worker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: cd worker && npm ci && npm test && npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: cd app && npm ci && npm test
+      - run: cd app && npx expo export --platform web
+      - run: cd app && npx wrangler pages deploy dist --project-name cat-tracker --commit-dirty=true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+  ios:
+    if: contains(github.event.head_commit.message, '[release-ios]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: cd app && eas build --platform ios --profile production --non-interactive
+      - run: cd app && eas submit --platform ios --latest --non-interactive
+```
+
+**Notes:**
+- iOS builds are triggered only when the commit message contains `[release-ios]` (prevents burning EAS build minutes on every push)
+- Worker and web deploy on every push to `main` (matching current behavior)
+- `EXPO_TOKEN` is a personal access token from expo.dev
+- `CLOUDFLARE_API_TOKEN` needs Pages + Workers permissions
+
+---
+
+## Performance Budgets
+
+| Metric | Target | How to measure |
+|---|---|---|
+| iOS cold start → interactive | < 2s on iPhone 12+ | Xcode Instruments or `performance.now()` in `_layout.tsx` |
+| JS bundle size (native) | < 5 MB | `npx expo export --dump-sourcemap` + analyze |
+| Web bundle size delta | < 500 KB increase over current Vite build | Compare `frontend/dist` vs `app/dist` sizes |
+| Chart render (200 data points) | < 500ms | `performance.now()` around chart mount |
+| Memory (idle on Home screen) | < 100 MB | Xcode Memory Gauge |
+| Skia WASM bundle (web) | < 1.5 MB | Network tab in DevTools |
+
+If the Skia WASM budget is exceeded, the mitigation is a platform split:
+- `WeightChart.native.tsx` → Victory Native XL (Skia)
+- `WeightChart.web.tsx` → Recharts (current implementation, zero cost)
+
+This adds maintenance overhead but preserves web performance. Decide in Phase 3 based on actual measurements.
+
+---
+
+## Account Deletion (App Store Requirement)
+
+Apple Review Guideline 5.1.1(v) requires that apps offering account creation must allow in-app account deletion.
+
+### Worker route
+```
+DELETE /api/auth/account
+Auth: required
+```
+
+Cascade deletes (in order):
+1. All `medication_doses` for the user's medications
+2. All `medications` for the user's cats
+3. All `measurements` for the user's cats
+4. R2 objects: `cats/{cat_id}/photo.jpg` for each cat
+5. All `cats` owned by the user
+6. All `household_members` entries for the user
+7. All `sessions` for the user
+8. The `users` row
+
+If the user is the sole Admin of a household, the household must either be transferred or dissolved. The API should return a `409 Conflict` with guidance if this precondition isn't met.
+
+### UI
+Settings page → "Delete Account" section → red button → confirmation dialog explaining what will be lost → type "DELETE" to confirm → execute → redirect to login screen.
+
+---
+
 ## Migration Phases
+
+> **Detailed phased delivery plan with exit criteria:** see [PRD-ios-app-store.md](../PRDs/PRD-ios-app-store.md).
 
 Each phase is independently deployable and leaves the web app in a working state throughout.
 
@@ -968,12 +1235,33 @@ Deliverable: single codebase for all three platforms; no `frontend/` directory.
 
 ---
 
+## Web Migration Safety Protocol
+
+The `frontend/` directory is the production web app. It must not be deleted or degraded until the Expo web target is proven equivalent.
+
+### Parallel running period
+After Phase 4 (feature parity), deploy the Expo web export to a **preview URL** (e.g., `app-preview.cat-tracker.pages.dev`) and run it alongside the existing `frontend/` deployment for at least 2 weeks. Compare:
+- Bundle size (must not exceed budget)
+- Lighthouse scores (performance, accessibility, SEO)
+- Manual walkthrough of all routes
+- Chart rendering accuracy (pixel comparison not required, but visual sanity check)
+
+### Rollback plan
+If the Expo web export has issues post-cutover:
+1. The `frontend/` directory is in git history — restore it
+2. Redeploy: `cd frontend && npm run build && npx wrangler pages deploy dist --project-name cat-tracker --commit-dirty=true`
+3. No data migration needed — the backend is unchanged
+
+This is why Phase 8 (retire `frontend/`) is a separate phase after launch, not bundled with Phase 7.
+
+---
+
 ## Risk Register
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| Apple rejects for missing Sign in with Apple | High | High | Add Apple OAuth in Phase 5 before submission — do not skip |
-| Victory Native XL rendering differs from Recharts (tooltip behavior, legend) | Medium | Medium | Prototype charts in Phase 3 before completing other screens; decide early if gap is acceptable |
+| Apple rejects for missing Sign in with Apple | **Certain** (if not implemented) | **Blocking** | Phase 5 is dedicated to this — do not submit without it |
+| Victory Native XL rendering differs from Recharts (tooltip behavior, legend) | Medium | Medium | Prototype charts in Phase 3 before completing other screens; if unacceptable, use platform split (Victory on native, Recharts on web) |
 | NativeWind v4 className prop missing in some RN core components | Medium | Low | Use `StyleSheet.create()` as a fallback for the specific component; don't block on it |
 | `expo-auth-session` OAuth flow fails on Android (custom scheme not registered) | Medium | High | Test on physical Android device in Phase 1; custom scheme requires `intentFilters` in `app.json` |
 | EAS Build free tier minute limits | Low | Medium | EAS free tier is 30 iOS + 30 Android builds/month — sufficient for development; upgrade if needed |
@@ -984,13 +1272,17 @@ Deliverable: single codebase for all three platforms; no `frontend/` directory.
 
 ## Open Questions
 
-1. **App name**: "Cat Tracker" is generic and will rank poorly in App Store search. Consider a distinct name before Phase 5.
-2. **Web continuity during migration**: `frontend/` stays live until Phase 6. The web app is unaffected by Phases 0–5.
-3. **Android Google OAuth**: Requires the SHA-1 fingerprint of the release keystore, which EAS generates. This fingerprint must be registered in Google Cloud Console before Phase 5 can complete.
-4. **Sign in with Apple**: Apple requires it whenever an app offers other social login on iOS. Scoping and implementing Apple OAuth in the Worker is not trivial — plan for 1–2 days of work in Phase 5.
+1. **App name**: "Cat Tracker" is generic and will rank poorly in App Store search. "Cat Tracker — Health Monitor" is more descriptive. Consider a unique brand name before submission.
+2. **Web continuity during migration**: `frontend/` stays live until Phase 8. The web app is unaffected by Phases 0–7. See Web Migration Safety Protocol above.
+3. **Android Google OAuth**: Requires the SHA-1 fingerprint of the release keystore, which EAS generates. This fingerprint must be registered in Google Cloud Console before Android submission.
+4. **Sign in with Apple**: Apple requires it whenever an app offers other social login on iOS. Now fully scoped in the Authentication section above — plan for 2–3 days of work including testing.
 5. **Pricing**: Both app stores are free to download. Cloudflare free tier covers the backend at personal scale. No monetization plan currently.
-6. **Tablet support**: `supportsTablet: false` in `app.json` for now. Tablet layout would need a two-column design, which is Phase 6+ work.
+6. **Tablet support**: `supportsTablet: false` in `app.json` for now. Tablet layout would need a two-column design — future work.
+7. **Account deletion**: Required by Apple (Review Guideline 5.1.1(v)). Now scoped in the Account Deletion section above. Must be implemented before submission.
+8. **Privacy policy**: Must be publicly hosted and linked from both the App Store listing and in-app Settings. See PRD for requirements.
+9. **Chart library platform split**: If Skia WASM exceeds the 500 KB web budget, we'll need to maintain both Victory Native XL (native) and Recharts (web). This doubles chart maintenance but preserves web performance. Decision point: Phase 3.
+10. **EAS Build minutes**: Free tier is 30 iOS + 30 Android builds/month. Sufficient for development, but CI/CD on every push would exhaust it. The GitHub Actions workflow uses `[release-ios]` commit message gating to conserve minutes.
 
 ---
 
-*Last updated: 2026-03-07. Supersedes `scratch/TDD-mobile.md`.*
+*Last updated: 2026-04-10. Supersedes `scratch/TDD-mobile.md`.*

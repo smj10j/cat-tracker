@@ -100,9 +100,33 @@ const MAX_CANVAS_DIM = 2048 // scale down images larger than this
 
 // Converts any image Blob to a JPEG Blob via canvas.
 // Always goes through canvas (never sends raw File bytes) so the output is a
-// clean JPEG with no EXIF, predictable size, and correct MIME type — matching
-// the behaviour that previously went through CropModal.
-function toJpegBlob(file: Blob): Promise<Blob> {
+// clean JPEG with no EXIF, predictable size, and correct MIME type.
+// Uses createImageBitmap (works directly from Blob, no FileReader needed) with
+// a FileReader+Image fallback for older browsers (Safari < 16.4).
+function drawBitmapToJpeg(bmp: ImageBitmap): Promise<Blob> {
+  let { width: w, height: h } = bmp
+  if (w > MAX_CANVAS_DIM || h > MAX_CANVAS_DIM) {
+    const ratio = Math.min(MAX_CANVAS_DIM / w, MAX_CANVAS_DIM / h)
+    w = Math.round(w * ratio)
+    h = Math.round(h * ratio)
+  }
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return Promise.reject(new Error('Canvas not available'))
+  ctx.drawImage(bmp, 0, 0, w, h)
+  bmp.close()
+  return new Promise((resolve, reject) =>
+    canvas.toBlob(
+      (blob) => blob ? resolve(blob) : reject(new Error('Image conversion failed')),
+      'image/jpeg',
+      0.9,
+    ),
+  )
+}
+
+function toJpegBlobFallback(file: Blob): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onerror = () => reject(new Error('Could not read image file'))
@@ -111,29 +135,24 @@ function toJpegBlob(file: Blob): Promise<Blob> {
       const img = new Image()
       img.onerror = () => reject(new Error('Could not decode image — try a different file'))
       img.onload = () => {
-        let { naturalWidth: w, naturalHeight: h } = img
-        // Scale down if either dimension exceeds MAX_CANVAS_DIM
-        if (w > MAX_CANVAS_DIM || h > MAX_CANVAS_DIM) {
-          const ratio = Math.min(MAX_CANVAS_DIM / w, MAX_CANVAS_DIM / h)
-          w = Math.round(w * ratio)
-          h = Math.round(h * ratio)
-        }
-        const canvas = document.createElement('canvas')
-        canvas.width = w
-        canvas.height = h
-        const ctx = canvas.getContext('2d')
-        if (!ctx) { reject(new Error('Canvas not available')); return }
-        ctx.drawImage(img, 0, 0, w, h)
-        canvas.toBlob(
-          (blob) => blob ? resolve(blob) : reject(new Error('Image conversion failed')),
-          'image/jpeg',
-          0.9,
-        )
+        createImageBitmap(img).then(bmp => drawBitmapToJpeg(bmp)).then(resolve, reject)
       }
       img.src = dataUrl
     }
     reader.readAsDataURL(file)
   })
+}
+
+async function toJpegBlob(file: Blob): Promise<Blob> {
+  if (typeof createImageBitmap === 'function') {
+    try {
+      const bmp = await createImageBitmap(file)
+      return await drawBitmapToJpeg(bmp)
+    } catch {
+      // Fall through to legacy path (e.g. unsupported format)
+    }
+  }
+  return toJpegBlobFallback(file)
 }
 
 export async function uploadCatPhoto(catId: string, blob: Blob): Promise<{ photo_url: string }> {

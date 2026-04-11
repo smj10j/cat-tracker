@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { View, Text, Pressable, ScrollView, Image } from 'react-native';
+import { View, Text, Pressable, ScrollView, Image, InteractionManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { api, CARE_TYPE_ICONS } from '../../../lib/api';
@@ -104,6 +104,14 @@ export default function CatProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [transitionDone, setTransitionDone] = useState(false);
+
+  useEffect(() => {
+    const handle = InteractionManager.runAfterInteractions(() => {
+      setTransitionDone(true);
+    });
+    return () => handle.cancel();
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -349,7 +357,7 @@ export default function CatProfileScreen() {
         {/* Health tab */}
         {profileTab === 'health' && (
           <View style={{ paddingHorizontal: 16, gap: 16, marginTop: 16, paddingBottom: 32 }}>
-            {!isDeceased && (
+            {!isDeceased && transitionDone && (
               <InsightsPanel
                 cat={cat}
                 status={status}
@@ -396,7 +404,7 @@ export default function CatProfileScreen() {
             )}
 
             {/* Weight chart */}
-            {chartTab === 'weight' && weightMeasurements.length >= 2 && (
+            {transitionDone && chartTab === 'weight' && weightMeasurements.length >= 2 && (
               <View style={{
                 backgroundColor: '#1f1830',
                 borderRadius: 16,
@@ -428,7 +436,7 @@ export default function CatProfileScreen() {
             )}
 
             {/* Food chart */}
-            {chartTab === 'food' && (() => {
+            {transitionDone && chartTab === 'food' && (() => {
               const foodMeasurements = measurements.filter(m => m.type === 'food');
               if (foodMeasurements.length < 2) return (
                 <View style={{ backgroundColor: '#1f1830', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)', alignItems: 'center' }}>
@@ -456,7 +464,7 @@ export default function CatProfileScreen() {
             })()}
 
             {/* Water chart */}
-            {chartTab === 'water' && (() => {
+            {transitionDone && chartTab === 'water' && (() => {
               const waterMeasurements = measurements.filter(m => m.type === 'water');
               if (waterMeasurements.length < 2) return (
                 <View style={{ backgroundColor: '#1f1830', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)', alignItems: 'center' }}>
@@ -484,7 +492,7 @@ export default function CatProfileScreen() {
             })()}
 
             {/* Behavior charts */}
-            {chartTab === 'behavior' && (() => {
+            {transitionDone && chartTab === 'behavior' && (() => {
               const behaviorTypes = ['grooming', 'activity', 'litter', 'vomiting'].filter(t => measurementsByType[t]?.length);
               const typeColors: Record<string, string> = { grooming: '#c084fc', activity: '#4ade80', litter: '#fbbf24', vomiting: '#f87171' };
               if (behaviorTypes.length === 0) return (

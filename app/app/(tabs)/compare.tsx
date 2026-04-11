@@ -138,6 +138,7 @@ export default function CompareScreen() {
 
   // Build chart data: one point per date, one series per enabled cat
   const chartData: ChartDataPoint[] = [];
+  const chartDateKeys: string[] = []; // parallel array of date strings for emoji mapping
   const dateSet = new Set<string>();
   for (const cat of enabledCats) {
     for (const m of measurementsByCat.get(cat.id) ?? []) {
@@ -160,6 +161,7 @@ export default function CompareScreen() {
         if (point[cat.id] === undefined) point[cat.id] = NaN;
       }
       chartData.push(point);
+      chartDateKeys.push(dateKey);
     }
   }
 
@@ -168,6 +170,34 @@ export default function CompareScreen() {
   const chartSeriesColors = Object.fromEntries(
     enabledCats.map((c) => [c.id, LINE_COLORS[cats.indexOf(c) % LINE_COLORS.length]!])
   );
+
+  // Build emoji dot map for weight charts: map each chart data point index to a health emoji per cat
+  const chartDotEmojis: Record<string, Record<number, string>> | undefined = (() => {
+    if (!isWeightType) return undefined;
+    const result: Record<string, Record<number, string>> = {};
+    for (const cat of enabledCats) {
+      const catMeasurements = (measurementsByCat.get(cat.id) ?? [])
+        .slice()
+        .sort((a, b) => a.measured_at.localeCompare(b.measured_at));
+      if (catMeasurements.length < 2) continue;
+      const health = assessHealth(catMeasurements);
+      // Build date→status map from periods (1:1 with sorted measurements)
+      const dateStatusMap = new Map<string, HealthStatus>();
+      for (let i = 0; i < catMeasurements.length; i++) {
+        const period = health.periods[i];
+        const dateKey = catMeasurements[i]!.measured_at.slice(0, 10);
+        dateStatusMap.set(dateKey, period?.status ?? 'ok');
+      }
+      // Map chart data indices to emojis
+      const catEmojis: Record<number, string> = {};
+      for (let ci = 0; ci < chartDateKeys.length; ci++) {
+        const status = dateStatusMap.get(chartDateKeys[ci]!);
+        if (status) catEmojis[ci] = STATUS_EMOJI[status];
+      }
+      result[cat.id] = catEmojis;
+    }
+    return Object.keys(result).length > 0 ? result : undefined;
+  })();
 
   const healthByCat = isWeightType
     ? new Map(
@@ -332,6 +362,7 @@ export default function CompareScreen() {
                   seriesKeys={chartSeriesKeys}
                   seriesLabels={chartSeriesLabels}
                   seriesColors={chartSeriesColors}
+                  dotEmojis={chartDotEmojis}
                   height={240}
                   yLabel={isWeightType ? 'lbs' : undefined}
                   formatY={isScaleType

@@ -47,6 +47,8 @@ interface LineChartProps {
   seriesKeys: string[];
   seriesLabels?: Record<string, string>;
   seriesColors?: Record<string, string>;
+  /** Per-series emoji to render instead of dots. Key = series key, value = map from data index → emoji string. */
+  dotEmojis?: Record<string, Record<number, string>>;
   height?: number;
   yLabel?: string;
   formatY?: (v: number) => string;
@@ -144,6 +146,7 @@ export default function LineChart({
   seriesKeys,
   seriesLabels,
   seriesColors,
+  dotEmojis,
   height = 220,
   yLabel,
   formatY = (v) => String(Math.round(v * 10) / 10),
@@ -452,20 +455,37 @@ export default function LineChart({
             />
           ))}
 
-          {/* Data point dots */}
-          {seriesData.map((s) =>
-            s.pts.map((pt) => (
-              <Circle
-                key={`dot-${s.key}-${pt.idx}`}
-                cx={pt.x}
-                cy={pt.y}
-                r={activeIdx === pt.idx ? 6 : 3}
-                fill={activeIdx === pt.idx ? s.color : '#16111f'}
-                stroke={s.color}
-                strokeWidth={activeIdx === pt.idx ? 2.5 : 1.5}
-              />
-            )),
-          )}
+          {/* Data point dots (or emoji when provided) */}
+          {seriesData.map((s) => {
+            const emojiMap = dotEmojis?.[s.key];
+            return s.pts.map((pt) => {
+              const emoji = emojiMap?.[pt.idx];
+              if (emoji) {
+                return (
+                  <SvgText
+                    key={`dot-${s.key}-${pt.idx}`}
+                    x={pt.x}
+                    y={pt.y + 5}
+                    textAnchor="middle"
+                    fontSize={activeIdx === pt.idx ? 16 : 12}
+                  >
+                    {emoji}
+                  </SvgText>
+                );
+              }
+              return (
+                <Circle
+                  key={`dot-${s.key}-${pt.idx}`}
+                  cx={pt.x}
+                  cy={pt.y}
+                  r={activeIdx === pt.idx ? 6 : 3}
+                  fill={activeIdx === pt.idx ? s.color : '#16111f'}
+                  stroke={s.color}
+                  strokeWidth={activeIdx === pt.idx ? 2.5 : 1.5}
+                />
+              );
+            });
+          })}
 
           {/* Active vertical line */}
           {activePoint && (

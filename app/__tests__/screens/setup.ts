@@ -87,6 +87,7 @@ vi.mock('react-native', () => {
       addEventListener: vi.fn(() => ({ remove: vi.fn() })),
     },
     Linking: { openURL: vi.fn() },
+    Keyboard: { dismiss: vi.fn(), addListener: vi.fn(() => ({ remove: vi.fn() })) },
     KeyboardAvoidingView: mockComponent('KeyboardAvoidingView'),
     RefreshControl: mockComponent('RefreshControl'),
     ActivityIndicator: mockComponent('ActivityIndicator'),

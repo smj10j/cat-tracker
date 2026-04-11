@@ -174,6 +174,72 @@ describe('Memorial screen', () => {
     const { container } = await renderScreen(Memorial);
     expect(container).toBeTruthy();
   });
+
+  it('renders cat name and life summary for a deceased cat', async () => {
+    const { api } = await import('../../lib/api') as any;
+    api.getCat.mockResolvedValueOnce({
+      ...fixtures.cat,
+      deceased_at: '2026-03-01',
+      memorial_note: 'Always in our hearts',
+    });
+    await renderScreen(Memorial);
+    await waitFor(() => {
+      expect(screen.getByText('Luna')).toBeTruthy();
+      expect(screen.getByText(/Always in our hearts/)).toBeTruthy();
+      expect(screen.getByText('Life summary')).toBeTruthy();
+    });
+  });
+
+  it('renders lifespan calculation', async () => {
+    const { api } = await import('../../lib/api') as any;
+    api.getCat.mockResolvedValueOnce({
+      ...fixtures.cat,
+      birthdate: '2022-03-15',
+      deceased_at: '2026-03-01',
+    });
+    await renderScreen(Memorial);
+    await waitFor(() => {
+      expect(screen.getByText(/4 years of life/)).toBeTruthy();
+    });
+  });
+
+  it('renders weight history section when measurements exist', async () => {
+    const { api } = await import('../../lib/api') as any;
+    api.getCat.mockResolvedValueOnce({
+      ...fixtures.cat,
+      deceased_at: '2026-03-01',
+    });
+    await renderScreen(Memorial);
+    await waitFor(() => {
+      expect(screen.getByText('Weight history')).toBeTruthy();
+    });
+  });
+
+  it('handles cat with no measurements', async () => {
+    const { api } = await import('../../lib/api') as any;
+    api.getCat.mockResolvedValueOnce({
+      ...fixtures.cat,
+      deceased_at: '2026-03-01',
+    });
+    api.getMeasurements.mockResolvedValueOnce([]);
+    const { container } = await renderScreen(Memorial);
+    expect(container).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByText('0')).toBeTruthy(); // measurements logged = 0
+    });
+  });
+
+  it('renders edit memorial button', async () => {
+    const { api } = await import('../../lib/api') as any;
+    api.getCat.mockResolvedValueOnce({
+      ...fixtures.cat,
+      deceased_at: '2026-03-01',
+    });
+    await renderScreen(Memorial);
+    await waitFor(() => {
+      expect(screen.getByText('Edit memorial')).toBeTruthy();
+    });
+  });
 });
 
 // ===========================================================================

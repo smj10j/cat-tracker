@@ -238,7 +238,7 @@ export default function HomeScreen() {
   function renderMemorialCat({ item: cat }: { item: Cat }) {
     return (
       <Pressable
-        onPress={() => router.push(`/cats/${cat.id}` as never)}
+        onPress={() => router.push(`/cats/${cat.id}/memorial` as never)}
         style={{
           flexDirection: 'row',
           alignItems: 'center',

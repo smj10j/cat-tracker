@@ -88,7 +88,7 @@ export const api = {
 
   // Cats
   async getCats(scope?: string): Promise<Cat[]> {
-    const params = scope ? `?scope=${scope}` : '';
+    const params = scope ? `?status=${scope}` : '';
     const res = await apiFetch(`/api/cats${params}`);
     const data = await res.json() as { cats: Cat[] } | Cat[];
     return Array.isArray(data) ? data : data.cats;

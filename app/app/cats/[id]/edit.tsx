@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, Pressable, TextInput, ScrollView,
-  KeyboardAvoidingView, Platform, Alert, Modal,
+  KeyboardAvoidingView, Platform, Alert, Modal, Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -147,7 +147,7 @@ export default function EditCatScreen() {
     try {
       await api.markDeceased(id, deceasedDate, memorialNote || undefined);
       setDeceasedModalOpen(false);
-      router.replace(`/cats/${id}` as never);
+      router.replace(`/cats/${id}/memorial` as never);
     } catch (e: unknown) {
       setError((e as Error).message);
     } finally {
@@ -184,7 +184,7 @@ export default function EditCatScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }}>
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
           {/* Header */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24 }}>
             <Pressable onPress={() => router.back()}>
@@ -322,6 +322,8 @@ export default function EditCatScreen() {
                     multiline
                     numberOfLines={4}
                     maxLength={1024}
+                    blurOnSubmit
+                    returnKeyType="done"
                     style={{
                       backgroundColor: colors.night,
                       borderRadius: 12,
@@ -429,7 +431,7 @@ export default function EditCatScreen() {
         animationType="fade"
         onRequestClose={() => setDeceasedModalOpen(false)}
       >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
+        <Pressable onPress={Keyboard.dismiss} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
           <View style={{
             backgroundColor: colors.surface,
             borderTopLeftRadius: 20,
@@ -472,6 +474,8 @@ export default function EditCatScreen() {
               multiline
               numberOfLines={3}
               maxLength={1024}
+              blurOnSubmit
+              returnKeyType="done"
               style={{
                 backgroundColor: colors.night,
                 borderRadius: 12,
@@ -514,7 +518,7 @@ export default function EditCatScreen() {
               <Text style={{ color: colors.inkDim, fontSize: 14 }}>Not now</Text>
             </Pressable>
           </View>
-        </View>
+        </Pressable>
       </Modal>
     </SafeAreaView>
   );

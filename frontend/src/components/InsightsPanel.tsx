@@ -95,7 +95,7 @@ export default function InsightsPanel({
                   : isConcerning
                   ? `${cat.name}'s weight trend is concerning`
                   : `${cat.name}'s weight is worth watching`}
-                {health.peakLossPct > 0 && ` — ${health.peakLossPct}% below peak`}
+                {health.peakLossPct > 0 && ` — ${health.peakLossPct}% below recent weight`}
               </p>
               <p className="text-ink-mid text-sm">{health.summary}</p>
             </div>

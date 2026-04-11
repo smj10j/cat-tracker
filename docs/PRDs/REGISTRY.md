@@ -36,6 +36,8 @@
 | [PRD-accessibility.md](PRD-accessibility.md) | Accessibility — Color Independence, Touch Targets, Screen Reader Support | `Partial` | 2026-03-07 |
 | [PRD-usability.md](PRD-usability.md) | Usability Polish — Scroll, Feedback, Disabled States, Delete Confirmation | `Partial` | 2026-03-07 |
 | [PRD-app-settings.md](PRD-app-settings.md) | App Settings — Dark/Light/System Mode Toggle | `Implemented` | 2026-03-08 |
+| [PRD-deceased-cat.md](PRD-deceased-cat.md) | In Memoriam — Marking a Cat as Deceased | `In Progress` | 2026-04-10 |
+| [PRD-weight-alert-sensitivity.md](PRD-weight-alert-sensitivity.md) | Weight Alert Sensitivity Review | `In Progress` | 2026-04-10 |
 
 ---
 
@@ -398,6 +400,38 @@ Plus 5 Killer App promotions: Daily Check-In (P1), Streaks (P2), Weigh-In Remind
 **Problem:** The app makes specific clinical claims (weight loss thresholds, hepatic lipidosis risk, behavioral warning signs) that are grounded in veterinary literature but have no documented sources. This reduces trust and makes future threshold updates unmaintainable.
 
 **Implemented:** All five phases — (A) `docs/research/` folder with four files: sourcing principles, weight-threshold citations, behavioral-indicator citations, and a curated feline resource directory; (B) inline citations in `healthMetrics.ts`; (C) Methodology section added to the vet export footer; (D) source attribution footer on WellnessGuide; (E) CLAUDE.md updated with clinical content process rules to prevent regression.
+
+---
+
+### PRD-deceased-cat.md — In Memoriam: Marking a Cat as Deceased
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-04-10 |
+
+**Problem:** Cat Tracker has no way to mark a cat as deceased. The only option is deletion, which permanently destroys data that may be irreplaceable — a record of a life and the observations that helped prompt veterinary care.
+
+**Scope:** A gentle "passed away" flow on the Edit Cat page (not a delete button); date-of-passing field and optional 150-char memorial note; deceased cats hidden from the active home list and shown in a quiet "In Memoriam" section; a read-only Memorial Record page at `/cats/:id/memorial` with hero, memorial note, life summary, collapsible health history, and PDF export button; auto-deactivation of medications; exclusion from CompareChart. Two new DB columns (`deceased_at`, `memorial_note`). No new API routes — extends `PUT /api/cats/:id` and `GET /api/cats?status=`.
+
+**Do not implement** — status is `Draft`. Requires product owner approval.
+
+---
+
+### PRD-weight-alert-sensitivity.md — Weight Alert Sensitivity Review
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-04-10 |
+
+**Problem:** All cats in a household are showing health alert states (watch/concerning) after a ~2.5% weight loss. The alerts are noise-driven, eroding owner trust in the system.
+
+**Root causes identified:** (1) Rate extrapolation: %/week calculated from sub-weekly intervals amplifies noise 3–4×. (2) No noise floor: scale precision and biological variation (~0.1–0.2 lbs) triggers `concerning` alerts. (3) Peak-weight ratchet: all-time maximum weight is used as baseline, so intentional weight loss or a single outlier measurement permanently inflates the alarm state.
+
+**Scope:** Three algorithm changes to `healthMetrics.ts`: minimum interval gate (skip rate calculation for intervals < 5 days), relative noise floor (require ≥0.5% absolute change before any non-ok classification), and robust peak reference (90th percentile of measurements in the last 6 months instead of all-time max). Clinical thresholds themselves do not change — only their application. Requires `docs/research/weight-thresholds.md` update to document the engineering heuristics.
+
+**Do not implement** — status is `Draft`. Requires product owner approval.
 
 ---
 

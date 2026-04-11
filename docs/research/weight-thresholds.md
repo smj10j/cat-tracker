@@ -123,4 +123,34 @@ Cat Tracker defaults to lbs (US user base) but supports kg. All thresholds above
 
 ---
 
-*Last reviewed: 2026-03-07. Next review recommended when AAFP or WSAVA publish updated nutritional guidelines.*
+---
+
+## Algorithm sensitivity decisions (added 2026-04-10)
+
+These decisions address false-positive alert behaviour when the rate-of-change model is applied to real-world consumer weight data (weekly home scale readings). They are engineering judgements, not clinical thresholds, but are documented here for auditability.
+
+### Interval gate (< 5 days between measurements → period skipped)
+
+**Problem:** Extrapolating a weekly-rate from measurements taken only 1–3 days apart amplifies scale noise into alarming rates (e.g., a 0.15 lb scale fluctuation over 2 days = 5%/week).
+
+**Decision:** Any consecutive pair with fewer than 5 days between measurements is recorded in the `periods` array with `skipped: true` and excluded from both rate classification and worst-period summary selection. The 5-day threshold is the minimum interval at which a weekly-rate extrapolation is meaningfully stable. It is not a clinical threshold.
+
+### Relative noise floor (< 0.5% absolute change → ok, not classified)
+
+**Problem:** Home scales for cats (often infant-style scales) have a resolution of ±0.05–0.1 lbs. For a 10 lb cat this is ±0.5–1% absolute noise. Passing every measurement delta through the rate classifier treats scale resolution as a weight change signal.
+
+**Decision:** If `|Δweight| / previous_weight < 0.005` (0.5%), the period is classified as `ok` without calling `classifyRate()`. The threshold is relative (fraction of body weight) so it is unit-safe (lbs and kg). The 0.5% value equals the lower bound of the `watch` rate (0.5%/week), so the floor does not suppress any signal that would be clinically significant over a 7-day interval.
+
+### Robust peak reference — 90th percentile of last 180 days
+
+**Problem:** Using all-time maximum weight as the baseline for total-loss-from-peak alerts causes persistent false alarms when a cat's healthy weight declines over years (natural aging, diet change, post-illness recovery) or when an early single high measurement acts as a ratchet.
+
+**Decision:** The baseline (`referencePeak`) is computed as the 90th-percentile of measurements in the 180 days preceding the most recent measurement. The 90th-percentile (nearest-rank: `idx = ceil(N × 0.9) − 1`) is robust to a single outlier high reading. The 180-day window is approximately 6 months — long enough to establish a meaningful baseline but short enough to track genuine long-term improvement.
+
+**Fallback:** When fewer than 8 measurements exist within the 180-day window, the algorithm falls back to the all-time maximum weight. 8 measurements is approximately 2 months of weekly weigh-ins — the minimum sample needed for the percentile to be stable. With fewer data points, the all-time max is the least-wrong reference available.
+
+Neither the 180-day window nor the 90th-percentile level are clinical thresholds; both are engineering calibration choices documented here for future review.
+
+---
+
+*Last reviewed: 2026-04-10. Next review recommended when AAFP or WSAVA publish updated nutritional guidelines.*

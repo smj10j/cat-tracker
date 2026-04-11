@@ -9,14 +9,16 @@ export interface PeriodHealth {
   changePerWeek: number   // % change per week (annualized to weekly rate)
   days: number
   direction: 'loss' | 'gain' | 'stable'
+  skipped: boolean        // true when interval gate fired (< 5 days) — period recorded but not classified
 }
 
 export interface HealthAssessment {
   overallStatus: HealthStatus
   // one entry per measurement; first entry is always null (no prior to compare)
   periods: (PeriodHealth | null)[]
-  peakLossPct: number   // % lost from highest recorded weight
-  summary: string       // human-readable explanation
+  peakLossPct: number     // % lost from referencePeak
+  referencePeak: number   // 90th-pct of last 180 days (falls back to all-time max if < 8 recent measurements)
+  summary: string         // human-readable explanation
 }
 
 // Weight loss/gain thresholds — see docs/research/weight-thresholds.md for full citations.
@@ -51,6 +53,14 @@ function worstStatus(a: HealthStatus, b: HealthStatus): HealthStatus {
   return rank[a] >= rank[b] ? a : b
 }
 
+// 90th-percentile using nearest-rank method (ascending sort).
+// For N=8: returns the max. For N=10: 2nd-highest. For N=20: 3rd-highest.
+function percentile90(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b)
+  const idx = Math.ceil(sorted.length * 0.9) - 1
+  return sorted[Math.max(0, idx)]!
+}
+
 export function assessHealth(measurements: Measurement[]): HealthAssessment {
   const sorted = [...measurements].sort((a, b) => a.measured_at.localeCompare(b.measured_at))
 
@@ -59,6 +69,7 @@ export function assessHealth(measurements: Measurement[]): HealthAssessment {
       overallStatus: 'ok',
       periods: sorted.map(() => null),
       peakLossPct: 0,
+      referencePeak: sorted[0]?.value ?? 0,
       summary: 'Not enough data to assess trend.',
     }
   }
@@ -66,7 +77,16 @@ export function assessHealth(measurements: Measurement[]): HealthAssessment {
   const values = sorted.map((m) => m.value)
   const peakWeight = Math.max(...values)
   const latestWeight = values[values.length - 1] ?? 0
-  const peakLossPct = peakWeight > 0 ? ((peakWeight - latestWeight) / peakWeight) * 100 : 0
+
+  // Robust peak reference: 90th-pct of measurements in last 180 days.
+  // Falls back to all-time max when fewer than 8 measurements exist in that window.
+  const lastDate = new Date(sorted[sorted.length - 1]!.measured_at)
+  const cutoff = new Date(lastDate)
+  cutoff.setDate(cutoff.getDate() - 180)
+  const recentValues = sorted.filter(m => new Date(m.measured_at) >= cutoff).map(m => m.value)
+  const referencePeak = recentValues.length >= 8 ? percentile90(recentValues) : peakWeight
+
+  const peakLossPct = referencePeak > 0 ? ((referencePeak - latestWeight) / referencePeak) * 100 : 0
 
   const periods: (PeriodHealth | null)[] = [null]
   let overallStatus: HealthStatus = 'ok'
@@ -83,28 +103,41 @@ export function assessHealth(measurements: Measurement[]): HealthAssessment {
     const changePercent = prev.value > 0 ? (lbsChange / prev.value) * 100 : 0
     const changePerWeek = (changePercent / days) * 7
 
-    const status = classifyRate(changePerWeek)
-    overallStatus = worstStatus(overallStatus, status)
-
-    periods.push({
-      status,
+    const periodBase = {
       lbsChange: Math.round(lbsChange * 100) / 100,
       changePercent: Math.round(changePercent * 10) / 10,
       changePerWeek: Math.round(changePerWeek * 10) / 10,
       days: Math.round(days),
-      direction: lbsChange < -0.05 ? 'loss' : lbsChange > 0.05 ? 'gain' : 'stable',
-    })
+      direction: (lbsChange < -0.05 ? 'loss' : lbsChange > 0.05 ? 'gain' : 'stable') as PeriodHealth['direction'],
+    }
+
+    // Interval gate: < 5 days between measurements → mark skipped, do not classify
+    if (days < 5) {
+      periods.push({ ...periodBase, status: 'ok', skipped: true })
+      continue
+    }
+
+    // Noise floor: change < 0.5% of previous weight is within scale/biological noise
+    const absChangePct = Math.abs(lbsChange) / prev.value
+    if (absChangePct < 0.005) {
+      periods.push({ ...periodBase, status: 'ok', skipped: false })
+      continue
+    }
+
+    const status = classifyRate(changePerWeek)
+    overallStatus = worstStatus(overallStatus, status)
+    periods.push({ ...periodBase, status, skipped: false })
   }
 
-  // Also factor in total peak loss
-  if (peakLossPct >= 10) overallStatus = worstStatus(overallStatus, 'urgent')
-  else if (peakLossPct >= 7) overallStatus = worstStatus(overallStatus, 'concerning')
-  else if (peakLossPct >= 4) overallStatus = worstStatus(overallStatus, 'watch')
-
+  // Factor in total loss from recent baseline
   const roundedPeakLossPct = Math.round(peakLossPct * 10) / 10
-  const summary = buildSummary(overallStatus, periods, roundedPeakLossPct, latestWeight, peakWeight)
+  if (roundedPeakLossPct >= 10) overallStatus = worstStatus(overallStatus, 'urgent')
+  else if (roundedPeakLossPct >= 7) overallStatus = worstStatus(overallStatus, 'concerning')
+  else if (roundedPeakLossPct >= 4) overallStatus = worstStatus(overallStatus, 'watch')
 
-  return { overallStatus, periods, peakLossPct: roundedPeakLossPct, summary }
+  const summary = buildSummary(overallStatus, periods, roundedPeakLossPct, latestWeight, referencePeak)
+
+  return { overallStatus, periods, peakLossPct: roundedPeakLossPct, referencePeak, summary }
 }
 
 function buildSummary(
@@ -112,24 +145,25 @@ function buildSummary(
   periods: (PeriodHealth | null)[],
   peakLossPct: number,
   latestWeight: number,
-  peakWeight: number
+  referencePeak: number
 ): string {
   const unit = 'lbs'
+  // Exclude skipped (interval-gated) periods from worst-period selection
   const worstPeriod = periods
-    .filter((p): p is PeriodHealth => p !== null)
+    .filter((p): p is PeriodHealth => p !== null && !p.skipped)
     .sort((a, b) => Math.abs(b.changePerWeek) - Math.abs(a.changePerWeek))[0]
 
   if (status === 'ok') return 'Weight is stable. No concerns.'
 
   if (status === 'urgent') {
     if (peakLossPct >= 10)
-      return `Lost ${peakLossPct}% of peak body weight (${(peakWeight - latestWeight).toFixed(1)} ${unit}). Veterinary evaluation is strongly recommended.`
+      return `Lost ${peakLossPct}% from recent weight (${(referencePeak - latestWeight).toFixed(1)} ${unit}). Veterinary evaluation is strongly recommended.`
     return `Fastest recorded rate: ${Math.abs(worstPeriod?.changePerWeek ?? 0).toFixed(1)}%/week loss. This exceeds 2%/week — the AAFP/WSAVA clinical threshold associated with hepatic lipidosis risk. Vet visit recommended.`
   }
 
   if (status === 'concerning') {
     if (peakLossPct >= 7)
-      return `Lost ${peakLossPct}% from peak weight. Clinically significant loss — worth discussing with my vet.`
+      return `Lost ${peakLossPct}% from recent weight. Clinically significant — worth discussing with your vet.`
     return `Fastest rate: ${Math.abs(worstPeriod?.changePerWeek ?? 0).toFixed(1)}%/week loss. AAFP and WSAVA guidelines recommend no more than ~1% body weight loss per week without veterinary guidance.`
   }
 

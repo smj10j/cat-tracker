@@ -626,3 +626,56 @@
 - [x] Fix pre-existing worker test failure: is_neutered column missing from helpers.ts TEST_SCHEMA
 - [x] Deploy frontend
 - [x] Mark PRD-daily-checkin.md Implemented in REGISTRY.md
+
+## Phase 30: Weight Alert Sensitivity (PRD-weight-alert-sensitivity.md)
+
+### Algorithm changes (frontend/src/lib/healthMetrics.ts)
+- [-] Add percentile90() helper and referencePeak to HealthAssessment interface
+- [-] Add skipped field to PeriodHealth interface
+- [-] Interval gate: skip rate classification for measurements < 5 days apart
+- [-] Noise floor: skip alerts for changes < 0.5% of previous weight
+- [-] Use referencePeak (90th pct of last 180 days) instead of peakWeight for peakLossPct
+- [-] Filter skipped periods from worstPeriod in buildSummary()
+- [-] Update peak-loss copy to use "recent weight" language
+
+### Copy + UI
+- [-] InsightsPanel: update "below peak" → "below recent weight" copy
+- [-] WeightChart: no status emoji on skipped/noise-floor dots (handled via status: ok)
+- [-] CatExportPage: update methodology section for new peak reference
+
+### Tests + docs
+- [-] Add new test cases to healthMetrics.test.ts
+- [-] Update docs/research/weight-thresholds.md with engineering decisions
+
+### Deploy
+- [-] Run frontend tests
+- [-] Build and deploy frontend
+
+## Phase 31: In Memoriam — Deceased Cat (PRD-deceased-cat.md)
+
+### Database
+- [-] Add deceased_at and memorial_note columns to schema.sql
+- [-] Run db:migrate:local and db:migrate:remote
+
+### Worker API
+- [-] GET /api/cats: add ?status=active|memorial|all filter
+- [-] PUT /api/cats/:id: accept deceased_at + memorial_note, side-effect deactivate medications + delete future doses
+- [-] Verify /notifications query filters is_active=1
+
+### Frontend: api.ts
+- [-] Add deceased_at, memorial_note to Cat interface
+- [-] Update getCats() to accept optional status param
+
+### Frontend: pages
+- [-] Home.tsx: use getCats('all'), split active/memorial, render In Memoriam section
+- [-] AddEditCat.tsx: add "passed away" link + bottom sheet for deceased marking
+- [-] AddEditCat.tsx: add "restore" link for already-deceased cats
+- [-] CatProfile.tsx: guard — render MemorialPage inline when cat.deceased_at is set
+- [-] MemorialPage.tsx: new page (hero, note, life summary, collapsible health record, export button)
+- [-] App.tsx: add /cats/:id/memorial route
+
+### Tests + deploy
+- [-] Add worker route tests for deceased cat API changes
+- [-] Run worker tests + frontend tests
+- [-] Deploy worker
+- [-] Deploy frontend

@@ -1,4 +1,4 @@
-# Cat Tracker — App Description (Canonical)
+# Whisker Health — App Description (Canonical)
 
 This is the canonical app description. Store-specific files (iOS description.txt, Android description.txt) derive from this source.
 
@@ -9,7 +9,7 @@ Evidence-based cat health tracking with veterinary-grade insights.
 Track your cat's health with the care they deserve.
 
 ## Full Description
-Cat Tracker logs weight, food intake, hydration, grooming, activity, and litter habits — then connects the dots with correlation insights backed by veterinary guidelines (AAFP, WSAVA, ISFM).
+Whisker Health logs weight, food intake, hydration, grooming, activity, and litter habits — then connects the dots with correlation insights backed by veterinary guidelines (AAFP, WSAVA, ISFM).
 
 ### Key Features
 - **Weight tracking** with trend charts and clinically-sourced health alerts

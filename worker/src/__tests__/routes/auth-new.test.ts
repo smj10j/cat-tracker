@@ -224,7 +224,7 @@ describe('GET /api/auth/export', () => {
       headers: authedHeaders(sessionId),
     })
     expect(res.status).toBe(200)
-    expect(res.headers.get('Content-Disposition')).toContain('cat-tracker-export-')
+    expect(res.headers.get('Content-Disposition')).toContain('whisker-health-export-')
 
     const data = await res.json() as {
       exported_at: string

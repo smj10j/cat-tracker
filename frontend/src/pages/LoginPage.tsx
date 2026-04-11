@@ -100,7 +100,7 @@ export default function LoginPage() {
 
         {/* App name + tagline */}
         <h1 className="font-display font-bold text-3xl text-ink text-center mb-3">
-          Cat Tracker
+          Whisker Health
         </h1>
         <p className="text-center text-base leading-relaxed max-w-xs" style={{ color: 'rgba(237,233,246,0.65)' }}>
           Know your cat's health trends before they become vet emergencies.

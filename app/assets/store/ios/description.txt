@@ -1,4 +1,4 @@
-Track your cat's health with the care they deserve. Cat Tracker logs weight, food intake, hydration, grooming, activity, and litter habits — then connects the dots with correlation insights backed by veterinary guidelines (AAFP, WSAVA, ISFM).
+Track your cat's health with the care they deserve. Whisker Health logs weight, food intake, hydration, grooming, activity, and litter habits — then connects the dots with correlation insights backed by veterinary guidelines (AAFP, WSAVA, ISFM).
 
 What you get:
 - Weight tracking with trend charts and clinically-sourced health alerts

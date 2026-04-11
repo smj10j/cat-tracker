@@ -40,7 +40,7 @@ export default function SettingsScreen() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `cat-tracker-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `whisker-health-export-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
     }

@@ -81,7 +81,7 @@ export default function InvitePage() {
         <p className="text-ink font-semibold mb-2">Invite not found</p>
         <p className="text-ink-dim text-sm mb-6">{previewError}</p>
         <button onClick={() => navigate('/')} className="btn-primary py-3 px-6 text-sm">
-          Go to Cat Tracker
+          Go to Whisker Health
         </button>
       </div>
     )

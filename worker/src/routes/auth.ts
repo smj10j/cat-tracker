@@ -460,7 +460,7 @@ auth.get('/auth/export', requireAuth, async (c) => {
   return new Response(JSON.stringify(exportData, null, 2), {
     headers: {
       'Content-Type': 'application/json',
-      'Content-Disposition': `attachment; filename="cat-tracker-export-${new Date().toISOString().slice(0, 10)}.json"`,
+      'Content-Disposition': `attachment; filename="whisker-health-export-${new Date().toISOString().slice(0, 10)}.json"`,
     },
   })
 })

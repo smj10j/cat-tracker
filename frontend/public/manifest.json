@@ -1,6 +1,6 @@
 {
-  "name": "Cat Tracker",
-  "short_name": "Cat Tracker",
+  "name": "Whisker Health",
+  "short_name": "Whisker Health",
   "description": "Track your cats' health measurements over time",
   "start_url": "/",
   "display": "standalone",

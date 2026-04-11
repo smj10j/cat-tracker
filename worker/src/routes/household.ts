@@ -242,11 +242,11 @@ household.post('/invites', async (c) => {
   c.executionCtx.waitUntil(
     sendEmail({
       to: inviteEmail,
-      subject: `${inviterName} invited you to ${householdName} on Cat Tracker`,
+      subject: `${inviterName} invited you to ${householdName} on Whisker Health`,
       text: [
         `Hi there,`,
         ``,
-        `${inviterName} has invited you to join "${householdName}" on Cat Tracker as a ${inviteRole}.`,
+        `${inviterName} has invited you to join "${householdName}" on Whisker Health as a ${inviteRole}.`,
         ``,
         `As a ${inviteRole}, you'll be able to ${roleDesc}.`,
         ``,
@@ -255,7 +255,7 @@ household.post('/invites', async (c) => {
         ``,
         `This link expires in 7 days. If you didn't expect this invitation, you can ignore this email.`,
         ``,
-        `— Cat Tracker`,
+        `— Whisker Health`,
       ].join('\n'),
     }, c.env.RESEND_API_KEY).catch(() => { /* non-fatal */ }),
   )

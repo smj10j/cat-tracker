@@ -18,11 +18,13 @@
       "bundleIdentifier": "me.01j.whisker",
       "usesAppleSignIn": true,
       "associatedDomains": [
+        "applinks:cat-tracker.pages.dev",
         "applinks:cat-tracker.pages.dev"
       ],
       "infoPlist": {
         "NSCameraUsageDescription": "Whisker Health needs camera access to take photos of your cats.",
-        "NSPhotoLibraryUsageDescription": "Whisker Health needs photo library access to select photos of your cats."
+        "NSPhotoLibraryUsageDescription": "Whisker Health needs photo library access to select photos of your cats.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {

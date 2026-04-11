@@ -118,6 +118,22 @@ export default function InsightsPanel({
             </div>
             <span className="text-sm ml-3 shrink-0" style={{ color: statusColor }}>→</span>
           </Link>
+
+          {/* Wellness Guide link */}
+          <Link
+            to="/wellness"
+            className="mt-2 flex items-center justify-between w-full px-4 py-2.5 rounded-xl transition-all"
+            style={{
+              background: 'rgba(192,132,252,0.06)',
+              border: '1px solid rgba(192,132,252,0.15)',
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-sm">🐾</span>
+              <span className="text-xs font-semibold" style={{ color: '#c084fc' }}>Cat Wellness Guide</span>
+            </div>
+            <span className="text-sm shrink-0" style={{ color: '#c084fc' }}>→</span>
+          </Link>
         </div>
       )}
 

@@ -329,6 +329,31 @@ export default function HomeScreen() {
         <Text style={{ fontSize: 14, fontWeight: '600', color: '#6b5f85' }}>Add a cat</Text>
       </Pressable>
 
+      {/* Wellness Guide */}
+      <Pressable
+        onPress={() => router.push('/wellness' as never)}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: 20,
+          paddingVertical: 16,
+          borderRadius: 20,
+          backgroundColor: 'rgba(255,255,255,0.04)',
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.07)',
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Text style={{ fontSize: 20 }}>{'\uD83D\uDC3E'}</Text>
+          <View>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#ede9f6' }}>Cat Wellness Guide</Text>
+            <Text style={{ fontSize: 12, color: '#6b5f85', marginTop: 2 }}>Monthly checks, vitals, vet signs</Text>
+          </View>
+        </View>
+        <Text style={{ fontSize: 14, color: '#6b5f85' }}>{'\u2192'}</Text>
+      </Pressable>
+
       {/* In Memoriam */}
       {memorialCats.length > 0 && (
         <View style={{ marginTop: 12 }}>

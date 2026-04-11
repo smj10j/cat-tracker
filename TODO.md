@@ -12,6 +12,21 @@
 - [x] Write TDD (docs/TDD.md)
 - [x] Create this TODO list
 
+## Phase 44: Wellness Guide Navigation — iOS + Web Parity (2026-04-11)
+
+### iOS Home Screen
+- [x] Add Wellness Guide card to home screen ListFooter (matches web pattern)
+
+### InsightsPanel — Contextual "Learn More" Link (both platforms)
+- [x] Add Wellness Guide link below health CTA in iOS InsightsPanel
+- [x] Add Wellness Guide link below health CTA in web InsightsPanel (cross-platform parity)
+
+### Tests
+- [x] Run all test suites (93 worker + 44 frontend + 65 shared + 20 app)
+
+### Deploy & Ship
+- [-] Commit and push
+
 ## Phase 43: PRD — Landscape Mode Full-Screen Charts (2026-04-11)
 - [x] Write PRD stub (docs/PRDs/PRD-landscape-charts.md)
 - [x] Add to REGISTRY.md

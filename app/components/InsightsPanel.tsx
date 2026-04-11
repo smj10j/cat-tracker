@@ -129,6 +129,31 @@ export default function InsightsPanel({
             </View>
             <Text style={{ fontSize: 14, marginLeft: 12, color: statusColor }}>{'\u2192'}</Text>
           </Pressable>
+
+          {/* Wellness Guide link */}
+          <Pressable
+            onPress={() => router.push('/wellness' as never)}
+            style={{
+              marginTop: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingHorizontal: 16,
+              paddingVertical: 10,
+              borderRadius: 12,
+              backgroundColor: 'rgba(192,132,252,0.06)',
+              borderWidth: 1,
+              borderColor: 'rgba(192,132,252,0.15)',
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={{ fontSize: 14 }}>{'\uD83D\uDC3E'}</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#c084fc' }}>
+                Cat Wellness Guide
+              </Text>
+            </View>
+            <Text style={{ fontSize: 14, color: '#c084fc' }}>{'\u2192'}</Text>
+          </Pressable>
         </View>
       )}
 

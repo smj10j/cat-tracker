@@ -28,7 +28,8 @@
         "appleTeamId": "UR8VJZL4LG",
         "ascApiKeyPath": "../keys/AuthKey_AN6N75VF8R.p8",
         "ascApiKeyId": "AN6N75VF8R",
-        "ascApiKeyIssuerId": "69a6de77-5939-47e3-e053-5b8c7c11a4d1"
+        "ascApiKeyIssuerId": "69a6de77-5939-47e3-e053-5b8c7c11a4d1",
+        "privacyPolicyUrl": "https://cat-tracker.pages.dev/privacy"
       }
     }
   }

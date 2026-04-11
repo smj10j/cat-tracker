@@ -11,7 +11,7 @@ export default function LoginScreen() {
         {/* Hero */}
         <Text className="text-5xl mb-4">🐱</Text>
         <Text className="text-ink text-3xl font-bold text-center">
-          Cat Tracker
+          Whisker Health
         </Text>
         <Text className="text-ink-mid text-base mt-2 text-center">
           Track your cat's health with the care they deserve

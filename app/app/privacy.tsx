@@ -16,7 +16,7 @@ export default function PrivacyPolicyScreen() {
       </View>
 
       <ScrollView className="flex-1 px-4 py-6" contentContainerStyle={{ gap: 24 }}>
-        <Text className="text-ink text-2xl font-bold">Cat Tracker — Privacy Policy</Text>
+        <Text className="text-ink text-2xl font-bold">Whisker Health — Privacy Policy</Text>
         <Text className="text-ink-mid text-sm">Last updated: April 10, 2026</Text>
 
         <Section title="1. What Data We Collect">

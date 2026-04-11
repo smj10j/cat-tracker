@@ -3,7 +3,7 @@
     "apps": [],
     "details": [
       {
-        "appIDs": ["TEAM_ID.me.01j.cattracker"],
+        "appIDs": ["UR8VJZL4LG.me.01j.whisker"],
         "paths": ["/invite*", "/cats/*"]
       }
     ]

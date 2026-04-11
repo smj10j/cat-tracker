@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Cat Tracker",
-    "slug": "cat-tracker",
+    "name": "Whisker Health",
+    "slug": "whisker-health",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "cattracker",
+    "scheme": "whiskerhealth",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -15,12 +15,12 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "me.01j.cattracker",
+      "bundleIdentifier": "me.01j.whisker",
       "usesAppleSignIn": true,
       "associatedDomains": ["applinks:cat-tracker.pages.dev"],
       "infoPlist": {
-        "NSCameraUsageDescription": "Cat Tracker needs camera access to take photos of your cats.",
-        "NSPhotoLibraryUsageDescription": "Cat Tracker needs photo library access to select photos of your cats."
+        "NSCameraUsageDescription": "Whisker Health needs camera access to take photos of your cats.",
+        "NSPhotoLibraryUsageDescription": "Whisker Health needs photo library access to select photos of your cats."
       }
     },
     "android": {
@@ -28,7 +28,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#16111f"
       },
-      "package": "me.j01.cattracker"
+      "package": "me.01j.whisker"
     },
     "web": {
       "bundler": "metro",

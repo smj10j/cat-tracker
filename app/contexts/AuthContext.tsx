@@ -84,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Native: use expo-auth-session
-    const redirectUri = AuthSession.makeRedirectUri({ scheme: 'cattracker' });
+    const redirectUri = AuthSession.makeRedirectUri({ scheme: 'whiskerhealth' });
     const authUrl = `${API_BASE}/api/auth/login?provider=google&mode=native&redirect_uri=${encodeURIComponent(redirectUri)}`;
 
     const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);

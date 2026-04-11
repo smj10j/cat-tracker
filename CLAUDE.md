@@ -57,7 +57,9 @@ Always deploy both pieces after making changes:
 
 ```bash
 # Full TestFlight release (tests → build → submit → deploy web + worker)
-./scripts/deploy-testflight.sh
+./scripts/deploy-testflight.sh            # default: cloud build, falls back to local if quota exhausted
+./scripts/deploy-testflight.sh --local    # force local build (no EAS credits used)
+./scripts/deploy-testflight.sh --cloud    # force cloud build (fails if no credits)
 
 # Worker only (if API changed)
 cd worker && npx wrangler deploy
@@ -67,7 +69,14 @@ cd frontend && npm run build && npx wrangler pages deploy dist --project-name ca
 ```
 
 #### `scripts/deploy-testflight.sh`
-One-command pipeline: runs all tests, verifies Expo web export, builds production iOS via EAS, submits to TestFlight, deploys web frontend, and conditionally deploys Worker. Use this after any code change that should reach TestFlight testers. Requires EAS login and API key in `keys/`.
+One-command pipeline: runs all tests (shared + app + frontend + worker), verifies Expo web export, builds production iOS, submits to TestFlight, deploys web frontend, and conditionally deploys Worker. Requires EAS login and API key in `keys/`.
+
+**Build modes:**
+- **Default (no flag):** Tries EAS cloud build first. If the free plan quota is exhausted, automatically falls back to a local build (`eas build --local`).
+- **`--local`:** Builds on the local machine. No EAS credits consumed. Requires Xcode and CocoaPods. The first local build takes longer (~10-15 min) but produces the same IPA.
+- **`--cloud`:** Forces EAS cloud build. Fails if quota is exhausted.
+
+Both build paths produce an IPA that is submitted to TestFlight via `eas submit`. The only difference is where the build runs — the resulting binary and TestFlight submission are identical.
 
 ### Database changes
 

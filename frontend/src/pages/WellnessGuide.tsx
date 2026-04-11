@@ -129,8 +129,16 @@ export default function WellnessGuide() {
           <strong style={{ color: 'var(--color-ink-mid)' }}>AAFP</strong> (American Association of Feline Practitioners) and{' '}
           <strong style={{ color: 'var(--color-ink-mid)' }}>WSAVA</strong> (World Small Animal Veterinary Association) feline
           nutritional and clinical care guidelines. Behavioral indicators reference ISFM and AAFP consensus
-          documents on feline pain recognition and stress. This guide is a reference tool, not a substitute
-          for veterinary care. When in doubt, call your vet.
+          documents on feline pain recognition and stress.{' '}
+          <a
+            href="https://github.com/smj10j/cat-tracker/tree/main/docs/research"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: '#c084fc', textDecoration: 'underline' }}
+          >
+            Full citations and sources
+          </a>.{' '}
+          This guide is a reference tool, not a substitute for veterinary care. When in doubt, call your vet.
         </p>
       </div>
     </div>

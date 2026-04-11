@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable } from 'react-native';
+import { View, Text, ScrollView, Pressable, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
@@ -67,7 +67,13 @@ export default function WellnessGuideScreen() {
           <Text className="text-ink-dim text-xs leading-relaxed text-center">
             Health thresholds sourced from AAFP (American Association of Feline Practitioners),
             WSAVA (World Small Animal Veterinary Association), and ISFM (International Society
-            of Feline Medicine). See docs/research/ for full citations.
+            of Feline Medicine).{' '}
+            <Text
+              style={{ color: '#c084fc', textDecorationLine: 'underline' }}
+              onPress={() => Linking.openURL('https://github.com/smj10j/cat-tracker/tree/main/docs/research')}
+            >
+              Full citations and sources
+            </Text>.
           </Text>
         </View>
 

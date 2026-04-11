@@ -18,7 +18,6 @@
       "bundleIdentifier": "me.01j.whisker",
       "usesAppleSignIn": true,
       "associatedDomains": [
-        "applinks:cat-tracker.pages.dev",
         "applinks:cat-tracker.pages.dev"
       ],
       "infoPlist": {
@@ -33,7 +32,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#16111f"
       },
-      "package": "me.01j.whisker"
+      "package": "me.o1j.whisker"
     },
     "web": {
       "bundler": "metro",

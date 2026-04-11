@@ -282,7 +282,7 @@ export const api = {
   async markAlive(id: string): Promise<void> {
     await apiFetch(`/api/cats/${id}`, {
       method: 'PUT',
-      body: JSON.stringify({ deceased_at: null, memorial_note: null }),
+      body: JSON.stringify({ deceased_at: null }),
     });
   },
 

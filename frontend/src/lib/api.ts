@@ -92,7 +92,7 @@ export const updateCat = (id: string, data: Partial<Omit<Cat, 'id' | 'created_at
 export const markDeceased = (id: string, deceased_at: string, memorial_note?: string) =>
   request<Cat>(`/cats/${id}`, { method: 'PUT', body: JSON.stringify({ deceased_at, memorial_note: memorial_note ?? null }) })
 export const markAlive = (id: string) =>
-  request<Cat>(`/cats/${id}`, { method: 'PUT', body: JSON.stringify({ deceased_at: null, memorial_note: null }) })
+  request<Cat>(`/cats/${id}`, { method: 'PUT', body: JSON.stringify({ deceased_at: null }) })
 export const deleteCat = (id: string) =>
   request<{ success: boolean }>(`/cats/${id}`, { method: 'DELETE' })
 

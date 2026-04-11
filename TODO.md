@@ -68,8 +68,7 @@
 ## Phase 37: iOS App Store — Phase 3: Charts
 - [x] Victory Native XL + React Native Skia installed
 - [x] CompareChart: functional data table with cat toggles, type selector, health badges (charts deferred to v1.1 — table view for v1.0)
-- [ ] Port WeightChart, MeasurementChart, CorrelationChart to Victory Native XL (deferred to v1.1)
-- [ ] Measure web bundle size; platform split if > 500 KB increase (deferred to v1.1)
+> Remaining items tracked in Outstanding Work > iOS App > Charts
 
 ## Phase 38: iOS App Store — Phase 4: Remaining Screens & Native Features
 - [x] Notifications screen (medication inbox with sections)
@@ -79,10 +78,7 @@
 - [x] Household screen — full implementation with member list, role badges, invite form, role management, member removal
 - [x] Invite screen (token acceptance)
 - [x] Deep linking: .well-known/apple-app-site-association created
-- [ ] Push notification registration (device token flow) — deferred to v1.1
-- [ ] Full CSV import with expo-document-picker — deferred to v1.1
-- [ ] Medication form screen (new/edit from iOS app) — deferred to v1.1
-- [ ] Commit and push
+> Remaining items tracked in Outstanding Work > iOS App > Native Features
 
 ## Phase 39: iOS App Store — Phase 5: Privacy, Polish & Store Prep
 - [x] Privacy policy screen at /privacy (GDPR Articles 15-20, CCPA)
@@ -92,47 +88,8 @@
 - [x] EAS config (eas.json) with build profiles + App Store Connect API key
 - [x] App icon (1024x1024) — lavender cat with whiskers + jade health heart
 - [x] Adaptive icon, splash icon, favicon generated from SVG source
-- [ ] Sentry error monitoring setup — deferred to v1.1
-- [ ] Accessibility audit (VoiceOver walkthrough) — deferred to v1.1
-- [ ] Performance profiling (startup time, chart rendering) — deferred to v1.1
-- [ ] Automated screenshot capture script — deferred to v1.1
 - [x] Commit and push
-
----
-
-## Deferred to v1.1 (post-App Store launch)
-
-Items intentionally excluded from v1.0 to ship faster. All are tracked here and in their respective PRDs.
-
-### Charts
-- [ ] Victory Native XL chart rendering (WeightChart, MeasurementChart, CorrelationChart)
-- [ ] Chart time range selector + swipe navigation (PRD-chart-time-navigation.md)
-- [ ] Web bundle size measurement for Skia WASM; platform split if needed
-
-### Native features requiring device testing
-- [ ] Push notification registration + delivery via Expo push service (APNs key D4TLDX697M is ready)
-- [ ] CSV import via expo-document-picker
-- [ ] PDF vet export via expo-print (current: text share works; PDF rendering deferred)
-- [ ] Medication form screen (new/edit medications from iOS app — web version works)
-
-### Polish
-- [ ] Sentry error monitoring (account needed)
-- [ ] VoiceOver accessibility audit
-- [ ] Performance profiling (startup time, chart rendering)
-- [ ] Automated screenshot capture script (xcrun simctl)
-- [ ] Dark/light/system theme toggle in iOS app (web version works)
-
-### Security (PRD-security-phase2.md, Draft)
-- [ ] SEC-11: Re-auth gate on account deletion
-- [ ] SEC-12: Rate limiting on data export
-- [ ] SEC-13: Apple identity token replay prevention
-- [ ] SEC-14: Device token format validation + per-user cap
-- [ ] SEC-15: Audit logging for sensitive operations
-
-### API evolution (PRD-api-versioning.md, Draft)
-- [ ] X-API-Version header + server-driven config endpoint
-- [ ] Minimum version enforcement
-- [ ] Health threshold overrides from server
+> Remaining items tracked in Outstanding Work > iOS App > Polish
 
 ## Phase 1: Project Setup
 - [x] Scaffold Worker project (Hono + TypeScript + wrangler.toml)
@@ -189,19 +146,22 @@ Items intentionally excluded from v1.0 to ship faster. All are tracked here and 
 - [x] Cat profile tabs: Weight | Food | Water | All History
 
 ### Photo Upload
-- [ ] Set up Cloudflare R2 bucket for cat photos
-- [ ] Backend: POST /api/cats/:id/photo endpoint → R2 upload, returns photo_url
-- [ ] Frontend: Photo upload UI on add/edit cat form
-- [ ] Display real photo in cat list + profile (fallback to emoji)
+> **Completed** in Phase 26 (PRD-cat-photos.md) — R2 bucket, crop modal, CatAvatar component
+- [x] Set up Cloudflare R2 bucket for cat photos
+- [x] Backend: POST /api/cats/:id/photo endpoint → R2 upload, returns photo_url
+- [x] Frontend: Photo upload UI on add/edit cat form
+- [x] Display real photo in cat list + profile (fallback to emoji)
 
 ### Health Alerts — Phase 2
-- [ ] Trend regression: compute rolling slope over last N points, overlay dashed line on chart
-- [ ] Ideal weight range: per-cat target min/max, shaded band on chart
-- [ ] "Due for weigh-in" badge on home screen based on reminder_interval_days
+> Remaining items tracked in "Outstanding Work" section below
+- [x] ~~Trend regression~~ → tracked in Outstanding Work (PRD-features-backlog)
+- [x] ~~Ideal weight range~~ → tracked in Outstanding Work (PRD-features-backlog)
+- [x] ~~"Due for weigh-in" badge~~ → tracked in Outstanding Work (PRD-ux-redesign 3C)
 
 ### Sharing
-> **Superseded** by PRD-auth.md — token sharing replaced by full OAuth user accounts
-- [ ] See PRD-auth.md for the approved approach
+> **Superseded** by PRD-auth.md (Implemented) + PRD-household-sharing.md (Partial)
+- [x] See PRD-auth.md — implemented in Phase 10
+- [x] See PRD-household-sharing.md — Phase A implemented in Phase 24
 
 ## Phase 6b: Design Overhaul (docs/DESIGN.md)
 
@@ -260,8 +220,10 @@ Items intentionally excluded from v1.0 to ship faster. All are tracked here and 
 
 
 ## Phase 7: Infrastructure
-- [ ] GitHub Actions: auto-deploy Worker + Pages on push to main
-- [ ] PWA service worker + offline measurement queueing
+> Tracked in "Outstanding Work" section below
+- [x] ~~GitHub Actions~~ → tracked in Outstanding Work (Infrastructure)
+- [x] ~~PWA service worker~~ → tracked in Outstanding Work (Infrastructure)
+
 ## Phase 8: UX Simplification (PRD-ux-simplification.md)
 
 ### Docs
@@ -308,15 +270,15 @@ Items intentionally excluded from v1.0 to ship faster. All are tracked here and 
 - [x] New MeasurementChart.tsx component for 0–3 scale types
 - [x] CatProfile: show WeightChart on weight tab, MeasurementChart on food/water tabs, no chart on behavior/all tabs
 
-### Killer App PRD (PRD-killer-app.md — for review, not yet implementing)
-- [x] REVIEW: P0 Vet export / shareable summary — implemented, see Phase 13
-- [ ] REVIEW: P1 Daily check-in multi-log screen
-- [ ] REVIEW: P2 Streak & consistency tracking
-- [ ] REVIEW: P3 Weigh-in reminders
-- [x] REVIEW: P4 Correlation insights — implemented Phase 11
-- [ ] REVIEW: P5 Household sharing / token auth
-- [ ] REVIEW: P6 Shelter mode
-- [ ] REVIEW: P7 AI health narrative
+### Killer App PRD (PRD-killer-app.md — status review)
+- [x] P0 Vet export — implemented (PRD-vet-export.md, Phase 13)
+- [x] P1 Daily check-in — implemented (PRD-daily-checkin.md, Phase 12)
+- [ ] P2 Streak & consistency tracking — not started (specified in PRD-ux-redesign.md 3B)
+- [ ] P3 Weigh-in reminders — not started (specified in PRD-ux-redesign.md 3C)
+- [x] P4 Correlation insights — implemented (PRD-correlations.md, Phase 11)
+- [x] P5 Household sharing — partial (PRD-household-sharing.md, Phase 24)
+- [ ] P6 Shelter mode — not started
+- [ ] P7 AI health narrative — not started (concept in PRD-ux-redesign.md 3D)
 
 ## Phase 12: Profile UX — Insights Panel & History Timeline (PRD-profile-ux.md)
 
@@ -498,12 +460,8 @@ Items intentionally excluded from v1.0 to ship faster. All are tracked here and 
 - [x] 2D: Health tab: InsightsPanel + chart + MeasurementForm + history timeline
 - [x] 2D: Care tab: CareScheduleSection + "View all notifications" link
 - [x] 2D: About tab: icon detail rows + notes + Edit profile button
-- [ ] REVIEW: 2E Photo gallery/timeline — LOW, DEFER
-- [ ] REVIEW: 3A Daily Check-In screen (P1 promotion) — HIGH
-- [ ] REVIEW: 3B Streak & Consistency Tracking (P2 promotion) — HIGH
-- [ ] REVIEW: 3C Weigh-In Reminders (P3) — MEDIUM
-- [ ] REVIEW: 3D AI Health Narrative (P7) — MEDIUM, needs separate PRD if approved
-- [ ] REVIEW: 3E Vet Integration two-way data — FUTURE, concept only
+- [x] 3A: Daily Check-In — implemented separately (PRD-daily-checkin.md, Phase 12)
+> Remaining 2E, 3B–3E tracked in Outstanding Work section below
 
 ---
 
@@ -704,19 +662,16 @@ Items intentionally excluded from v1.0 to ship faster. All are tracked here and 
 
 ### Phase C Accessibility (color independence)
 - [x] DailyCheckin.tsx + MeasurementForm.tsx: add "! " prefix to concern-tier preset buttons
-- [ ] CompareChart.tsx: add stroke dash patterns (solid vs dashed) as second per-cat differentiator
-- [ ] InsightsPanel.tsx: ensure STATUS_LABEL text badge always appears alongside STATUS_EMOJI
+> Remaining items tracked in Outstanding Work > Accessibility Phase C
 
 ### Phase C Usability (state & hierarchy)
-- [ ] Create LoadingShell component for consistent loading states
-- [ ] Empty state improvements (CatProfile no-measurement state with call to action)
-- [ ] CatProfile health status always visible without scrolling
+> Tracked in Outstanding Work > Usability Phase C
 
 ### Deploy & docs
 - [x] Run frontend tests (63 passing)
 - [x] Deploy frontend (https://d73ec733.cat-tracker.pages.dev)
 - [x] Update REGISTRY.md status to Partial for both PRDs
-- [ ] Commit + push
+- [x] Commit + push
 
 ---
 
@@ -802,116 +757,127 @@ Items intentionally excluded from v1.0 to ship faster. All are tracked here and 
 - [x] Deploy worker
 - [ ] Deploy frontend (requires manual wrangler auth)
 
----
-
-## Outstanding Work: Incomplete Items Across All Partial PRDs
-
-> Added 2026-04-11 during PRD audit. This section consolidates all unfinished work
-> from PRDs marked `Partial` in REGISTRY.md, plus remaining items from `In Progress` PRDs.
-> Each subsection references the source PRD and the specific phase/items not yet done.
 
 ---
 
-### PRD-features-backlog.md (Partial) — Remaining Items
-- [ ] Date range filtering on charts (now covered by PRD-chart-time-navigation.md, Draft)
-- [ ] Trend regression: compute rolling slope over last N points, overlay dashed line on chart
-- [ ] Ideal weight range: per-cat target min/max, shaded band on chart
-- [ ] "Due for weigh-in" badge on home screen (see PRD-ux-redesign.md 3C)
+## Outstanding Work
 
-### PRD-ux-redesign.md (Partial) — Remaining Items
-> Phases 1-2 (2A-2D) implemented. The following remain:
+> Consolidated 2026-04-11. Single source of truth for all unfinished work.
+> Items appear in exactly one place — check here first before adding new tasks.
 
-- [ ] 2E: Photo gallery/timeline (LOW priority — significant scope, R2 multi-file management)
-- [ ] 3B: Streak & consistency tracking (HIGH priority — fully specified in PRD; streak badges, home card, calendar heatmap, milestones)
-- [ ] 3C: Weigh-in reminders — `weigh_in_interval_days` per cat, "Due for weigh-in" badge (MEDIUM priority)
-- [ ] 3D: AI Health Narrative via Claude API — weekly/on-demand summaries (MEDIUM priority, needs separate detailed PRD)
-- [ ] 3E: Vet Integration two-way data (FUTURE — concept only, needs vet-side portal)
+---
 
-### PRD-accessibility.md (Partial) ��� Phase C: Color Independence
-> Phases A + B implemented. Phase C remaining:
+### Web App — Partial PRD Remaining Work
 
-- [ ] CompareChart.tsx: add stroke dash patterns (solid vs dashed) as second per-cat differentiator alongside line color
-- [ ] InsightsPanel.tsx: ensure STATUS_LABEL text badge always appears alongside STATUS_EMOJI (not just on hover)
+#### Accessibility Phase C — Color Independence (PRD-accessibility.md)
+- [ ] CompareChart.tsx: stroke dash patterns (solid vs dashed) as second per-cat differentiator
+- [ ] InsightsPanel.tsx: STATUS_LABEL text badge always alongside STATUS_EMOJI
 
-### PRD-usability.md (Partial) — Phase C: State & Hierarchy
-> Phases A + B implemented. Phase C remaining:
+#### Usability Phase C — State & Hierarchy (PRD-usability.md)
+- [ ] Shared `<LoadingShell>` component for consistent loading states
+- [ ] Empty state improvements (CatProfile no-measurement call-to-action)
+- [ ] CatProfile health status visible without scrolling on 375px screen
 
-- [ ] Create shared `<LoadingShell>` component for consistent loading states across all data-fetching pages
-- [ ] Empty state improvements: CatProfile no-measurement state with call-to-action (e.g., "No weight measurements yet. [+ Add your first weight]")
-- [ ] CatProfile health status always visible without scrolling on 375px screen (pinned summary pill or hierarchy review)
+#### Household Sharing Phase B — Polish & Notifications (PRD-household-sharing.md)
+- [ ] Custom ConfirmDialog component for role changes (replace browser `confirm()`)
+- [ ] Custom ConfirmDialog component for member removal (replace browser `confirm()`)
+- [ ] Invitation reminder email: auto-resend via Resend after 3 days
+- [ ] Email notification to Admins when someone accepts an invite
+- [ ] Email notification to removed member
 
-### PRD-medication-reminders.md (Partial) — Phases B, C, D
-> Phase A (core scheduling + in-app inbox) implemented. Remaining:
-
-#### Phase B — Web Push Notifications
-- [ ] Generate VAPID key pair; store as Worker secrets (VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)
+#### Medication Reminders Phase B — Web Push (PRD-medication-reminders.md)
+- [ ] Generate VAPID key pair; store as Worker secrets
 - [ ] Create `push_subscriptions` table in schema.sql
-- [ ] Frontend: service worker (sw.ts) with push + notificationclick handlers
-- [ ] Frontend: notification permission request flow (opt-in)
-- [ ] Worker: `GET /api/push/vapid-key` endpoint (return public VAPID key)
-- [ ] Worker: `POST /api/push/subscribe` endpoint (register push subscription)
-- [ ] Worker: `DELETE /api/push/subscribe` endpoint (unsubscribe)
+- [ ] Service worker (sw.ts) with push + notificationclick handlers
+- [ ] Notification permission request flow (opt-in UI)
+- [ ] Worker: `GET /api/push/vapid-key`, `POST /api/push/subscribe`, `DELETE /api/push/subscribe`
 - [ ] Worker: extend cron to send push notifications for due/overdue doses
 - [ ] Add second cron trigger at 15:00 UTC for evening dose coverage
 
-#### Phase C — Email Fallback
-- [ ] Worker: send overdue-dose email via Resend when no push subscription exists
-- [ ] Reuse existing `sendEmail()` helper in `worker/src/lib/email.ts`
-- [ ] Frontend: notification preferences page (opt out of email)
+#### Medication Reminders Phase C — Email Fallback (PRD-medication-reminders.md)
+- [ ] Send overdue-dose email via Resend when no push subscription exists
+- [ ] Notification preferences page (opt out of email)
 
-#### Phase D — Refill Stock Tracking
-- [ ] Worker: refill alert logic in cron (check doses_remaining against refill_alert_days)
-- [ ] Frontend: doses_remaining management UI on medication edit form
-- [ ] Frontend: refill alert cards in notification inbox
+#### Medication Reminders Phase D — Refill Tracking (PRD-medication-reminders.md)
+- [ ] Refill alert logic in cron (check doses_remaining vs refill_alert_days)
+- [ ] doses_remaining management UI on medication edit form
+- [ ] Refill alert cards in notification inbox
 
-### PRD-household-sharing.md (Partial) — Phase B: Polish & Notifications
-> Phase A (core model + invite system) implemented. Remaining:
-
-- [ ] Replace browser `confirm()` with custom ConfirmDialog component for role changes
-- [ ] Replace browser `confirm()` with custom ConfirmDialog component for member removal
-- [ ] Invitation reminder email: auto-resend via Resend if not accepted after 3 days
-- [ ] Email notification to all Admins when someone accepts an invite
-- [ ] Email notification to removed member when they are removed from household
-
-### PRD-app-settings.md (Partial) — Phase C: Cross-Device Sync
-> Phases A + B (settings screen + full light theme) implemented. Remaining:
-
+#### App Settings Phase C — Cross-Device Sync (PRD-app-settings.md)
 - [ ] D1 `user_preferences` column (JSON blob) on users table
-- [ ] Sync theme preference to D1 on save; read from D1 on sign-in
-- [ ] Apply server-stored preference on new device/browser sign-in
+- [ ] Sync theme preference to D1 on save; read on sign-in
 
-### PRD-ios-app-store.md (In Progress) — Remaining Phases
-> Phases 0A, 0B, 1, 2 complete. Partial 3, 4, 5. Remaining:
+#### Features Backlog — Remaining (PRD-features-backlog.md)
+- [ ] Trend regression: rolling slope overlay on chart
+- [ ] Ideal weight range: per-cat target min/max, shaded band on chart
 
-#### Phase 3: Charts
-- [ ] Port WeightChart, MeasurementChart, CorrelationChart to Victory Native XL
-- [ ] CompareChart screen (needs chart library wiring)
-- [ ] Measure web bundle size; platform split if > 500 KB increase
+### Web App — New Features (PRD-ux-redesign.md)
 
-#### Phase 4: Remaining Native Features
-- [ ] Push notification registration (device token flow)
-- [ ] Full vet export with expo-print + expo-sharing
-- [ ] Full CSV import with expo-document-picker
-- [ ] Full household member management screen
-- [ ] Medication form screen
+- [ ] 3B: Streak & consistency tracking (HIGH — streak badges, home card, calendar heatmap, milestones)
+- [ ] 3C: Weigh-in reminders — `weigh_in_interval_days` per cat, "Due for weigh-in" badge (MEDIUM)
+- [ ] 3D: AI Health Narrative via Claude API (MEDIUM — needs separate detailed PRD)
+- [ ] 2E: Photo gallery/timeline (LOW — significant scope)
+- [ ] 3E: Vet Integration two-way data (FUTURE — concept only)
 
-#### Phase 5: Polish & Store Prep
-- [ ] App icon (1024x1024) and splash screen from design system
-- [ ] Sentry error monitoring setup
-- [ ] Accessibility audit (VoiceOver walkthrough)
+### iOS App — Deferred to v1.1 (PRD-ios-app-store.md)
+
+#### Charts (Phase 3)
+- [ ] Victory Native XL chart rendering (WeightChart, MeasurementChart, CorrelationChart)
+- [ ] Chart time range selector + swipe navigation (PRD-chart-time-navigation.md, Draft)
+- [ ] Web bundle size measurement for Skia WASM; platform split if needed
+
+#### Native Features (Phase 4)
+- [ ] Push notification registration + delivery via Expo push service (APNs key D4TLDX697M ready)
+- [ ] CSV import via expo-document-picker
+- [ ] PDF vet export via expo-print (current: text share works)
+- [ ] Medication form screen (new/edit from iOS app — web version works)
+
+#### Polish (Phase 5)
+- [ ] Sentry error monitoring (account needed)
+- [ ] VoiceOver accessibility audit
 - [ ] Performance profiling (startup time, chart rendering)
-- [ ] Automated screenshot capture script
+- [ ] Automated screenshot capture script (xcrun simctl)
+- [ ] Dark/light/system theme toggle in iOS app (web version works)
 
-#### Phase 6-7: Submission (blocked on human prerequisites)
-- [ ] Apple Developer Program enrollment ($99/year)
-- [ ] EAS account creation and Apple Developer linking
-- [ ] App Store Connect app record creation
-- [ ] Google Cloud Console iOS OAuth client ID
-- [ ] Apple Developer portal: Service ID for Sign in with Apple
-- [ ] Worker secrets: APPLE_SERVICE_ID, APPLE_PRIVATE_KEY, APPLE_TEAM_ID, APPLE_KEY_ID
-- [ ] TestFlight beta testing
-- [ ] App Store submission
+#### Submission (Phases 6-7)
+- [x] Apple Developer Program enrollment (Team ID: UR8VJZL4LG)
+- [x] EAS account creation + Apple Developer linking (@smj10j/whisker-health)
+- [x] App Store Connect app record (ID: 6762031793, name: Whisker Health)
+- [x] Google Cloud Console iOS OAuth client ID + redirect URI
+- [x] Apple Developer portal: Service ID (me.01j.whisker.web), Sign In key (9U9V7Z7986), APNs key (D4TLDX697M)
+- [x] Worker secrets: APPLE_SERVICE_ID, APPLE_PRIVATE_KEY, APPLE_TEAM_ID, APPLE_KEY_ID
+- [x] App Store Connect API key for automated submission (AN6N75VF8R)
+- [x] Production build + TestFlight submission
+- [-] TestFlight beta testing (in progress)
+- [ ] App Store review submission
 
-### Infrastructure (from Phase 7)
+### Draft PRDs (not yet approved — do not implement)
+
+#### Security Phase 2 (PRD-security-phase2.md)
+- [ ] SEC-11: Re-auth gate on account deletion
+- [ ] SEC-12: Rate limiting on data export
+- [ ] SEC-13: Apple identity token replay prevention
+- [ ] SEC-14: Device token format validation + per-user cap
+- [ ] SEC-15: Audit logging for sensitive operations
+
+#### API Versioning (PRD-api-versioning.md)
+- [ ] X-API-Version header + server-driven config endpoint (KV)
+- [ ] Minimum version enforcement
+- [ ] Health threshold overrides from server
+
+#### Chart Time Navigation (PRD-chart-time-navigation.md)
+- [ ] Range selector (1W/1M/3M/6M/1Y/All) with `useChartWindow` hook
+- [ ] Swipe-to-navigate with half-range shifts
+- [ ] Adaptive x-axis labels per range
+- [ ] CompareChart synchronized range
+
+#### Household Sharing Phase 2 (PRD-household-sharing-phase2.md)
+- [ ] Ownership transfer + lock-out recovery
+- [ ] Delete household (two-step confirmation)
+- [ ] Move cats between households
+- [ ] Activity feed / audit log (90-day retention)
+- [ ] Household-wide medication dose notifications (`administered_by`)
+
+### Infrastructure
 - [ ] GitHub Actions: auto-deploy Worker + Pages on push to main
 - [ ] PWA service worker + offline measurement queueing

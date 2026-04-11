@@ -1,7 +1,7 @@
 import { View, Text, Pressable, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import * as FileSystem from 'expo-file-system';
+import { File, Paths } from 'expo-file-system/next';
 import * as Sharing from 'expo-sharing';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../lib/api';
@@ -39,9 +39,9 @@ export default function SettingsScreen() {
       const data = await api.exportData();
       if (Platform.OS !== 'web') {
         const filename = `whisker-health-export-${new Date().toISOString().slice(0, 10)}.json`;
-        const fileUri = FileSystem.cacheDirectory + filename;
-        await FileSystem.writeAsStringAsync(fileUri, data);
-        await Sharing.shareAsync(fileUri, {
+        const file = new File(Paths.cache, filename);
+        file.write(data);
+        await Sharing.shareAsync(file.uri, {
           mimeType: 'application/json',
           UTI: 'public.json',
         });

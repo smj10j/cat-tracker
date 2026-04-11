@@ -326,6 +326,63 @@ export const api = {
     return res.json() as Promise<Medication[]>;
   },
 
+  async getMedication(id: string): Promise<Medication & { doses: MedicationDose[] }> {
+    const res = await apiFetch(`/api/medications/${id}`);
+    return res.json() as Promise<Medication & { doses: MedicationDose[] }>;
+  },
+
+  async createMedication(data: {
+    cat_id: string;
+    name: string;
+    type?: string;
+    dose?: string | null;
+    frequency: string;
+    frequency_days?: number | null;
+    reminder_time?: string;
+    start_date: string;
+    end_date?: string | null;
+    doses_total?: number | null;
+    notes?: string | null;
+    doses_remaining?: number | null;
+    refill_alert_threshold?: number | null;
+  }): Promise<Medication> {
+    const res = await apiFetch('/api/medications', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return res.json() as Promise<Medication>;
+  },
+
+  async updateMedication(
+    id: string,
+    data: Partial<{
+      cat_id: string;
+      name: string;
+      type: string;
+      dose: string | null;
+      frequency: string;
+      frequency_days: number | null;
+      reminder_time: string;
+      start_date: string;
+      end_date: string | null;
+      doses_total: number | null;
+      notes: string | null;
+      is_active: number;
+      doses_remaining: number | null;
+      refill_alert_threshold: number | null;
+    }>,
+  ): Promise<Medication> {
+    const res = await apiFetch(`/api/medications/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return res.json() as Promise<Medication>;
+  },
+
+  async archiveMedication(id: string): Promise<void> {
+    await apiFetch(`/api/medications/${id}`, { method: 'DELETE' });
+  },
+
   async getNotifications(): Promise<NotificationInbox> {
     const res = await apiFetch('/api/notifications');
     return res.json() as Promise<NotificationInbox>;

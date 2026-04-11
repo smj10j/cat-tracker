@@ -1,7 +1,7 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { View, Text, Pressable, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { api, CARE_TYPE_ICONS } from '../../../lib/api';
 import type { Cat, Measurement, Medication } from '../../../lib/api';
 import CatAvatar from '../../../components/CatAvatar';
@@ -12,6 +12,7 @@ import type { HealthStatus } from '../../../lib/healthMetrics';
 import { getPresetLabel } from '../../../lib/measurementPresets';
 import { catAge, formatLocalDate } from '../../../lib/dates';
 import LineChart from '../../../components/LineChart';
+import { ErrorBoundary } from '../../../components/ErrorBoundary';
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -111,6 +112,14 @@ export default function CatProfileScreen() {
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
   }, [id]);
+
+  // Re-fetch medications when returning from care-item form
+  useFocusEffect(
+    useCallback(() => {
+      if (!id || loading) return;
+      api.getMedications(id).then(setMeds).catch(() => {});
+    }, [id, loading]),
+  );
 
   async function executeDeleteMeasurement(measId: string) {
     try {
@@ -403,16 +412,18 @@ export default function CatProfileScreen() {
                     {STATUS_EMOJI[status]} {health.summary || 'Stable'}
                   </Text>
                 )}
-                <LineChart
-                  data={weightMeasurements
-                    .sort((a, b) => a.measured_at.localeCompare(b.measured_at))
-                    .map(m => ({ date: new Date(m.measured_at).getTime(), value: m.value }))}
-                  seriesKeys={['value']}
-                  seriesLabels={{ value: cat.name }}
-                  seriesColors={{ value: statusColor }}
-                  height={180}
-                  yLabel="lbs"
-                />
+                <ErrorBoundary>
+                  <LineChart
+                    data={weightMeasurements
+                      .sort((a, b) => a.measured_at.localeCompare(b.measured_at))
+                      .map(m => ({ date: new Date(m.measured_at).getTime(), value: m.value }))}
+                    seriesKeys={['value']}
+                    seriesLabels={{ value: cat.name }}
+                    seriesColors={{ value: statusColor }}
+                    height={180}
+                    yLabel="lbs"
+                  />
+                </ErrorBoundary>
               </View>
             )}
 
@@ -427,17 +438,19 @@ export default function CatProfileScreen() {
               return (
                 <View style={{ backgroundColor: '#1f1830', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' }}>
                   <Text style={{ fontWeight: '600', fontSize: 14, color: '#a899c0', marginBottom: 12 }}>Food Intake</Text>
-                  <LineChart
-                    data={foodMeasurements
-                      .sort((a, b) => a.measured_at.localeCompare(b.measured_at))
-                      .map(m => ({ date: new Date(m.measured_at).getTime(), value: m.value }))}
-                    seriesKeys={['value']}
-                    seriesLabels={{ value: 'Food' }}
-                    seriesColors={{ value: '#4ade80' }}
-                    height={180}
-                    yLabel="scale"
-                    formatY={(v) => getPresetLabel('food', Math.round(v))}
-                  />
+                  <ErrorBoundary>
+                    <LineChart
+                      data={foodMeasurements
+                        .sort((a, b) => a.measured_at.localeCompare(b.measured_at))
+                        .map(m => ({ date: new Date(m.measured_at).getTime(), value: m.value }))}
+                      seriesKeys={['value']}
+                      seriesLabels={{ value: 'Food' }}
+                      seriesColors={{ value: '#4ade80' }}
+                      height={180}
+                      yLabel="scale"
+                      formatY={(v) => getPresetLabel('food', Math.round(v))}
+                    />
+                  </ErrorBoundary>
                 </View>
               );
             })()}
@@ -453,17 +466,19 @@ export default function CatProfileScreen() {
               return (
                 <View style={{ backgroundColor: '#1f1830', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' }}>
                   <Text style={{ fontWeight: '600', fontSize: 14, color: '#a899c0', marginBottom: 12 }}>Water Intake</Text>
-                  <LineChart
-                    data={waterMeasurements
-                      .sort((a, b) => a.measured_at.localeCompare(b.measured_at))
-                      .map(m => ({ date: new Date(m.measured_at).getTime(), value: m.value }))}
-                    seriesKeys={['value']}
-                    seriesLabels={{ value: 'Water' }}
-                    seriesColors={{ value: '#38bdf8' }}
-                    height={180}
-                    yLabel="scale"
-                    formatY={(v) => getPresetLabel('water', Math.round(v))}
-                  />
+                  <ErrorBoundary>
+                    <LineChart
+                      data={waterMeasurements
+                        .sort((a, b) => a.measured_at.localeCompare(b.measured_at))
+                        .map(m => ({ date: new Date(m.measured_at).getTime(), value: m.value }))}
+                      seriesKeys={['value']}
+                      seriesLabels={{ value: 'Water' }}
+                      seriesColors={{ value: '#38bdf8' }}
+                      height={180}
+                      yLabel="scale"
+                      formatY={(v) => getPresetLabel('water', Math.round(v))}
+                    />
+                  </ErrorBoundary>
                 </View>
               );
             })()}
@@ -487,17 +502,19 @@ export default function CatProfileScreen() {
                         <Text style={{ fontWeight: '600', fontSize: 14, color: '#a899c0', marginBottom: 12 }}>
                           {MEAS_TYPE_LABELS[type] ?? type}
                         </Text>
-                        <LineChart
-                          data={typeMeasurements
-                            .sort((a, b) => a.measured_at.localeCompare(b.measured_at))
-                            .map(m => ({ date: new Date(m.measured_at).getTime(), value: m.value }))}
-                          seriesKeys={['value']}
-                          seriesLabels={{ value: MEAS_TYPE_LABELS[type] ?? type }}
-                          seriesColors={{ value: typeColors[type] ?? '#c084fc' }}
-                          height={150}
-                          yLabel="scale"
-                          formatY={(v) => getPresetLabel(type, Math.round(v))}
-                        />
+                        <ErrorBoundary>
+                          <LineChart
+                            data={typeMeasurements
+                              .sort((a, b) => a.measured_at.localeCompare(b.measured_at))
+                              .map(m => ({ date: new Date(m.measured_at).getTime(), value: m.value }))}
+                            seriesKeys={['value']}
+                            seriesLabels={{ value: MEAS_TYPE_LABELS[type] ?? type }}
+                            seriesColors={{ value: typeColors[type] ?? '#c084fc' }}
+                            height={150}
+                            yLabel="scale"
+                            formatY={(v) => getPresetLabel(type, Math.round(v))}
+                          />
+                        </ErrorBoundary>
                       </View>
                     );
                   })}
@@ -651,8 +668,9 @@ export default function CatProfileScreen() {
               ) : (
                 <View style={{ gap: 4 }}>
                   {meds.map((med) => (
-                    <View
+                    <Pressable
                       key={med.id}
+                      onPress={() => router.push(`/cats/${cat.id}/care-item?medId=${med.id}` as never)}
                       style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 }}
                     >
                       <Text style={{ fontSize: 18, width: 28, textAlign: 'center' }}>
@@ -673,11 +691,53 @@ export default function CatProfileScreen() {
                           {FREQ_SHORT[med.frequency] ?? med.frequency} {'\u00B7'} {formatNextDue(med.next_due_at)}
                         </Text>
                       </View>
-                    </View>
+                      <Text style={{ color: '#6b5f85', fontSize: 14 }}>{'\u203A'}</Text>
+                    </Pressable>
                   ))}
                 </View>
               )}
+
+              {/* Add care item button */}
+              {!isDeceased && (
+                <Pressable
+                  onPress={() => router.push(`/cats/${cat.id}/care-item` as never)}
+                  style={{
+                    marginTop: 12,
+                    paddingVertical: 12,
+                    borderRadius: 12,
+                    alignItems: 'center',
+                    borderWidth: 1.5,
+                    borderStyle: 'dashed',
+                    borderColor: 'rgba(192,132,252,0.3)',
+                  }}
+                >
+                  <Text style={{ color: '#c084fc', fontSize: 14, fontWeight: '600' }}>
+                    + Add Care Item
+                  </Text>
+                </Pressable>
+              )}
             </View>
+
+            {/* Reminders link */}
+            <Pressable
+              onPress={() => router.push('/notifications' as never)}
+              style={{
+                backgroundColor: '#1f1830',
+                borderRadius: 16,
+                padding: 16,
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.07)',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <View>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#ede9f6' }}>Reminders & Notifications</Text>
+                <Text style={{ fontSize: 12, color: '#6b5f85', marginTop: 2 }}>View upcoming doses and overdue items</Text>
+              </View>
+              <Text style={{ color: '#6b5f85', fontSize: 18 }}>{'\u203A'}</Text>
+            </Pressable>
           </View>
         )}
 

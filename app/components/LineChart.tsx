@@ -1,11 +1,14 @@
 /**
  * Cross-platform line chart using Victory Native XL (Skia on native, SVG on web).
  * Used by Compare, WeightChart, and MeasurementChart screens.
+ *
+ * NOTE: useChartPressState and Skia tooltip dots were removed because they caused
+ * native crashes (SIGABRT in ObjCTurboModule::performVoidMethodInvocation) on
+ * iOS 26 with react-native-screens ~4.16 + Skia 2.2.12. The chart renders lines
+ * and axis labels only — no interactive tooltip on press.
  */
-import { View, Text, Dimensions } from 'react-native';
-import { CartesianChart, Line, useChartPressState } from 'victory-native';
-import { Circle, useFont } from '@shopify/react-native-skia';
-import type { SharedValue } from 'react-native-reanimated';
+import { View, Text, Dimensions, Platform } from 'react-native';
+import { CartesianChart, Line } from 'victory-native';
 
 const LINE_COLORS = ['#c084fc', '#4ade80', '#f97316', '#fbbf24', '#fb923c', '#f87171'];
 
@@ -25,10 +28,6 @@ interface LineChartProps {
   formatX?: (timestamp: number) => string;
 }
 
-function ToolTipDot({ x, y, color }: { x: SharedValue<number>; y: SharedValue<number>; color: string }) {
-  return <Circle cx={x} cy={y} r={5} color={color} />;
-}
-
 export default function LineChart({
   data,
   seriesKeys,
@@ -42,14 +41,17 @@ export default function LineChart({
     return `${d.getMonth() + 1}/${d.getDate()}`;
   },
 }: LineChartProps) {
-  const { state, isActive } = useChartPressState({
-    x: 0,
-    y: Object.fromEntries(seriesKeys.map(k => [k, 0])),
-  });
-
   const width = Dimensions.get('window').width - 32; // 16px padding each side
 
-  if (data.length === 0) {
+  // Filter out data points with NaN/undefined/null values for each series
+  const cleanData = data.filter((point) =>
+    seriesKeys.some((key) => {
+      const val = point[key];
+      return val !== undefined && val !== null && !Number.isNaN(val);
+    }),
+  );
+
+  if (cleanData.length === 0) {
     return (
       <View style={{ height, alignItems: 'center', justifyContent: 'center' }}>
         <Text style={{ color: '#6b5f85', fontSize: 14 }}>No data to chart</Text>
@@ -57,14 +59,14 @@ export default function LineChart({
     );
   }
 
-  if (data.length === 1) {
+  if (cleanData.length === 1) {
     // Single point — show value card instead of chart
-    const point = data[0]!;
+    const point = cleanData[0]!;
     return (
       <View style={{ height: 80, alignItems: 'center', justifyContent: 'center' }}>
         {seriesKeys.map((key, i) => {
           const val = point[key];
-          if (val === undefined || val === null) return null;
+          if (val === undefined || val === null || Number.isNaN(val)) return null;
           const color = seriesColors?.[key] ?? LINE_COLORS[i % LINE_COLORS.length]!;
           const label = seriesLabels?.[key] ?? key;
           return (
@@ -80,6 +82,16 @@ export default function LineChart({
     );
   }
 
+  // Replace NaN with 0 for Victory Native (it can't handle NaN in series data)
+  const safeData = cleanData.map((point) => {
+    const safe: ChartDataPoint = { date: point.date };
+    for (const key of seriesKeys) {
+      const val = point[key];
+      safe[key] = val !== undefined && val !== null && !Number.isNaN(val) ? val : 0;
+    }
+    return safe;
+  });
+
   return (
     <View style={{ height, width }}>
       {yLabel && (
@@ -88,7 +100,7 @@ export default function LineChart({
         </Text>
       )}
       <CartesianChart
-        data={data}
+        data={safeData}
         xKey="date"
         yKeys={seriesKeys as [string, ...string[]]}
         domainPadding={{ top: 20, bottom: 20, left: 10, right: 10 }}
@@ -103,7 +115,6 @@ export default function LineChart({
           labelColor: '#a899c0',
           lineColor: 'rgba(255,255,255,0.1)',
         }}
-        chartPressState={state}
       >
         {({ points }) =>
           seriesKeys.map((key, i) => {

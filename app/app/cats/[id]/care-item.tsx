@@ -311,7 +311,11 @@ export default function CareItemScreen() {
                       {CARE_TYPE_ICONS[p.type] ?? ''} {p.name}
                     </Text>
                     <Text style={{ color: colors.inkDim, fontSize: 12, marginTop: 2 }}>
-                      {FREQ_OPTIONS.find((f) => f.value === p.frequency)?.label ?? p.frequency}
+                      {TYPE_OPTIONS.find((t) => t.value === p.type)?.label ?? p.type}
+                      {' · '}
+                      {p.frequency === 'custom' && p.frequency_days
+                        ? `every ${p.frequency_days} days`
+                        : (FREQ_OPTIONS.find((f) => f.value === p.frequency)?.label ?? p.frequency)}
                     </Text>
                   </Pressable>
                 ))}

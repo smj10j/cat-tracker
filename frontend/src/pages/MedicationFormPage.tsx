@@ -251,7 +251,13 @@ export default function MedicationFormPage() {
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
                 <span className="font-semibold">{p.name}</span>
-                <span className="text-ink-dim ml-2">{FREQ_LABELS[p.frequency] ?? p.frequency}</span>
+                <span className="text-ink-dim ml-2">
+                  {TYPE_LABELS[p.type] ?? p.type}
+                  {' · '}
+                  {p.frequency === 'custom' && p.frequency_days
+                    ? `every ${p.frequency_days} days`
+                    : (FREQ_LABELS[p.frequency] ?? p.frequency)}
+                </span>
               </button>
             ))}
           </div>

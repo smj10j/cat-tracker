@@ -207,16 +207,40 @@ npx expo start --ios
 3. Scan the QR code from the EAS build page to install
 4. For `development` builds, start the dev server: `npx expo start`
 
-### Submitting to TestFlight / App Store
+### Deploy to TestFlight (one command)
+
+```bash
+./scripts/deploy-testflight.sh
+```
+
+This single script handles the entire release pipeline:
+1. Runs all tests (worker + frontend) — aborts if any fail
+2. Verifies the Expo web export compiles
+3. Builds a production iOS binary via EAS Build (~5-10 min)
+4. Submits the binary to TestFlight via EAS Submit
+5. Deploys the web frontend to Cloudflare Pages
+6. Deploys the Worker if any `worker/` files changed since last commit
+
+After the script finishes, Apple processes the build (~5-10 min). Then it appears in TestFlight at [appstoreconnect.apple.com](https://appstoreconnect.apple.com/apps/6762031793/testflight/ios).
+
+**When to use:** After any code changes you want to test on a real device or share with testers. Safe to run repeatedly — each run creates a new build with an auto-incremented build number.
+
+**Prerequisites:** EAS login (`npx eas login`), App Store Connect API key in `keys/AuthKey_AN6N75VF8R.p8` (gitignored).
+
+### Manual submission (alternative)
 
 ```bash
 cd app
 
-# Submit the latest production build to TestFlight
+# Build only
+npx eas build --platform ios --profile production --non-interactive
+
+# Submit a specific build URL
+npx eas submit --platform ios --url <IPA_URL> --non-interactive
+
+# Or submit the latest build
 npx eas submit --platform ios --latest --non-interactive
 ```
-
-Requires the App Store Connect API key in `keys/AuthKey_AN6N75VF8R.p8` (gitignored).
 
 ---
 

@@ -48,12 +48,18 @@ See README.md for the full file map.
 Always deploy both pieces after making changes:
 
 ```bash
-# Worker (if API changed)
+# Full TestFlight release (tests → build → submit → deploy web + worker)
+./scripts/deploy-testflight.sh
+
+# Worker only (if API changed)
 cd worker && npx wrangler deploy
 
-# Frontend (always needed for UI changes)
+# Frontend only (always needed for UI changes)
 cd frontend && npm run build && npx wrangler pages deploy dist --project-name cat-tracker --commit-dirty=true
 ```
+
+#### `scripts/deploy-testflight.sh`
+One-command pipeline: runs all tests, verifies Expo web export, builds production iOS via EAS, submits to TestFlight, deploys web frontend, and conditionally deploys Worker. Use this after any code change that should reach TestFlight testers. Requires EAS login and API key in `keys/`.
 
 ### Database changes
 

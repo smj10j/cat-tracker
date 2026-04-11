@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useGoBack } from '../hooks/useGoBack'
 import { URGENT_VET_SIGNS } from '../lib/healthMetrics'
 
 interface WellnessCard {
@@ -51,13 +51,13 @@ const WELLNESS_CARDS: WellnessCard[] = [
 ]
 
 export default function WellnessGuide() {
-  const navigate = useNavigate()
+  const goBack = useGoBack('/')
   const [openCard, setOpenCard] = useState<number | null>(null)
 
   return (
     <div className="min-h-screen px-4 pt-6 pb-8">
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(-1)} className="text-ink-dim hover:text-ink-mid transition-colors text-xl leading-none">←</button>
+        <button onClick={goBack} className="text-ink-dim hover:text-ink-mid transition-colors text-xl leading-none">←</button>
         <div>
           <h1 className="font-display text-xl font-bold text-ink">Cat Wellness Guide</h1>
           <p className="text-ink-dim text-xs mt-0.5">Reference for healthy cat care</p>

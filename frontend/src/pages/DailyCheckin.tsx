@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useGoBack } from '../hooks/useGoBack'
 import { createMeasurement, getCats, type Cat } from '../lib/api'
 import { PRESETS } from '../lib/measurementPresets'
 
@@ -36,7 +36,7 @@ function formatHour(hour: number): string {
 }
 
 export default function DailyCheckin() {
-  const navigate = useNavigate()
+  const goBack = useGoBack('/')
   const [cats, setCats] = useState<Cat[]>([])
   const [selectedCatId, setSelectedCatId] = useState('')
   const [date, setDate] = useState(todayLocalDate)
@@ -124,7 +124,7 @@ export default function DailyCheckin() {
         style={{ borderBottom: '1px solid var(--color-rim)' }}
       >
         <button
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="w-9 h-9 flex items-center justify-center rounded-full text-ink"
           style={{ background: 'var(--color-tab-bar)' }}
           aria-label="Back"

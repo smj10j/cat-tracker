@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useGoBack } from '../hooks/useGoBack'
 import {
   getHousehold, renameHousehold, sendInvite, revokeInvite,
   changeMemberRole, removeMember,
@@ -17,7 +17,7 @@ const ROLE_DESC: Record<Role, string> = {
 }
 
 export default function HouseholdPage() {
-  const navigate = useNavigate()
+  const goBack = useGoBack('/')
   const [data, setData] = useState<HouseholdResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -136,7 +136,7 @@ export default function HouseholdPage() {
     <div className="min-h-screen px-4 pt-6 pb-24">
       {/* Header */}
       <header className="flex items-center gap-3 mb-8">
-        <button onClick={() => navigate(-1)} className="text-ink-dim text-sm mr-1">← Back</button>
+        <button onClick={goBack} className="text-ink-dim text-sm mr-1">← Back</button>
         <h1 className="font-display text-xl font-bold text-ink">Household</h1>
       </header>
 

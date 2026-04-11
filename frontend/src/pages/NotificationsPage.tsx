@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
+import { useGoBack } from '../hooks/useGoBack'
 import { getNotifications, administerDose, skipDose, CARE_TYPE_ICONS, type NotificationInbox, type DoseWithContext, type Medication } from '../lib/api'
 
 function formatDueAt(dueAt: string): string {
@@ -51,16 +52,16 @@ function DoseCard({ dose, variant, onAdminister, onSkip, acting }: DoseCardProps
   const isActing = acting === dose.id
 
   const borderColor = variant === 'overdue'
-    ? 'rgba(248,113,113,0.35)'
+    ? 'var(--color-overdue-border)'
     : variant === 'today'
-    ? 'rgba(251,191,36,0.3)'
-    : 'rgba(255,255,255,0.08)'
+    ? 'var(--color-due-today-border)'
+    : 'var(--color-rim)'
 
   const bg = variant === 'overdue'
-    ? 'rgba(248,113,113,0.06)'
+    ? 'var(--color-overdue-bg)'
     : variant === 'today'
-    ? 'rgba(251,191,36,0.04)'
-    : 'rgba(255,255,255,0.02)'
+    ? 'var(--color-due-today-bg)'
+    : 'var(--color-card)'
 
   return (
     <div
@@ -79,7 +80,7 @@ function DoseCard({ dose, variant, onAdminister, onSkip, acting }: DoseCardProps
             <p className="text-xs text-ink-dim mt-0.5">{dose.dose}</p>
           )}
           <p className="text-xs mt-1" style={{
-            color: variant === 'overdue' ? '#f87171cc' : variant === 'today' ? '#fbbf24cc' : '#8b7fb0',
+            color: variant === 'overdue' ? 'var(--color-overdue-muted)' : variant === 'today' ? 'var(--color-due-today-muted)' : 'var(--color-ink-dim)',
           }}>
             {variant === 'overdue' ? 'Was due: ' : 'Due: '}
             {variant === 'upcoming' ? formatFutureDueAt(dose.due_at) : formatDueAt(dose.due_at)}
@@ -129,20 +130,20 @@ function RefillCard({ med }: { med: Medication & { cat_name: string } }) {
   return (
     <div
       className="rounded-2xl p-4"
-      style={{ background: 'rgba(251,146,60,0.05)', border: '1px solid rgba(251,146,60,0.25)' }}
+      style={{ background: 'var(--color-refill-bg)', border: '1px solid var(--color-refill-border)' }}
     >
       <p className="font-semibold text-ink text-sm">
         {med.cat_name}
         <span className="text-ink-dim font-normal"> &middot; </span>
         {med.name}
       </p>
-      <p className="text-xs mt-1" style={{ color: '#fb923ccc' }}>
+      <p className="text-xs mt-1" style={{ color: 'var(--color-refill-muted)' }}>
         {med.doses_remaining} dose{med.doses_remaining !== 1 ? 's' : ''} remaining — order soon
       </p>
       <Link
         to={`/medications/${med.id}/edit`}
         className="text-xs mt-2 inline-block"
-        style={{ color: '#fb923ccc' }}
+        style={{ color: 'var(--color-refill-muted)' }}
       >
         Update stock →
       </Link>
@@ -156,7 +157,7 @@ function SectionHeader({ label, count, color }: { label: string; count: number; 
       <span className="text-xs font-bold uppercase tracking-widest" style={{ color }}>{label}</span>
       <span
         className="text-xs font-bold px-2 py-0.5 rounded-full"
-        style={{ background: 'rgba(255,255,255,0.06)', color }}
+        style={{ background: 'var(--color-badge-bg)', color }}
       >
         {count}
       </span>
@@ -165,7 +166,7 @@ function SectionHeader({ label, count, color }: { label: string; count: number; 
 }
 
 export default function NotificationsPage() {
-  const navigate = useNavigate()
+  const goBack = useGoBack('/')
   const [inbox, setInbox] = useState<NotificationInbox | null>(null)
   const [loading, setLoading] = useState(true)
   const [acting, setActing] = useState<string | null>(null)
@@ -206,7 +207,7 @@ export default function NotificationsPage() {
   return (
     <div className="min-h-screen px-4 pt-6 pb-4">
       <header className="mb-8">
-        <button onClick={() => navigate(-1)} className="text-ink-dim hover:text-ink text-xl leading-none mb-4 block">←</button>
+        <button onClick={goBack} className="text-ink-dim hover:text-ink text-xl leading-none mb-4 block">←</button>
         <h1 className="font-display text-2xl font-bold text-ink">Reminders</h1>
         <p className="text-ink-dim text-sm mt-0.5">
           {loading ? 'Loading…' : totalUrgent > 0
@@ -230,7 +231,7 @@ export default function NotificationsPage() {
         <div className="space-y-8">
           {inbox.overdue.length > 0 && (
             <section>
-              <SectionHeader label="Overdue" count={inbox.overdue.length} color="#f87171" />
+              <SectionHeader label="Overdue" count={inbox.overdue.length} color="var(--color-overdue)" />
               <div className="space-y-3">
                 {inbox.overdue.map(d => (
                   <DoseCard key={d.id} dose={d} variant="overdue"
@@ -242,7 +243,7 @@ export default function NotificationsPage() {
 
           {inbox.due_today.length > 0 && (
             <section>
-              <SectionHeader label="Due Today" count={inbox.due_today.length} color="#fbbf24" />
+              <SectionHeader label="Due Today" count={inbox.due_today.length} color="var(--color-due-today)" />
               <div className="space-y-3">
                 {inbox.due_today.map(d => (
                   <DoseCard key={d.id} dose={d} variant="today"
@@ -254,7 +255,7 @@ export default function NotificationsPage() {
 
           {inbox.refill_alerts.length > 0 && (
             <section>
-              <SectionHeader label="Refill Alert" count={inbox.refill_alerts.length} color="#fb923c" />
+              <SectionHeader label="Refill Alert" count={inbox.refill_alerts.length} color="var(--color-refill)" />
               <div className="space-y-3">
                 {inbox.refill_alerts.map(m => (
                   <RefillCard key={m.id} med={m} />

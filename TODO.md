@@ -12,6 +12,27 @@
 - [x] Write TDD (docs/TDD.md)
 - [x] Create this TODO list
 
+## Phase 45: Screen Smoke Tests + CatProfile Hook Fix (2026-04-11)
+
+### Infrastructure
+- [x] Install @testing-library/react, @testing-library/jest-dom, jsdom
+- [x] Create __tests__/screens/setup.ts with comprehensive RN/Expo mocks
+- [x] Update vitest.config.ts: jsdom env for screen tests, automatic JSX
+
+### Smoke Tests (25 tests)
+- [x] CatProfile — renders with data, shows name, tabs, edge cases (empty data, deceased, API error)
+- [x] Home screen — renders, shows header, shows cat cards
+- [x] Compare, AddCat, EditCat, CatExport, CatHealth, Memorial
+- [x] Settings, Wellness Guide, Notifications, Household, Privacy
+
+### Bug Fix: CatProfile Rules of Hooks violation
+- [x] Move useMemo above early returns in app/app/cats/[id]/index.tsx
+  (useMemo was called after conditional returns, violating Rules of Hooks)
+
+### Verification
+- [x] All 247 tests pass (65 shared + 93 worker + 44 frontend + 45 app)
+- [x] deploy-testflight.sh already runs `cd app && npm test` — no changes needed
+
 ## Phase 44: Wellness Guide Navigation — iOS + Web Parity (2026-04-11)
 
 ### iOS Home Screen
@@ -25,7 +46,7 @@
 - [x] Run all test suites (93 worker + 44 frontend + 65 shared + 20 app)
 
 ### Deploy & Ship
-- [-] Commit and push
+- [x] Commit and push
 
 ## Phase 43: PRD — Landscape Mode Full-Screen Charts (2026-04-11)
 - [x] Write PRD stub (docs/PRDs/PRD-landscape-charts.md)

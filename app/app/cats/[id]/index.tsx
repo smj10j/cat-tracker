@@ -121,6 +121,18 @@ export default function CatProfileScreen() {
     }, [id, loading]),
   );
 
+  // All hooks must be called before any early returns (Rules of Hooks).
+  const availableChartTypes = useMemo(() => {
+    const types = new Set(measurements.map(m => m.type));
+    const result: { key: string; label: string }[] = [];
+    if (types.has('weight')) result.push({ key: 'weight', label: 'Weight' });
+    if (types.has('food')) result.push({ key: 'food', label: 'Food' });
+    if (types.has('water')) result.push({ key: 'water', label: 'Water' });
+    if (types.has('grooming') || types.has('activity') || types.has('litter') || types.has('vomiting'))
+      result.push({ key: 'behavior', label: 'Behavior' });
+    return result;
+  }, [measurements]);
+
   async function executeDeleteMeasurement(measId: string) {
     try {
       await api.deleteMeasurement(measId);
@@ -168,17 +180,6 @@ export default function CatProfileScreen() {
     measurementsByType[m.type]!.push(m);
   }
   const availableTypes = Object.keys(measurementsByType);
-
-  const availableChartTypes = useMemo(() => {
-    const types = new Set(measurements.map(m => m.type));
-    const result: { key: string; label: string }[] = [];
-    if (types.has('weight')) result.push({ key: 'weight', label: 'Weight' });
-    if (types.has('food')) result.push({ key: 'food', label: 'Food' });
-    if (types.has('water')) result.push({ key: 'water', label: 'Water' });
-    if (types.has('grooming') || types.has('activity') || types.has('litter') || types.has('vomiting'))
-      result.push({ key: 'behavior', label: 'Behavior' });
-    return result;
-  }, [measurements]);
 
   const allDayGroups = groupByDay(measurements);
   const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toLocaleDateString('en-CA');

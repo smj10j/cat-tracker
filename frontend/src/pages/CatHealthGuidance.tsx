@@ -175,7 +175,7 @@ export default function CatHealthGuidance() {
         <button
           onClick={goBack}
           className="w-full py-3 text-sm font-semibold rounded-2xl transition-all"
-          style={{ color: '#6b5f85', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+          style={{ color: 'var(--color-ink-dim)', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
         >
           ← Back to {cat.name}'s profile
         </button>

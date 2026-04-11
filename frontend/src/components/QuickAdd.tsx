@@ -109,8 +109,8 @@ export default function QuickAdd({ open, onClose }: Props) {
         ref={sheetRef}
         className="w-full animate-slide-up opacity-0"
         style={{
-          background: '#2a2040',
-          borderTop: '1px solid rgba(255,255,255,0.1)',
+          background: 'var(--color-surface-hi)',
+          borderTop: '1px solid var(--color-rim)',
           borderRadius: '24px 24px 0 0',
           padding: '20px 20px calc(20px + env(safe-area-inset-bottom))',
           animationFillMode: 'forwards',

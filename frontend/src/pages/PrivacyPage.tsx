@@ -2,8 +2,8 @@ export default function PrivacyPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: '#16111f',
-      color: '#ede9f6',
+      backgroundColor: 'var(--color-bg)',
+      color: 'var(--color-ink)',
       padding: '48px 24px',
       fontFamily: 'system-ui, -apple-system, sans-serif',
       lineHeight: 1.7,
@@ -12,7 +12,7 @@ export default function PrivacyPage() {
         <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 4 }}>
           Whisker Health — Privacy Policy
         </h1>
-        <p style={{ color: '#a899c0', fontSize: 14, marginBottom: 32 }}>
+        <p style={{ color: 'var(--color-ink-mid)', fontSize: 14, marginBottom: 32 }}>
           Last updated: April 10, 2026
         </p>
 
@@ -80,7 +80,7 @@ export default function PrivacyPage() {
           </p>
         </Section>
 
-        <div style={{ marginTop: 48, paddingTop: 24, borderTop: '1px solid rgba(255,255,255,0.07)', color: '#6b5f85', fontSize: 13, textAlign: 'center' }}>
+        <div style={{ marginTop: 48, paddingTop: 24, borderTop: '1px solid var(--color-rim)', color: 'var(--color-ink-dim)', fontSize: 13, textAlign: 'center' }}>
           © 2026 Whisker Health. All rights reserved.
         </div>
       </div>
@@ -91,8 +91,8 @@ export default function PrivacyPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section style={{ marginBottom: 28 }}>
-      <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8, color: '#ede9f6' }}>{title}</h2>
-      <div style={{ color: '#a899c0', fontSize: 15 }}>{children}</div>
+      <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8, color: 'var(--color-ink)' }}>{title}</h2>
+      <div style={{ color: 'var(--color-ink-mid)', fontSize: 15 }}>{children}</div>
     </section>
   )
 }

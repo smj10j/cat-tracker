@@ -132,7 +132,7 @@ export default function CorrelationChart({ catName, catSex, allMeasurements, ava
   const selectStyle: React.CSSProperties = {
     background: 'rgba(255,255,255,0.06)',
     border: '1px solid rgba(255,255,255,0.1)',
-    color: '#c4b5d4',
+    color: 'var(--color-ink-mid)',
     borderRadius: '12px',
     padding: '8px 12px',
     fontSize: '14px',
@@ -193,7 +193,7 @@ export default function CorrelationChart({ catName, catSex, allMeasurements, ava
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
             <XAxis
               dataKey="label"
-              tick={{ fill: '#6b5f85', fontSize: 10 }}
+              tick={{ fill: 'var(--color-ink-dim)', fontSize: 10 }}
               axisLine={false}
               tickLine={false}
               interval="preserveStartEnd"
@@ -222,7 +222,7 @@ export default function CorrelationChart({ catName, catSex, allMeasurements, ava
               }}
             />
             <Legend
-              wrapperStyle={{ fontSize: 10, color: '#6b5f85', paddingTop: 8 }}
+              wrapperStyle={{ fontSize: 10, color: 'var(--color-ink-dim)', paddingTop: 8 }}
               iconType="circle"
               iconSize={6}
             />

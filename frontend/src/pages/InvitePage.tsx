@@ -144,7 +144,7 @@ export default function InvitePage() {
               style={{
                 background: 'linear-gradient(135deg, rgba(192,132,252,0.18) 0%, rgba(251,146,60,0.12) 100%)',
                 border: '1px solid rgba(192,132,252,0.35)',
-                color: '#ede9f6',
+                color: 'var(--color-ink)',
               }}
             >
               <GoogleIcon />

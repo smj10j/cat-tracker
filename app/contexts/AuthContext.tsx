@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
+import { router } from 'expo-router';
 import { api, setAuthToken } from '../lib/api';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -95,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await storeSession(sessionId);
         setAuthToken(sessionId);
         await fetchUser();
+        router.replace('/');
       }
     }
   }, [fetchUser]);
@@ -131,6 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await storeSession(data.sessionId);
           setAuthToken(data.sessionId);
           await fetchUser();
+          router.replace('/');
         } else {
           const err = await res.text().catch(() => '');
           console.error('Apple Sign In failed:', res.status, err);
@@ -160,6 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await clearSession();
     setAuthToken(null);
     setUser(null);
+    router.replace('/(auth)/login');
   }, []);
 
   return (

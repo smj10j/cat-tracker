@@ -21,35 +21,38 @@
 - [x] Implementation safety assessment and rollback plan added to PRD
 
 ## Phase 33: iOS App Store — Phase 0A: Worker Changes
-- [-] Fix oauth_states.next_url schema (comment → real migration)
-- [-] Add Bearer token support to requireAuth middleware
-- [-] Add Apple OAuth routes (login redirect, POST callback, JWT verification)
-- [-] Update CORS to allow Authorization header
-- [-] Add device_tokens table for push notifications
-- [-] Add account deletion endpoint (DELETE /api/auth/account)
-- [-] Add data export endpoint (GET /api/auth/export)
-- [-] Write comprehensive tests for all new Worker routes
-- [-] Deploy Worker
-- [ ] Commit and push
+- [x] Fix oauth_states.next_url schema (comment → real migration)
+- [x] Add Bearer token support to requireAuth middleware
+- [x] Add Apple OAuth routes (login redirect, POST callback, JWT verification)
+- [x] Update CORS to allow Authorization header
+- [x] Add device_tokens table for push notifications
+- [x] Add account deletion endpoint (DELETE /api/auth/account)
+- [x] Add data export endpoint (GET /api/auth/export)
+- [x] Write comprehensive tests for all new Worker routes (25 new tests, 82 total)
+- [x] Deploy Worker
+- [x] Commit and push
 
 ## Phase 34: iOS App Store — Phase 0B: Expo Project Scaffolding
-- [-] Initialize Expo project in app/ directory
-- [-] Configure Expo Router v4, NativeWind v4, TypeScript
-- [-] Copy and verify lib/ files (correlations, healthMetrics, measurementPresets, api)
-- [-] Set up app/assets/ directory structure
-- [-] Copy Pages Functions proxy
-- [-] Copy _headers for CSP
-- [-] Verify npm test passes in app/
-- [ ] Commit and push
+- [x] Initialize Expo project in app/ directory (Expo SDK 54)
+- [x] Configure Expo Router v6, NativeWind v4, TypeScript
+- [x] Copy and verify lib/ files (correlations, healthMetrics, measurementPresets)
+- [x] Create cross-platform API client (lib/api.ts) with Bearer + cookie dual-path
+- [x] Set up app/assets/ directory structure
+- [x] Copy Pages Functions proxy
+- [x] Copy _headers for CSP
+- [x] Verify web export compiles (1.08 MB JS bundle)
+- [x] Commit and push
 
 ## Phase 35: iOS App Store — Phase 1: Auth & Navigation Shell
-- [ ] Implement useAuth hook (SecureStore on native, cookies on web)
-- [ ] Login screen with Google OAuth (expo-auth-session)
-- [ ] Login screen with Sign in with Apple (expo-apple-authentication native, JS SDK web)
-- [ ] Auth gate in root layout
-- [ ] Tab navigator (Cats | Log | Compare)
-- [ ] Verify web export deploys to Cloudflare Pages
-- [ ] Commit and push
+- [x] Implement AuthContext (SecureStore on native, cookies on web)
+- [x] Login screen with Google OAuth (expo-auth-session / redirect)
+- [x] Login screen with Sign in with Apple (expo-apple-authentication native, redirect web)
+- [x] Auth gate in root layout
+- [x] Tab navigator (Cats | Log | Compare)
+- [x] Cat profile screen skeleton (cats/[id])
+- [x] Settings screen with account deletion + data export
+- [x] Verify web export deploys to Cloudflare Pages
+- [x] Commit and push
 
 ## Phase 36: iOS App Store — Phase 2: Core Screens
 - [ ] Home screen (cat list, health badges, notification bell)

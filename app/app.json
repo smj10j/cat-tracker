@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "Cat Tracker",
+    "slug": "cat-tracker",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "cattracker",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#16111f"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "me.01j.cattracker",
+      "usesAppleSignIn": true,
+      "associatedDomains": ["applinks:cat-tracker.pages.dev"],
+      "infoPlist": {
+        "NSCameraUsageDescription": "Cat Tracker needs camera access to take photos of your cats.",
+        "NSPhotoLibraryUsageDescription": "Cat Tracker needs photo library access to select photos of your cats."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#16111f"
+      },
+      "package": "me.j01.cattracker"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-apple-authentication",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#c084fc"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

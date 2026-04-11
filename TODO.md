@@ -13,11 +13,78 @@
 - [x] Create this TODO list
 
 ## Phase 32: iOS App Store Planning (PRD-ios-app-store.md)
-- [x] Write PRD-ios-app-store.md (Draft): product requirements, asset strategy, automated deployment, App Store metadata, privacy, phased delivery (Phases 0–8), success metrics
+- [x] Write PRD-ios-app-store.md (Draft): product requirements, asset strategy, automated deployment, App Store metadata, privacy, phased delivery (Phases 0–7), success metrics
 - [x] Update docs/TDD/cross-platform.md: Sign in with Apple technical scope, OTA updates, deep linking/universal links, error monitoring, versioning strategy, CI/CD pipeline, performance budgets, account deletion, web migration safety protocol
 - [x] Add PRD to REGISTRY.md (status: Draft)
 - [x] Add Phase 32 to TODO.md
-- [ ] Product owner review and approval → move to Approved
+- [x] Product owner review and approval → moved to Approved (2026-04-10)
+- [x] Implementation safety assessment and rollback plan added to PRD
+
+## Phase 33: iOS App Store — Phase 0A: Worker Changes
+- [-] Fix oauth_states.next_url schema (comment → real migration)
+- [-] Add Bearer token support to requireAuth middleware
+- [-] Add Apple OAuth routes (login redirect, POST callback, JWT verification)
+- [-] Update CORS to allow Authorization header
+- [-] Add device_tokens table for push notifications
+- [-] Add account deletion endpoint (DELETE /api/auth/account)
+- [-] Add data export endpoint (GET /api/auth/export)
+- [-] Write comprehensive tests for all new Worker routes
+- [-] Deploy Worker
+- [ ] Commit and push
+
+## Phase 34: iOS App Store — Phase 0B: Expo Project Scaffolding
+- [-] Initialize Expo project in app/ directory
+- [-] Configure Expo Router v4, NativeWind v4, TypeScript
+- [-] Copy and verify lib/ files (correlations, healthMetrics, measurementPresets, api)
+- [-] Set up app/assets/ directory structure
+- [-] Copy Pages Functions proxy
+- [-] Copy _headers for CSP
+- [-] Verify npm test passes in app/
+- [ ] Commit and push
+
+## Phase 35: iOS App Store — Phase 1: Auth & Navigation Shell
+- [ ] Implement useAuth hook (SecureStore on native, cookies on web)
+- [ ] Login screen with Google OAuth (expo-auth-session)
+- [ ] Login screen with Sign in with Apple (expo-apple-authentication native, JS SDK web)
+- [ ] Auth gate in root layout
+- [ ] Tab navigator (Cats | Log | Compare)
+- [ ] Verify web export deploys to Cloudflare Pages
+- [ ] Commit and push
+
+## Phase 36: iOS App Store — Phase 2: Core Screens
+- [ ] Home screen (cat list, health badges, notification bell)
+- [ ] CatProfile (3-tab layout: Health / Care / About)
+- [ ] AddEditCat (form + photo picker)
+- [ ] QuickAdd / Daily Check-In
+- [ ] MeasurementRefreshContext replaces window.dispatchEvent
+- [ ] Settings page with theme toggle
+- [ ] Commit and push
+
+## Phase 37: iOS App Store — Phase 3: Charts
+- [ ] Install Victory Native XL + React Native Skia
+- [ ] Port WeightChart, MeasurementChart, CorrelationChart
+- [ ] Wire InsightsPanel
+- [ ] CompareChart (multi-cat)
+- [ ] Measure web bundle size; platform split if > 500 KB increase
+- [ ] Commit and push
+
+## Phase 38: iOS App Store — Phase 4: Remaining Screens & Native Features
+- [ ] Push notifications (device_tokens, registration, tap deep-link)
+- [ ] Vet Export (expo-print + expo-sharing)
+- [ ] CSV Import (expo-document-picker)
+- [ ] Household, Notifications, MedicationForm, Invite screens
+- [ ] WellnessGuide, CatHealthGuidance, CatExportPage
+- [ ] In Memoriam flow
+- [ ] Deep linking / Universal Links
+- [ ] Commit and push
+
+## Phase 39: iOS App Store — Phase 5: Privacy, Polish & Store Prep
+- [ ] Create and deploy privacy policy at /privacy
+- [ ] Accessibility audit (VoiceOver walkthrough)
+- [ ] Performance profiling
+- [ ] App Store metadata (description, keywords, screenshots)
+- [ ] Configure eas.json for automated submission
+- [ ] Commit and push
 
 ## Phase 1: Project Setup
 - [x] Scaffold Worker project (Hono + TypeScript + wrangler.toml)

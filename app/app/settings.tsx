@@ -65,6 +65,17 @@ export default function SettingsScreen() {
           </Text>
         </View>
 
+        {/* Household settings */}
+        <Pressable
+          onPress={() => router.push('/household')}
+          className="bg-surface rounded-card p-4 border border-rim"
+        >
+          <Text className="text-ink font-semibold">Household Settings</Text>
+          <Text className="text-ink-dim text-sm mt-1">
+            Manage members, invites, and sharing
+          </Text>
+        </Pressable>
+
         {/* Data export */}
         <Pressable
           onPress={handleExportData}

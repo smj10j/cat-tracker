@@ -116,6 +116,13 @@ export interface HouseholdInfo {
   created_at: string;
 }
 
+export interface InvitePreview {
+  household_name: string;
+  invited_by_name: string | null;
+  invite_email: string;
+  role: string;
+}
+
 export interface HouseholdResponse {
   household: HouseholdInfo;
   members: HouseholdMember[];
@@ -359,5 +366,25 @@ export const api = {
 
   async removeMember(userId: string): Promise<void> {
     await apiFetch(`/api/household/members/${userId}`, { method: 'DELETE' });
+  },
+
+  async getInvitePreview(token: string): Promise<InvitePreview> {
+    const res = await apiFetch(`/api/household/invites/preview?token=${encodeURIComponent(token)}`);
+    return res.json() as Promise<InvitePreview>;
+  },
+
+  async acceptInvite(token: string): Promise<{ success: boolean }> {
+    const res = await apiFetch('/api/household/invites/accept', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+    return res.json() as Promise<{ success: boolean }>;
+  },
+
+  async declineInvite(token: string): Promise<void> {
+    await apiFetch('/api/household/invites/decline', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
   },
 };

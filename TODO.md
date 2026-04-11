@@ -47,11 +47,19 @@
 - [x] Tests: useChartWindow.test.ts (filtering, navigation, edge cases, 10 tests)
 - [x] Update docs/TDD/web.md with new components
 
+### iOS App Fixes (discovered during audit)
+- [x] Invite acceptance screen: full implementation (preview, accept, decline, error handling, auth gate)
+- [x] Add getInvitePreview, acceptInvite, declineInvite to app/lib/api.ts
+- [x] Add InvitePreview type to app/lib/api.ts
+- [x] Settings screen: add "Household Settings" navigation link
+- [x] Verify Expo web export compiles
+- [x] All tests passing (93 worker, 109 frontend)
+
 ### Deploy + Finalize
 - [x] Run worker tests (93 passing)
-- [x] Run frontend tests (95 passing)
-- [x] Worker deployed (by API versioning agent)
-- [x] Frontend deployed (by API versioning agent)
+- [x] Run frontend tests (109 passing)
+- [x] Worker deployed
+- [x] Frontend deployed
 - [x] Update REGISTRY.md statuses
 - [-] Commit and push
 

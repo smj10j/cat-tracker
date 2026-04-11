@@ -516,9 +516,9 @@ Nothing rejected yet.
 
 **Scope:** Migrate from React/Vite SPA to Expo/React Native (shared codebase for iOS + web); full feature parity; Sign in with Apple; native push notifications; privacy policy; automated build & submission pipeline; App Store metadata and screenshots. 7 phases (0–7) from scaffolding through submission to frontend retirement.
 
-**Completed phases:** Phase 0A (Worker: Bearer auth, Apple OAuth, account deletion, data export, device tokens — 25 new tests), Phase 0B (Expo SDK 54 scaffolding, Expo Router, NativeWind, shared libs, web export verified), Phase 1 (Auth context, login screens, tab navigator, cat profile skeleton, settings with account deletion + export).
+**Completed phases:** 0A (Worker auth), 0B (Expo scaffold), 1 (Auth + nav), 2 (Core screens + components), partial 4 (notifications, wellness, memorial, invite, deep links), partial 5 (privacy policy, store metadata, eas.json).
 
-**In progress:** Phase 2 (Core screens).
+**Remaining:** Chart library wiring (Phase 3), full native features (expo-print, expo-document-picker, push registration), icon/splash assets, Sentry, accessibility audit, screenshot automation. Human prerequisites: Apple Developer Program enrollment, EAS account, App Store Connect app record.
 
 ---
 

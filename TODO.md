@@ -55,38 +55,48 @@
 - [x] Commit and push
 
 ## Phase 36: iOS App Store — Phase 2: Core Screens
-- [ ] Home screen (cat list, health badges, notification bell)
-- [ ] CatProfile (3-tab layout: Health / Care / About)
-- [ ] AddEditCat (form + photo picker)
-- [ ] QuickAdd / Daily Check-In
-- [ ] MeasurementRefreshContext replaces window.dispatchEvent
-- [ ] Settings page with theme toggle
-- [ ] Commit and push
+- [x] Home screen (cat list, health status, notification bell, profile header)
+- [x] CatProfile (3-tab layout: Health / Care / About)
+- [x] AddEditCat: new cat (cats/new.tsx) and edit cat (cats/[id]/edit.tsx)
+- [x] QuickAdd component (bottom sheet measurement logging)
+- [x] MeasurementForm component (preset-based behavioral entry)
+- [x] CatAvatar component (photo or emoji fallback, deceased overlay)
+- [x] InsightsPanel component (health alerts from healthMetrics.ts)
+- [x] Settings page with account deletion + data export
+- [x] Commit and push
 
 ## Phase 37: iOS App Store — Phase 3: Charts
-- [ ] Install Victory Native XL + React Native Skia
-- [ ] Port WeightChart, MeasurementChart, CorrelationChart
-- [ ] Wire InsightsPanel
-- [ ] CompareChart (multi-cat)
+- [x] Victory Native XL + React Native Skia installed
+- [ ] Port WeightChart, MeasurementChart, CorrelationChart (chart components TBD)
+- [ ] CompareChart screen (needs chart library wiring)
 - [ ] Measure web bundle size; platform split if > 500 KB increase
-- [ ] Commit and push
 
 ## Phase 38: iOS App Store — Phase 4: Remaining Screens & Native Features
-- [ ] Push notifications (device_tokens, registration, tap deep-link)
-- [ ] Vet Export (expo-print + expo-sharing)
-- [ ] CSV Import (expo-document-picker)
-- [ ] Household, Notifications, MedicationForm, Invite screens
-- [ ] WellnessGuide, CatHealthGuidance, CatExportPage
-- [ ] In Memoriam flow
-- [ ] Deep linking / Universal Links
+- [x] Notifications screen (medication inbox with sections)
+- [x] Wellness Guide screen (AAFP/WSAVA/ISFM content)
+- [x] In Memoriam screen (cats/[id]/memorial.tsx)
+- [x] Vet Export screen stub (cats/[id]/export.tsx — needs expo-print)
+- [x] Import screen stub (needs expo-document-picker)
+- [x] Household screen stub (needs full member management)
+- [x] Invite screen (token acceptance)
+- [x] Deep linking: .well-known/apple-app-site-association created
+- [ ] Push notification registration (device token flow)
+- [ ] Full vet export with expo-print + expo-sharing
+- [ ] Full CSV import with expo-document-picker
+- [ ] Full household member management
+- [ ] Medication form screen
 - [ ] Commit and push
 
 ## Phase 39: iOS App Store — Phase 5: Privacy, Polish & Store Prep
-- [ ] Create and deploy privacy policy at /privacy
+- [x] Privacy policy screen at /privacy (GDPR Articles 15-20, CCPA)
+- [x] App Store metadata: description.txt, keywords.txt, whats-new.txt, promotional-text.txt
+- [x] Canonical app-description.md for store listing derivation
+- [x] EAS config (eas.json) with build profiles
+- [ ] App icon (1024x1024) and splash screen from design system
+- [ ] Sentry error monitoring setup
 - [ ] Accessibility audit (VoiceOver walkthrough)
-- [ ] Performance profiling
-- [ ] App Store metadata (description, keywords, screenshots)
-- [ ] Configure eas.json for automated submission
+- [ ] Performance profiling (startup time, chart rendering)
+- [ ] Automated screenshot capture script
 - [ ] Commit and push
 
 ## Phase 1: Project Setup

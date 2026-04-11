@@ -17,7 +17,9 @@
       "supportsTablet": false,
       "bundleIdentifier": "me.01j.whisker",
       "usesAppleSignIn": true,
-      "associatedDomains": ["applinks:cat-tracker.pages.dev"],
+      "associatedDomains": [
+        "applinks:cat-tracker.pages.dev"
+      ],
       "infoPlist": {
         "NSCameraUsageDescription": "Whisker Health needs camera access to take photos of your cats.",
         "NSPhotoLibraryUsageDescription": "Whisker Health needs photo library access to select photos of your cats."
@@ -49,6 +51,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c62ccdf4-92f5-45fc-80e6-4cf56be6607b"
+      }
+    },
+    "owner": "smj10j"
   }
 }

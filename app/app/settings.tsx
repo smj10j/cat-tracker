@@ -79,38 +79,43 @@ export default function SettingsScreen() {
         <Text className="text-ink text-xl font-bold">Settings</Text>
       </View>
 
-      <View className="px-4 mt-4 gap-4">
+      <View style={{ paddingHorizontal: 16, marginTop: 16, gap: 16 }}>
         {/* User info */}
-        <View className="bg-surface rounded-card p-4 border border-rim">
-          <Text className="text-ink font-semibold">{user?.display_name ?? 'User'}</Text>
-          <Text className="text-ink-mid text-sm">{user?.email}</Text>
-          <Text className="text-ink-dim text-xs mt-1">
+        <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.rim }}>
+          <Text style={{ color: colors.ink, fontWeight: '600' }}>{user?.display_name ?? 'User'}</Text>
+          <Text style={{ color: colors.inkMid, fontSize: 14 }}>{user?.email}</Text>
+          <Text style={{ color: colors.inkDim, fontSize: 12, marginTop: 4 }}>
             Signed in with {user?.oauth_provider === 'apple' ? 'Apple' : 'Google'}
           </Text>
         </View>
 
         {/* Appearance */}
-        <View className="bg-surface rounded-card p-4 border border-rim">
-          <Text className="text-ink-mid text-xs font-semibold uppercase tracking-wider mb-3">
+        <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.rim }}>
+          <Text style={{ color: colors.inkMid, fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>
             Appearance
           </Text>
-          <Text className="text-ink text-sm font-medium mb-2">Theme</Text>
-          <View className="flex-row rounded-xl p-1 gap-1 bg-surface-hi">
+          <Text style={{ color: colors.ink, fontSize: 14, fontWeight: '500', marginBottom: 8 }}>Theme</Text>
+          <View style={{ flexDirection: 'row', borderRadius: 12, padding: 4, gap: 4, backgroundColor: colors.surfaceHi }}>
             {THEME_OPTIONS.map(({ value, label, icon }) => {
               const isActive = theme === value;
               return (
                 <Pressable
                   key={value}
                   onPress={() => setTheme(value)}
-                  className="flex-1 flex-row items-center justify-center gap-1 py-2.5 rounded-lg"
-                  style={isActive ? {
-                    backgroundColor: '#c084fc',
-                  } : undefined}
+                  style={{
+                    flex: 1,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 4,
+                    paddingVertical: 10,
+                    borderRadius: 8,
+                    backgroundColor: isActive ? '#c084fc' : undefined,
+                  }}
                 >
                   <Text style={{ fontSize: 14 }}>{icon}</Text>
                   <Text
-                    className="text-sm font-semibold"
-                    style={{ color: isActive ? '#ffffff' : colors.inkDim }}
+                    style={{ fontSize: 14, fontWeight: '600', color: isActive ? '#ffffff' : colors.inkDim }}
                   >
                     {label}
                   </Text>
@@ -118,7 +123,7 @@ export default function SettingsScreen() {
               );
             })}
           </View>
-          <Text className="text-ink-dim text-xs mt-2">
+          <Text style={{ color: colors.inkDim, fontSize: 12, marginTop: 8 }}>
             {theme === 'system'
               ? "Follows your device\u2019s display settings."
               : theme === 'light'
@@ -130,10 +135,10 @@ export default function SettingsScreen() {
         {/* Household settings */}
         <Pressable
           onPress={() => router.push('/household')}
-          className="bg-surface rounded-card p-4 border border-rim"
+          style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.rim }}
         >
-          <Text className="text-ink font-semibold">Household Settings</Text>
-          <Text className="text-ink-dim text-sm mt-1">
+          <Text style={{ color: colors.ink, fontWeight: '600' }}>Household Settings</Text>
+          <Text style={{ color: colors.inkDim, fontSize: 14, marginTop: 4 }}>
             Manage members, invites, and sharing
           </Text>
         </Pressable>
@@ -141,10 +146,10 @@ export default function SettingsScreen() {
         {/* Data export */}
         <Pressable
           onPress={handleExportData}
-          className="bg-surface rounded-card p-4 border border-rim"
+          style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.rim }}
         >
-          <Text className="text-ink font-semibold">Download My Data</Text>
-          <Text className="text-ink-dim text-sm mt-1">
+          <Text style={{ color: colors.ink, fontWeight: '600' }}>Download My Data</Text>
+          <Text style={{ color: colors.inkDim, fontSize: 14, marginTop: 4 }}>
             Export all your cats, measurements, and medications as JSON
           </Text>
         </Pressable>
@@ -152,18 +157,18 @@ export default function SettingsScreen() {
         {/* Sign out */}
         <Pressable
           onPress={signOut}
-          className="bg-surface rounded-card p-4 border border-rim"
+          style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.rim }}
         >
-          <Text className="text-ink font-semibold">Sign Out</Text>
+          <Text style={{ color: colors.ink, fontWeight: '600' }}>Sign Out</Text>
         </Pressable>
 
         {/* Delete account */}
         <Pressable
           onPress={handleDeleteAccount}
-          className="bg-rose/10 rounded-card p-4 border border-rose/20 mt-8"
+          style={{ backgroundColor: 'rgba(248,113,113,0.1)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(248,113,113,0.2)', marginTop: 32 }}
         >
-          <Text className="text-rose font-semibold">Delete Account</Text>
-          <Text className="text-rose/60 text-sm mt-1">
+          <Text style={{ color: '#f87171', fontWeight: '600' }}>Delete Account</Text>
+          <Text style={{ color: 'rgba(248,113,113,0.6)', fontSize: 14, marginTop: 4 }}>
             Permanently delete your account and all associated data
           </Text>
         </Pressable>

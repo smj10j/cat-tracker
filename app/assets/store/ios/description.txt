@@ -1,0 +1,13 @@
+Track your cat's health with the care they deserve. Cat Tracker logs weight, food intake, hydration, grooming, activity, and litter habits — then connects the dots with correlation insights backed by veterinary guidelines (AAFP, WSAVA, ISFM).
+
+What you get:
+- Weight tracking with trend charts and clinically-sourced health alerts
+- Daily check-in for quick multi-measurement logging
+- Medication & care schedule with push notification reminders
+- Correlation engine that spots patterns (e.g., food drop → weight loss) weeks before they become emergencies
+- One-tap vet export: print-ready PDF with weight history, behavioral trends, and clinical observations
+- Household sharing so everyone caring for your cat stays in sync
+
+Built by cat people, grounded in veterinary science. Every health threshold cites its source — AAFP, WSAVA, ISFM, or peer-reviewed feline medicine journals.
+
+Free. No ads. No tracking. Your cats' data stays yours.

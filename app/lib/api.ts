@@ -40,7 +40,69 @@ export interface User {
   hasOrphanedCats: boolean;
 }
 
-// On web, use relative URLs (Pages proxy handles /api/* → Worker).
+export interface Medication {
+  id: string;
+  cat_id: string;
+  user_id: string;
+  name: string;
+  type: string;
+  dose: string | null;
+  frequency: string;
+  frequency_days: number | null;
+  reminder_time: string;
+  start_date: string;
+  end_date: string | null;
+  doses_total: number | null;
+  notes: string | null;
+  is_active: number;
+  doses_remaining: number | null;
+  refill_alert_threshold: number | null;
+  created_at: string;
+  updated_at: string;
+  next_due_at?: string | null;
+  overdue_count?: number;
+}
+
+export interface MedicationDose {
+  id: string;
+  medication_id: string;
+  due_at: string;
+  administered_at: string | null;
+  skipped: number;
+  skip_reason: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface DoseWithContext extends MedicationDose {
+  med_name: string;
+  dose: string | null;
+  med_type: string;
+  cat_name: string;
+  cat_id: string;
+}
+
+export interface NotificationInbox {
+  overdue: DoseWithContext[];
+  due_today: DoseWithContext[];
+  upcoming: DoseWithContext[];
+  refill_alerts: (Medication & { cat_name: string })[];
+}
+
+export const CARE_TYPE_ICONS: Record<string, string> = {
+  flea: '\uD83E\uDD9F',
+  heartworm: '\u2764\uFE0F',
+  pill: '\uD83D\uDC8A',
+  vaccine: '\uD83D\uDC89',
+  supplement: '\uD83C\uDF3F',
+  dental: '\uD83E\uDDB7',
+  exam: '\uD83E\uDE7A',
+  bloodwork: '\uD83E\uDE78',
+  surgery: '\uD83E\uDE79',
+  other: '\uD83D\uDCC5',
+};
+
+// On web, use relative URLs (Pages proxy handles /api/* -> Worker).
 // On native, call the Worker directly with Bearer token.
 const BASE_URL = Platform.OS === 'web' ? '' : 'https://cat-tracker.pages.dev';
 
@@ -69,6 +131,11 @@ async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
 
   if (!res.ok && res.status === 401) {
     throw new Error('Unauthorized');
+  }
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(body || `Request failed: ${res.status}`);
   }
 
   return res;
@@ -101,9 +168,15 @@ export const api = {
     });
   },
 
+  async claimCats(): Promise<{ claimed: number }> {
+    const res = await apiFetch('/api/auth/claim-cats', { method: 'POST' });
+    return res.json() as Promise<{ claimed: number }>;
+  },
+
   // Cats
-  async getCats(): Promise<Cat[]> {
-    const res = await apiFetch('/api/cats');
+  async getCats(scope?: string): Promise<Cat[]> {
+    const params = scope ? `?scope=${scope}` : '';
+    const res = await apiFetch(`/api/cats${params}`);
     const data = await res.json() as { cats: Cat[] } | Cat[];
     return Array.isArray(data) ? data : data.cats;
   },
@@ -133,6 +206,51 @@ export const api = {
     await apiFetch(`/api/cats/${id}`, { method: 'DELETE' });
   },
 
+  async uploadCatPhoto(id: string, uri: string): Promise<{ photo_url: string }> {
+    const formData = new FormData();
+    const filename = uri.split('/').pop() ?? 'photo.jpg';
+    const match = /\.(\w+)$/.exec(filename);
+    const ext = match?.[1] ?? 'jpg';
+    const mimeType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+    formData.append('photo', {
+      uri,
+      name: filename,
+      type: mimeType,
+    } as unknown as Blob);
+
+    const headers = new Headers();
+    if (authToken && Platform.OS !== 'web') {
+      headers.set('Authorization', `Bearer ${authToken}`);
+    }
+
+    const res = await fetch(`${BASE_URL}/api/cats/${id}/photo`, {
+      method: 'POST',
+      body: formData,
+      headers,
+      credentials: Platform.OS === 'web' ? 'same-origin' : undefined,
+    });
+    if (!res.ok) throw new Error('Photo upload failed');
+    return res.json() as Promise<{ photo_url: string }>;
+  },
+
+  async deleteCatPhoto(id: string): Promise<void> {
+    await apiFetch(`/api/cats/${id}/photo`, { method: 'DELETE' });
+  },
+
+  async markDeceased(id: string, deceasedAt: string, memorialNote?: string): Promise<void> {
+    await apiFetch(`/api/cats/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ deceased_at: deceasedAt, memorial_note: memorialNote ?? null }),
+    });
+  },
+
+  async markAlive(id: string): Promise<void> {
+    await apiFetch(`/api/cats/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ deceased_at: null, memorial_note: null }),
+    });
+  },
+
   // Measurements
   async getMeasurements(catId: string, type?: string): Promise<Measurement[]> {
     const params = type ? `?type=${type}` : '';
@@ -146,7 +264,7 @@ export const api = {
     value: number;
     unit: string;
     measured_at: string;
-    notes?: string;
+    notes?: string | null;
   }): Promise<Measurement> {
     const res = await apiFetch(`/api/cats/${catId}/measurements`, {
       method: 'POST',
@@ -157,5 +275,17 @@ export const api = {
 
   async deleteMeasurement(id: string): Promise<void> {
     await apiFetch(`/api/measurements/${id}`, { method: 'DELETE' });
+  },
+
+  // Medications
+  async getMedications(catId?: string): Promise<Medication[]> {
+    const params = catId ? `?cat_id=${catId}` : '';
+    const res = await apiFetch(`/api/medications${params}`);
+    return res.json() as Promise<Medication[]>;
+  },
+
+  async getNotifications(): Promise<NotificationInbox> {
+    const res = await apiFetch('/api/notifications');
+    return res.json() as Promise<NotificationInbox>;
   },
 };

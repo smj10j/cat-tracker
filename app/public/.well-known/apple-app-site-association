@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["TEAM_ID.me.01j.cattracker"],
+        "paths": ["/invite*", "/cats/*"]
+      }
+    ]
+  }
+}

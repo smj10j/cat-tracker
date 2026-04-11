@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithApple = useCallback(async () => {
     if (Platform.OS === 'ios') {
-      // Native iOS: use expo-apple-authentication
+      // Native iOS: use expo-apple-authentication for the native Sign in with Apple sheet
       try {
         const AppleAuthentication = require('expo-apple-authentication');
         const credential = await AppleAuthentication.signInAsync({
@@ -111,7 +111,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ],
         });
 
-        // Send the identity token to our Worker for verification
+        if (!credential.identityToken) {
+          console.error('Apple Sign In: no identity token received');
+          return;
+        }
+
+        // Send the identity token to our Worker for verification and session creation
         const res = await fetch(`${API_BASE}/api/auth/apple-native`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -126,9 +131,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await storeSession(data.sessionId);
           setAuthToken(data.sessionId);
           await fetchUser();
+        } else {
+          const err = await res.text().catch(() => '');
+          console.error('Apple Sign In failed:', res.status, err);
         }
-      } catch {
-        // User cancelled or error
+      } catch (e) {
+        // Error code 1001 = user cancelled — not an error
+        const code = (e as { code?: string })?.code;
+        if (code !== 'ERR_REQUEST_CANCELED' && code !== '1001') {
+          console.error('Apple Sign In error:', e);
+        }
       }
       return;
     }

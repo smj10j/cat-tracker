@@ -25,7 +25,8 @@ CREATE TABLE IF NOT EXISTS oauth_states (
   state       TEXT PRIMARY KEY,
   next_url    TEXT,
   expires_at  TEXT NOT NULL,
-  provider    TEXT NOT NULL DEFAULT 'google'
+  provider    TEXT NOT NULL DEFAULT 'google',
+  native_redirect_uri TEXT
 );
 
 CREATE TABLE IF NOT EXISTS device_tokens (

@@ -28,19 +28,21 @@ async function createSession(db: D1Database, userId: string): Promise<string> {
   return sessionId
 }
 
-/** Return either a redirect (web) or JSON (native) depending on mode. */
+/** Return either a redirect (web) or app-scheme redirect (native) depending on mode. */
 function authResponse(
-  c: { req: { query: (key: string) => string | undefined }; env: { OAUTH_REDIRECT_BASE: string } },
+  redirectBase: string,
   sessionId: string,
-  userId: string,
   redirectPath: string,
+  nativeRedirectUri: string | null,
 ) {
-  const mode = c.req.query('mode')
-
-  // Native app: return JSON with session token
-  if (mode === 'native') {
-    return new Response(JSON.stringify({ sessionId, userId }), {
-      headers: { 'Content-Type': 'application/json' },
+  // Native app: redirect to app's custom URL scheme with session token
+  if (nativeRedirectUri) {
+    const separator = nativeRedirectUri.includes('?') ? '&' : '?'
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: `${nativeRedirectUri}${separator}session=${sessionId}`,
+      },
     })
   }
 
@@ -48,7 +50,7 @@ function authResponse(
   return new Response(null, {
     status: 302,
     headers: {
-      Location: `${c.env.OAUTH_REDIRECT_BASE}${redirectPath}`,
+      Location: `${redirectBase}${redirectPath}`,
       'Set-Cookie': sessionCookie(sessionId, 7 * 24 * 60 * 60),
     },
   })
@@ -60,13 +62,15 @@ auth.get('/auth/login', async (c) => {
   const nextUrl = c.req.query('next') ?? null
   const provider = c.req.query('provider') ?? 'google'
   const mode = c.req.query('mode') ?? null
+  const nativeRedirectUri = c.req.query('redirect_uri') ?? null
   const state = crypto.randomUUID().replace(/-/g, '')
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString()
 
   // Store state in D1 (avoids cookie round-trip through redirect proxy)
+  // native_redirect_uri is stored so the callback can redirect back to the app scheme
   await c.env.DB.prepare(
-    "INSERT INTO oauth_states (state, expires_at, next_url, provider) VALUES (?, ?, ?, ?) ON CONFLICT(state) DO NOTHING"
-  ).bind(state, expiresAt, nextUrl, provider).run()
+    "INSERT INTO oauth_states (state, expires_at, next_url, provider, native_redirect_uri) VALUES (?, ?, ?, ?, ?) ON CONFLICT(state) DO NOTHING"
+  ).bind(state, expiresAt, nextUrl, provider, nativeRedirectUri).run()
 
   // Clean up old states opportunistically
   c.executionCtx.waitUntil(
@@ -120,8 +124,8 @@ auth.get('/auth/callback', async (c) => {
 
   // SEC-01: Atomically consume the state token via DELETE...RETURNING.
   const consumed = await c.env.DB.prepare(
-    "DELETE FROM oauth_states WHERE state = ? AND expires_at > datetime('now') RETURNING state, next_url, provider"
-  ).bind(state).first<{ state: string; next_url: string | null; provider: string }>()
+    "DELETE FROM oauth_states WHERE state = ? AND expires_at > datetime('now') RETURNING state, next_url, provider, native_redirect_uri"
+  ).bind(state).first<{ state: string; next_url: string | null; provider: string; native_redirect_uri: string | null }>()
 
   if (!consumed) {
     return new Response(null, { status: 302, headers: { Location: `${redirectBase}/login?error=invalid_state` } })
@@ -180,9 +184,7 @@ auth.get('/auth/callback', async (c) => {
 
   const sessionId = await createSession(c.env.DB, user.id)
 
-  // Patch mode onto c.req for authResponse
-  const fakeC = { req: { query: () => mode }, env: c.env }
-  return authResponse(fakeC as typeof c, sessionId, user.id, postLoginRedirect)
+  return authResponse(redirectBase, sessionId, postLoginRedirect, consumed.native_redirect_uri)
 })
 
 // POST /api/auth/callback — Apple OAuth callback (form_urlencoded POST)
@@ -199,8 +201,8 @@ auth.post('/auth/callback', async (c) => {
 
   // SEC-01: Atomically consume the state token
   const consumed = await c.env.DB.prepare(
-    "DELETE FROM oauth_states WHERE state = ? AND expires_at > datetime('now') RETURNING state, next_url, provider"
-  ).bind(state).first<{ state: string; next_url: string | null; provider: string }>()
+    "DELETE FROM oauth_states WHERE state = ? AND expires_at > datetime('now') RETURNING state, next_url, provider, native_redirect_uri"
+  ).bind(state).first<{ state: string; next_url: string | null; provider: string; native_redirect_uri: string | null }>()
 
   if (!consumed || consumed.provider !== 'apple') {
     return new Response(null, { status: 302, headers: { Location: `${redirectBase}/login?error=invalid_state` } })
@@ -252,8 +254,66 @@ auth.post('/auth/callback', async (c) => {
 
   const sessionId = await createSession(c.env.DB, user.id)
 
-  const fakeC = { req: { query: () => mode }, env: c.env }
-  return authResponse(fakeC as typeof c, sessionId, user.id, postLoginRedirect)
+  return authResponse(redirectBase, sessionId, postLoginRedirect, consumed.native_redirect_uri)
+})
+
+// POST /api/auth/apple-native — Native iOS Apple Sign In (receives identity token directly)
+auth.post('/auth/apple-native', async (c) => {
+  const body = await c.req.json<{
+    identityToken: string
+    fullName?: { givenName?: string; familyName?: string } | null
+  }>()
+
+  if (!body.identityToken) {
+    return c.json({ error: 'identityToken is required' }, 400)
+  }
+
+  // Verify the Apple id_token JWT
+  let payload
+  try {
+    // For native Sign in with Apple, the audience is the bundle ID, not the Service ID
+    payload = await verifyAppleIdToken(body.identityToken, 'me.01j.whisker')
+  } catch {
+    // Fallback: try with Service ID in case Apple sends that as audience
+    try {
+      payload = await verifyAppleIdToken(body.identityToken, c.env.APPLE_SERVICE_ID)
+    } catch {
+      return c.json({ error: 'Invalid identity token' }, 401)
+    }
+  }
+
+  if (!payload.sub || !payload.email) {
+    return c.json({ error: 'Missing user identity' }, 400)
+  }
+
+  // Build display name from native credential (only available on first auth)
+  let displayName: string | null = null
+  if (body.fullName) {
+    const first = body.fullName.givenName ?? ''
+    const last = body.fullName.familyName ?? ''
+    displayName = [first, last].filter(Boolean).join(' ') || null
+  }
+
+  // Upsert user
+  await c.env.DB.prepare(`
+    INSERT INTO users (email, display_name, avatar_url, oauth_provider, oauth_id)
+    VALUES (?, ?, NULL, 'apple', ?)
+    ON CONFLICT(oauth_provider, oauth_id) DO UPDATE SET
+      email = excluded.email,
+      display_name = COALESCE(excluded.display_name, users.display_name)
+  `).bind(payload.email, displayName, payload.sub).run()
+
+  const user = await c.env.DB.prepare(
+    "SELECT id FROM users WHERE oauth_provider = 'apple' AND oauth_id = ?"
+  ).bind(payload.sub).first<{ id: string }>()
+
+  if (!user) {
+    return c.json({ error: 'User creation failed' }, 500)
+  }
+
+  const sessionId = await createSession(c.env.DB, user.id)
+
+  return c.json({ sessionId, userId: user.id })
 })
 
 // POST /api/auth/logout

@@ -73,7 +73,8 @@ CREATE TABLE IF NOT EXISTS oauth_states (
   state       TEXT PRIMARY KEY,
   expires_at  TEXT NOT NULL,
   next_url    TEXT,
-  provider    TEXT NOT NULL DEFAULT 'google'
+  provider    TEXT NOT NULL DEFAULT 'google',
+  native_redirect_uri TEXT
 );
 
 -- Medication reminders (added 2026-03-07)

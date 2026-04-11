@@ -483,6 +483,111 @@ cd app && bash assets/store/shared/screenshot-script.sh
 
 ---
 
+## Rollback Plan
+
+This PRD touches the Worker (auth changes), D1 schema (new tables/columns), and eventually replaces the web frontend. Every change is designed to be reversible. If things go off the rails at any phase, here's how to get back to today's working state.
+
+### Guiding principle
+
+The production web app (`frontend/`) and its deployment pipeline are **never modified** during Phases 0–6. All iOS/Expo work happens in an isolated `app/` directory deployed to a separate staging Pages project. The existing web app can only be affected by Worker changes — and those are additive, never destructive.
+
+### Per-phase rollback procedures
+
+#### Phases 0–2 (Scaffolding, Auth, Core Screens)
+
+**Worker changes at risk:** Bearer token support in `requireAuth`, Apple OAuth routes, `?mode=native` callback branch.
+
+**Rollback:**
+1. `git revert` the Worker commits that added Bearer/Apple auth
+2. `cd worker && npx wrangler deploy` — redeploys the previous Worker code
+3. D1 schema changes (e.g., `device_tokens` table) are additive (`IF NOT EXISTS`) — they can be left in place harmlessly, or dropped with `DROP TABLE IF EXISTS device_tokens`
+4. Delete `app/` directory — it has no connection to the production frontend
+5. Remove Apple OAuth secrets: `wrangler secret delete APPLE_SERVICE_ID && wrangler secret delete APPLE_PRIVATE_KEY`
+
+**Time to recover:** < 15 minutes. Zero user-facing impact (no one is using the native app yet).
+
+#### Phase 3 (Charts & Health Intelligence)
+
+No Worker or schema changes. All work is in `app/`. Rollback = delete `app/` and revert commits.
+
+#### Phase 4 (Native Features & Remaining Screens)
+
+**Worker changes at risk:** `device_tokens` table, push notification registration route.
+
+**Rollback:**
+1. `git revert` the push notification Worker commits
+2. Redeploy Worker
+3. `DROP TABLE IF EXISTS device_tokens` on D1 (remote) — safe because no production code references it
+4. Delete `app/`
+
+**Time to recover:** < 15 minutes.
+
+#### Phase 5 (Privacy, Polish & Store Prep)
+
+**Worker changes at risk:** `DELETE /api/auth/account` (account deletion route), data export route.
+
+**Rollback:**
+1. `git revert` the account deletion / export commits
+2. Redeploy Worker
+3. Privacy policy page at `/privacy` is a static route — can be left or removed; no harm either way
+
+#### Phase 6 (TestFlight & Submission)
+
+This is App Store submission. If the app is rejected or has critical bugs:
+- Do not promote from TestFlight to public release
+- Fix issues in `app/` and resubmit, or abandon the submission entirely
+- The web app is completely unaffected — it hasn't been touched
+
+**Abandoning the iOS app entirely at this point:**
+1. Remove the app from App Store Connect (or let it lapse)
+2. `git revert` all Worker changes added for iOS support (Bearer auth, Apple OAuth, push routes, account deletion)
+3. Redeploy Worker
+4. Delete `app/` directory
+5. Drop orphaned D1 tables: `DROP TABLE IF EXISTS device_tokens`
+6. The `users` table may now contain users who signed in with Apple — they lose access. If this is unacceptable, keep the Apple OAuth route but remove the native-specific code.
+
+#### Phase 7 (Retire `frontend/` — the danger zone)
+
+This is the **only phase where the production web app is at risk.** It's also the only phase that's irreversible without preparation.
+
+**What happens:** Cloudflare Pages switches from deploying `frontend/dist/` to `app/dist/`.
+
+**Rollback (within 30-day hold period):**
+1. `frontend/` is still in the repo (unused but intact for 30 days)
+2. Rebuild and redeploy: `cd frontend && npm run build && npx wrangler pages deploy dist --project-name cat-tracker --commit-dirty=true`
+3. Web app is restored to its pre-cutover state in < 5 minutes
+4. The iOS native app continues to work (it talks to the Worker, not the frontend)
+
+**Rollback (after `frontend/` is deleted):**
+1. Restore from git history: `git checkout HEAD~N -- frontend/` (where N is the commit that deleted it)
+2. `cd frontend && npm install && npm run build && npx wrangler pages deploy dist --project-name cat-tracker --commit-dirty=true`
+3. Recovery time: ~10 minutes
+
+### Full abort — abandoning the entire iOS initiative
+
+If the project is cancelled at any point:
+
+1. **Git:** Revert all iOS-related commits to `worker/` (auth changes, push routes, account deletion). Leave `app/` deletion for a cleanup commit.
+2. **Worker:** `cd worker && npx wrangler deploy` — restores pre-iOS Worker
+3. **D1:** Run cleanup migrations:
+   ```sql
+   DROP TABLE IF EXISTS device_tokens;
+   -- oauth_states.next_url column and users with oauth_provider='apple' 
+   -- can be left in place (harmless) or cleaned up manually
+   ```
+4. **Cloudflare secrets:** `wrangler secret delete APPLE_SERVICE_ID && wrangler secret delete APPLE_PRIVATE_KEY`
+5. **Apple Developer Program:** Let the $99/year membership lapse at renewal. The app is automatically removed from the App Store after the account expires.
+6. **EAS/Expo:** Delete the project at expo.dev. No ongoing cost.
+7. **App Store Connect:** If the app was published, remove it from sale. Existing installs continue working (they hit the Worker) but receive no updates.
+
+### What cannot be rolled back
+
+- **Users who signed in with Apple:** If any users created accounts via Apple OAuth before rollback, their `users` rows have `oauth_provider='apple'`. Removing Apple OAuth means those users can no longer sign in. Options: (a) keep the Apple auth route even if the iOS app is abandoned, (b) migrate those users to Google OAuth (requires them to re-authenticate), or (c) accept the data loss and delete those user rows.
+- **Push notification opt-ins:** If users granted push permission and we later remove the iOS app, their device tokens become stale. This is harmless — undelivered pushes just fail silently.
+- **App Store reviews/ratings:** Once published, reviews are permanent on the App Store listing even if the app is removed.
+
+---
+
 ## Costs
 
 | Item | Cost | Frequency | Notes |

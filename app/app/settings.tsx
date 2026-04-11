@@ -72,11 +72,11 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
-      <View className="px-4 py-3 flex-row items-center gap-3">
+      <View style={{ paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <Pressable onPress={() => router.back()}>
-          <Text className="text-lavender text-base">← Back</Text>
+          <Text style={{ color: colors.lavender, fontSize: 16 }}>← Back</Text>
         </Pressable>
-        <Text className="text-ink text-xl font-bold">Settings</Text>
+        <Text style={{ color: colors.ink, fontSize: 20, fontWeight: '700' }}>Settings</Text>
       </View>
 
       <View style={{ paddingHorizontal: 16, marginTop: 16, gap: 16 }}>
@@ -110,7 +110,7 @@ export default function SettingsScreen() {
                     gap: 4,
                     paddingVertical: 10,
                     borderRadius: 8,
-                    backgroundColor: isActive ? '#c084fc' : undefined,
+                    backgroundColor: isActive ? colors.lavender : undefined,
                   }}
                 >
                   <Text style={{ fontSize: 14 }}>{icon}</Text>

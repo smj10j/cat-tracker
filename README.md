@@ -1,25 +1,31 @@
-# Cat Tracker
+# Whisker Health (formerly Cat Tracker)
 
-A lightweight web app for tracking health measurements for your cats over time. Built on Cloudflare's free tier — no server to maintain, no monthly bill.
+A cat health tracking app built on Cloudflare's free tier. Log weight, food, water, grooming, activity, and litter habits — then spot patterns early with correlation insights backed by veterinary guidelines.
 
-**Live app:** https://cat-tracker.pages.dev
+**Web app:** https://cat-tracker.pages.dev
+**iOS app:** Whisker Health (App Store — in progress)
+**Privacy policy:** https://cat-tracker.pages.dev/privacy
 
 ---
 
 ## Features
 
-- Add and manage multiple cats with profile info (name, birthdate, breed, coloring, notes)
+- Add and manage multiple cats with profiles (name, birthdate, breed, sex, neuter status, microchip ID, photos)
 - Log multiple measurement types: weight, food, water, litter box, grooming, activity, vomiting
+- **Daily Check-In** — log all measurement types for a cat in one screen
 - **QuickAdd bottom sheet** — tap the center nav button to log any measurement in 2 taps
-- **One-tap behavioral presets** — litter, grooming, activity, and vomiting use simple preset buttons (e.g., "Normal / Straining / Loose / Not used") instead of manual numeric entry
-- Per-cat profile tabs: Weight | Food | Water | Behavior | All
-- Per-cat measurement charts: weight chart with health emoji dots; scale chart for food/water
-- **Multi-cat comparison chart** with per-series toggles and measurement type selector
-- **Emoji health indicators** (✅👀⚠️🚨) on chart dots and cat cards, based on feline veterinary thresholds
-- Wellness Guide page with cat health reference cards (vitals, monthly self-check, urgent signs)
+- **One-tap behavioral presets** — litter, grooming, activity, and vomiting use simple preset buttons
+- **Correlation engine** — detects patterns across measurement types (e.g., food drop → weight loss)
+- **Health status indicators** (✅👀⚠️🚨) on chart dots and cat cards, based on feline veterinary thresholds
+- **Vet Export** — print-ready PDF with weight history, behavioral trends, and clinical observations
+- **Medication & care schedule** with notification inbox
+- **Household sharing** — invite family members with role-based access (Viewer/Contributor/Editor/Admin)
+- **In Memoriam** — gentle way to mark a cat as deceased while preserving their health records
+- **Wellness Guide** with AAFP/WSAVA/ISFM-sourced health reference
 - CSV import for bulk data entry
 - PWA — installable on home screen
-- **Google sign-in** — each user sees only their own cats; session-based auth via httpOnly cookies
+- **Google + Apple sign-in** — session-based auth with httpOnly cookies (web) or Bearer tokens (native)
+- **Account deletion** and **full data export** (GDPR/CCPA compliance)
 
 ---
 
@@ -39,47 +45,52 @@ cat-tracker/
 │   │   ├── weight-thresholds.md      #   Citations for numeric thresholds
 │   │   ├── behavioral-indicators.md  #   Citations for behavioral alert lists
 │   │   └── feline-resources.md       #   Reference directory
-│   └── DESIGN.md                     # Visual design system
+│   ├── API.md                        # Full API specification
+│   ├── DESIGN.md                     # Visual design system
+│   ├── SECURITY.md                   # Security model and guidelines
+│   └── TESTING.md                    # Testing strategy
 ├── worker/                 # Cloudflare Worker — REST API
 │   ├── src/
-│   │   ├── index.ts        # Hono app entry point + CORS
+│   │   ├── index.ts              # Hono app entry + CORS + security headers
+│   │   ├── middleware/auth.ts    # Session auth (cookie + Bearer token)
 │   │   ├── routes/
-│   │   │   ├── cats.ts           # CRUD for /api/cats
+│   │   │   ├── auth.ts           # Google OAuth, Apple OAuth, account deletion, data export
+│   │   │   ├── cats.ts           # CRUD for /api/cats + photo upload
 │   │   │   ├── measurements.ts   # CRUD for /api/measurements
+│   │   │   ├── medications.ts    # Medication schedules + dose tracking
+│   │   │   ├── household.ts      # Household sharing + invites
 │   │   │   └── import.ts         # POST /api/import (CSV bulk insert)
-│   │   └── db/
-│   │       └── schema.sql  # D1 schema (cats + measurements tables)
-│   ├── wrangler.toml       # Worker config + D1 binding
+│   │   ├── lib/
+│   │   │   ├── apple-auth.ts     # Apple Sign In JWT verification + client secret generation
+│   │   │   ├── email.ts          # Transactional email via Resend
+│   │   │   └── household.ts      # Household creation helper
+│   │   └── db/schema.sql         # D1 schema
+│   ├── wrangler.toml
 │   └── package.json
-├── frontend/               # React + Vite SPA — deployed to Pages
+├── frontend/               # React + Vite SPA — deployed to Cloudflare Pages
 │   ├── src/
-│   │   ├── App.tsx         # Router setup
-│   │   ├── pages/
-│   │   │   ├── Home.tsx            # Cat list + wellness link
-│   │   │   ├── CatProfile.tsx      # Per-cat chart, tabs, health alerts
-│   │   │   ├── AddEditCat.tsx      # Add/edit cat form
-│   │   │   ├── CompareChart.tsx    # Multi-cat comparison chart
-│   │   │   ├── ImportPage.tsx      # CSV upload/preview/import
-│   │   │   └── WellnessGuide.tsx   # Cat health reference page
-│   │   ├── components/
-│   │   │   ├── WeightChart.tsx       # Recharts line chart w/ emoji health dots
-│   │   │   ├── MeasurementChart.tsx  # 0-3 scale chart for behavioral types
-│   │   │   ├── MeasurementForm.tsx   # Inline measurement entry form
-│   │   │   ├── QuickAdd.tsx          # Bottom sheet for quick measurement logging
-│   │   │   ├── PageShell.tsx         # Layout wrapper; owns QuickAdd state
-│   │   │   └── BottomNav.tsx         # Fixed bottom nav (Home/Compare/Log)
-│   │   └── lib/
-│   │       ├── api.ts                # Typed fetch wrappers for all API routes
-│   │       ├── healthMetrics.ts      # Vet-threshold health status logic + emoji
-│   │       └── measurementPresets.ts # Preset definitions for behavioral types
-│   ├── functions/
-│   │   └── api/[[path]].ts   # Pages Function: proxies /api/* → Worker
-│   ├── public/
-│   │   └── manifest.json     # PWA manifest
-│   ├── vite.config.ts        # Dev proxy: /api → localhost:8787
+│   │   ├── pages/                # All web app screens
+│   │   ├── components/           # Reusable UI components
+│   │   └── lib/                  # API client, health metrics, measurement presets
+│   ├── functions/api/[[path]].ts # Pages Function: proxies /api/* → Worker
 │   └── package.json
-├── TODO.md                 # Task tracking
-├── CLAUDE.md               # Instructions for AI assistants working in this repo
+├── app/                    # Expo/React Native — iOS app (Whisker Health)
+│   ├── app/                      # Expo Router file-based routes
+│   │   ├── (auth)/login.tsx      # Login screen (Google + Apple)
+│   │   ├── (tabs)/               # Tab navigator (Cats | Log | Compare)
+│   │   ├── cats/[id]/            # Cat profile, edit, export, memorial
+│   │   ├── settings.tsx          # Account settings, deletion, data export
+│   │   ├── privacy.tsx           # Privacy policy
+│   │   └── ...                   # All other screens
+│   ├── components/               # React Native UI components
+│   ├── contexts/AuthContext.tsx   # Dual-path auth (SecureStore + cookies)
+│   ├── lib/                      # Shared TS: api, correlations, healthMetrics
+│   ├── assets/store/             # App Store metadata (description, keywords, screenshots)
+│   ├── app.json                  # Expo config (bundle ID, permissions, plugins)
+│   └── eas.json                  # EAS Build/Submit profiles
+├── keys/                   # Apple API keys (.gitignored)
+├── TODO.md
+├── CLAUDE.md
 └── .gitignore
 ```
 
@@ -89,15 +100,16 @@ cat-tracker/
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | React 18 + TypeScript + Vite |
-| Styling | Tailwind CSS (custom dark design system) |
-| Charts | Recharts |
-| Routing | React Router v6 |
+| Frontend (web) | React 18 + TypeScript + Vite + Tailwind CSS + Recharts |
+| Frontend (iOS) | Expo SDK 54 + Expo Router v6 + NativeWind v4 + React Native |
 | Backend | Cloudflare Workers (Hono framework) |
 | Database | Cloudflare D1 (SQLite-compatible) |
-| Hosting | Cloudflare Pages (frontend) + Workers (API) |
+| Object Storage | Cloudflare R2 (cat photos) |
+| Email | Resend (transactional email for household invites) |
+| Auth | Google OAuth + Apple Sign In |
+| Hosting | Cloudflare Pages (web) + Workers (API) + EAS Build (iOS) |
 
-Everything runs on Cloudflare's **free tier**.
+Everything runs on Cloudflare's **free tier** + Apple Developer Program ($99/year for iOS).
 
 ---
 
@@ -106,14 +118,16 @@ Everything runs on Cloudflare's **free tier**.
 ### Prerequisites
 
 - Node.js 18+
-- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/) (`npm install -g wrangler` or use `npx`)
+- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/)
 - A Cloudflare account (free)
+- For iOS development: Xcode, EAS CLI (`npm install -g eas-cli`)
 
 ### 1. Install dependencies
 
 ```bash
 cd worker && npm install
 cd ../frontend && npm install
+cd ../app && npm install
 ```
 
 ### 2. Run the Worker locally
@@ -123,23 +137,86 @@ cd worker
 npm run dev        # starts at http://localhost:8787
 ```
 
-This uses the local D1 database (stored in `worker/.wrangler/state/`).
-
-### 3. Apply schema to local DB (first time only)
-
-```bash
-cd worker
-npm run db:migrate:local
-```
-
-### 4. Run the frontend
+### 3. Run the web frontend
 
 ```bash
 cd frontend
 npm run dev        # starts at http://localhost:5173
 ```
 
-The Vite dev server proxies `/api/*` to `localhost:8787`, so both must be running.
+### 4. Run the Expo app
+
+```bash
+cd app
+
+# iOS Simulator
+npx expo start --ios
+
+# Web
+npx expo start --web
+```
+
+---
+
+## iOS App (Whisker Health)
+
+The iOS app is built with Expo and shares business logic with the web frontend. It uses Bearer token auth (via `expo-secure-store`) instead of cookies.
+
+### App Store Details
+
+| Field | Value |
+|-------|-------|
+| **App Name** | Whisker Health |
+| **Bundle ID** | `me.01j.whisker` |
+| **App Store Connect ID** | 6762031793 |
+| **Team ID** | UR8VJZL4LG |
+| **EAS Project** | @smj10j/whisker-health |
+
+### Building
+
+```bash
+cd app
+
+# Development build (for Simulator)
+npx eas build --platform ios --profile development-simulator
+
+# Development build (for physical device — requires Developer Mode on device)
+npx eas build --platform ios --profile development
+
+# Preview build (standalone, no dev server needed — for device testing)
+npx eas build --platform ios --profile preview
+
+# Production build (for App Store / TestFlight)
+npx eas build --platform ios --profile production --non-interactive
+```
+
+### Running on Simulator
+
+```bash
+# Boot simulator + install + launch the latest development-simulator build
+npx eas build:run --platform ios --latest
+
+# Or start the dev server and connect manually
+npx expo start --ios
+```
+
+### Running on Physical Device
+
+1. Enable **Developer Mode**: Settings → Privacy & Security → Developer Mode → On → Restart
+2. Build with `preview` or `development` profile (not `development-simulator`)
+3. Scan the QR code from the EAS build page to install
+4. For `development` builds, start the dev server: `npx expo start`
+
+### Submitting to TestFlight / App Store
+
+```bash
+cd app
+
+# Submit the latest production build to TestFlight
+npx eas submit --platform ios --latest --non-interactive
+```
+
+Requires the App Store Connect API key in `keys/AuthKey_AN6N75VF8R.p8` (gitignored).
 
 ---
 
@@ -148,24 +225,34 @@ The Vite dev server proxies `/api/*` to `localhost:8787`, so both must be runnin
 ### Deploy the Worker (API)
 
 ```bash
-cd worker
-npx wrangler deploy
+cd worker && npx wrangler deploy
 ```
 
-### Apply DB schema to production (first time or after schema changes)
+### Deploy the web frontend
 
 ```bash
-cd worker
-npm run db:migrate:remote
+cd frontend && npm run build && npx wrangler pages deploy dist --project-name cat-tracker --commit-dirty=true
 ```
 
-### Build and deploy the frontend
+### Apply DB schema to production
 
 ```bash
-cd frontend
-npm run build
-npx wrangler pages deploy dist --project-name cat-tracker --commit-dirty=true
+cd worker && npm run db:migrate:remote
 ```
+
+---
+
+## Testing
+
+```bash
+# Worker tests (82 tests)
+cd worker && npm test
+
+# Frontend tests (85 tests)
+cd frontend && npm test
+```
+
+See [`docs/TESTING.md`](docs/TESTING.md) for strategy and infrastructure details.
 
 ---
 
@@ -173,75 +260,35 @@ npx wrangler pages deploy dist --project-name cat-tracker --commit-dirty=true
 
 | Resource | Name | Notes |
 |----------|------|-------|
-| Worker | `cat-tracker-api` | Deployed via `wrangler deploy` in `worker/` |
-| Pages project | `cat-tracker` | Deployed via `wrangler pages deploy` in `frontend/` |
-| D1 database | `cat-tracker-db` | ID: `9c923aa8-47a3-4029-b07f-3b67d208f9e6` |
-
-The Pages site routes all `/api/*` traffic through a Pages Function (`frontend/functions/api/[[path]].ts`) that proxies to the Worker. This avoids CORS issues and keeps the API URL clean.
-
-### First-time Cloudflare setup
-
-If setting this up from scratch on a new Cloudflare account:
-
-1. Log in: `wrangler login`
-2. Create the D1 database: `npx wrangler d1 create cat-tracker-db`
-3. Copy the `database_id` from the output into `worker/wrangler.toml`
-4. Apply schema: `cd worker && npm run db:migrate:remote`
-5. Deploy Worker: `npx wrangler deploy`
-6. Create Pages project: `npx wrangler pages project create cat-tracker --production-branch main`
-7. Build + deploy frontend: `cd frontend && npm run build && npx wrangler pages deploy dist --project-name cat-tracker`
+| Worker | `cat-tracker-api` | Hono REST API |
+| Pages project | `cat-tracker` | Web SPA + Pages Functions proxy |
+| D1 database | `cat-tracker-db` | `9c923aa8-47a3-4029-b07f-3b67d208f9e6` |
+| R2 bucket | `cat-tracker-photos` | Public: `pub-40305f88ebb54339b47a48224f195f92.r2.dev` |
 
 ---
 
-## API Reference
+## Auth
 
-Base URL: `https://cat-tracker-api.stevej-67b.workers.dev` (or `/api` via Pages proxy)
+The app supports two OAuth providers:
 
-### Cats
+- **Google OAuth** — web redirect flow (cookies) + native flow (Bearer tokens via `expo-auth-session`)
+- **Apple Sign In** — web redirect flow + native iOS SDK (`expo-apple-authentication`) with `POST /api/auth/apple-native`
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/cats` | List all cats |
-| `POST` | `/api/cats` | Create a cat |
-| `GET` | `/api/cats/:id` | Get a cat |
-| `PUT` | `/api/cats/:id` | Update a cat |
-| `DELETE` | `/api/cats/:id` | Delete cat + all measurements |
+Native apps store session tokens in iOS Keychain via `expo-secure-store` and send them as `Authorization: Bearer` headers. The web app uses httpOnly session cookies via the Pages proxy.
 
-### Measurements
+---
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/cats/:id/measurements?type=weight` | List measurements (filter by type) |
-| `POST` | `/api/cats/:id/measurements` | Add a measurement |
-| `DELETE` | `/api/measurements/:id` | Delete a measurement |
+## Privacy & Compliance
 
-### Import
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/api/import` | Bulk import cats + measurements from CSV |
-
-### Auth
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/auth/login?provider=google` | Redirect to Google OAuth |
-| `GET` | `/api/auth/callback` | OAuth callback — creates session, sets cookie |
-| `POST` | `/api/auth/logout` | Clears session |
-| `GET` | `/api/auth/me` | Current user info |
-| `POST` | `/api/auth/claim-cats` | Claim orphaned cats on first login |
-
-### Health check
-
-```
-GET /api/health  →  { "status": "ok" }
-```
+- **Privacy policy:** https://cat-tracker.pages.dev/privacy
+- **Account deletion:** Settings → Delete Account (immediate, irreversible — Apple requirement)
+- **Data export:** Settings → Download My Data (full JSON export — GDPR Article 20)
+- No analytics SDKs, no advertising identifiers, no tracking
+- Data stored on Cloudflare D1/R2 (global network, encrypted in transit and at rest)
 
 ---
 
 ## Health Indicators
-
-The app uses feline veterinary research to classify weight change rates:
 
 | Status | Emoji | Trigger |
 |--------|-------|---------|
@@ -250,7 +297,7 @@ The app uses feline veterinary research to classify weight change rates:
 | Concerning | ⚠️ | 1–2%/week loss, or > 7% total loss from peak |
 | Urgent | 🚨 | > 2%/week loss, or > 10% total loss from peak |
 
-Emoji dots appear on chart data points and as badges on cat cards. Logic lives in `frontend/src/lib/healthMetrics.ts`. Thresholds follow [AAFP](https://aafponline.org) and [WSAVA](https://wsava.org) feline nutritional guidelines; full citations in [`docs/research/`](docs/research/) (see PRD-evidence-base.md).
+Thresholds follow [AAFP](https://aafponline.org) and [WSAVA](https://wsava.org) feline nutritional guidelines. Full citations in [`docs/research/`](docs/research/).
 
 ---
 
@@ -258,12 +305,10 @@ Emoji dots appear on chart data points and as badges on cat cards. Logic lives i
 
 | Document | Purpose |
 |---|---|
-| [`docs/PRDs/REGISTRY.md`](docs/PRDs/REGISTRY.md) | Canonical index of all product requirements and their status — start here for any feature work |
-| [`docs/TDD/README.md`](docs/TDD/README.md) | Technical design docs: current web architecture and cross-platform (iOS/Android) plan |
-| [`docs/research/README.md`](docs/research/README.md) | Veterinary evidence base: sourcing standards, threshold citations, and process for adding new clinical content |
-| [`docs/API.md`](docs/API.md) | Full API specification: every endpoint, request/response shapes, auth and authorization rules |
-| [`docs/DESIGN.md`](docs/DESIGN.md) | Visual design system: color tokens, Tailwind configuration, component patterns |
-| [`docs/SECURITY.md`](docs/SECURITY.md) | Security model, auth guidelines, and known limitations |
-| [`docs/TESTING.md`](docs/TESTING.md) | Testing strategy and infrastructure for Worker and frontend |
-| [`TODO.md`](TODO.md) | Task tracking |
-| [`CLAUDE.md`](CLAUDE.md) | Instructions for AI assistants working in this repo |
+| [`docs/PRDs/REGISTRY.md`](docs/PRDs/REGISTRY.md) | Canonical index of all product requirements |
+| [`docs/TDD/README.md`](docs/TDD/README.md) | Technical design docs: web architecture and cross-platform plan |
+| [`docs/research/README.md`](docs/research/README.md) | Veterinary evidence base and sourcing standards |
+| [`docs/API.md`](docs/API.md) | Full API specification |
+| [`docs/DESIGN.md`](docs/DESIGN.md) | Visual design system |
+| [`docs/SECURITY.md`](docs/SECURITY.md) | Security model, auth guidelines, known limitations |
+| [`docs/TESTING.md`](docs/TESTING.md) | Testing strategy |

@@ -1,6 +1,6 @@
-# Cat Tracker — Security Guidelines & Architecture
+# Whisker Health — Security Guidelines & Architecture
 
-This document describes the security model, principles, and guidelines for the Cat Tracker application. It applies to the Cloudflare Worker API, the React SPA, and the Pages proxy.
+This document describes the security model, principles, and guidelines for the Whisker Health application (repo: cat-tracker). It applies to the Cloudflare Worker API, the React SPA, the Expo/React Native iOS app, and the Pages proxy.
 
 > For the API authorization rules (who can read/mutate which resources), see **[API.md](API.md)**.
 > For the full technical design including the auth flow, see **[TDD/web.md](TDD/web.md)**.
@@ -19,18 +19,25 @@ Browser ──HTTPS──▶ Cloudflare Pages (cat-tracker.pages.dev)
                    Cloudflare D1 (SQLite)
 ```
 
+```
+iOS App ──HTTPS──▶ Cloudflare Worker (cat-tracker-api) ←── Bearer token
+                         │ D1 binding (private)
+                   Cloudflare D1 (SQLite)
+```
+
 **Key properties:**
 - All traffic is HTTPS-only (enforced by Cloudflare)
 - The database is never directly accessible from the internet — only via the Worker D1 binding
-- All API mutations require a valid session cookie
-- All data is user-scoped; no cross-user data access is possible
+- Web: API mutations require a valid session cookie (httpOnly, SameSite=Lax)
+- iOS: API mutations require a valid Bearer token in `Authorization` header (stored in iOS Keychain via `expo-secure-store`)
+- All data is user-scoped or household-scoped; no cross-user data access is possible
 
 ---
 
 ## Principles
 
 ### 1. Authentication by default
-Every API route except `/api/health`, `/api/auth/login`, and `/api/auth/callback` requires a valid session. The `requireAuth` middleware validates the session cookie before any business logic runs. There is no "opt-in" to auth — routes are protected unless explicitly excluded.
+Every API route except `/api/health`, `/api/auth/login`, `/api/auth/callback`, and `/api/auth/apple-native` requires a valid session. The `requireAuth` middleware validates the session token (Bearer header or cookie) before any business logic runs. There is no "opt-in" to auth — routes are protected unless explicitly excluded.
 
 ### 2. Fail closed
 When in doubt, return 401 or 404. Do not expose whether a resource exists if the requester lacks access. The API returns 404 (not 403) for ownership failures to avoid leaking resource existence.
@@ -53,7 +60,13 @@ Reads may include orphaned (unclaimed) cats. Writes — PUT, DELETE on cats; POS
 - Headers: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` on all responses
 
 ### 7. Secrets never in source
-Google OAuth credentials (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`) are stored as Cloudflare Worker secrets, not in `wrangler.toml` or source code. The OAuth redirect base URL is an env var.
+OAuth credentials and API keys are stored as Cloudflare Worker secrets, not in `wrangler.toml` or source code:
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` — Google OAuth
+- `APPLE_SERVICE_ID`, `APPLE_PRIVATE_KEY`, `APPLE_TEAM_ID`, `APPLE_KEY_ID` — Apple Sign In
+- `RESEND_API_KEY` — transactional email
+- `OAUTH_REDIRECT_BASE` — OAuth redirect URL (env var)
+
+Apple API keys for EAS Build/Submit are stored in `keys/` (gitignored).
 
 ### 8. Validate at the boundary
 Input validation runs at the Worker API layer, not just the frontend. Field length limits, type allowlists for measurements, and value range checks are enforced server-side. Frontend validation (maxLength, type="number") is a UX convenience only.
@@ -65,7 +78,9 @@ Input validation runs at the Worker API layer, not just the frontend. Field leng
 ### Session tokens
 - Generated with `crypto.randomUUID()` — 128 bits of cryptographic randomness
 - Stored in D1 `sessions` table; never in JWTs or client-visible state
-- Cookie: `HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=<7 days>`
+- **Web:** Cookie: `HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=<7 days>`
+- **iOS native:** Stored in iOS Keychain via `expo-secure-store`; sent as `Authorization: Bearer <token>`
+- `requireAuth` middleware checks Bearer header first, then falls back to cookie
 - Rolling 7-day TTL: extended on every authenticated request
 - Max 20 sessions per user — oldest sessions pruned when limit exceeded
 
@@ -164,8 +179,17 @@ The Worker has no rate limiting. Cloudflare's free tier imposes global limits (1
 ### No server-side audit logs
 The Worker does not log authentication events, failed auth attempts, or authorization failures. Cloudflare Workers provide basic request logs but not structured application logs. Accepted given the personal-use scale.
 
-### Google OAuth only
-The app supports Google OAuth only. No password-based auth means no brute force concern. MFA is handled by Google's own account security.
+### OAuth providers
+The app supports Google OAuth and Apple Sign In. No password-based auth means no brute force concern. MFA is handled by each provider's own account security. Apple's native Sign In flow uses `POST /api/auth/apple-native` with JWT identity token verification against Apple's JWKS. See PRD-security-phase2.md (Draft) for additional hardening recommendations including token replay prevention.
+
+### Account deletion
+`DELETE /api/auth/account` permanently deletes all user data (cats, measurements, medications, photos, sessions, device tokens, household memberships). Currently requires only a valid session — see SEC-11 in PRD-security-phase2.md for the re-authentication gate recommendation.
+
+### Data export
+`GET /api/auth/export` returns a full JSON dump of user data. Currently no rate limiting — see SEC-12 in PRD-security-phase2.md.
+
+### Bearer tokens (iOS native)
+Bearer tokens sent in `Authorization` headers are not bound to a specific device. A stolen token works from any client. Mitigation: tokens expire after 7 days of inactivity. See SEC-10 in PRD-security-phase2.md for device fingerprint binding proposal.
 
 ### No "logout all devices" for users
 `POST /api/auth/logout` clears only the current session. Users cannot remotely revoke other sessions (e.g., if a device is lost). Mitigated by the 7-day rolling expiry — a session on a lost device expires within 7 days of last use.

@@ -5,7 +5,7 @@ set -euo pipefail
 # Usage: ./scripts/deploy-testflight.sh
 #
 # This script:
-# 1. Runs all tests (worker + frontend)
+# 1. Runs all tests (shared + worker + frontend + app)
 # 2. Verifies the Expo web export compiles
 # 3. Builds a production iOS binary via EAS Build
 # 4. Submits it to TestFlight via EAS Submit
@@ -19,10 +19,14 @@ echo "=== Whisker Health → TestFlight ==="
 echo ""
 
 # 1. Run tests
+echo "▸ Running shared tests..."
+cd "$ROOT/shared" && npm test --silent 2>&1 | tail -1
 echo "▸ Running worker tests..."
 cd "$ROOT/worker" && npm test --silent 2>&1 | tail -1
 echo "▸ Running frontend tests..."
 cd "$ROOT/frontend" && npm test --silent 2>&1 | tail -1
+echo "▸ Running app tests..."
+cd "$ROOT/app" && npm test --silent 2>&1 | tail -1
 echo ""
 
 # 2. Verify Expo web export

@@ -105,7 +105,7 @@ export default function InsightsPanel({
 
           {/* CTA */}
           <Pressable
-            onPress={() => router.push(`/cats/${cat.id}` as never)}
+            onPress={() => router.push(`/cats/${cat.id}/health` as never)}
             style={{
               marginTop: 12,
               flexDirection: 'row',

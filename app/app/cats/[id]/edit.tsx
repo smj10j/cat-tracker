@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, Pressable, TextInput, ScrollView,
-  KeyboardAvoidingView, Platform, Alert,
+  KeyboardAvoidingView, Platform, Alert, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -30,6 +30,9 @@ export default function EditCatScreen() {
   const [photoRemoved, setPhotoRemoved] = useState(false);
   const [catDeceasedAt, setCatDeceasedAt] = useState<string | null>(null);
   const [markingDeceased, setMarkingDeceased] = useState(false);
+  const [deceasedModalOpen, setDeceasedModalOpen] = useState(false);
+  const [deceasedDate, setDeceasedDate] = useState(new Date().toISOString().slice(0, 10));
+  const [memorialNote, setMemorialNote] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -133,11 +136,11 @@ export default function EditCatScreen() {
 
   async function handleMarkDeceased() {
     if (!id) return;
-    const today = new Date().toISOString().slice(0, 10);
     setMarkingDeceased(true);
     setError(null);
     try {
-      await api.markDeceased(id, today);
+      await api.markDeceased(id, deceasedDate, memorialNote || undefined);
+      setDeceasedModalOpen(false);
       router.replace(`/cats/${id}` as never);
     } catch (e: unknown) {
       setError((e as Error).message);
@@ -300,7 +303,11 @@ export default function EditCatScreen() {
                 </Pressable>
               ) : (
                 <Pressable
-                  onPress={handleMarkDeceased}
+                  onPress={() => {
+                    setDeceasedDate(new Date().toISOString().slice(0, 10));
+                    setMemorialNote('');
+                    setDeceasedModalOpen(true);
+                  }}
                   disabled={markingDeceased}
                   style={{ paddingVertical: 12, alignItems: 'center' }}
                 >
@@ -330,6 +337,99 @@ export default function EditCatScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <Modal
+        visible={deceasedModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDeceasedModalOpen(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
+          <View style={{
+            backgroundColor: '#1f1830',
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            padding: 24,
+            paddingBottom: 40,
+          }}>
+            <Text style={{ color: '#ede9f6', fontSize: 18, fontWeight: '700', textAlign: 'center', marginBottom: 20 }}>
+              Remembering {catName}
+            </Text>
+
+            <Text style={{ color: '#a899c0', fontSize: 13, marginBottom: 6 }}>
+              When did {catName} pass away?
+            </Text>
+            <TextInput
+              value={deceasedDate}
+              onChangeText={setDeceasedDate}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor="#6b5f85"
+              style={{
+                backgroundColor: '#16111f',
+                borderRadius: 12,
+                padding: 14,
+                color: '#ede9f6',
+                fontSize: 16,
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.07)',
+                marginBottom: 16,
+              }}
+            />
+
+            <Text style={{ color: '#a899c0', fontSize: 13, marginBottom: 6 }}>
+              A few words (optional)
+            </Text>
+            <TextInput
+              value={memorialNote}
+              onChangeText={(t) => setMemorialNote(t.slice(0, 1024))}
+              placeholder="The bravest cat..."
+              placeholderTextColor="#6b5f85"
+              multiline
+              numberOfLines={3}
+              maxLength={1024}
+              style={{
+                backgroundColor: '#16111f',
+                borderRadius: 12,
+                padding: 14,
+                color: '#ede9f6',
+                fontSize: 14,
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.07)',
+                minHeight: 80,
+                textAlignVertical: 'top',
+                marginBottom: 4,
+              }}
+            />
+            <Text style={{ color: '#6b5f85', fontSize: 11, textAlign: 'right', marginBottom: 20 }}>
+              {memorialNote.length}/1024
+            </Text>
+
+            <Pressable
+              onPress={handleMarkDeceased}
+              disabled={markingDeceased || !deceasedDate}
+              style={{
+                backgroundColor: 'rgba(192,132,252,0.15)',
+                borderRadius: 14,
+                paddingVertical: 14,
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: 'rgba(192,132,252,0.3)',
+                opacity: markingDeceased ? 0.5 : 1,
+              }}
+            >
+              <Text style={{ color: '#c084fc', fontSize: 16, fontWeight: '600' }}>
+                {markingDeceased ? 'Saving...' : `Remember ${catName}`}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => setDeceasedModalOpen(false)}
+              style={{ paddingVertical: 12, alignItems: 'center', marginTop: 8 }}
+            >
+              <Text style={{ color: '#6b5f85', fontSize: 14 }}>Not now</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

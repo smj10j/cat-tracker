@@ -12,6 +12,45 @@
 - [x] Write TDD (docs/TDD.md)
 - [x] Create this TODO list
 
+## Phase 41: iOS Critical Bug Fixes (2026-04-11)
+
+### Bug 7: Compare tab crashes (SIGABRT)
+- [x] Create ErrorBoundary component
+- [x] Wrap LineChart in ErrorBoundary with data table fallback
+
+### Bug 6: Notification bell does nothing
+- [x] Wire notification bell onPress to router.push('/notifications')
+
+### Bug 5: Health guidance link broken
+- [x] Create app/app/cats/[id]/health.tsx (health guidance screen)
+- [x] Register health screen in _layout.tsx
+- [x] Fix InsightsPanel navigation to /cats/[id]/health
+
+### Bug 1: Data export on native
+- [x] Install expo-file-system
+- [x] Implement native export via FileSystem + Sharing
+
+### Bug 2: Deceased date picker missing
+- [x] Add memorial modal with date picker and note textarea
+- [x] Wire "passed away" link to open modal instead of immediate save
+- [x] Increase memorial note limit from 150 to 1024 chars (schema, worker, web, iOS)
+
+### Bug 4: No metric type selector on pet page
+- [x] Add measurement type pill selector to cat profile
+- [x] Show appropriate chart for each measurement type
+- [x] Filter history by selected type
+
+### Bug 3: Chart polish (units, axes, legend)
+- [x] Add Y-axis unit label to LineChart
+- [x] Improve axis tick styling
+- [x] Add health status context above weight chart
+
+### Deploy
+- [x] Run all tests (93 worker, 109 frontend)
+- [x] Expo web export compiles
+- [-] Commit and push
+- [ ] Deploy to TestFlight via deploy-testflight.sh
+
 ## Phase 40: Security Phase 2A + API Versioning A + Chart Time Navigation (2026-04-11)
 
 ### Security Phase 2 — Phase A (PRD-security-phase2.md)

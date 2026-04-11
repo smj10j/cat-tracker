@@ -10,6 +10,7 @@ const MAX_BREED = 200
 const MAX_COLORING = 200
 const MAX_NOTES = 4000
 const MAX_MICROCHIP = 50
+const MAX_MEMORIAL_NOTE = 1024
 
 function isRealMicrochip(id: string) {
   return !id.startsWith('temp-microchip-id-')
@@ -173,6 +174,7 @@ cats.put('/:id', async (c) => {
   if (body.breed && body.breed.length > MAX_BREED) return c.json({ error: `breed must be ${MAX_BREED} characters or fewer` }, 400)
   if (body.coloring && body.coloring.length > MAX_COLORING) return c.json({ error: `coloring must be ${MAX_COLORING} characters or fewer` }, 400)
   if (body.notes && body.notes.length > MAX_NOTES) return c.json({ error: `notes must be ${MAX_NOTES} characters or fewer` }, 400)
+  if (body.memorial_note && body.memorial_note.length > MAX_MEMORIAL_NOTE) return c.json({ error: `memorial_note must be ${MAX_MEMORIAL_NOTE} characters or fewer` }, 400)
 
   // Microchip ID update logic
   let newMicrochipId: string | null | undefined = undefined // undefined = keep existing

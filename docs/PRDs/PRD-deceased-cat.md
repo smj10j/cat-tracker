@@ -72,7 +72,7 @@ Using the cat's name as the subject (not "Mark Gemini as...") matches the app's 
 Content:
 - Title in display font: **"Remembering Gemini"** — the cat's name, warm, present tense
 - **Date of passing** field (date picker, pre-filled with today, required). Label: "When did Gemini pass away?" Plain and direct.
-- **A note** field: optional textarea, 150 character limit, label "A few words (optional)". Placeholder: *"The bravest cat. He helped us know when to get help."* — first person, lowercase, feels like something you'd actually write
+- **A note** field: optional textarea, 1024 character limit, label "A few words (optional)". Placeholder: *"The bravest cat. He helped us know when to get help."* — first person, lowercase, feels like something you'd actually write
 - Primary button: **"Remember Gemini"** — lavender pill, full-width, cat's name included
 - Secondary: a plain text link "Not now" — dismisses the sheet without saving. Not "Cancel" (too transactional) and not "No" (feels argumentative)
 - No words: "confirm," "submit," "delete," "archive," or "proceed"
@@ -138,7 +138,7 @@ The health record section (collapsed by default) provides the full weight chart 
 
 ```sql
 ALTER TABLE cats ADD COLUMN deceased_at TEXT;        -- YYYY-MM-DD date string, nullable
-ALTER TABLE cats ADD COLUMN memorial_note TEXT;      -- up to 150 chars, nullable
+ALTER TABLE cats ADD COLUMN memorial_note TEXT;      -- up to 1024 chars, nullable
 ```
 
 No new tables. `deceased_at IS NOT NULL` is the signal that a cat is deceased. The `deleted_at` soft-delete column (if it exists or is added in the future) should remain separate — deceased ≠ deleted.
@@ -154,7 +154,7 @@ Migration: `ADD COLUMN IF NOT EXISTS` as per project convention. Both the migrat
 - Home uses `status=all` in a single request and splits client-side (see Frontend Changes). Separate calls for active/memorial are unnecessary round-trips.
 - This is a breaking change to the default response shape — audit all callers before deploying. At the time of writing, callers are: `Home.tsx`, `CompareChart.tsx`, `QuickAdd` (via PageShell). All benefit from the default filter without code changes. `docs/API.md` must be updated.
 
-**`PUT /api/cats/:id`**: Accept `deceased_at` (`YYYY-MM-DD` date string or `null`) and `memorial_note` (string, max 150 chars) in the request body. Authorization is unchanged: Editor role required (already enforced). Server-side validation must enforce `memorial_note.length <= 150` consistent with the security conventions in PRD-security.md.
+**`PUT /api/cats/:id`**: Accept `deceased_at` (`YYYY-MM-DD` date string or `null`) and `memorial_note` (string, max 1024 chars) in the request body. Authorization is unchanged: Editor role required (already enforced). Server-side validation must enforce `memorial_note.length <= 150` consistent with the security conventions in PRD-security.md.
 
 When `deceased_at` transitions from `null` to a non-null value, the handler must:
 1. `UPDATE medications SET is_active = 0 WHERE cat_id = ?` — the column is `is_active`, not `active`

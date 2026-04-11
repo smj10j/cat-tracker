@@ -241,7 +241,7 @@ export default function AddEditCat() {
                 onChange={e => setMemorialNote(e.target.value)}
                 rows={3}
                 placeholder={`What made ${catName} special…`}
-                maxLength={1000}
+                maxLength={1024}
                 className="input-dark w-full px-4 py-3 text-sm resize-none"
               />
             </div>

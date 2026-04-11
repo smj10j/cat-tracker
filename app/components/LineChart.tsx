@@ -82,6 +82,11 @@ export default function LineChart({
 
   return (
     <View style={{ height, width }}>
+      {yLabel && (
+        <Text style={{ color: '#6b5f85', fontSize: 11, marginBottom: 2, marginLeft: 4 }}>
+          {yLabel}
+        </Text>
+      )}
       <CartesianChart
         data={data}
         xKey="date"
@@ -89,11 +94,14 @@ export default function LineChart({
         domainPadding={{ top: 20, bottom: 20, left: 10, right: 10 }}
         axisOptions={{
           font: null,
-          tickCount: { x: 5, y: 5 },
+          tickCount: { x: 4, y: 5 },
           formatXLabel: (val) => formatX(val as number),
-          formatYLabel: (val) => formatY(val as number),
-          labelColor: '#6b5f85',
-          lineColor: 'rgba(255,255,255,0.07)',
+          formatYLabel: (val) => {
+            const formatted = formatY(val as number);
+            return yLabel ? `${formatted}` : formatted;
+          },
+          labelColor: '#a899c0',
+          lineColor: 'rgba(255,255,255,0.1)',
         }}
         chartPressState={state}
       >

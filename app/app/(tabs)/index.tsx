@@ -433,7 +433,7 @@ export default function HomeScreen() {
 
         {/* Notification bell */}
         <Pressable
-          onPress={() => {/* notifications screen not yet built */}}
+          onPress={() => router.push('/notifications' as never)}
           style={{ padding: 8, position: 'relative' }}
         >
           <Text style={{ fontSize: 20, color: '#6b5f85' }}>{'\uD83D\uDD14'}</Text>

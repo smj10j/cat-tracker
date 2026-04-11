@@ -1,6 +1,8 @@
 import { View, Text, Pressable, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../lib/api';
 
@@ -33,9 +35,19 @@ export default function SettingsScreen() {
   };
 
   const handleExportData = async () => {
-    const data = await api.exportData();
-    // On native: could use expo-sharing; on web: download as file
-    if (Platform.OS === 'web') {
+    try {
+      const data = await api.exportData();
+      if (Platform.OS !== 'web') {
+        const filename = `whisker-health-export-${new Date().toISOString().slice(0, 10)}.json`;
+        const fileUri = FileSystem.cacheDirectory + filename;
+        await FileSystem.writeAsStringAsync(fileUri, data);
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'application/json',
+          UTI: 'public.json',
+        });
+        return;
+      }
+      // Web path
       const blob = new Blob([data], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -43,6 +55,8 @@ export default function SettingsScreen() {
       a.download = `whisker-health-export-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
+    } catch (e) {
+      Alert.alert('Export Failed', (e as Error).message);
     }
   };
 

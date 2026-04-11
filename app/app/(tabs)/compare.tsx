@@ -14,6 +14,7 @@ import { getPresetLabel, PRESET_TYPES } from '../../lib/measurementPresets';
 import { assessHealth, STATUS_COLORS, STATUS_LABEL, STATUS_EMOJI } from '../../lib/healthMetrics';
 import type { HealthStatus } from '../../lib/healthMetrics';
 import LineChart, { type ChartDataPoint } from '../../components/LineChart';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
 
 const LINE_COLORS = ['#c084fc', '#4ade80', '#f97316', '#fbbf24', '#fb923c', '#f87171'];
 
@@ -325,6 +326,7 @@ export default function CompareScreen() {
                 padding: 12,
                 marginBottom: 16,
               }}>
+                <ErrorBoundary>
                 <LineChart
                   data={chartData}
                   seriesKeys={chartSeriesKeys}
@@ -337,6 +339,7 @@ export default function CompareScreen() {
                     : (v) => String(Math.round(v * 10) / 10)
                   }
                 />
+              </ErrorBoundary>
               </View>
             )}
 

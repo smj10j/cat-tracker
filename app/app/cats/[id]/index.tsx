@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -7,7 +7,7 @@ import type { Cat, Measurement, Medication } from '../../../lib/api';
 import CatAvatar from '../../../components/CatAvatar';
 import InsightsPanel from '../../../components/InsightsPanel';
 import MeasurementForm from '../../../components/MeasurementForm';
-import { assessHealth, STATUS_COLORS, STATUS_LABEL } from '../../../lib/healthMetrics';
+import { assessHealth, STATUS_COLORS, STATUS_LABEL, STATUS_EMOJI } from '../../../lib/healthMetrics';
 import type { HealthStatus } from '../../../lib/healthMetrics';
 import { getPresetLabel } from '../../../lib/measurementPresets';
 import { catAge, formatLocalDate } from '../../../lib/dates';
@@ -98,6 +98,7 @@ export default function CatProfileScreen() {
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [meds, setMeds] = useState<Medication[]>([]);
   const [profileTab, setProfileTab] = useState<ProfileTab>('health');
+  const [chartTab, setChartTab] = useState<string>('weight');
   const [showOlderHistory, setShowOlderHistory] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -158,6 +159,17 @@ export default function CatProfileScreen() {
     measurementsByType[m.type]!.push(m);
   }
   const availableTypes = Object.keys(measurementsByType);
+
+  const availableChartTypes = useMemo(() => {
+    const types = new Set(measurements.map(m => m.type));
+    const result: { key: string; label: string }[] = [];
+    if (types.has('weight')) result.push({ key: 'weight', label: 'Weight' });
+    if (types.has('food')) result.push({ key: 'food', label: 'Food' });
+    if (types.has('water')) result.push({ key: 'water', label: 'Water' });
+    if (types.has('grooming') || types.has('activity') || types.has('litter') || types.has('vomiting'))
+      result.push({ key: 'behavior', label: 'Behavior' });
+    return result;
+  }, [measurements]);
 
   const allDayGroups = groupByDay(measurements);
   const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toLocaleDateString('en-CA');
@@ -339,8 +351,43 @@ export default function CatProfileScreen() {
               />
             )}
 
+            {/* Chart type selector */}
+            {availableChartTypes.length > 1 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ marginBottom: 12 }}
+                contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
+              >
+                {availableChartTypes.map(t => (
+                  <Pressable
+                    key={t.key}
+                    onPress={() => setChartTab(t.key)}
+                    style={{
+                      paddingHorizontal: 16,
+                      paddingVertical: 8,
+                      borderRadius: 20,
+                      backgroundColor: chartTab === t.key ? 'rgba(192,132,252,0.2)' : 'rgba(255,255,255,0.04)',
+                      borderWidth: 1,
+                      borderColor: chartTab === t.key ? 'rgba(192,132,252,0.4)' : 'rgba(255,255,255,0.07)',
+                      minHeight: 44,
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Text style={{
+                      color: chartTab === t.key ? '#c084fc' : '#6b5f85',
+                      fontSize: 13,
+                      fontWeight: chartTab === t.key ? '600' : '400',
+                    }}>
+                      {t.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
+
             {/* Weight chart */}
-            {weightMeasurements.length >= 2 && (
+            {chartTab === 'weight' && weightMeasurements.length >= 2 && (
               <View style={{
                 backgroundColor: '#1f1830',
                 borderRadius: 16,
@@ -348,9 +395,14 @@ export default function CatProfileScreen() {
                 borderWidth: 1,
                 borderColor: 'rgba(255,255,255,0.07)',
               }}>
-                <Text style={{ fontWeight: '600', fontSize: 14, color: '#a899c0', marginBottom: 12 }}>
+                <Text style={{ fontWeight: '600', fontSize: 14, color: '#a899c0', marginBottom: 4 }}>
                   Weight Trend
                 </Text>
+                {health && (
+                  <Text style={{ color: statusColor, fontSize: 13, marginBottom: 8 }}>
+                    {STATUS_EMOJI[status]} {health.summary || 'Stable'}
+                  </Text>
+                )}
                 <LineChart
                   data={weightMeasurements
                     .sort((a, b) => a.measured_at.localeCompare(b.measured_at))
@@ -364,11 +416,111 @@ export default function CatProfileScreen() {
               </View>
             )}
 
+            {/* Food chart */}
+            {chartTab === 'food' && (() => {
+              const foodMeasurements = measurements.filter(m => m.type === 'food');
+              if (foodMeasurements.length < 2) return (
+                <View style={{ backgroundColor: '#1f1830', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)', alignItems: 'center' }}>
+                  <Text style={{ color: '#6b5f85', fontSize: 14 }}>Not enough food data to chart</Text>
+                </View>
+              );
+              return (
+                <View style={{ backgroundColor: '#1f1830', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' }}>
+                  <Text style={{ fontWeight: '600', fontSize: 14, color: '#a899c0', marginBottom: 12 }}>Food Intake</Text>
+                  <LineChart
+                    data={foodMeasurements
+                      .sort((a, b) => a.measured_at.localeCompare(b.measured_at))
+                      .map(m => ({ date: new Date(m.measured_at).getTime(), value: m.value }))}
+                    seriesKeys={['value']}
+                    seriesLabels={{ value: 'Food' }}
+                    seriesColors={{ value: '#4ade80' }}
+                    height={180}
+                    yLabel="scale"
+                    formatY={(v) => getPresetLabel('food', Math.round(v))}
+                  />
+                </View>
+              );
+            })()}
+
+            {/* Water chart */}
+            {chartTab === 'water' && (() => {
+              const waterMeasurements = measurements.filter(m => m.type === 'water');
+              if (waterMeasurements.length < 2) return (
+                <View style={{ backgroundColor: '#1f1830', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)', alignItems: 'center' }}>
+                  <Text style={{ color: '#6b5f85', fontSize: 14 }}>Not enough water data to chart</Text>
+                </View>
+              );
+              return (
+                <View style={{ backgroundColor: '#1f1830', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' }}>
+                  <Text style={{ fontWeight: '600', fontSize: 14, color: '#a899c0', marginBottom: 12 }}>Water Intake</Text>
+                  <LineChart
+                    data={waterMeasurements
+                      .sort((a, b) => a.measured_at.localeCompare(b.measured_at))
+                      .map(m => ({ date: new Date(m.measured_at).getTime(), value: m.value }))}
+                    seriesKeys={['value']}
+                    seriesLabels={{ value: 'Water' }}
+                    seriesColors={{ value: '#38bdf8' }}
+                    height={180}
+                    yLabel="scale"
+                    formatY={(v) => getPresetLabel('water', Math.round(v))}
+                  />
+                </View>
+              );
+            })()}
+
+            {/* Behavior charts */}
+            {chartTab === 'behavior' && (() => {
+              const behaviorTypes = ['grooming', 'activity', 'litter', 'vomiting'].filter(t => measurementsByType[t]?.length);
+              const typeColors: Record<string, string> = { grooming: '#c084fc', activity: '#4ade80', litter: '#fbbf24', vomiting: '#f87171' };
+              if (behaviorTypes.length === 0) return (
+                <View style={{ backgroundColor: '#1f1830', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)', alignItems: 'center' }}>
+                  <Text style={{ color: '#6b5f85', fontSize: 14 }}>No behavioral data to chart</Text>
+                </View>
+              );
+              return (
+                <View style={{ gap: 12 }}>
+                  {behaviorTypes.map(type => {
+                    const typeMeasurements = measurementsByType[type] ?? [];
+                    if (typeMeasurements.length < 2) return null;
+                    return (
+                      <View key={type} style={{ backgroundColor: '#1f1830', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' }}>
+                        <Text style={{ fontWeight: '600', fontSize: 14, color: '#a899c0', marginBottom: 12 }}>
+                          {MEAS_TYPE_LABELS[type] ?? type}
+                        </Text>
+                        <LineChart
+                          data={typeMeasurements
+                            .sort((a, b) => a.measured_at.localeCompare(b.measured_at))
+                            .map(m => ({ date: new Date(m.measured_at).getTime(), value: m.value }))}
+                          seriesKeys={['value']}
+                          seriesLabels={{ value: MEAS_TYPE_LABELS[type] ?? type }}
+                          seriesColors={{ value: typeColors[type] ?? '#c084fc' }}
+                          height={150}
+                          yLabel="scale"
+                          formatY={(v) => getPresetLabel(type, Math.round(v))}
+                        />
+                      </View>
+                    );
+                  })}
+                </View>
+              );
+            })()}
+
             {/* Measurement form */}
             {id && !isDeceased && <MeasurementForm catId={id} onAdded={handleMeasurementAdded} />}
 
             {/* History */}
-            {measurements.length > 0 && (
+            {(() => {
+              const behaviorTypeSet = new Set(['grooming', 'activity', 'litter', 'vomiting']);
+              const filteredMeasurements = chartTab === 'behavior'
+                ? measurements.filter(m => behaviorTypeSet.has(m.type))
+                : measurements.filter(m => m.type === chartTab);
+              const filteredDayGroups = groupByDay(filteredMeasurements);
+              const filteredRecentGroups = filteredDayGroups.filter(g => g.dateStr >= cutoff);
+              const filteredOlderGroups = filteredDayGroups.filter(g => g.dateStr < cutoff);
+              const filteredDefaultGroups = filteredRecentGroups.length > 0 ? filteredRecentGroups : filteredDayGroups.slice(0, 3);
+              const filteredVisibleGroups = showOlderHistory ? filteredDayGroups : filteredDefaultGroups;
+              const filteredOlderCount = filteredOlderGroups.reduce((sum, g) => sum + g.items.length, 0);
+              return filteredMeasurements.length > 0 && (
               <View style={{
                 backgroundColor: '#1f1830',
                 borderRadius: 16,
@@ -380,7 +532,7 @@ export default function CatProfileScreen() {
                   History
                 </Text>
 
-                {visibleGroups.map((group) => (
+                {filteredVisibleGroups.map((group) => (
                   <View key={group.dateStr} style={{ marginBottom: 20 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                       <Text style={{ fontSize: 12, fontWeight: '700', color: '#6b5f85' }}>{group.label}</Text>
@@ -448,7 +600,7 @@ export default function CatProfileScreen() {
                   </View>
                 ))}
 
-                {!showOlderHistory && olderGroups.length > 0 && (
+                {!showOlderHistory && filteredOlderGroups.length > 0 && (
                   <Pressable
                     onPress={() => setShowOlderHistory(true)}
                     style={{
@@ -461,12 +613,13 @@ export default function CatProfileScreen() {
                     }}
                   >
                     <Text style={{ fontSize: 12, fontWeight: '600', color: '#6b5f85' }}>
-                      View {olderCount} older {olderCount === 1 ? 'entry' : 'entries'}
+                      View {filteredOlderCount} older {filteredOlderCount === 1 ? 'entry' : 'entries'}
                     </Text>
                   </Pressable>
                 )}
               </View>
-            )}
+              );
+            })()}
           </View>
         )}
 

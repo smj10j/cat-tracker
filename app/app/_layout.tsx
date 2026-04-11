@@ -22,6 +22,7 @@ export default function RootLayout() {
         <Stack.Screen name="invite" />
         <Stack.Screen name="cats/[id]/export" />
         <Stack.Screen name="cats/[id]/memorial" />
+        <Stack.Screen name="cats/[id]/health" />
       </Stack>
     </AuthProvider>
   );

@@ -22,14 +22,22 @@ Always read this at the start of a session.
 ## Project layout
 
 ```
+shared/       Pure TypeScript shared between frontend/ and app/
+  lib/
+    types.ts              Shared interfaces (Cat, Measurement, User, etc.)
+    correlations.ts       Correlation engine (Pearson lag, detectTrend)
+    healthMetrics.ts      Weight health status thresholds
+    measurementPresets.ts Behavioral preset labels (0-3 scale)
+    dates.ts              Timezone-safe date parsing (parseLocalDate, catAge)
 worker/       Cloudflare Worker — Hono REST API
 frontend/     React + Vite SPA + Pages Functions proxy
+app/          Expo/React Native iOS app (Whisker Health)
 docs/
   PRDs/       Product requirement documents (one file per feature area)
   TDD/        Technical design documents
     README.md       TDD index — read this first
     web.md          Current production architecture
-    cross-platform.md  iOS/Android/web unified app plan (not yet implemented)
+    cross-platform.md  iOS app architecture (implemented, in TestFlight)
   research/   Veterinary evidence base — required companion to healthMetrics.ts
     README.md          Sourcing standards and process
     weight-thresholds.md  Citations for every numeric threshold
@@ -80,9 +88,25 @@ The measurements table is generic (`type`, `value`, `unit`). To add a new type:
 3. Wire it into `CatProfile.tsx` — fetch with `getMeasurements(id, 'new-type')`
 4. No DB schema changes needed
 
+### Cross-platform file mapping
+
+| What | Location | Shared? |
+|------|----------|---------|
+| Types (Cat, Measurement, etc.) | `shared/lib/types.ts` | Single source of truth |
+| Correlations engine | `shared/lib/correlations.ts` | Single source of truth |
+| Health thresholds | `shared/lib/healthMetrics.ts` | Single source of truth |
+| Measurement presets | `shared/lib/measurementPresets.ts` | Single source of truth |
+| Date parsing | `shared/lib/dates.ts` | Single source of truth |
+| API client (web) | `frontend/src/lib/api.ts` | Platform-specific (cookies) |
+| API client (native) | `app/lib/api.ts` | Platform-specific (Bearer) |
+| Screens (web) | `frontend/src/pages/*.tsx` | Platform-specific (React DOM) |
+| Screens (native) | `app/app/**/*.tsx` | Platform-specific (React Native) |
+
+**Rule:** If you change a shared file, both platforms get the change automatically. If you change a platform-specific file (screen, API client), check the other platform's equivalent and apply the same change.
+
 ### Health metrics and clinical content
 
-Logic is in `frontend/src/lib/healthMetrics.ts`. Every threshold and clinical claim in this file (and in `WellnessGuide.tsx`, `CatHealthGuidance.tsx`, `InsightsPanel.tsx`, `CatExportPage.tsx`) is backed by veterinary literature documented in `docs/research/`.
+Logic is in `shared/lib/healthMetrics.ts`. Every threshold and clinical claim in this file (and in `WellnessGuide.tsx`, `CatHealthGuidance.tsx`, `InsightsPanel.tsx`, `CatExportPage.tsx`) is backed by veterinary literature documented in `docs/research/`.
 
 **Mandatory process for any clinical content change:**
 1. Find the primary source (Tier 1 preferred — AAFP, WSAVA, ISFM, JVIM, JFMS)
@@ -154,6 +178,13 @@ Follow these steps **in order**. Do not skip, reorder, or batch steps.
 2. **Update TODO.md** — Add a new Phase entry for the work about to be done (even if doc-only). Mark tasks `[-]` (in progress) before starting. **This step is required for all work, not just implementation sprints.**
 
 3. **Implement** — Write the code. **Write or update tests alongside implementation** (see `docs/TESTING.md`).
+
+   **Cross-platform rule (MANDATORY):** When modifying any screen, component, API method, type, or lib file:
+   - Check if the same change is needed in the other platform (`frontend/` ↔ `app/`)
+   - Bug fixes, new API methods, type changes, and business logic updates must be applied to BOTH
+   - Shared logic (types, correlations, healthMetrics, measurementPresets, dates) lives in `shared/lib/` — edit there, not in platform copies
+   - Platform-specific files (`frontend/src/lib/api.ts`, `app/lib/api.ts`) differ only in transport (cookies vs Bearer) — but types and method signatures must match
+   - Run `./scripts/check-shared-drift.sh` to verify shared libs haven't been duplicated
 
 4. **Run tests** — Before deploying, ensure all tests pass:
    - `cd worker && npm test`

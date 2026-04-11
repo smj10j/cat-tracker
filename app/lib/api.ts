@@ -1,26 +1,27 @@
 import { Platform } from 'react-native';
 
-// Types — shared with frontend
-export interface Cat {
-  id: string;
-  name: string;
-  birthdate: string;
-  breed: string | null;
-  coloring: string | null;
-  notes: string | null;
-  photo_url: string | null;
-  sex: string | null;
-  is_neutered: number | null;
-  microchip_id: string | null;
-  household_id: string | null;
-  household_name: string | null;
-  deceased_at: string | null;
-  memorial_note: string | null;
-  created_at: string;
-  updated_at: string;
-}
+// Types re-exported from shared — single source of truth
+export type {
+  Cat, Measurement, User, Medication, MedicationDose, DoseWithContext,
+  NotificationInbox, HouseholdMember, PendingInvite, HouseholdInfo,
+  InvitePreview, HouseholdResponse,
+} from '@shared/lib/types';
+export { CARE_TYPE_ICONS } from '@shared/lib/types';
 
-export interface Measurement {
+import type {
+  Cat, Measurement, User, Medication,
+  NotificationInbox, HouseholdResponse, HouseholdInfo, InvitePreview,
+} from '@shared/lib/types';
+
+// --- Platform-specific implementation below ---
+
+// All type definitions (Cat, Measurement, User, Medication, etc.) are in @shared/lib/types.ts.
+// Do NOT add type definitions here — import from @shared/lib/types instead.
+
+// LEGACY MARKER: The following duplicate interfaces were removed.
+// If you see TypeScript errors about missing types, add them to shared/lib/types.ts.
+
+interface _Removed_Measurement {
   id: string;
   cat_id: string;
   type: string;

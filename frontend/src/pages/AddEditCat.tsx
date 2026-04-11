@@ -405,19 +405,71 @@ export default function AddEditCat() {
         {isEdit && (
           <div className="pt-4 border-t mt-2 space-y-3" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
             {catDeceasedAt ? (
-              <button
-                type="button"
-                onClick={handleMarkAlive}
-                disabled={markingDeceased || saving}
-                className="w-full py-3 text-sm font-semibold rounded-xl transition-all"
-                style={{
-                  color: 'var(--color-ink-mid)',
-                  background: 'var(--color-card)',
-                  border: '1px solid var(--color-rim)',
-                }}
-              >
-                {markingDeceased ? 'Saving…' : `Mark ${catName} as active again`}
-              </button>
+              <>
+                {/* Memorial editing fields — shown inline when cat is deceased */}
+                <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--color-card)', border: '1px solid var(--color-rim)' }}>
+                  <p className="text-xs font-semibold text-ink-mid uppercase tracking-wider">Memorial</p>
+                  <div>
+                    <label htmlFor="edit-deceased-date" className="block text-xs text-ink-dim mb-1">Date of passing</label>
+                    <input
+                      type="date"
+                      id="edit-deceased-date"
+                      value={deceasedDate}
+                      onChange={e => setDeceasedDate(e.target.value)}
+                      max={new Date().toISOString().slice(0, 10)}
+                      className="input-dark w-full px-4 py-3 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="edit-memorial-note" className="block text-xs text-ink-dim mb-1">Memorial note</label>
+                    <textarea
+                      id="edit-memorial-note"
+                      value={memorialNote}
+                      onChange={e => setMemorialNote(e.target.value)}
+                      rows={4}
+                      placeholder={`What made ${catName} special…`}
+                      maxLength={1024}
+                      className="input-dark w-full px-4 py-3 text-sm resize-none"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setMarkingDeceased(true)
+                      try {
+                        await markDeceased(id!, deceasedDate, memorialNote || undefined)
+                        navigate(`/cats/${id}/memorial`)
+                      } catch (e: unknown) {
+                        setError((e as Error).message)
+                      } finally {
+                        setMarkingDeceased(false)
+                      }
+                    }}
+                    disabled={markingDeceased || !deceasedDate}
+                    className="w-full py-3 text-sm font-semibold rounded-xl transition-all"
+                    style={{
+                      color: '#c084fc',
+                      background: 'rgba(192,132,252,0.1)',
+                      border: '1px solid rgba(192,132,252,0.3)',
+                    }}
+                  >
+                    {markingDeceased ? 'Saving…' : 'Update Memorial'}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleMarkAlive}
+                  disabled={markingDeceased || saving}
+                  className="w-full py-3 text-sm font-semibold rounded-xl transition-all"
+                  style={{
+                    color: 'var(--color-ink-mid)',
+                    background: 'var(--color-card)',
+                    border: '1px solid var(--color-rim)',
+                  }}
+                >
+                  {markingDeceased ? 'Saving…' : `Mark ${catName} as active again`}
+                </button>
+              </>
             ) : (
               <button
                 type="button"

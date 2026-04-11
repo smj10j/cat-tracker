@@ -50,6 +50,10 @@ export default function EditCatScreen() {
         });
         setExistingPhotoUrl(cat.photo_url);
         setCatDeceasedAt(cat.deceased_at);
+        if (cat.deceased_at) {
+          setDeceasedDate(cat.deceased_at);
+          setMemorialNote(cat.memorial_note ?? '');
+        }
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
@@ -281,6 +285,86 @@ export default function EditCatScreen() {
                 {saving ? 'Saving\u2026' : 'Save Changes'}
               </Text>
             </Pressable>
+
+            {/* Memorial editing (when deceased) */}
+            {catDeceasedAt && (
+              <View style={{ borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', paddingTop: 16, gap: 12 }}>
+                <Text style={{ color: '#a899c0', fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 }}>
+                  Memorial
+                </Text>
+                <View>
+                  <Text style={{ color: '#a899c0', fontSize: 13, marginBottom: 6 }}>Date of passing</Text>
+                  <TextInput
+                    value={deceasedDate}
+                    onChangeText={setDeceasedDate}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor="#6b5f85"
+                    style={{
+                      backgroundColor: '#16111f',
+                      borderRadius: 12,
+                      padding: 14,
+                      color: '#ede9f6',
+                      fontSize: 14,
+                      borderWidth: 1,
+                      borderColor: 'rgba(255,255,255,0.07)',
+                    }}
+                  />
+                </View>
+                <View>
+                  <Text style={{ color: '#a899c0', fontSize: 13, marginBottom: 6 }}>Memorial note</Text>
+                  <TextInput
+                    value={memorialNote}
+                    onChangeText={(t) => setMemorialNote(t.slice(0, 1024))}
+                    placeholder={`What made ${catName} special\u2026`}
+                    placeholderTextColor="#6b5f85"
+                    multiline
+                    numberOfLines={4}
+                    maxLength={1024}
+                    style={{
+                      backgroundColor: '#16111f',
+                      borderRadius: 12,
+                      padding: 14,
+                      color: '#ede9f6',
+                      fontSize: 14,
+                      borderWidth: 1,
+                      borderColor: 'rgba(255,255,255,0.07)',
+                      minHeight: 100,
+                      textAlignVertical: 'top',
+                    }}
+                  />
+                  <Text style={{ color: '#6b5f85', fontSize: 11, textAlign: 'right', marginTop: 4 }}>
+                    {memorialNote.length}/1024
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={async () => {
+                    setSaving(true);
+                    try {
+                      await api.markDeceased(id!, deceasedDate, memorialNote || undefined);
+                      router.back();
+                    } catch (e: unknown) {
+                      setError((e as Error).message);
+                    } finally {
+                      setSaving(false);
+                    }
+                  }}
+                  disabled={saving}
+                  style={{
+                    backgroundColor: 'rgba(192,132,252,0.15)',
+                    borderRadius: 12,
+                    paddingVertical: 12,
+                    alignItems: 'center',
+                    borderWidth: 1,
+                    borderColor: 'rgba(192,132,252,0.3)',
+                    opacity: saving ? 0.5 : 1,
+                  }}
+                >
+                  <Text style={{ color: '#c084fc', fontSize: 14, fontWeight: '600' }}>
+                    {saving ? 'Saving\u2026' : 'Update Memorial'}
+                  </Text>
+                </Pressable>
+              </View>
+            )}
 
             {/* Danger zone */}
             <View style={{ borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', paddingTop: 16, gap: 12 }}>

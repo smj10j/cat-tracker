@@ -35,6 +35,7 @@ For the cross-platform (iOS / Android / web unified) architecture plan, see **[c
 | sessions,   |  | Key scheme: cats/{id}/photo.j|
 | households, |  | pg (one object per cat,      |
 | medications |  | overwritten on re-upload)    |
+|             |  | URL has ?v=ts for cache-bust |
 +-------------+  +------------------------------+
 ```
 
@@ -317,6 +318,15 @@ client-side. This keeps the Worker simple and avoids storing derived data.
 
 `DEFAULT (lower(hex(randomblob(8))))` generates an 8-byte (16 hex char) random ID. This avoids
 sequential IDs that leak row counts and makes IDs safe to expose in URLs.
+
+### Photo URLs use cache-busting query parameters
+
+Cat photos are stored at a fixed R2 key (`cats/{id}/photo.jpg`) that is overwritten on re-upload.
+Because browsers and React Native's `Image` component cache aggressively by URL, replacing a photo
+at the same URL causes stale images to persist in the native cache. To solve this, the Worker
+appends `?v={timestamp}` to the `photo_url` stored in D1 on every upload. Each replacement
+generates a unique URL, forcing clients to fetch the new image. The `CatAvatar` component also
+resets its error state when the URL prop changes.
 
 ---
 

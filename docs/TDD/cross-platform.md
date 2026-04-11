@@ -517,6 +517,8 @@ Victory Native XL renders via Skia WASM on web, so the same `WeightChart.tsx` wo
 | Display | `<img src={photoUrl}>` | `<Image source={{ uri: photoUrl }}>` from `expo-image` |
 
 The Worker endpoint `POST /api/cats/:id/photo` (multipart, stores to R2) requires no changes.
+The returned `photo_url` includes a `?v={timestamp}` cache-busting parameter so that replacing a
+photo (same R2 key) produces a distinct URL, preventing stale images in the native `Image` cache.
 
 `CropModal.native.tsx` replaces the Canvas-based `CropModal.tsx` on native:
 

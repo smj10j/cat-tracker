@@ -38,7 +38,7 @@
 | [PRD-app-settings.md](PRD-app-settings.md) | App Settings — Dark/Light/System Mode Toggle | `Implemented` | 2026-03-08 |
 | [PRD-deceased-cat.md](PRD-deceased-cat.md) | In Memoriam — Marking a Cat as Deceased | `Implemented` | 2026-04-10 |
 | [PRD-weight-alert-sensitivity.md](PRD-weight-alert-sensitivity.md) | Weight Alert Sensitivity Review | `Implemented` | 2026-04-10 |
-| [PRD-ios-app-store.md](PRD-ios-app-store.md) | iOS App Store Deployment | `Draft` | 2026-04-10 |
+| [PRD-ios-app-store.md](PRD-ios-app-store.md) | iOS App Store Deployment | `Approved` | 2026-04-10 |
 
 ---
 
@@ -507,18 +507,18 @@ Nothing rejected yet.
 
 | | |
 |---|---|
-| **Status** | `Draft` |
+| **Status** | `Approved` |
 | **Last updated** | 2026-04-10 |
 | **Depends on** | All current `Implemented` PRDs |
 | **Related TDD** | docs/TDD/cross-platform.md |
 
 **Problem:** Cat Tracker is invisible to iOS users who discover apps through the App Store. A native iOS app unlocks discoverability, push notifications, credibility, and retention.
 
-**Scope:** Migrate from React/Vite SPA to Expo/React Native (shared codebase for iOS + web); full feature parity; Sign in with Apple; native push notifications; privacy policy; automated build & submission pipeline; App Store metadata and screenshots. 8 phases from scaffolding through submission to frontend retirement.
+**Scope:** Migrate from React/Vite SPA to Expo/React Native (shared codebase for iOS + web); full feature parity; Sign in with Apple; native push notifications; privacy policy; automated build & submission pipeline; App Store metadata and screenshots. 7 phases (0–7) from scaffolding through submission to frontend retirement.
 
-**Key requirements:** Sign in with Apple (mandatory), account deletion (Apple requirement), privacy nutrition labels, Universal Links for deep linking, EAS Build/Submit for automated deployment.
+**Key requirements:** Sign in with Apple (mandatory, Phase 1), account deletion (Apple requirement), data export (F5), privacy nutrition labels, Universal Links for deep linking, EAS Build/Submit for automated deployment.
 
-**Do not implement** — status is `Draft`. Requires product owner approval.
+**Approved** — ready to implement when prioritized.
 
 ---
 

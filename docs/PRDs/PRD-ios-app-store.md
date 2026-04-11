@@ -1,6 +1,6 @@
 # PRD: iOS App Store Deployment
 
-> **Status:** Draft
+> **Status:** Approved
 > **Created:** 2026-04-10
 > **Last updated:** 2026-04-10
 > **Depends on:** All current `Implemented` PRDs (the app must ship with full feature parity)

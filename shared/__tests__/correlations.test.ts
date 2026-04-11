@@ -5,8 +5,8 @@ import {
   lagCorrelation,
   detectTrend,
   detectCorrelations,
-} from '../../lib/correlations'
-import type { Measurement } from '../../lib/api'
+} from '../lib/correlations'
+import type { Measurement } from '../lib/types'
 
 // ── Measurement builder ───────────────────────────────────────────────────────
 

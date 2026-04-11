@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseLocalDate, formatLocalDate, catAge } from '../../lib/dates'
+import { parseLocalDate, formatLocalDate, catAge } from '../lib/dates'
 
 describe('parseLocalDate', () => {
   it('parses date-only strings to the correct calendar day', () => {

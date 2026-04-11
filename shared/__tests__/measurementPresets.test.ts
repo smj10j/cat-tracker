@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getPresetLabel, getPresetTicks, PRESET_TYPES, PRESETS } from '../../lib/measurementPresets'
+import { getPresetLabel, getPresetTicks, PRESET_TYPES, PRESETS } from '../lib/measurementPresets'
 
 describe('PRESET_TYPES', () => {
   it('includes all behavioral measurement types', () => {

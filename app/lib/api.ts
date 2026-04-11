@@ -9,141 +9,11 @@ export type {
 export { CARE_TYPE_ICONS } from '@shared/lib/types';
 
 import type {
-  Cat, Measurement, User, Medication,
+  Cat, Measurement, User, Medication, MedicationDose,
   NotificationInbox, HouseholdResponse, HouseholdInfo, InvitePreview,
 } from '@shared/lib/types';
 
-// --- Platform-specific implementation below ---
-
-// All type definitions (Cat, Measurement, User, Medication, etc.) are in @shared/lib/types.ts.
-// Do NOT add type definitions here — import from @shared/lib/types instead.
-
-// LEGACY MARKER: The following duplicate interfaces were removed.
-// If you see TypeScript errors about missing types, add them to shared/lib/types.ts.
-
-interface _Removed_Measurement {
-  id: string;
-  cat_id: string;
-  type: string;
-  value: number;
-  unit: string;
-  measured_at: string;
-  notes: string | null;
-  created_at: string;
-}
-
-export interface User {
-  id: string;
-  email: string;
-  display_name: string | null;
-  avatar_url: string | null;
-  oauth_provider: string;
-  hasOrphanedCats: boolean;
-}
-
-export interface Medication {
-  id: string;
-  cat_id: string;
-  user_id: string;
-  name: string;
-  type: string;
-  dose: string | null;
-  frequency: string;
-  frequency_days: number | null;
-  reminder_time: string;
-  start_date: string;
-  end_date: string | null;
-  doses_total: number | null;
-  notes: string | null;
-  is_active: number;
-  doses_remaining: number | null;
-  refill_alert_threshold: number | null;
-  created_at: string;
-  updated_at: string;
-  next_due_at?: string | null;
-  overdue_count?: number;
-}
-
-export interface MedicationDose {
-  id: string;
-  medication_id: string;
-  due_at: string;
-  administered_at: string | null;
-  skipped: number;
-  skip_reason: string | null;
-  notes: string | null;
-  created_at: string;
-}
-
-export interface DoseWithContext extends MedicationDose {
-  med_name: string;
-  dose: string | null;
-  med_type: string;
-  cat_name: string;
-  cat_id: string;
-}
-
-export interface NotificationInbox {
-  overdue: DoseWithContext[];
-  due_today: DoseWithContext[];
-  upcoming: DoseWithContext[];
-  refill_alerts: (Medication & { cat_name: string })[];
-}
-
-export interface HouseholdMember {
-  id: string;
-  user_id: string;
-  role: string;
-  invited_at: string;
-  joined_at: string | null;
-  display_name: string | null;
-  email: string | null;
-  avatar_url: string | null;
-}
-
-export interface PendingInvite {
-  id: string;
-  invite_email: string;
-  role: string;
-  invited_at: string;
-  invite_expires_at: string | null;
-  invited_by_name: string | null;
-}
-
-export interface HouseholdInfo {
-  id: string;
-  name: string;
-  owner_user_id: string;
-  created_at: string;
-}
-
-export interface InvitePreview {
-  household_name: string;
-  invited_by_name: string | null;
-  invite_email: string;
-  role: string;
-}
-
-export interface HouseholdResponse {
-  household: HouseholdInfo;
-  members: HouseholdMember[];
-  pendingInvites: PendingInvite[];
-  myRole: string;
-  isOwner: boolean;
-}
-
-export const CARE_TYPE_ICONS: Record<string, string> = {
-  flea: '\uD83E\uDD9F',
-  heartworm: '\u2764\uFE0F',
-  pill: '\uD83D\uDC8A',
-  vaccine: '\uD83D\uDC89',
-  supplement: '\uD83C\uDF3F',
-  dental: '\uD83E\uDDB7',
-  exam: '\uD83E\uDE7A',
-  bloodwork: '\uD83E\uDE78',
-  surgery: '\uD83E\uDE79',
-  other: '\uD83D\uDCC5',
-};
+// --- Platform-specific API implementation below ---
 
 // On web, use relative URLs (Pages proxy handles /api/* -> Worker).
 // On native, call the Worker directly with Bearer token.
@@ -382,6 +252,17 @@ export const api = {
 
   async archiveMedication(id: string): Promise<void> {
     await apiFetch(`/api/medications/${id}`, { method: 'DELETE' });
+  },
+
+  async logDose(doseId: string, action: 'administer' | 'skip', skipReason?: string): Promise<void> {
+    if (action === 'administer') {
+      await apiFetch(`/api/doses/${doseId}/administer`, { method: 'POST' });
+    } else {
+      await apiFetch(`/api/doses/${doseId}/skip`, {
+        method: 'POST',
+        body: JSON.stringify({ reason: skipReason ?? null }),
+      });
+    }
   },
 
   async getNotifications(): Promise<NotificationInbox> {

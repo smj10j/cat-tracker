@@ -278,9 +278,9 @@ export default function CareItemScreen() {
                 paddingVertical: 12,
                 borderRadius: 12,
                 borderWidth: 1.5,
-                borderStyle: 'dashed',
                 borderColor: 'rgba(192,132,252,0.3)',
                 alignItems: 'center',
+                backgroundColor: 'rgba(192,132,252,0.04)',
               }}
             >
               <Text style={{ color: colors.lavender, fontSize: 14, fontWeight: '600' }}>

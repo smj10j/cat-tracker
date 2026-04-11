@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { assessHealth } from '../../lib/healthMetrics'
-import type { Measurement } from '../../lib/api'
+import { assessHealth } from '../lib/healthMetrics'
+import type { Measurement } from '../lib/types'
 
 // Helper to build Measurement objects with just the fields assessHealth needs.
 // Use noon-UTC timestamps to avoid timezone edge cases in date bucketing.

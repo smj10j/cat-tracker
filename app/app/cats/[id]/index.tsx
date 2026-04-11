@@ -707,8 +707,8 @@ export default function CatProfileScreen() {
                     borderRadius: 12,
                     alignItems: 'center',
                     borderWidth: 1.5,
-                    borderStyle: 'dashed',
                     borderColor: 'rgba(192,132,252,0.3)',
+                    backgroundColor: 'rgba(192,132,252,0.04)',
                   }}
                 >
                   <Text style={{ color: '#c084fc', fontSize: 14, fontWeight: '600' }}>

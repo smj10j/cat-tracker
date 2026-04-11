@@ -1,14 +1,35 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, SectionList, Pressable, RefreshControl } from 'react-native';
+import {
+  View,
+  Text,
+  SectionList,
+  Pressable,
+  RefreshControl,
+  Alert,
+  Platform,
+  ActivityIndicator,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { api, CARE_TYPE_ICONS } from '../lib/api';
-import type { DoseWithContext, NotificationInbox } from '../lib/api';
+import type { DoseWithContext, Medication, NotificationInbox } from '../lib/api';
+
+type SectionItem =
+  | { kind: 'dose'; data: DoseWithContext }
+  | { kind: 'refill'; data: Medication & { cat_name: string } };
+
+interface Section {
+  title: string;
+  accent: string;
+  data: SectionItem[];
+}
 
 export default function NotificationsScreen() {
   const router = useRouter();
   const [inbox, setInbox] = useState<NotificationInbox | null>(null);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   const fetchInbox = useCallback(async () => {
     try {
@@ -19,7 +40,10 @@ export default function NotificationsScreen() {
     }
   }, []);
 
-  useEffect(() => { fetchInbox(); }, [fetchInbox]);
+  useEffect(() => {
+    setLoading(true);
+    fetchInbox().finally(() => setLoading(false));
+  }, [fetchInbox]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -27,59 +51,299 @@ export default function NotificationsScreen() {
     setRefreshing(false);
   }, [fetchInbox]);
 
-  const sections = inbox ? [
-    ...(inbox.overdue.length > 0 ? [{ title: 'Overdue', data: inbox.overdue }] : []),
-    ...(inbox.due_today.length > 0 ? [{ title: 'Due Today', data: inbox.due_today }] : []),
-    ...(inbox.upcoming.length > 0 ? [{ title: 'Upcoming', data: inbox.upcoming }] : []),
-  ] : [];
+  async function handleAdminister(dose: DoseWithContext) {
+    setProcessingId(dose.id);
+    try {
+      await api.logDose(dose.id, 'administer');
+      await fetchInbox();
+    } catch (e) {
+      Alert.alert('Error', (e as Error).message);
+    } finally {
+      setProcessingId(null);
+    }
+  }
+
+  function handleSkip(dose: DoseWithContext) {
+    if (Platform.OS === 'web') {
+      const reason = prompt('Reason for skipping (optional):');
+      doSkip(dose, reason ?? undefined);
+      return;
+    }
+    Alert.alert('Skip Dose', `Skip ${dose.med_name} for ${dose.cat_name}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Skip',
+        style: 'destructive',
+        onPress: () => doSkip(dose),
+      },
+    ]);
+  }
+
+  async function doSkip(dose: DoseWithContext, reason?: string) {
+    setProcessingId(dose.id);
+    try {
+      await api.logDose(dose.id, 'skip', reason);
+      await fetchInbox();
+    } catch (e) {
+      Alert.alert('Error', (e as Error).message);
+    } finally {
+      setProcessingId(null);
+    }
+  }
+
+  const sections: Section[] = inbox
+    ? [
+        ...(inbox.overdue.length > 0
+          ? [
+              {
+                title: 'Overdue',
+                accent: '#f87171',
+                data: inbox.overdue.map((d) => ({ kind: 'dose' as const, data: d })),
+              },
+            ]
+          : []),
+        ...(inbox.due_today.length > 0
+          ? [
+              {
+                title: 'Due Today',
+                accent: '#fbbf24',
+                data: inbox.due_today.map((d) => ({ kind: 'dose' as const, data: d })),
+              },
+            ]
+          : []),
+        ...(inbox.upcoming.length > 0
+          ? [
+              {
+                title: 'Upcoming',
+                accent: '#a899c0',
+                data: inbox.upcoming.map((d) => ({ kind: 'dose' as const, data: d })),
+              },
+            ]
+          : []),
+        ...(inbox.refill_alerts.length > 0
+          ? [
+              {
+                title: 'Refill Needed',
+                accent: '#fb923c',
+                data: inbox.refill_alerts.map((r) => ({
+                  kind: 'refill' as const,
+                  data: r,
+                })),
+              },
+            ]
+          : []),
+      ]
+    : [];
+
+  if (loading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#16111f', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator color="#c084fc" size="large" />
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <SafeAreaView className="flex-1 bg-night">
-      <View className="px-4 py-3 flex-row items-center gap-3 border-b border-rim">
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#16111f' }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          borderBottomWidth: 1,
+          borderBottomColor: 'rgba(255,255,255,0.07)',
+          gap: 12,
+        }}
+      >
         <Pressable onPress={() => router.back()}>
-          <Text className="text-lavender text-base">← Back</Text>
+          <Text style={{ color: '#c084fc', fontSize: 15 }}>{'\u2190'} Back</Text>
         </Pressable>
-        <Text className="text-ink text-xl font-bold">Notifications</Text>
+        <Text style={{ color: '#ede9f6', fontSize: 20, fontWeight: '700' }}>
+          Notifications
+        </Text>
       </View>
 
       <SectionList
         sections={sections}
-        keyExtractor={(item) => item.id}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#c084fc" />
+        keyExtractor={(item) =>
+          item.kind === 'dose' ? item.data.id : `refill-${item.data.id}`
         }
-        contentContainerStyle={{ padding: 16, gap: 8 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#c084fc"
+          />
+        }
+        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+        stickySectionHeadersEnabled={false}
         renderSectionHeader={({ section }) => (
-          <Text className={`text-sm font-semibold mt-4 mb-2 ${
-            section.title === 'Overdue' ? 'text-rose' :
-            section.title === 'Due Today' ? 'text-amber' : 'text-ink-mid'
-          }`}>
+          <Text
+            style={{
+              fontSize: 13,
+              fontWeight: '700',
+              color: section.accent,
+              textTransform: 'uppercase',
+              letterSpacing: 0.5,
+              marginTop: 16,
+              marginBottom: 8,
+            }}
+          >
             {section.title}
           </Text>
         )}
-        renderItem={({ item }: { item: DoseWithContext }) => (
-          <Pressable
-            onPress={() => router.push(`/cats/${item.cat_id}` as never)}
-            className="bg-surface rounded-card p-4 border border-rim"
-          >
-            <View className="flex-row items-center gap-3">
-              <Text className="text-2xl">{CARE_TYPE_ICONS[item.med_type] ?? '📅'}</Text>
-              <View className="flex-1">
-                <Text className="text-ink font-semibold">{item.med_name}</Text>
-                <Text className="text-ink-mid text-sm">{item.cat_name}</Text>
-                {item.dose ? (
-                  <Text className="text-ink-dim text-xs">{item.dose}</Text>
-                ) : null}
+        renderItem={({ item }) => {
+          if (item.kind === 'refill') {
+            const med = item.data;
+            return (
+              <Pressable
+                onPress={() => router.push(`/cats/${med.cat_id}` as never)}
+                style={{
+                  backgroundColor: '#1f1830',
+                  borderRadius: 14,
+                  padding: 14,
+                  marginBottom: 8,
+                  borderWidth: 1,
+                  borderColor: 'rgba(251,146,60,0.2)',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 12,
+                }}
+              >
+                <Text style={{ fontSize: 24 }}>
+                  {CARE_TYPE_ICONS[med.type] ?? '\uD83D\uDCC5'}
+                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#ede9f6', fontSize: 14, fontWeight: '600' }}>
+                    {med.name}
+                  </Text>
+                  <Text style={{ color: '#a899c0', fontSize: 13, marginTop: 2 }}>
+                    {med.cat_name}
+                  </Text>
+                  <Text style={{ color: '#fb923c', fontSize: 12, marginTop: 2 }}>
+                    {med.doses_remaining ?? 0} doses remaining
+                    {med.refill_alert_threshold
+                      ? ` (threshold: ${med.refill_alert_threshold})`
+                      : ''}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          }
+
+          const dose = item.data;
+          const isProcessing = processingId === dose.id;
+          return (
+            <View
+              style={{
+                backgroundColor: '#1f1830',
+                borderRadius: 14,
+                padding: 14,
+                marginBottom: 8,
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.07)',
+              }}
+            >
+              <Pressable
+                onPress={() => router.push(`/cats/${dose.cat_id}` as never)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
+              >
+                <Text style={{ fontSize: 24 }}>
+                  {CARE_TYPE_ICONS[dose.med_type] ?? '\uD83D\uDCC5'}
+                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#ede9f6', fontSize: 14, fontWeight: '600' }}>
+                    {dose.med_name}
+                  </Text>
+                  <Text style={{ color: '#a899c0', fontSize: 13, marginTop: 2 }}>
+                    {dose.cat_name}
+                  </Text>
+                  {dose.dose && (
+                    <Text style={{ color: '#6b5f85', fontSize: 12, marginTop: 2 }}>
+                      {dose.dose}
+                    </Text>
+                  )}
+                </View>
+                <Text style={{ color: '#6b5f85', fontSize: 12 }}>
+                  {dose.due_at.slice(11, 16)}
+                </Text>
+              </Pressable>
+
+              {/* Action buttons */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  gap: 8,
+                  marginTop: 10,
+                  paddingTop: 10,
+                  borderTopWidth: 1,
+                  borderTopColor: 'rgba(255,255,255,0.05)',
+                }}
+              >
+                <Pressable
+                  onPress={() => handleAdminister(dose)}
+                  disabled={isProcessing}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 8,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                    backgroundColor: isProcessing
+                      ? 'rgba(74,222,128,0.1)'
+                      : 'rgba(74,222,128,0.15)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(74,222,128,0.25)',
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: '#4ade80',
+                      fontSize: 13,
+                      fontWeight: '600',
+                    }}
+                  >
+                    {isProcessing ? 'Saving...' : 'Done'}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => handleSkip(dose)}
+                  disabled={isProcessing}
+                  style={{
+                    paddingVertical: 8,
+                    paddingHorizontal: 16,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                    backgroundColor: 'rgba(255,255,255,0.04)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.07)',
+                  }}
+                >
+                  <Text style={{ color: '#6b5f85', fontSize: 13, fontWeight: '500' }}>
+                    Skip
+                  </Text>
+                </Pressable>
               </View>
-              <Text className="text-ink-dim text-xs">{item.due_at.slice(11, 16)}</Text>
             </View>
-          </Pressable>
-        )}
+          );
+        }}
         ListEmptyComponent={
-          <View className="items-center py-12">
-            <Text className="text-3xl mb-4">🔔</Text>
-            <Text className="text-ink-mid text-base">No notifications</Text>
-            <Text className="text-ink-dim text-sm mt-1">Medication reminders will appear here</Text>
+          <View style={{ alignItems: 'center', paddingVertical: 60 }}>
+            <Text style={{ fontSize: 40, marginBottom: 12 }}>{'\uD83D\uDD14'}</Text>
+            <Text style={{ color: '#a899c0', fontSize: 16, fontWeight: '600' }}>
+              All caught up!
+            </Text>
+            <Text
+              style={{
+                color: '#6b5f85',
+                fontSize: 14,
+                marginTop: 6,
+                textAlign: 'center',
+                paddingHorizontal: 40,
+              }}
+            >
+              Medication reminders and refill alerts will appear here
+            </Text>
           </View>
         }
       />

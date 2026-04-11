@@ -1,6 +1,6 @@
 # PRD: API Versioning & Backend-Driven Updates
 
-> **Status:** Draft
+> **Status:** Approved
 > **Created:** 2026-04-11
 > **Last updated:** 2026-04-11
 > **Depends on:** PRD-ios-app-store.md (In Progress)
@@ -45,6 +45,8 @@ The web app doesn't have this problem today because the Worker and frontend depl
 - If no header is sent (existing web frontend, curl), the Worker assumes the latest version
 - This is a lightweight alternative to URL-based versioning — it allows per-field adaptation without duplicating routes
 - The header value follows semver (`major.minor.patch`) — the Worker only inspects `major` for breaking-change decisions
+- **Web frontend:** Should also send `X-API-Version` starting in Phase A. The web frontend's version can be derived from `package.json` version injected at build time via Vite's `define` config. Even though web deploys are atomic with the Worker today, sending the header enables deprecation logging and ensures parity if the web frontend is ever served from a CDN cache while the Worker is updated.
+- **Malformed header:** If the header value is not valid semver (e.g., `"latest"`, empty string, garbage), the middleware treats it as "latest" — no error. This prevents a bad client from being locked out.
 
 ### R2: Server-Driven Config Endpoint
 
@@ -94,16 +96,36 @@ interface AppConfig {
   - KV namespace: `CAT_TRACKER_CONFIG`
   - Single key: `app_config` → JSON blob
   - Updated via `wrangler kv:key put` or a future admin endpoint
+  - **Free tier limits:** 100,000 reads/day, 1,000 writes/day. With the 5-minute cache header, even 1,000 concurrent users hitting `/api/config` on launch generate far fewer than 100K KV reads/day (the edge cache absorbs most). Writes are manual (operator updates config). Well within limits.
+- **Note:** No KV namespace currently exists in this Worker. `wrangler.toml` has only D1 and R2 bindings. The KV namespace must be created (`wrangler kv:namespace create cat-tracker-config`) and the binding added to both `wrangler.toml` and `worker/src/types.ts` (`CONFIG_KV: KVNamespace` in `AppEnv.Bindings`).
 - Response includes `Cache-Control: public, max-age=300, stale-while-revalidate=600` (5-minute cache, 10-minute stale-while-revalidate)
-- Client fetches on app launch and caches in memory (React state / AsyncStorage)
+- Client fetches on app launch and caches locally:
+  - **Native:** AsyncStorage cache with last-fetched timestamp. If the fetch fails (network error, 5xx), use the cached config. If no cache exists and the fetch fails, use hardcoded defaults — the app must function fully offline.
+  - **Web:** In-memory React state. No persistence needed (web reloads are fast and always online).
 - Client re-fetches every 6 hours if the app stays open (background timer)
+- **Config validation:** The Worker must validate the KV blob on read before returning it. If the blob fails validation (malformed JSON, missing required fields), return the hardcoded defaults and log a warning. A bad KV write should not break all clients.
 
 ### R3: Minimum Version Enforcement
 
 - `minSupportedVersion` in the config response defines the oldest client that can use the API
-- Client checks on launch: if `appVersion < minSupportedVersion`, show a blocking "Please update" screen with a link to the App Store / Play Store
+- Client checks on launch: if `appVersion < minSupportedVersion`, show a blocking "Update Required" screen
 - The Worker **does not** enforce this at the API level in Phase A (soft enforcement on client). Phase B adds middleware that returns `426 Upgrade Required` for requests with `X-API-Version` below `minSupportedVersion`
-- The "Please update" screen is a last resort — EAS OTA updates should handle most cases before they reach this point
+- The "Update Required" screen is a last resort — EAS OTA updates should handle most cases before they reach this point
+
+**"Update Required" screen design:**
+- Full-screen, non-dismissible (no back button, no way to proceed)
+- Cat Tracker logo at top
+- Heading: "Update Required"
+- Body: `updateMessage` from config if present, otherwise: "A newer version of Cat Tracker is available with important improvements. Please update to continue."
+- Primary button: "Update Now" → opens App Store page (iOS) or Play Store page (Android). On web, this screen should never appear (web deploys atomically).
+- No secondary action — the user cannot dismiss this. Their data is safe; they just need to update the app.
+
+**Maintenance mode screen design:**
+- Full-screen with a dismissible "OK" or "Retry" button
+- Heading: "We'll be right back"
+- Body: `maintenanceMessage` from config if present, otherwise: "Cat Tracker is undergoing maintenance. Your data is safe — check back shortly."
+- The user's cached data (cats, measurements) should remain visible in a read-only state if possible. If the app can't render without API access, show the maintenance screen instead.
+- Retry button re-fetches config; if `maintenanceMode` is now false, proceed normally
 
 ### R4: Additive-Only API Change Policy
 
@@ -172,6 +194,10 @@ app.get('/api/config', async (c) => {
 ```
 
 No auth middleware on this route.
+
+**Security note:** This endpoint is intentionally unauthenticated because the client needs config before login (e.g., to check `minSupportedVersion` and `maintenanceMode`). The response contains no user-specific data. Feature flag names and threshold values are visible to any caller — this is acceptable because the same information is observable in the client-side source code. If sensitive config is ever needed (e.g., per-user feature rollout), it belongs in an authenticated endpoint, not here.
+
+**Config schema evolution:** The `thresholds` structure mirrors the current `healthMetrics.ts` implementation. If the algorithm changes (e.g., new threshold categories are added), the config schema must be extended additively — new keys with defaults. Never remove or rename keys in the config blob without verifying that all deployed client versions handle the change gracefully. The same additive-only policy that applies to API responses (R4) applies to the config blob.
 
 **New KV namespace binding in `wrangler.toml`:**
 
@@ -247,6 +273,7 @@ None. Config lives in KV, not D1.
 13. Wire `ConfigContext` threshold overrides into chart and health assessment components
 14. Add `ConfigContext` to web frontend (web currently doesn't need it, but prepares for parity)
 15. Test: change a threshold in KV, verify both web and native reflect the change
+16. **Operator safety:** Create a `scripts/update-config.sh` helper that reads the current KV blob, opens it in `$EDITOR`, validates the JSON schema before writing, and shows a diff. Raw `wrangler kv:key put` with hand-edited JSON is too error-prone for threshold values that affect health alerts — a typo (e.g., `urgentPctPerWeek: 0.2` instead of `2.0`) would flag every cat in the app as urgent. The script is not a hard requirement but strongly recommended. At minimum, the Worker's config validation (R2) must reject values outside sane bounds (e.g., `urgentPctPerWeek` must be > `concerningPctPerWeek` > `watchPctPerWeek` > 0).
 
 ### Phase C: Feature Flags + Deprecation (within 60 days)
 16. Add feature flag checks to relevant UI components
@@ -273,12 +300,18 @@ None. Config lives in KV, not D1.
 
 ## Success Criteria
 
+**Technical:**
 - The iOS app sends `X-API-Version` on every API request
 - `GET /api/config` returns a valid config blob in < 50ms (KV edge cache)
-- Changing `minSupportedVersion` in KV causes old app versions to show the "Update Required" screen
-- Changing a threshold override in KV is reflected in the native app within 6 hours (no app update needed)
 - No existing API endpoints break when the version header is absent (backward compatible)
-- The additive-only policy is documented and followed for all future API changes
+- A malformed KV blob does not break any client (fallback to hardcoded defaults)
+- The additive-only policy is documented in `docs/API.md` and followed for all future API changes
+
+**User-facing:**
+- A user on an outdated app version sees a clear, actionable "Update Required" screen with a direct link to the App Store — not a cryptic error or a blank screen
+- A user on a current app version experiences zero change in behavior
+- Changing a threshold override in KV is reflected in the native app within 6 hours, with no app update and no user action required
+- During maintenance mode, a user sees an explanation and knows their data is safe
 
 ---
 

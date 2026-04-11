@@ -55,7 +55,15 @@ Phase 1 left several dangerous or frustrating gaps:
 
 **Lock-out recovery path (Phase 2 requirement):**
 
-If no owner exists (account deleted in Google), a recovery path is available: any Admin in the household can claim ownership via a 24-hour email confirmation flow sent to all Admins. This is an edge case but must exist.
+If the owner becomes inaccessible (Google account deleted, compromised, or owner simply disappeared), a recovery path is needed. **Trigger:** Any Admin in the household can initiate a "Claim ownership" action from the `/household` page. This action is only visible when the current owner has not signed in for 30+ days (check `sessions` table for the owner's most recent `created_at`). When initiated:
+
+1. An email is sent to all other Admins in the household: "[Name] has requested ownership of [Household]. If you do not object, ownership will transfer in 24 hours."
+2. Any other Admin can cancel the transfer within 24 hours by clicking a link in the email.
+3. After 24 hours with no cancellation, the requesting Admin becomes the new owner.
+
+This is an edge case but must exist before the product is considered reliable for multi-person households. The 30-day inactivity gate prevents casual ownership grabs while the original owner is simply on vacation.
+
+**Pragmatic alternative for v1:** If the automated recovery flow proves too complex to build in the first pass, an acceptable interim is a documented manual process: the Admin emails the developer (or uses a support form) with their household ID, and ownership is transferred via `wrangler d1 execute`. This is fine for the current user base. The automated flow becomes necessary when the user count grows beyond what manual support can handle.
 
 ---
 
@@ -71,6 +79,8 @@ If no owner exists (account deleted in Google), a recovery path is available: an
   2. Owner must type the household name to confirm (destructive-action confirmation pattern).
 - **Alternative: Transfer cats before deleting.** The delete modal shows a "Move cats to another household first" option if the owner belongs to another household — surfaces the Move Cats feature naturally.
 - On deletion: all `cats`, `measurements`, `medications`, `medication_doses`, and `household_members` rows for this household are deleted. The `households` row is deleted last.
+- **R2 photo cleanup:** For each cat being deleted, the handler must also delete the R2 object at `cats/{cat_id}/photo.jpg` if it exists. Without this, photos become orphaned in the R2 bucket with no referencing database row. Use `env.PHOTOS.delete(key)` for each cat — batch if possible. Failure to delete an R2 object should log a warning but not block the household deletion (the D1 data is the primary concern; orphaned R2 objects can be cleaned up later).
+- **Audit log entries:** If PRD-security-phase2.md SEC-15 (audit logging) is implemented, the household deletion must write an audit entry *before* deleting the data. The audit entry should capture the household name, member count, and cat count for forensic context.
 - If the owner is not in any other household, a personal household is auto-created for them (consistent with signup behavior) to ensure they always have a household.
 
 **API:**
@@ -83,15 +93,19 @@ If no owner exists (account deleted in Google), a recovery path is available: an
 
 ### 3. Move Cats Between Households
 
+> **Priority note:** This is the lowest-priority feature in Phase 2. The primary use case (invited user's pre-existing cats) is a one-time migration, and the ongoing use case (cat physically moves homes) is rare. If Phase 2B scope needs to be cut, this is the first candidate. Users can work around it by re-creating the cat in the new household and importing historical data via CSV.
+
 **Problem:** Phase 1 creates one household per user, but cats may need to be reassigned — when a cat physically moves to a new home, when a user reorganizes their household structure, or when accepting the Phase 1 limitation that invited users' pre-existing cats don't auto-merge.
 
 **Design:**
 
 - **Who can move a cat**: Editor or Admin of the *source* household AND Admin of the *destination* household.
 - Source and destination must both be households the requesting user is an active member of with sufficient role (not two different users coordinating — single user with access to both).
-- The move is instantaneous; all measurements, medications, and doses travel with the cat.
+- The move is instantaneous; all measurements, medications, and doses travel with the cat (they are linked via `cat_id` foreign key, so updating `cats.household_id` is sufficient — no row-level migration needed for measurements or doses).
 - A confirmation dialog shows: "Move [Cat Name] to [Destination]? All measurements and medications will move too."
 - The moved cat's `household_id` is updated; `cats.user_id` (legacy attribution) is preserved.
+- **Medication ownership after move:** The `medications` table has a `user_id` column (the user who created the medication). After a cat move, this `user_id` may reference a user who is not a member of the destination household. This is acceptable — `user_id` on medications is attribution (who created it), not authorization (who can see it). Authorization flows through the cat's `household_id` → `household_members`. The medication remains visible and manageable by the destination household's members with appropriate roles. No `user_id` update is needed on move.
+- **R2 photos:** The R2 key scheme is `cats/{cat_id}/photo.jpg`. Since the key uses `cat_id` (not `household_id`), photos survive the move with no R2 changes needed.
 
 **UI location:** Cat profile → Edit cat → "Move to another household" link (only visible if user has Admin role in 2+ households).
 
@@ -162,6 +176,12 @@ CREATE INDEX IF NOT EXISTS idx_ha_household ON household_activity(household_id, 
 
 **Implementation note:** Write activity entries in the same D1 batch as the mutation that triggered them. Not a separate async step — this ensures consistency. Each route that modifies household data calls a shared `logActivity(db, householdId, actorId, eventType, entityType, entityId, displayText)` helper.
 
+**Stale display names:** The `display_text` column is pre-rendered at write time (e.g., "Sarah logged Luna's weight: 9.4 lbs"). If Sarah later changes her Google display name, old activity entries will show the old name. This is intentional and acceptable — activity entries are historical records of what happened at that point in time. Do not attempt to retroactively update `display_text` on name changes.
+
+**Privacy:** All household members (including Viewers) can see all activity entries. This is intentional — the audit log is a transparency feature for shared cat care. There is no concept of Admin-only activity entries in v1. If this becomes a concern (e.g., "Sarah removed Maria" being visible to the remaining Contributor), it can be addressed in a future phase by adding a `min_role_visible TEXT` column.
+
+**Relationship to security audit log (PRD-security-phase2.md SEC-15):** The `household_activity` table is user-facing (rendered in UI, friendly display_text, household-scoped). The `audit_log` table is for security forensics (ip_address, user_agent, global scope). They serve different purposes. Do not merge them.
+
 ---
 
 ### 5. Household-Wide Medication Notifications
@@ -187,9 +207,11 @@ CREATE INDEX IF NOT EXISTS idx_ha_household ON household_activity(household_id, 
 ALTER TABLE medication_doses ADD COLUMN administered_by TEXT REFERENCES users(id);
 ```
 
-Already stored as `administered_at` and `status='given'` in Phase A. The `administered_by` column adds the actor, enabling "marked given by Maria" display.
+**Migration note:** The `medication_doses` table currently has columns: `id`, `medication_id`, `due_at`, `administered_at`, `skipped`, `skip_reason`, `notes`, `created_at`. The `administered_by` column does not exist yet. Use `ADD COLUMN IF NOT EXISTS` per project convention. All existing administered doses will have `administered_by = NULL`, which the UI should handle gracefully — display "Marked as given" without an actor name for pre-migration doses.
 
-**API change:** `POST /api/doses/:id/administer` already exists. Add `administered_by = userId` when recording the dose. No endpoint change needed — it's the same route, just a new column written.
+Already stored as `administered_at` (timestamp) in Phase A. The `administered_by` column adds the actor, enabling "marked given by Maria" display.
+
+**API change:** `POST /api/doses/:id/administer` already exists in `worker/src/routes/medications.ts`. Add `administered_by = userId` (from the auth context) when recording the dose. No endpoint signature change needed — it's the same route, just a new column written. The `userId` is already available from the `requireAuth` middleware.
 
 ---
 
@@ -207,7 +229,12 @@ Already stored as `administered_at` and `status='given'` in Phase A. The `admini
 | Delete household | Two-step: impact summary, then type household name to confirm |
 | Delete cat | "Delete [name]? All measurements, medications, and history will be permanently removed." |
 
-**Implementation note:** These are modal dialogs (not browser `confirm()`), styled consistently with the app's dark-mode palette. Use a shared `ConfirmDialog` component.
+**Implementation note:** These are modal dialogs (not browser `confirm()`), styled consistently with the app's dark/light-mode palette (respect CSS variables from PRD-app-settings.md). Build a shared `ConfirmDialog` component with two variants:
+
+1. **Simple confirmation:** Title, message, Cancel/Confirm buttons. Used for: remove member, downgrade role, delete cat.
+2. **Destructive confirmation with text input:** Title, impact summary, a text input that must match a specific string (e.g., the household name) before the confirm button enables. Used for: delete household, transfer ownership.
+
+The text-input variant prevents accidental confirmation of high-impact actions. The confirm button is disabled until the input matches exactly (case-sensitive). This replaces the current browser `confirm()` calls in `HouseholdPage.tsx` (line ~110) for role changes and member removal.
 
 ---
 
@@ -230,43 +257,59 @@ These all use the shared `sendEmail()` utility from `worker/src/lib/email.ts` (e
 
 ## Implementation Plan
 
-### Phase 2A — Safety and lifecycle (required before enterprise use)
-1. Ownership transfer endpoint + UI + email notification
-2. Admin lock-out recovery path (edge case but must exist)
-3. Confirmation dialogs: remove member, role change, ownership transfer
-4. Delete household endpoint + two-step UI
-5. Move cats between households (API + cat edit UI entry point)
+> **Ordering rationale:** Phase 2A ships the highest-frequency, highest-safety-impact feature first — the activity feed that prevents double-dosing. This is a daily pain point for multi-caretaker households. Lifecycle operations (ownership transfer, delete, move) are important but rare; they move to 2B. Email polish is lowest-priority and moves to 2C.
 
-### Phase 2B — Transparency and coordination
-6. `household_activity` table and `logActivity()` helper
-7. Activity event writes in all mutating routes
-8. `/household/activity` page
-9. `administered_by` on medication_doses; update notifications page to show actor name
-10. Household-wide dose notifications in inbox
+### Phase 2A — Transparency and medication coordination (highest daily value)
+1. `administered_by` column on medication_doses + migration
+2. Update `POST /api/doses/:id/administer` to write `administered_by = userId`
+3. Update notifications page to show "Marked as given by [Name]" for co-member doses
+4. `household_activity` table and `logActivity()` helper
+5. Activity event writes in all mutating routes (measurements, doses, cats, members)
+6. `/household/activity` page with paginated feed
+7. Confirmation dialogs: shared `ConfirmDialog` component (simple + destructive variants)
+8. Apply confirmation dialogs to: remove member, role change, delete cat
 
-### Phase 2C — Polish and communication
-11. Invitation reminder email (3-day resend)
-12. Admin email on member join
-13. Admin/member email on removal
-14. Push notifications for co-member dose events (if Phase B of medication PRD is live)
+### Phase 2B — Lifecycle and safety (rare but important)
+9. Ownership transfer endpoint + UI + email notification
+10. Admin lock-out recovery path (30-day inactivity trigger, 24-hour objection window)
+11. Delete household endpoint + two-step UI (with R2 photo cleanup)
+12. Move cats between households (API + cat edit UI entry point)
+
+### Phase 2C — Communication polish
+13. Invitation reminder email (3-day resend)
+14. Admin email on member join
+15. Admin/member email on removal
+16. Push notifications for co-member dose events (if Phase B of medication PRD is live)
 
 ---
 
-## Dependencies
+## Dependencies & Cross-PRD Continuity
 
 | Dependency | Notes |
 |-----------|-------|
-| PRD-household-sharing.md Phase A | Must be fully implemented before any Phase 2 work |
-| `worker/src/lib/email.ts` | Shared sendEmail utility — must exist before invitation emails in Phase 2C |
+| PRD-household-sharing.md Phase A | Must be fully implemented before any Phase 2 work. **Status: done.** |
+| `worker/src/lib/email.ts` | Shared `sendEmail()` utility — already exists and is used by Phase A invite flow. Ready for Phase 2C email notifications. |
 | PRD-medication-reminders.md Phase B (push) | Only required for Phase 2C push notifications; rest of Phase 2 is independent |
+| PRD-security-phase2.md SEC-15 (audit log) | If implemented before household Phase 2, the delete-household and ownership-transfer flows should write audit entries. If SEC-15 is not yet implemented, skip the audit writes — they can be backfilled later. Do not block Phase 2 on SEC-15. |
+| PRD-cat-photos.md (R2 infrastructure) | The delete-household flow must clean up R2 photos. The R2 bucket binding (`PHOTOS`) already exists in `worker/src/types.ts`. |
+| PRD-household-sharing.md Phase B (confirmation dialogs) | Phase B of the original PRD proposed custom confirmation dialogs. Phase 2 of *this* PRD also requires them (Feature #6). **These should be implemented once, in this PRD, not separately.** If Phase B of the original PRD is implemented first, reuse the `ConfirmDialog` component. If not, implement it here and retroactively apply to Phase B items (role change, member removal). |
 
 ---
 
 ## Success Criteria
 
-- Owner can transfer ownership to another Admin; the new owner can then manage the household without the original owner
-- A household can be deleted after explicit confirmation; all owned data is removed
-- A cat can be moved to another household by a user who is Editor/Admin in both
-- Members can see who logged which measurement and who marked which dose — within 90-day retention window
-- A double-dose scenario is prevented by "marked by Maria" visibility in the notification inbox
-- Removing a member requires a confirmation dialog; the action is never a single tap
+**Daily use (Phase 2A — highest priority):**
+- Within 5 minutes of one household member marking a dose as given, all other members see the updated status and the actor's name in their notification inbox
+- A caretaker opening the notification inbox can answer "Did someone already give Luna her pill?" without texting anyone
+- Members can see who logged which measurement and who marked which dose — within the 90-day activity retention window
+- No destructive household action (remove member, delete cat) can happen with a single tap — all require explicit confirmation
+
+**Lifecycle (Phase 2B):**
+- Owner can transfer ownership to another Admin; the new owner can then manage the household without the original owner present
+- An Admin can recover a household whose owner has been inactive for 30+ days
+- A household can be deleted after typing the household name to confirm; all owned data including R2 photos is removed
+- A cat can be moved to another household by a user who is Editor/Admin in both; all measurements, medications, and photos travel with it
+
+**Communication (Phase 2C):**
+- An invitee who hasn't responded in 3 days receives one reminder email
+- All Admins are notified by email when someone joins their household

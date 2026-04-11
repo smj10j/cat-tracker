@@ -1,6 +1,6 @@
 # PRD: Chart Time Range & Swipe Navigation
 
-> **Status:** Draft
+> **Status:** Approved
 > **Created:** 2026-04-11
 > **Last updated:** 2026-04-11
 
@@ -27,6 +27,7 @@ This is also a prerequisite for meaningful chart display in the iOS app, where s
 - Custom date range picker with calendar UI (future — start with preset ranges)
 - Data aggregation/downsampling for large datasets (future)
 - Server-side filtering — all data is already fetched; filtering is client-side
+- Re-computing health assessments per visible window — `assessHealth()` always uses full history; status emoji on visible dots reflect the global assessment, not the windowed view
 
 ---
 
@@ -35,12 +36,13 @@ This is also a prerequisite for meaningful chart display in the iOS app, where s
 ### R1: Range Selector
 
 - Horizontal pill bar above the chart: `1W | 1M | 3M | 6M | 1Y | All`
-- Default selection: **3M**
+- Default selection: **All** (preserves current behavior — changing the default to a shorter range would make existing users think their data disappeared). Once users have had time to discover the range selector, a future PRD can revisit defaulting to 3M for cats with > 6 months of data.
 - Persisted per-session (not across app restarts) — stored in React state, not localStorage
 - When range changes, chart animates to the new window (Recharts `animationDuration={300}`)
 - The pill bar is a shared component used by all chart types (see implementation below)
 - Active pill uses the `brand-lavender` accent; inactive pills use `surface-hi` with `ink-dim` text
 - Touch target: each pill is at least 44px tall (accessibility requirement from PRD-accessibility.md)
+- **Small screens (375px):** 6 pills at 44px height may not fit comfortably in a single row at readable text sizes. If the pills overflow, use a horizontally scrollable strip (not wrapping to a second row — that pushes the chart too far down). Test at 375px during implementation and adjust pill padding/font-size before shipping.
 
 ### R2: Swipe Navigation
 
@@ -50,9 +52,9 @@ This is also a prerequisite for meaningful chart display in the iOS app, where s
 - **"Today" pill** appears when the window doesn't include the current date — tap to snap back to the most recent window
 - The window cannot scroll past today (future dates have no data)
 - The window cannot scroll before the earliest measurement date (show empty state if approached)
-- **Web:** detect swipe via `touchstart`/`touchend` delta (minimum 50px horizontal swipe). Do not use `touchmove` prevention, which would block vertical page scrolling.
+- **Web:** detect swipe via `touchstart`/`touchend` delta (minimum 50px horizontal, maximum 30px vertical — this prevents triggering on diagonal scrolls). Do not call `preventDefault()` on `touchmove`, which would block vertical page scrolling. **Recharts tooltip conflict:** Recharts uses `onMouseMove`/`onTouchMove` for tooltip positioning. The swipe handler must coexist: use a dedicated touch layer (`SwipeableChart` wrapper) *outside* the Recharts `ResponsiveContainer`, not on the SVG itself. This avoids intercepting Recharts' internal touch handling.
 - **Native (iOS app):** use `react-native-gesture-handler` `PanGestureHandler` with `activeOffsetX` threshold. This integrates cleanly with Expo's gesture system.
-- Visual feedback: during active swipe, the chart content shifts horizontally to follow the finger (translateX). On release, animate to the new window position or snap back if the swipe was insufficient.
+- Visual feedback: during active swipe, the chart content shifts horizontally to follow the finger (translateX on the wrapper div). On release, animate to the new window position or snap back if the swipe was insufficient.
 
 ### R3: Adaptive X-Axis Labels
 
@@ -84,9 +86,9 @@ Recharts supports custom `tickFormatter` on `XAxis` — use a function that take
 ### R6: Correlation Chart Interaction
 
 - The correlation chart uses its own time window for **data computation** (correlations require minimum 4 weeks of aligned data)
-- However, the **display range** on the normalized dual-line chart should respect the range selector
-- If the selected range is shorter than the minimum correlation window (4 weeks), show the correlation chart with a note: "Correlations computed over a longer period — showing the data window you selected"
-- If no correlation data exists within the range, collapse the correlation section
+- The **display range** on the normalized dual-line chart should respect the range selector
+- If the selected range is shorter than the minimum correlation window (4 weeks), **hide the correlation section entirely** rather than showing it with confusing disclaimers. Users don't understand "computed over a longer period" — they just see a chart that doesn't match the range they selected. Simpler to hide it and let the full-range "All" view show correlations.
+- If no correlation data exists within the range at any range setting, collapse the section with no message (same as current behavior when insufficient data exists)
 
 ---
 
@@ -115,6 +117,12 @@ interface ChartWindow {
   windowEnd: Date   // always the "right edge" of the visible window
 }
 
+// Approximate day counts — used for window size calculation.
+// Calendar-month precision is not needed: the purpose is to set a
+// visible window size, not to align to calendar boundaries.
+// A user who selects "1M" expects ~30 days of data, not exactly
+// "Feb 11 to Mar 11." The slight imprecision (±1 day) is invisible
+// in the chart and avoids complex calendar arithmetic.
 const RANGE_DAYS: Record<TimeRange, number | null> = {
   '1W': 7, '1M': 30, '3M': 90, '6M': 180, '1Y': 365, 'All': null
 }
@@ -128,11 +136,15 @@ The `windowEnd` starts at today. Swiping backward moves it into the past. "Today
 frontend/src/lib/useChartWindow.ts
 ```
 
-A custom React hook that manages the range/window state and provides filtered data:
+A custom React hook that manages the range/window state and provides filtered data.
+
+**Precondition:** `measurements` must be sorted by `measured_at` ascending. This is already the case for all existing callers — the API returns measurements in chronological order and the existing chart components depend on this. The hook uses `measurements[0]` for "earliest data" detection; unsorted input would produce incorrect `hasOlderData` results.
+
+**Performance:** The `filteredData` memo runs `Array.filter()` with `new Date()` construction per item. For typical datasets (< 500 measurements per cat), this is < 1ms. For cats with 1000+ measurements over multiple years, the filter is still O(n) and negligible compared to Recharts' SVG rendering cost. No optimization needed.
 
 ```typescript
 function useChartWindow(measurements: Measurement[]) {
-  const [range, setRange] = useState<TimeRange>('3M')
+  const [range, setRange] = useState<TimeRange>('All')
   const [windowEnd, setWindowEnd] = useState(() => new Date())
 
   const windowStart = useMemo(() => {
@@ -242,7 +254,7 @@ On web, this uses standard touch events. For the iOS app (when chart components 
 
 | Feature | Interaction | Notes |
 |---------|------------|-------|
-| Health status emoji on chart dots | Unchanged — emoji render on whatever dots are visible | |
+| Health status emoji on chart dots | Unchanged — emoji render on whatever dots are visible. **Important:** the emoji reflects the global `assessHealth()` result (computed from ALL measurements), not a windowed assessment. A dot that's "concerning" based on 6-month context still shows "concerning" even if only 1 week is visible. This is correct — re-computing health per window would produce misleading results (e.g., a single dot in a 1-week window would always show "ok" because there's no comparison point). | |
 | InsightsPanel | Not affected — uses full measurement history | |
 | MeasurementForm | Adding a measurement resets window to "Today" if not already there | Ensures new data is visible |
 | CatProfile chart sub-tabs | Range selection preserved when switching between Weight/Food/Water | Reset only on navigating away from the cat |
@@ -253,7 +265,7 @@ On web, this uses standard touch events. For the iOS app (when chart components 
 
 ## Open Questions
 
-1. **Default range:** 3 months is proposed. Should it be adaptive — e.g., if a cat only has 2 weeks of data, default to 1M instead? **Recommendation:** Default to 3M, but if total data span is less than the selected range, the chart simply shows all data with extra whitespace. No auto-adaptation needed — the user can tap a shorter range if they want.
+1. **Default range — RESOLVED: "All".** Changing the default from the current all-time view to 3M would make existing users think their data disappeared. Default to "All" to preserve current behavior. A future iteration can revisit this after users have discovered the range selector. If total data span is less than the selected range, the chart simply shows all data with extra whitespace.
 
 2. **Range memory:** Should the selected range persist across screens (e.g., if you pick 1M on Compare, does CatProfile also default to 1M)? **Recommendation:** No — each chart instance manages its own range. Shared state adds complexity and may confuse users who expect independent views.
 
@@ -264,6 +276,8 @@ On web, this uses standard touch events. For the iOS app (when chart components 
 ---
 
 ## Implementation Plan
+
+**Phase A is shippable on its own.** The range selector alone delivers the core value — the ability to zoom into a time period. Swipe navigation (Phase B) is an enhancement for touch-heavy users, and polish (Phase C) fills in edge cases. If resources are constrained, ship Phase A and defer B/C indefinitely.
 
 ### Phase A — Range Selector + Filtering
 1. Create `TimeRange` type and `RANGE_DAYS` constant
@@ -292,13 +306,15 @@ On web, this uses standard touch events. For the iOS app (when chart components 
 ## Success Criteria
 
 - Users can select from 6 preset time ranges on any chart
-- The default 3M view makes charts immediately readable for cats with months of data
-- Swiping left/right on the chart navigates between time periods
+- The default "All" view preserves current behavior — no user sees their data "disappear" after this ships
+- Selecting 3M or shorter makes charts immediately readable for cats with months of data
+- Swiping left/right on the chart navigates between time periods (Phase B)
 - X-axis labels adapt to the selected range (no label crowding or overlap)
 - CompareChart synchronizes range across all cat series
 - "Today" pill always brings the user back to the most recent data
 - No regression in chart performance (Recharts renders filtered data, not full history)
 - All interactive elements in the range selector meet the 44px touch target minimum
+- The range selector renders correctly on 375px screens without horizontal overflow or unreadable text
 
 ---
 

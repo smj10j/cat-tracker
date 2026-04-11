@@ -9,18 +9,7 @@ import CatAvatar from '../../components/CatAvatar';
 import { assessHealth, STATUS_COLORS, STATUS_LABEL } from '../../lib/healthMetrics';
 import type { HealthStatus } from '../../lib/healthMetrics';
 import { detectCorrelations, getHomeBadge } from '../../lib/correlations';
-
-function catAge(birthdate: string): string {
-  const birth = new Date(birthdate);
-  const now = new Date();
-  const months =
-    (now.getFullYear() - birth.getFullYear()) * 12 +
-    (now.getMonth() - birth.getMonth());
-  if (months < 12) return `${months}mo`;
-  const years = Math.floor(months / 12);
-  const rem = months % 12;
-  return rem > 0 ? `${years}y ${rem}mo` : `${years}y`;
-}
+import { catAge, formatLocalDate } from '../../lib/dates';
 
 const STATUS_RANK: Record<string, number> = { urgent: 3, concerning: 2, watch: 1, ok: 0 };
 
@@ -259,7 +248,7 @@ export default function HomeScreen() {
           <Text style={{ fontSize: 14, fontWeight: '600', color: '#a899c0' }} numberOfLines={1}>{cat.name}</Text>
           {cat.deceased_at && (
             <Text style={{ fontSize: 12, color: '#6b5f85', marginTop: 2 }}>
-              {new Date(cat.deceased_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+              {formatLocalDate(cat.deceased_at)}
             </Text>
           )}
         </View>

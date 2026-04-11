@@ -6,18 +6,7 @@ import {
   assessHealth, STATUS_COLORS, STATUS_LABEL,
   WATCH_ATTENTION, CONCERNING_ATTENTION, URGENT_VET_SIGNS,
 } from '../lib/healthMetrics'
-
-function catAge(birthdate: string): string {
-  const birth = new Date(birthdate)
-  const now = new Date()
-  const months =
-    (now.getFullYear() - birth.getFullYear()) * 12 +
-    (now.getMonth() - birth.getMonth())
-  if (months < 12) return `${months} month${months !== 1 ? 's' : ''} old`
-  const years = Math.floor(months / 12)
-  const rem = months % 12
-  return rem > 0 ? `${years}y ${rem}mo` : `${years} year${years !== 1 ? 's' : ''} old`
-}
+import { catAge } from '../lib/dates'
 
 export default function CatHealthGuidance() {
   const { id } = useParams<{ id: string }>()

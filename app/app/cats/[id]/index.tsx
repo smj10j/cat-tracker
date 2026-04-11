@@ -10,19 +10,8 @@ import MeasurementForm from '../../../components/MeasurementForm';
 import { assessHealth, STATUS_COLORS, STATUS_LABEL } from '../../../lib/healthMetrics';
 import type { HealthStatus } from '../../../lib/healthMetrics';
 import { getPresetLabel } from '../../../lib/measurementPresets';
+import { catAge, formatLocalDate } from '../../../lib/dates';
 import LineChart from '../../../components/LineChart';
-
-function catAge(birthdate: string): string {
-  const birth = new Date(birthdate);
-  const now = new Date();
-  const months =
-    (now.getFullYear() - birth.getFullYear()) * 12 +
-    (now.getMonth() - birth.getMonth());
-  if (months < 12) return `${months} month${months !== 1 ? 's' : ''} old`;
-  const years = Math.floor(months / 12);
-  const rem = months % 12;
-  return rem > 0 ? `${years}y ${rem}mo` : `${years} year${years !== 1 ? 's' : ''} old`;
-}
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -250,7 +239,7 @@ export default function CatProfileScreen() {
               </Text>
               {isDeceased ? (
                 <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, marginTop: 2 }}>
-                  {'\uD83D\uDD4A\uFE0F'} {cat.deceased_at ? new Date(cat.deceased_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : ''}
+                  {'\uD83D\uDD4A\uFE0F'} {cat.deceased_at ? formatLocalDate(cat.deceased_at) : ''}
                 </Text>
               ) : (
                 <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginTop: 2 }}>

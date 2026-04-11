@@ -12,18 +12,7 @@ import MeasurementForm from '../components/MeasurementForm'
 import MeasurementChart from '../components/MeasurementChart'
 import InsightsPanel from '../components/InsightsPanel'
 import { getPresetLabel } from '../lib/measurementPresets'
-
-function catAge(birthdate: string): string {
-  const birth = new Date(birthdate)
-  const now = new Date()
-  const months =
-    (now.getFullYear() - birth.getFullYear()) * 12 +
-    (now.getMonth() - birth.getMonth())
-  if (months < 12) return `${months} month${months !== 1 ? 's' : ''} old`
-  const years = Math.floor(months / 12)
-  const rem = months % 12
-  return rem > 0 ? `${years}y ${rem}mo` : `${years} year${years !== 1 ? 's' : ''} old`
-}
+import { catAge } from '../lib/dates'
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })

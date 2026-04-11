@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { api } from '../../../lib/api';
 import type { Cat } from '../../../lib/api';
+import { parseLocalDate, formatLocalDate } from '../../../lib/dates';
 
 export default function MemorialScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -18,8 +19,8 @@ export default function MemorialScreen() {
 
   if (!cat) return null;
 
-  const birthYear = cat.birthdate ? new Date(cat.birthdate).getFullYear() : null;
-  const passedYear = cat.deceased_at ? new Date(cat.deceased_at).getFullYear() : null;
+  const birthYear = cat.birthdate ? parseLocalDate(cat.birthdate).getFullYear() : null;
+  const passedYear = cat.deceased_at ? parseLocalDate(cat.deceased_at).getFullYear() : null;
 
   return (
     <SafeAreaView className="flex-1 bg-night">

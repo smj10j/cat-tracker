@@ -12,6 +12,7 @@ import {
   detectConfluence,
 } from '../../../lib/correlations';
 import { getPresetLabel, PRESET_TYPES } from '../../../lib/measurementPresets';
+import { catAge } from '../../../lib/dates';
 
 const colors = {
   night: '#16111f',
@@ -60,16 +61,7 @@ const statusExplained: Record<string, string> = {
   urgent: 'Urgent — significant weight loss; veterinary evaluation recommended promptly',
 };
 
-function catAge(birthdate: string): string {
-  const birth = new Date(birthdate);
-  const now = new Date();
-  const months =
-    (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
-  if (months < 12) return `${months} month${months !== 1 ? 's' : ''} old`;
-  const years = Math.floor(months / 12);
-  const rem = months % 12;
-  return rem > 0 ? `${years}y ${rem}mo` : `${years} year${years !== 1 ? 's' : ''} old`;
-}
+// catAge imported from lib/dates
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {

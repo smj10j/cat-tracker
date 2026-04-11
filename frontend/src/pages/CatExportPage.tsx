@@ -5,6 +5,7 @@ import { getCat, getMeasurements, type Cat, type Measurement } from '../lib/api'
 import { assessHealth } from '../lib/healthMetrics'
 import { detectCorrelations, describeCorrelation, detectConfluence } from '../lib/correlations'
 import { getPresetLabel, PRESET_TYPES } from '../lib/measurementPresets'
+import { catAge } from '../lib/dates'
 
 const TYPE_LABELS: Record<string, string> = {
   weight: 'Weight', food: 'Food intake', water: 'Water intake',
@@ -20,18 +21,6 @@ const TYPE_UNIT_LABEL: Record<string, string> = {
   activity: '(scale: Lethargic / Low / Normal / Active)',
   vomiting: '(scale: None / Once / A few times / Many times)',
   litter: '(scale: Not used / Straining / Loose / Normal)',
-}
-
-function catAge(birthdate: string): string {
-  const birth = new Date(birthdate)
-  const now = new Date()
-  const months =
-    (now.getFullYear() - birth.getFullYear()) * 12 +
-    (now.getMonth() - birth.getMonth())
-  if (months < 12) return `${months} month${months !== 1 ? 's' : ''} old`
-  const years = Math.floor(months / 12)
-  const rem = months % 12
-  return rem > 0 ? `${years}y ${rem}mo` : `${years} year${years !== 1 ? 's' : ''} old`
 }
 
 function formatDate(iso: string): string {

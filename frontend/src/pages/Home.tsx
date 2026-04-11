@@ -5,18 +5,7 @@ import CatAvatar from '../components/CatAvatar'
 import { assessHealth, STATUS_COLORS, STATUS_LABEL } from '../lib/healthMetrics'
 import { detectCorrelations, getHomeBadge } from '../lib/correlations'
 import { useAuth } from '../contexts/AuthContext'
-
-function catAge(birthdate: string): string {
-  const birth = new Date(birthdate)
-  const now = new Date()
-  const months =
-    (now.getFullYear() - birth.getFullYear()) * 12 +
-    (now.getMonth() - birth.getMonth())
-  if (months < 12) return `${months}mo`
-  const years = Math.floor(months / 12)
-  const rem = months % 12
-  return rem > 0 ? `${years}y ${rem}mo` : `${years}y`
-}
+import { catAge, formatLocalDate } from '../lib/dates'
 
 function SkeletonCard() {
   return (
@@ -383,7 +372,7 @@ export default function Home() {
                         <p className="text-sm font-semibold text-ink-mid truncate">{cat.name}</p>
                         {cat.deceased_at && (
                           <p className="text-xs text-ink-dim mt-0.5">
-                            {new Date(cat.deceased_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                            {formatLocalDate(cat.deceased_at)}
                           </p>
                         )}
                       </div>

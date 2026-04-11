@@ -5,10 +5,11 @@ import { getCat, getMeasurements, type Cat, type Measurement } from '../lib/api'
 import CatAvatar from '../components/CatAvatar'
 import WeightChart from '../components/WeightChart'
 import { assessHealth, STATUS_LABEL, STATUS_COLORS } from '../lib/healthMetrics'
+import { parseLocalDate, formatLocalDate } from '../lib/dates'
 
 function catLifespan(birthdate: string, deceasedAt: string): string {
-  const birth = new Date(birthdate)
-  const death = new Date(deceasedAt)
+  const birth = parseLocalDate(birthdate)
+  const death = parseLocalDate(deceasedAt)
   const months =
     (death.getFullYear() - birth.getFullYear()) * 12 +
     (death.getMonth() - birth.getMonth())
@@ -84,9 +85,9 @@ export default function MemorialPage() {
         <p className="text-sm text-ink-dim">🕊️</p>
         {cat.deceased_at && (
           <p className="text-sm text-ink-dim mt-1">
-            {new Date(cat.birthdate).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+            {formatLocalDate(cat.birthdate)}
             {' — '}
-            {new Date(cat.deceased_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+            {formatLocalDate(cat.deceased_at)}
           </p>
         )}
         {cat.deceased_at && (

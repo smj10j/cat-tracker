@@ -1,0 +1,11 @@
+# App Store Submission Log
+
+## Version 1.0 (Build 2026-04-11)
+- **Submitted**: 2026-04-11
+- **Submission ID**: 0848be30-eb7c-4fdf-8b89-de876b79672a
+- **App Store Connect**: https://appstoreconnect.apple.com/apps/6762031793/testflight/ios
+- **Status**: Submitted for review
+- **Notable changes in this build**:
+  - Memorial page parity with web (rich layout, navigation fixes)
+  - Deceased cats now visible on mobile home screen (API query param fix)
+  - Keyboard dismissal fixes for memorial note inputs

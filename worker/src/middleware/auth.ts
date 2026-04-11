@@ -24,5 +24,6 @@ export async function requireAuth(c: Context<AppEnv>, next: Next) {
   )
 
   c.set('userId', session.user_id)
+  c.set('sessionId', sessionId)
   await next()
 }

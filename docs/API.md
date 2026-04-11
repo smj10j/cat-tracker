@@ -10,22 +10,27 @@ which forwards to the Worker. Direct Worker calls are only used for local develo
 
 ## Authentication
 
-All endpoints except the auth routes and `/api/health` require a valid session cookie.
+All endpoints except auth routes, `/api/health`, and `/api/config` require a valid session.
 
-| Cookie | `session=<token>` |
-|--------|------------------|
-| Type | httpOnly, Secure, SameSite=Lax |
-| Lifetime | 7 days, rolling (refreshed on each authenticated request) |
-| Storage | D1 `sessions` table |
+**Two auth mechanisms** (Bearer token checked first, cookie fallback):
 
-If the cookie is missing or expired, all protected routes return:
+| Method | Format | Used by |
+|--------|--------|---------|
+| Bearer token | `Authorization: Bearer <token>` | iOS native app |
+| Session cookie | `session=<token>` (httpOnly, Secure, SameSite=Lax) | Web frontend |
+
+Sessions have a 7-day rolling TTL (refreshed on each authenticated request), stored in D1 `sessions` table.
+
+**API Version Header:** All clients should send `X-API-Version: <semver>` on every request. The Worker stores this on the request context for version-gated responses and deprecation logging. If absent, the Worker assumes the latest version.
+
+If the session is missing or expired, all protected routes return:
 
 ```
 HTTP 401 Unauthorized
 { "error": "Unauthorized" }
 ```
 
-The `requireAuth` middleware in `worker/src/middleware/auth.ts` validates the cookie on every request to `/api/cats/*`, `/api/measurements/*`, and `/api/import`.
+The `requireAuth` middleware in `worker/src/middleware/auth.ts` validates auth on every request to `/api/cats/*`, `/api/measurements/*`, `/api/import`, and other protected routes.
 
 ---
 
@@ -120,12 +125,67 @@ the user's profile, upserts the user in `users`, creates a session in `sessions`
   "email": "user@example.com",
   "display_name": "Jane Smith",
   "avatar_url": "https://...",
-  "hasOrphanedCats": false
+  "hasOrphanedCats": false,
+  "session_age_seconds": 142
 }
 ```
 
 `hasOrphanedCats` is `true` when there are cats with `user_id IS NULL` in the database.
 The frontend shows a claim prompt to the user in this case.
+
+`session_age_seconds` is the age of the current session in seconds (computed from `sessions.created_at`). Used by clients to pre-flight the re-authentication check required for account deletion (SEC-11).
+
+---
+
+#### `DELETE /api/auth/account`
+
+**Auth required. Re-authentication required (SEC-11).**
+
+Permanently deletes the user's account and all associated data. The requesting session must have been created within the last 5 minutes. If the session is older, returns 403 with a re-sign-in prompt.
+
+**Response 403** (session too old)
+```json
+{ "error": "Re-authentication required", "action": "re-sign-in" }
+```
+
+**Response 409** (user is sole Admin of a household)
+```json
+{ "error": "You are the only admin of household \"Johnson Family Cats\". Transfer ownership or remove other members first." }
+```
+
+**Response 200** (deletion successful)
+```json
+{ "success": true }
+```
+
+---
+
+#### `GET /api/config`
+
+**No auth required.** Returns server-driven runtime configuration. Cached for 5 minutes.
+
+**Response 200**
+```json
+{
+  "minSupportedVersion": "1.0.0",
+  "latestVersion": "1.0.0",
+  "features": {
+    "pushNotificationsEnabled": false,
+    "appleSignInEnabled": true,
+    "streaksEnabled": false,
+    "aiNarrativeEnabled": false
+  },
+  "thresholds": null,
+  "maintenanceMode": false,
+  "maintenanceMessage": null
+}
+```
+
+**Headers:** `Cache-Control: public, max-age=300, stale-while-revalidate=600`
+
+Config is stored in Cloudflare KV (`cat-tracker-config` namespace). If KV is empty or contains malformed data, hardcoded defaults are returned. The `thresholds` field is reserved for future server-driven health threshold overrides (PRD-api-versioning Phase B).
+
+**Additive-only policy:** This endpoint's response may gain new fields at any time. Clients must ignore unknown fields. Existing fields are never removed or change type without a major API version bump.
 
 ---
 

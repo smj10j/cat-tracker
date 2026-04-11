@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -7,6 +7,9 @@ import {
 import { getCats, getMeasurements, type Cat, type Measurement } from '../lib/api'
 import { assessHealth, STATUS_COLORS, STATUS_EMOJI, STATUS_LABEL, type HealthStatus, type PeriodHealth } from '../lib/healthMetrics'
 import { getPresetLabel, getPresetTicks, PRESET_TYPES } from '../lib/measurementPresets'
+import { useChartWindow, getTickFormatter, type TimeRange } from '../lib/useChartWindow'
+import ChartRangeSelector from '../components/ChartRangeSelector'
+import SwipeableChart from '../components/SwipeableChart'
 
 const LINE_COLORS = ['#c084fc', '#fb923c', '#60a5fa', '#f472b6', '#34d399', '#fbbf24']
 
@@ -144,17 +147,42 @@ export default function CompareChart() {
     setEnabled((prev) => { const n = new Set(prev); n.has(name) ? n.delete(name) : n.add(name); return n })
   }
 
+  // Combine all measurements for chart window hook
+  const combinedMeasurements = useMemo(() => {
+    const all: Measurement[] = []
+    for (const ms of measurementsByCat.values()) {
+      all.push(...ms)
+    }
+    return all.sort((a, b) => a.measured_at.localeCompare(b.measured_at))
+  }, [measurementsByCat])
+
+  const { range, setRange, windowStart, windowEnd, navigate, hasOlderData, hasNewerData } = useChartWindow(combinedMeasurements)
+  const tickFormatter = getTickFormatter(range)
+
   const isWeightType = selectedType === 'weight'
   const isScaleType = PRESET_TYPES.has(selectedType)
   const scaleTicks = isScaleType ? getPresetTicks(selectedType) : []
 
-  const chartData = buildChartData(cats, measurementsByCat)
+  // Filter measurementsByCat by window for chart display
+  const filteredMeasurementsByCat = useMemo(() => {
+    if (!windowStart) return measurementsByCat
+    const filtered = new Map<string, Measurement[]>()
+    for (const [catId, ms] of measurementsByCat.entries()) {
+      filtered.set(catId, ms.filter(m => {
+        const d = new Date(m.measured_at)
+        return d >= windowStart && d <= windowEnd
+      }))
+    }
+    return filtered
+  }, [measurementsByCat, windowStart, windowEnd])
+
+  const chartData = buildChartData(cats, filteredMeasurementsByCat)
   const healthIndex = isWeightType ? buildHealthIndex(cats, measurementsByCat) : new Map()
   const healthByCat = isWeightType
     ? new Map(cats.map((cat) => [cat.id, assessHealth(measurementsByCat.get(cat.id) ?? [])]))
     : new Map()
 
-  const enabledValues = cats.filter((c) => enabled.has(c.name)).flatMap((c) => (measurementsByCat.get(c.id) ?? []).map((m) => m.value))
+  const enabledValues = cats.filter((c) => enabled.has(c.name)).flatMap((c) => (filteredMeasurementsByCat.get(c.id) ?? []).map((m) => m.value))
   const minVal = enabledValues.length ? Math.min(...enabledValues) : 0
   const maxVal = enabledValues.length ? Math.max(...enabledValues) : 10
 
@@ -235,10 +263,22 @@ export default function CompareChart() {
                 <div className="text-center py-16 text-ink-dim text-sm">No {selectedType} measurements yet</div>
               ) : (
                 <>
+                  <ChartRangeSelector
+                    range={range}
+                    onRangeChange={(r: TimeRange) => setRange(r)}
+                    onNavigate={navigate}
+                    hasOlderData={hasOlderData}
+                    hasNewerData={hasNewerData}
+                  />
+                  <SwipeableChart
+                    onSwipeLeft={() => navigate('forward')}
+                    onSwipeRight={() => navigate('back')}
+                    enabled={range !== 'All'}
+                  >
                   <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={chartData} margin={{ top: 14, right: 8, left: 0, bottom: 4 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--color-grid)" vertical={false} />
-                      <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--color-ink-dim)' }} tickLine={false} axisLine={false} />
+                      <XAxis dataKey="rawDate" tick={{ fontSize: 10, fill: 'var(--color-ink-dim)' }} tickLine={false} axisLine={false} tickFormatter={(v: string) => tickFormatter(v + 'T12:00:00Z')} />
                       <YAxis
                         domain={yDomain}
                         ticks={isScaleType ? [0, 1, 2, 3] : undefined}
@@ -294,6 +334,7 @@ export default function CompareChart() {
                       })}
                     </LineChart>
                   </ResponsiveContainer>
+                  </SwipeableChart>
 
                   {/* Legend */}
                   {isWeightType && (

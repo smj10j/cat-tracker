@@ -572,13 +572,15 @@ Nothing rejected yet.
 
 | | |
 |---|---|
-| **Status** | `Approved` |
+| **Status** | `Partial` |
 | **Last updated** | 2026-04-11 |
 | **Depends on** | PRD-security.md (Implemented), PRD-ios-app-store.md |
 
-**Problem:** The iOS app introduces new attack surface not covered by Phase 1: Bearer tokens (no cookie binding), Apple OAuth (JWT replay), account deletion (no re-auth gate), device token registration (no format validation), data export (no rate limit), and no audit logging for sensitive operations.
+**Problem:** The iOS app introduces new attack surface not covered by Phase 1.
 
-**Scope:** 7 findings (SEC-10 through SEC-16). Phase A (critical, before launch): re-auth gate on account deletion, Apple token replay prevention. Phase B (30 days): rate limiting, device token validation, audit logging. Phase C (90 days): device fingerprint binding, accepted risk documentation.
+**Implemented Phase A** — SEC-11: re-auth gate on account deletion (5-minute session age check, 403 with re-sign-in prompt, `session_age_seconds` in `/auth/me`). SEC-13: Apple token replay prevention (`apple_token_cache` D1 table, SHA-256 of `sub|iat`, 409 on replay, cron cleanup). 5 tests in `auth-security.test.ts`.
+
+**Not yet implemented:** Phase B (SEC-12 rate limiting, SEC-14 device token validation, SEC-15 audit logging), Phase C (SEC-10 device fingerprint, SEC-16 accepted risk docs).
 
 ---
 
@@ -586,12 +588,10 @@ Nothing rejected yet.
 
 | | |
 |---|---|
-| **Status** | `Approved` |
+| **Status** | `Implemented` |
 | **Last updated** | 2026-04-11 |
 
-**Problem:** Charts show all-time data with no way to zoom into a specific period. For cats with months of data, trends within a timeframe are hard to read. No quick way to compare periods or focus around a vet visit.
-
-**Scope:** Preset range selector (1W/1M/3M/6M/1Y/All, default All), swipe-to-navigate (shift window forward/backward), adaptive x-axis labels, synchronized range across CompareChart series. Applies to all chart types. Phase A (range selector) is shippable standalone; Phase B (swipe) is an enhancement for touch-heavy mobile users.
+**Implemented Phases A + B** — `useChartWindow` hook (time range state, window filtering, navigation, adaptive tick formatting). `ChartRangeSelector` pill bar (1W/1M/3M/6M/1Y/All, default All, 44px touch targets, horizontally scrollable). `SwipeableChart` touch gesture wrapper (50px min swipe, translateX feedback). Integrated into WeightChart, MeasurementChart, CompareChart. Health assessment uses global `assessHealth()` — not recomputed per window. 10 tests in `useChartWindow.test.ts`.
 
 ---
 

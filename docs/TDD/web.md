@@ -111,8 +111,10 @@ cat-tracker/
 │   │   │   ├── MedicationFormPage.tsx  # Add/edit care schedule items
 │   │   │   └── InvitePage.tsx          # Household invite acceptance
 │   │   ├── components/
-│   │   │   ├── WeightChart.tsx         # Recharts line chart; emoji dots per health status
-│   │   │   ├── MeasurementChart.tsx    # 0-3 scale chart for behavioral/food/water types
+│   │   │   ├── WeightChart.tsx         # Recharts line chart; emoji dots per health status; range selector
+│   │   │   ├── MeasurementChart.tsx    # 0-3 scale chart for behavioral/food/water types; range selector
+│   │   │   ├── ChartRangeSelector.tsx  # Time range pill bar (1W/1M/3M/6M/1Y/All) + nav chevrons + Today pill
+│   │   │   ├── SwipeableChart.tsx      # Touch gesture wrapper for chart swipe navigation
 │   │   │   ├── MeasurementForm.tsx     # Inline measurement entry on CatProfile
 │   │   │   ├── InsightsPanel.tsx       # Health alerts + collapsible patterns + explore chart
 │   │   │   ├── CorrelationChart.tsx    # Normalized dual-line chart with input→output selectors
@@ -125,7 +127,8 @@ cat-tracker/
 │   │       ├── api.ts                  # Typed fetch wrappers for all API routes
 │   │       ├── healthMetrics.ts        # Vet-threshold health assessment + STATUS_EMOJI/COLORS
 │   │       ├── correlations.ts         # Pearson lag correlation; detectCorrelations; detectConfluence
-│   │       └── measurementPresets.ts   # Preset labels/values for behavioral types (0-3 scale)
+│   │       ├── measurementPresets.ts   # Preset labels/values for behavioral types (0-3 scale)
+│   │       └── useChartWindow.ts       # React hook: time range state, window filtering, swipe nav
 │   ├── functions/
 │   │   └── api/[[path]].ts       # Pages Function: proxies /api/* to Worker (preserves Set-Cookie)
 │   ├── public/
@@ -386,6 +389,7 @@ Use `IF NOT EXISTS` and `ADD COLUMN IF NOT EXISTS` to keep migrations idempotent
 | Pages project | `cat-tracker` | — |
 | D1 database | `cat-tracker-db` | `9c923aa8-47a3-4029-b07f-3b67d208f9e6` |
 | R2 bucket | `cat-tracker-photos` | Public: `pub-40305f88ebb54339b47a48224f195f92.r2.dev` |
+| KV namespace | `cat-tracker-config` | `7fc5a67f7e774458a99bf41dc7fe761c` |
 | Account | stevej-67b | `67ba5425d0189fa7d4cf1ada3239e058` |
 
 ---

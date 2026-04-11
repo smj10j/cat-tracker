@@ -177,16 +177,20 @@ The Worker has no rate limiting. Cloudflare's free tier imposes global limits (1
 `POST /api/auth/claim-cats` assigns ALL orphaned cats (user_id IS NULL) to the requesting user. This was designed for the one-time migration when auth was added. In production there should be no orphaned cats (all cats now get user_id on creation). The endpoint is kept for backward compatibility but should eventually be deprecated.
 
 ### No server-side audit logs
-The Worker does not log authentication events, failed auth attempts, or authorization failures. Cloudflare Workers provide basic request logs but not structured application logs. Accepted given the personal-use scale.
+The Worker does not log authentication events, failed auth attempts, or authorization failures. Cloudflare Workers provide basic request logs but not structured application logs. Accepted given the personal-use scale. See SEC-15 in PRD-security-phase2.md for the audit log proposal (Phase B, not yet implemented).
 
 ### OAuth providers
-The app supports Google OAuth and Apple Sign In. No password-based auth means no brute force concern. MFA is handled by each provider's own account security. Apple's native Sign In flow uses `POST /api/auth/apple-native` with JWT identity token verification against Apple's JWKS. See PRD-security-phase2.md (Draft) for additional hardening recommendations including token replay prevention.
+The app supports Google OAuth and Apple Sign In. No password-based auth means no brute force concern. MFA is handled by each provider's own account security.
 
-### Account deletion
-`DELETE /api/auth/account` permanently deletes all user data (cats, measurements, medications, photos, sessions, device tokens, household memberships). Currently requires only a valid session — see SEC-11 in PRD-security-phase2.md for the re-authentication gate recommendation.
+**Apple native Sign In** (`POST /api/auth/apple-native`) verifies JWT identity tokens against Apple's JWKS. **Replay prevention (SEC-13, implemented):** Each consumed token's `sub|iat` is SHA-256 hashed and stored in the `apple_token_cache` D1 table. Duplicate tokens within the 10-minute validity window are rejected with `409`. The daily cron cleans expired entries.
+
+### Account deletion — re-authentication gate (SEC-11, implemented)
+`DELETE /api/auth/account` permanently deletes all user data (cats, measurements, medications, photos, sessions, device tokens, household memberships). **Re-authentication is required:** the requesting session must have been created within the last 5 minutes (checked via `sessions.created_at`). If the session is older, the endpoint returns `403 { error: "Re-authentication required", action: "re-sign-in" }`. The client prompts the user to sign in again, creating a fresh session.
+
+`GET /api/auth/me` includes `session_age_seconds` so clients can pre-flight this check and prompt re-auth before showing the deletion UI.
 
 ### Data export
-`GET /api/auth/export` returns a full JSON dump of user data. Currently no rate limiting — see SEC-12 in PRD-security-phase2.md.
+`GET /api/auth/export` returns a full JSON dump of user data. Currently no rate limiting — see SEC-12 in PRD-security-phase2.md (Phase B, not yet implemented).
 
 ### Bearer tokens (iOS native)
 Bearer tokens sent in `Authorization` headers are not bound to a specific device. A stolen token works from any client. Mitigation: tokens expire after 7 days of inactivity. See SEC-10 in PRD-security-phase2.md for device fingerprint binding proposal.

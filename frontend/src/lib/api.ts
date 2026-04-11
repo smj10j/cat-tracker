@@ -56,6 +56,7 @@ export interface User {
 }
 
 const BASE = '/api'
+const API_VERSION = '1.0.0'
 
 export class ApiError extends Error {
   status: number
@@ -69,7 +70,7 @@ export class ApiError extends Error {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(BASE + path, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-API-Version': API_VERSION },
     credentials: 'include',
     ...init,
   })

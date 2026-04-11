@@ -286,6 +286,25 @@ auth.post('/auth/apple-native', async (c) => {
     return c.json({ error: 'Missing user identity' }, 400)
   }
 
+  // SEC-13: Apple token replay prevention
+  const tokenData = new TextEncoder().encode(payload.sub + '|' + (payload.iat ?? ''))
+  const hashBuffer = await crypto.subtle.digest('SHA-256', tokenData)
+  const tokenKey = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
+
+  const existing = await c.env.DB.prepare(
+    'SELECT 1 FROM apple_token_cache WHERE token_key = ?'
+  ).bind(tokenKey).first()
+
+  if (existing) {
+    return c.json({ error: 'Token already consumed' }, 409)
+  }
+
+  // Store token key with expiry (iat + 600 seconds)
+  const iatDate = payload.iat ? new Date(payload.iat * 1000).toISOString() : new Date().toISOString()
+  await c.env.DB.prepare(
+    "INSERT INTO apple_token_cache (token_key, expires_at) VALUES (?, datetime(?, '+600 seconds'))"
+  ).bind(tokenKey, iatDate).run()
+
   // Build display name from native credential (only available on first auth)
   let displayName: string | null = null
   if (body.fullName) {
@@ -335,6 +354,7 @@ auth.post('/auth/logout', requireAuth, async (c) => {
 // GET /api/auth/me
 auth.get('/auth/me', requireAuth, async (c) => {
   const userId = c.get('userId')
+  const sessionId = c.get('sessionId')
   const user = await c.env.DB.prepare(
     'SELECT id, email, display_name, avatar_url, oauth_provider FROM users WHERE id = ?'
   ).bind(userId).first<{ id: string; email: string; display_name: string | null; avatar_url: string | null; oauth_provider: string }>()
@@ -345,6 +365,17 @@ auth.get('/auth/me', requireAuth, async (c) => {
     'SELECT COUNT(*) as count FROM cats WHERE user_id IS NULL'
   ).first<{ count: number }>()
 
+  // SEC-11: Include session age for frontend re-auth gate checks
+  let session_age_seconds = 0
+  const sessionRow = await c.env.DB.prepare(
+    'SELECT created_at FROM sessions WHERE id = ?'
+  ).bind(sessionId).first<{ created_at: string }>()
+  if (sessionRow) {
+    const raw = sessionRow.created_at
+    const createdAt = new Date(raw.includes('T') ? raw : raw + 'Z').getTime()
+    session_age_seconds = Math.floor((Date.now() - createdAt) / 1000)
+  }
+
   return c.json({
     id: user.id,
     email: user.email,
@@ -352,6 +383,7 @@ auth.get('/auth/me', requireAuth, async (c) => {
     avatar_url: user.avatar_url,
     oauth_provider: user.oauth_provider,
     hasOrphanedCats: (orphaned?.count ?? 0) > 0,
+    session_age_seconds,
   })
 })
 
@@ -376,6 +408,22 @@ auth.post('/auth/claim-cats', requireAuth, async (c) => {
 // DELETE /api/auth/account — Apple requires in-app account deletion
 auth.delete('/auth/account', requireAuth, async (c) => {
   const userId = c.get('userId')
+  const sessionId = c.get('sessionId')
+
+  // SEC-11: Re-auth gate — session must be < 5 minutes old
+  const sessionRow = await c.env.DB.prepare(
+    'SELECT created_at FROM sessions WHERE id = ? AND user_id = ?'
+  ).bind(sessionId, userId).first<{ created_at: string }>()
+
+  if (sessionRow) {
+    // D1 datetime('now') stores as 'YYYY-MM-DD HH:MM:SS' (no Z); explicit inserts may include T/Z
+    const raw = sessionRow.created_at
+    const createdAt = new Date(raw.includes('T') ? raw : raw + 'Z').getTime()
+    const ageMs = Date.now() - createdAt
+    if (ageMs > 5 * 60 * 1000) {
+      return c.json({ error: 'Re-authentication required', action: 're-sign-in' }, 403)
+    }
+  }
 
   // Check if user is the sole Admin of any household
   const soleAdminHouseholds = await c.env.DB.prepare(`

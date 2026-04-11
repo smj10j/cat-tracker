@@ -12,5 +12,9 @@ database_id = "9c923aa8-47a3-4029-b07f-3b67d208f9e6"
 binding = "PHOTOS"
 bucket_name = "cat-tracker-photos"
 
+[[kv_namespaces]]
+binding = "CONFIG_KV"
+id = "7fc5a67f7e774458a99bf41dc7fe761c"
+
 [triggers]
 crons = ["0 3 * * *"]

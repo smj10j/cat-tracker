@@ -3,6 +3,7 @@ import { cors } from 'hono/cors'
 import type { AppEnv } from './types'
 import { requireAuth } from './middleware/auth'
 import authRoutes from './routes/auth'
+import configRoutes from './routes/config'
 import cats from './routes/cats'
 import measurements from './routes/measurements'
 import importRoute from './routes/import'
@@ -24,7 +25,7 @@ app.use('*', cors({
     return null // block all other origins
   },
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-API-Version'],
 }))
 
 // SEC-03: Security headers on every API response.
@@ -35,7 +36,17 @@ app.use('*', async (c, next) => {
   c.header('Referrer-Policy', 'no-referrer')
 })
 
+// API version middleware — reads X-API-Version header
+app.use('/api/*', async (c, next) => {
+  const version = c.req.header('X-API-Version') || 'latest'
+  c.set('apiVersion', version)
+  await next()
+})
+
 app.get('/api/health', (c) => c.json({ status: 'ok' }))
+
+// Config route (no auth required) — must be registered BEFORE auth middleware
+app.route('/api', configRoutes)
 
 // Auth routes (login/callback/logout/me — no auth middleware on login/callback)
 app.route('/api', authRoutes)
@@ -66,6 +77,9 @@ export default {
     ctx.waitUntil((async () => {
       // Clean up expired sessions
       await env.DB.prepare("DELETE FROM sessions WHERE expires_at < datetime('now')").run()
+
+      // SEC-13: Clean up expired Apple token replay cache entries
+      await env.DB.prepare("DELETE FROM apple_token_cache WHERE expires_at < datetime('now')").run()
 
       // Expire stale pending invites
       await env.DB.prepare(

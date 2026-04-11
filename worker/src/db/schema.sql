@@ -162,3 +162,9 @@ CREATE TABLE IF NOT EXISTS device_tokens (
 );
 
 CREATE INDEX IF NOT EXISTS idx_device_tokens_user ON device_tokens(user_id);
+
+-- SEC-13: Apple token replay prevention (added 2026-04-11)
+CREATE TABLE IF NOT EXISTS apple_token_cache (
+  token_key   TEXT PRIMARY KEY,
+  expires_at  TEXT NOT NULL
+);

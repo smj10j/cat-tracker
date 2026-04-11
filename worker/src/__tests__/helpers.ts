@@ -129,6 +129,11 @@ CREATE TABLE IF NOT EXISTS medication_doses (
   created_at      TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(medication_id, due_at)
 );
+
+CREATE TABLE IF NOT EXISTS apple_token_cache (
+  token_key   TEXT PRIMARY KEY,
+  expires_at  TEXT NOT NULL
+);
 `
 
 /** Apply the full schema DDL to the test database (idempotent). */
@@ -144,6 +149,7 @@ export async function applySchema(): Promise<void> {
 
 export async function clearDb(): Promise<void> {
   await env.DB.exec(`
+    DELETE FROM apple_token_cache;
     DELETE FROM device_tokens;
     DELETE FROM medication_doses;
     DELETE FROM medications;

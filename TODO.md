@@ -12,6 +12,49 @@
 - [x] Write TDD (docs/TDD.md)
 - [x] Create this TODO list
 
+## Phase 40: Security Phase 2A + API Versioning A + Chart Time Navigation (2026-04-11)
+
+### Security Phase 2 — Phase A (PRD-security-phase2.md)
+- [x] SEC-11: Re-auth gate on account deletion (5-min session age check)
+- [x] SEC-11: Add session_age_seconds to GET /api/auth/me response
+- [x] SEC-13: apple_token_cache table in schema.sql
+- [x] SEC-13: Apple token replay check in POST /api/auth/apple-native
+- [x] SEC-13: Cron cleanup for expired apple_token_cache rows
+- [x] Tests: auth-security.test.ts (re-auth gate + replay prevention, 5 tests)
+- [x] Update docs/SECURITY.md with SEC-11 and SEC-13
+- [x] Update docs/API.md with re-auth requirement and session_age_seconds
+
+### API Versioning — Phase A (PRD-api-versioning.md)
+- [x] Create KV namespace cat-tracker-config (ID: 7fc5a67f7e774458a99bf41dc7fe761c)
+- [x] Add CONFIG_KV binding to wrangler.toml + types.ts
+- [x] Implement GET /api/config route (KV read, validation, cache headers, defaults fallback)
+- [x] Add X-API-Version middleware to index.ts
+- [x] Register config route in index.ts (before auth middleware)
+- [x] Add X-API-Version header to frontend api.ts request()
+- [x] Tests: config.test.ts (defaults, KV read, cache headers, validation, 6 tests)
+- [x] Seed initial config in KV
+- [x] Update docs/API.md with config endpoint and versioning policy
+- [x] Update docs/TDD/web.md with KV namespace and config route
+
+### Chart Time Navigation — Phases A+B (PRD-chart-time-navigation.md)
+- [x] Create useChartWindow hook (frontend/src/lib/useChartWindow.ts)
+- [x] Create ChartRangeSelector component (pill bar, scrollable on small screens)
+- [x] Integrate into WeightChart (range selector, filtered data, adaptive tick formatter)
+- [x] Integrate into MeasurementChart (same pattern)
+- [x] Integrate into CompareChart (shared window across all cat series)
+- [x] Create SwipeableChart wrapper (touch gesture detection)
+- [x] Add chevron indicators and "Today" pill
+- [x] Tests: useChartWindow.test.ts (filtering, navigation, edge cases, 10 tests)
+- [x] Update docs/TDD/web.md with new components
+
+### Deploy + Finalize
+- [x] Run worker tests (93 passing)
+- [x] Run frontend tests (95 passing)
+- [x] Worker deployed (by API versioning agent)
+- [x] Frontend deployed (by API versioning agent)
+- [x] Update REGISTRY.md statuses
+- [-] Commit and push
+
 ## Phase 32: iOS App Store Planning (PRD-ios-app-store.md)
 - [x] Write PRD-ios-app-store.md (Draft): product requirements, asset strategy, automated deployment, App Store metadata, privacy, phased delivery (Phases 0–7), success metrics
 - [x] Update docs/TDD/cross-platform.md: Sign in with Apple technical scope, OTA updates, deep linking/universal links, error monitoring, versioning strategy, CI/CD pipeline, performance budgets, account deletion, web migration safety protocol

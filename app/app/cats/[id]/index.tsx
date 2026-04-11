@@ -10,6 +10,7 @@ import MeasurementForm from '../../../components/MeasurementForm';
 import { assessHealth, STATUS_COLORS, STATUS_LABEL } from '../../../lib/healthMetrics';
 import type { HealthStatus } from '../../../lib/healthMetrics';
 import { getPresetLabel } from '../../../lib/measurementPresets';
+import LineChart from '../../../components/LineChart';
 
 function catAge(birthdate: string): string {
   const birth = new Date(birthdate);
@@ -347,6 +348,31 @@ export default function CatProfileScreen() {
                 availableTypes={availableTypes}
                 hasWeightData={weightMeasurements.length >= 2}
               />
+            )}
+
+            {/* Weight chart */}
+            {weightMeasurements.length >= 2 && (
+              <View style={{
+                backgroundColor: '#1f1830',
+                borderRadius: 16,
+                padding: 16,
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.07)',
+              }}>
+                <Text style={{ fontWeight: '600', fontSize: 14, color: '#a899c0', marginBottom: 12 }}>
+                  Weight Trend
+                </Text>
+                <LineChart
+                  data={weightMeasurements
+                    .sort((a, b) => a.measured_at.localeCompare(b.measured_at))
+                    .map(m => ({ date: new Date(m.measured_at).getTime(), value: m.value }))}
+                  seriesKeys={['value']}
+                  seriesLabels={{ value: cat.name }}
+                  seriesColors={{ value: statusColor }}
+                  height={180}
+                  yLabel="lbs"
+                />
+              </View>
             )}
 
             {/* Measurement form */}

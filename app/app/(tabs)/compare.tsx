@@ -13,6 +13,7 @@ import type { Cat, Measurement } from '../../lib/api';
 import { getPresetLabel, PRESET_TYPES } from '../../lib/measurementPresets';
 import { assessHealth, STATUS_COLORS, STATUS_LABEL, STATUS_EMOJI } from '../../lib/healthMetrics';
 import type { HealthStatus } from '../../lib/healthMetrics';
+import LineChart, { type ChartDataPoint } from '../../components/LineChart';
 
 const LINE_COLORS = ['#c084fc', '#4ade80', '#f97316', '#fbbf24', '#fb923c', '#f87171'];
 
@@ -133,6 +134,39 @@ export default function CompareScreen() {
   const isScaleType = PRESET_TYPES.has(selectedType);
   const enabledCats = cats.filter((c) => enabled.has(c.id));
   const tableData = buildTableData(enabledCats, measurementsByCat);
+
+  // Build chart data: one point per date, one series per enabled cat
+  const chartData: ChartDataPoint[] = [];
+  const dateSet = new Set<string>();
+  for (const cat of enabledCats) {
+    for (const m of measurementsByCat.get(cat.id) ?? []) {
+      const dateKey = m.measured_at.slice(0, 10);
+      dateSet.add(dateKey);
+    }
+  }
+  const sortedDates = Array.from(dateSet).sort();
+  for (const dateKey of sortedDates) {
+    const point: ChartDataPoint = { date: new Date(dateKey + 'T12:00:00').getTime() };
+    for (const cat of enabledCats) {
+      const ms = measurementsByCat.get(cat.id) ?? [];
+      const match = ms.find(m => m.measured_at.startsWith(dateKey));
+      if (match) point[cat.id] = match.value;
+    }
+    // Only include points that have at least one value
+    if (enabledCats.some(c => point[c.id] !== undefined)) {
+      // Fill missing values with NaN so chart skips them
+      for (const cat of enabledCats) {
+        if (point[cat.id] === undefined) point[cat.id] = NaN;
+      }
+      chartData.push(point);
+    }
+  }
+
+  const chartSeriesKeys = enabledCats.map(c => c.id);
+  const chartSeriesLabels = Object.fromEntries(enabledCats.map(c => [c.id, c.name]));
+  const chartSeriesColors = Object.fromEntries(
+    enabledCats.map((c) => [c.id, LINE_COLORS[cats.indexOf(c) % LINE_COLORS.length]!])
+  );
 
   const healthByCat = isWeightType
     ? new Map(
@@ -280,6 +314,31 @@ export default function CompareScreen() {
                 );
               })}
             </ScrollView>
+
+            {/* Chart */}
+            {enabledCats.length > 0 && chartData.length > 1 && (
+              <View style={{
+                backgroundColor: colors.surface,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: colors.rim,
+                padding: 12,
+                marginBottom: 16,
+              }}>
+                <LineChart
+                  data={chartData}
+                  seriesKeys={chartSeriesKeys}
+                  seriesLabels={chartSeriesLabels}
+                  seriesColors={chartSeriesColors}
+                  height={240}
+                  yLabel={isWeightType ? 'lbs' : undefined}
+                  formatY={isScaleType
+                    ? (v) => getPresetLabel(selectedType, Math.round(v))
+                    : (v) => String(Math.round(v * 10) / 10)
+                  }
+                />
+              </View>
+            )}
 
             {/* Data table */}
             {enabledCats.length === 0 ? (

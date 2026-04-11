@@ -252,7 +252,7 @@ export default function MedicationFormPage() {
               >
                 <span className="font-semibold">{p.name}</span>
                 <span className="text-ink-dim ml-2">
-                  {TYPE_LABELS[p.type] ?? p.type}
+                  {p.notes ?? (TYPE_LABELS[p.type] ?? p.type)}
                   {' · '}
                   {p.frequency === 'custom' && p.frequency_days
                     ? `every ${p.frequency_days} days`

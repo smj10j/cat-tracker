@@ -39,6 +39,8 @@
 | [PRD-deceased-cat.md](PRD-deceased-cat.md) | In Memoriam — Marking a Cat as Deceased | `Implemented` | 2026-04-10 |
 | [PRD-weight-alert-sensitivity.md](PRD-weight-alert-sensitivity.md) | Weight Alert Sensitivity Review | `Implemented` | 2026-04-10 |
 | [PRD-ios-app-store.md](PRD-ios-app-store.md) | iOS App Store Deployment | `In Progress` | 2026-04-10 |
+| [PRD-api-versioning.md](PRD-api-versioning.md) | API Versioning & Backend-Driven Updates | `Draft` | 2026-04-11 |
+| [PRD-security-phase2.md](PRD-security-phase2.md) | Security Hardening Phase 2 — Native App & Multi-Client | `Draft` | 2026-04-11 |
 
 ---
 
@@ -522,4 +524,36 @@ Nothing rejected yet.
 
 ---
 
-*Last updated: 2026-04-10*
+### PRD-api-versioning.md — API Versioning & Backend-Driven Updates
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-04-11 |
+| **Depends on** | PRD-ios-app-store.md |
+
+**Problem:** With the iOS app shipping via App Store, frontend and backend deployments are no longer atomic. Breaking API changes can crash older app versions. Health thresholds are hardcoded in the client — updating them requires an app update or OTA push.
+
+**Scope:** API compatibility header (`X-API-Version`), server-driven config endpoint (`GET /api/config`) with feature flags and threshold overrides, minimum version enforcement, additive-only API change policy, deprecation protocol with `Sunset` header.
+
+**Do not implement** — status is `Draft`. Requires product owner approval.
+
+---
+
+### PRD-security-phase2.md — Security Hardening Phase 2
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-04-11 |
+| **Depends on** | PRD-security.md (Implemented), PRD-ios-app-store.md |
+
+**Problem:** The iOS app introduces new attack surface not covered by Phase 1: Bearer tokens (no cookie binding), Apple OAuth (JWT replay), account deletion (no re-auth gate), device token registration (no format validation), data export (no rate limit), and no audit logging for sensitive operations.
+
+**Scope:** 7 findings (SEC-10 through SEC-16). Phase A (critical, before launch): re-auth gate on account deletion, Apple token replay prevention. Phase B (30 days): rate limiting, device token validation, audit logging. Phase C (90 days): device fingerprint binding, accepted risk documentation.
+
+**Do not implement** — status is `Draft`. Requires product owner approval.
+
+---
+
+*Last updated: 2026-04-11*

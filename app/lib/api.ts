@@ -89,6 +89,41 @@ export interface NotificationInbox {
   refill_alerts: (Medication & { cat_name: string })[];
 }
 
+export interface HouseholdMember {
+  id: string;
+  user_id: string;
+  role: string;
+  invited_at: string;
+  joined_at: string | null;
+  display_name: string | null;
+  email: string | null;
+  avatar_url: string | null;
+}
+
+export interface PendingInvite {
+  id: string;
+  invite_email: string;
+  role: string;
+  invited_at: string;
+  invite_expires_at: string | null;
+  invited_by_name: string | null;
+}
+
+export interface HouseholdInfo {
+  id: string;
+  name: string;
+  owner_user_id: string;
+  created_at: string;
+}
+
+export interface HouseholdResponse {
+  household: HouseholdInfo;
+  members: HouseholdMember[];
+  pendingInvites: PendingInvite[];
+  myRole: string;
+  isOwner: boolean;
+}
+
 export const CARE_TYPE_ICONS: Record<string, string> = {
   flea: '\uD83E\uDD9F',
   heartworm: '\u2764\uFE0F',
@@ -287,5 +322,42 @@ export const api = {
   async getNotifications(): Promise<NotificationInbox> {
     const res = await apiFetch('/api/notifications');
     return res.json() as Promise<NotificationInbox>;
+  },
+
+  // Household
+  async getHousehold(): Promise<HouseholdResponse> {
+    const res = await apiFetch('/api/household');
+    return res.json() as Promise<HouseholdResponse>;
+  },
+
+  async renameHousehold(name: string): Promise<HouseholdInfo> {
+    const res = await apiFetch('/api/household', {
+      method: 'PUT',
+      body: JSON.stringify({ name }),
+    });
+    return res.json() as Promise<HouseholdInfo>;
+  },
+
+  async sendInvite(email: string, role: string): Promise<{ success: boolean; inviteUrl?: string }> {
+    const res = await apiFetch('/api/household/invites', {
+      method: 'POST',
+      body: JSON.stringify({ email, role }),
+    });
+    return res.json() as Promise<{ success: boolean; inviteUrl?: string }>;
+  },
+
+  async revokeInvite(inviteId: string): Promise<void> {
+    await apiFetch(`/api/household/invites/${inviteId}`, { method: 'DELETE' });
+  },
+
+  async changeMemberRole(userId: string, role: string): Promise<void> {
+    await apiFetch(`/api/household/members/${userId}/role`, {
+      method: 'PUT',
+      body: JSON.stringify({ role }),
+    });
+  },
+
+  async removeMember(userId: string): Promise<void> {
+    await apiFetch(`/api/household/members/${userId}`, { method: 'DELETE' });
   },
 };

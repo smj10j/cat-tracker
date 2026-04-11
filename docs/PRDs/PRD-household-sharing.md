@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | `Implemented` |
+| **Status** | `Partial` (Phase A implemented; Phase B remaining) |
 | **Author** | Product Owner |
 | **Created** | 2026-03-07 |
 

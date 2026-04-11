@@ -1,29 +1,722 @@
-import { View, Text, Pressable } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, ScrollView, Pressable, Platform, Alert, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { api } from '../../../lib/api';
+import type { Cat, Measurement } from '../../../lib/api';
+import { assessHealth, STATUS_LABEL } from '../../../lib/healthMetrics';
+import type { HealthStatus } from '../../../lib/healthMetrics';
+import {
+  detectCorrelations,
+  describeCorrelation,
+  detectConfluence,
+} from '../../../lib/correlations';
+import { getPresetLabel, PRESET_TYPES } from '../../../lib/measurementPresets';
+
+const colors = {
+  night: '#16111f',
+  surface: '#1f1830',
+  surfaceHi: '#2a2040',
+  lavender: '#c084fc',
+  ink: '#ede9f6',
+  inkMid: '#a899c0',
+  inkDim: '#6b5f85',
+  rim: 'rgba(255,255,255,0.07)',
+  jade: '#4ade80',
+  coral: '#f97316',
+  rose: '#f87171',
+  honey: '#fbbf24',
+  amber: '#fb923c',
+  white: '#ffffff',
+  lightGray: '#6b7280',
+  borderLight: '#e5e7eb',
+};
+
+const TYPE_LABELS: Record<string, string> = {
+  weight: 'Weight',
+  food: 'Food intake',
+  water: 'Water intake',
+  grooming: 'Grooming',
+  play: 'Play',
+  activity: 'Activity level',
+  vomiting: 'Vomiting',
+  litter: 'Litter box',
+};
+
+const TYPE_UNIT_LABEL: Record<string, string> = {
+  weight: 'lbs',
+  food: '(scale: None / Some / Most / All)',
+  water: '(scale: None / Some / Most / All)',
+  grooming: '(scale: None / Less / Normal / Excessive)',
+  activity: '(scale: Lethargic / Low / Normal / Active)',
+  vomiting: '(scale: None / Once / A few times / Many times)',
+  litter: '(scale: Not used / Straining / Loose / Normal)',
+};
+
+const statusExplained: Record<string, string> = {
+  ok: 'Stable — weight trend within normal range',
+  watch: 'Watch — mild weight change worth monitoring',
+  concerning: 'Concerning — notable weight loss; veterinary discussion recommended',
+  urgent: 'Urgent — significant weight loss; veterinary evaluation recommended promptly',
+};
+
+function catAge(birthdate: string): string {
+  const birth = new Date(birthdate);
+  const now = new Date();
+  const months =
+    (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
+  if (months < 12) return `${months} month${months !== 1 ? 's' : ''} old`;
+  const years = Math.floor(months / 12);
+  const rem = months % 12;
+  return rem > 0 ? `${years}y ${rem}mo` : `${years} year${years !== 1 ? 's' : ''} old`;
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function buildShareText(
+  cat: Cat,
+  weightMs: Measurement[],
+  health: ReturnType<typeof assessHealth>,
+  byType: Record<string, Measurement[]>,
+  correlations: ReturnType<typeof detectCorrelations>,
+  generatedAt: string,
+): string {
+  const lines: string[] = [];
+  lines.push('WHISKER HEALTH — VET VISIT SUMMARY');
+  lines.push(`Generated ${generatedAt}`);
+  lines.push('');
+  lines.push(`Cat: ${cat.name}`);
+  lines.push(`Age: ${catAge(cat.birthdate)}`);
+  if (cat.breed) lines.push(`Breed: ${cat.breed}`);
+  if (cat.sex) lines.push(`Sex: ${cat.sex}`);
+  if (cat.microchip_id) lines.push(`Microchip: ${cat.microchip_id}`);
+
+  if (weightMs.length > 0) {
+    lines.push('');
+    lines.push('WEIGHT');
+    lines.push(`Current: ${weightMs[0]?.value} lbs`);
+    if (weightMs.length >= 2) {
+      lines.push(`Status: ${statusExplained[health.overallStatus] ?? health.overallStatus}`);
+      if (health.peakLossPct > 0) {
+        lines.push(`Change from peak: ${health.peakLossPct}% below highest`);
+      }
+      lines.push(`Trend: ${health.summary}`);
+    }
+    lines.push('');
+    lines.push('Date | Weight | Change');
+    for (let i = 0; i < Math.min(15, weightMs.length); i++) {
+      const m = weightMs[i]!;
+      const prev = weightMs[i + 1];
+      const change = prev ? m.value - prev.value : null;
+      const changeStr =
+        change == null ? '--' : change > 0 ? `+${change.toFixed(1)}` : change.toFixed(1);
+      lines.push(`${formatDate(m.measured_at)} | ${m.value} lbs | ${changeStr}`);
+    }
+  }
+
+  const behavTypes = Object.keys(byType).filter(
+    (t) => t !== 'weight' && PRESET_TYPES.has(t),
+  );
+  for (const type of behavTypes) {
+    const ms = (byType[type] ?? []).sort((a, b) =>
+      b.measured_at.localeCompare(a.measured_at),
+    );
+    const cutoff = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString();
+    const recent = ms.filter((m) => m.measured_at >= cutoff);
+    const shown = recent.length > 0 ? recent : ms.slice(0, 8);
+    if (shown.length === 0) continue;
+    lines.push('');
+    lines.push((TYPE_LABELS[type] ?? type).toUpperCase());
+    for (const m of shown) {
+      lines.push(`${formatDateTime(m.measured_at)} | ${getPresetLabel(m.type, m.value)}`);
+    }
+  }
+
+  if (correlations.length > 0) {
+    lines.push('');
+    lines.push('OBSERVED PATTERNS');
+    for (const r of correlations) {
+      lines.push(`- ${describeCorrelation(r, cat.name, cat.sex, 'vet')}`);
+    }
+  }
+
+  lines.push('');
+  lines.push(`Generated by Whisker Health · ${generatedAt}`);
+  return lines.join('\n');
+}
 
 export default function CatExportScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
+  const [cat, setCat] = useState<Cat | null>(null);
+  const [measurements, setMeasurements] = useState<Measurement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    Promise.all([api.getCat(id), api.getMeasurements(id)])
+      .then(([c, m]) => {
+        setCat(c);
+        setMeasurements(m);
+      })
+      .catch((e: unknown) => setError((e as Error).message))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ color: colors.inkMid, fontSize: 14 }}>Preparing export...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error || !cat) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
+        <View style={{ padding: 20 }}>
+          <Text style={{ color: colors.rose, fontSize: 14 }}>{error ?? 'Cat not found'}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const byType: Record<string, Measurement[]> = {};
+  for (const m of measurements) {
+    if (!byType[m.type]) byType[m.type] = [];
+    byType[m.type]!.push(m);
+  }
+  const allTypes = Object.keys(byType);
+
+  const weightMs = (byType['weight'] ?? []).sort((a, b) =>
+    b.measured_at.localeCompare(a.measured_at),
+  );
+  const health = assessHealth(weightMs);
+  const status = health.overallStatus;
+
+  const correlations =
+    allTypes.length >= 2
+      ? detectCorrelations(byType).filter((r) => r.strength !== 'none')
+      : [];
+  const confluence =
+    correlations.length >= 2 ? detectConfluence(correlations, cat.name) : null;
+
+  const generatedAt = new Date().toLocaleString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+
+  function handleShare() {
+    if (!cat) return;
+    const text = buildShareText(cat, weightMs, health, byType, correlations, generatedAt);
+    if (Platform.OS === 'web') {
+      window.print();
+    } else {
+      Share.share({ message: text, title: `${cat.name} - Vet Visit Summary` });
+    }
+  }
+
+  const statusColor =
+    status === 'urgent'
+      ? colors.rose
+      : status === 'concerning'
+        ? colors.coral
+        : status === 'watch'
+          ? colors.honey
+          : colors.jade;
+
   return (
-    <SafeAreaView className="flex-1 bg-night">
-      <View className="px-4 py-3 flex-row items-center gap-3 border-b border-rim">
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
+      {/* Action bar */}
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.rim,
+        }}
+      >
         <Pressable onPress={() => router.back()}>
-          <Text className="text-lavender text-base">← Back</Text>
+          <Text style={{ color: colors.lavender, fontSize: 15 }}>
+            {'\u2190'} Back to {cat.name}
+          </Text>
         </Pressable>
-        <Text className="text-ink text-xl font-bold">Vet Export</Text>
+        <Pressable
+          onPress={handleShare}
+          style={{
+            backgroundColor: colors.lavender,
+            paddingHorizontal: 16,
+            paddingVertical: 10,
+            borderRadius: 12,
+          }}
+        >
+          <Text style={{ color: colors.night, fontSize: 13, fontWeight: '600' }}>
+            {Platform.OS === 'web' ? 'Print / PDF' : 'Share'}
+          </Text>
+        </Pressable>
       </View>
 
-      <View className="flex-1 items-center justify-center px-6">
-        <Text className="text-3xl mb-4">🩺</Text>
-        <Text className="text-ink text-lg font-semibold text-center">Vet-Ready PDF Export</Text>
-        <Text className="text-ink-mid text-sm text-center mt-2">
-          Print-ready health report with weight history, behavioral trends, and clinical observations.
-          Full export with expo-print + expo-sharing coming in Phase 4.
-        </Text>
-        <Text className="text-ink-dim text-xs mt-4">Cat ID: {id}</Text>
-      </View>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+      >
+        {/* Document header */}
+        <View style={{ borderBottomWidth: 1, borderBottomColor: colors.rim, paddingBottom: 16, marginBottom: 20 }}>
+          <Text
+            style={{
+              fontSize: 10,
+              fontWeight: '700',
+              color: colors.inkDim,
+              textTransform: 'uppercase',
+              letterSpacing: 1,
+              marginBottom: 10,
+            }}
+          >
+            Whisker Health — Vet Visit Summary
+          </Text>
+          <Text style={{ fontSize: 22, fontWeight: '700', color: colors.ink, marginBottom: 4 }}>
+            {cat.name}
+          </Text>
+          <Text style={{ fontSize: 12, color: colors.inkDim }}>Generated {generatedAt}</Text>
+        </View>
+
+        {/* Cat info */}
+        <SectionHeader title="Cat Information" />
+        <View style={{ marginBottom: 20 }}>
+          <InfoRow label="Name" value={cat.name} />
+          <InfoRow label="Age" value={catAge(cat.birthdate)} />
+          {cat.breed && <InfoRow label="Breed" value={cat.breed} />}
+          {cat.sex && <InfoRow label="Sex" value={cat.sex} />}
+          {cat.coloring && <InfoRow label="Coloring" value={cat.coloring} />}
+          {cat.microchip_id && <InfoRow label="Microchip" value={cat.microchip_id} />}
+          {cat.notes && <InfoRow label="Notes" value={cat.notes} />}
+        </View>
+
+        {/* Weight section */}
+        {weightMs.length > 0 && (
+          <>
+            <SectionHeader title="Weight" />
+            <View style={{ marginBottom: 8 }}>
+              <InfoRow label="Current" value={`${weightMs[0]?.value} lbs`} />
+              {weightMs.length >= 2 && (
+                <>
+                  <InfoRow
+                    label="Status"
+                    value={statusExplained[status] ?? status}
+                    valueColor={statusColor}
+                  />
+                  {health.peakLossPct > 0 && (
+                    <InfoRow
+                      label="Change from peak"
+                      value={`${health.peakLossPct}% below highest recorded weight`}
+                    />
+                  )}
+                  <InfoRow label="Trend" value={health.summary} />
+                </>
+              )}
+            </View>
+
+            {/* Weight table */}
+            <Text
+              style={{
+                fontSize: 10,
+                fontWeight: '600',
+                color: colors.inkDim,
+                textTransform: 'uppercase',
+                letterSpacing: 0.5,
+                marginBottom: 8,
+                marginTop: 4,
+              }}
+            >
+              Weight log (most recent first)
+            </Text>
+            <View
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: colors.rim,
+                overflow: 'hidden',
+                marginBottom: 20,
+              }}
+            >
+              {/* Header */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  paddingVertical: 8,
+                  paddingHorizontal: 12,
+                  backgroundColor: colors.surfaceHi,
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.rim,
+                }}
+              >
+                <Text style={{ flex: 2, fontSize: 11, fontWeight: '600', color: colors.inkDim }}>
+                  Date
+                </Text>
+                <Text
+                  style={{
+                    flex: 1,
+                    fontSize: 11,
+                    fontWeight: '600',
+                    color: colors.inkDim,
+                    textAlign: 'right',
+                  }}
+                >
+                  Weight
+                </Text>
+                <Text
+                  style={{
+                    flex: 1,
+                    fontSize: 11,
+                    fontWeight: '600',
+                    color: colors.inkDim,
+                    textAlign: 'right',
+                  }}
+                >
+                  Change
+                </Text>
+              </View>
+              {weightMs.slice(0, 15).map((m, i) => {
+                const prev = weightMs[i + 1];
+                const change = prev ? m.value - prev.value : null;
+                const changeColor =
+                  change == null
+                    ? colors.inkDim
+                    : change < 0
+                      ? colors.rose
+                      : change > 0
+                        ? colors.jade
+                        : colors.inkDim;
+                return (
+                  <View
+                    key={m.id}
+                    style={{
+                      flexDirection: 'row',
+                      paddingVertical: 8,
+                      paddingHorizontal: 12,
+                      borderBottomWidth: i < Math.min(14, weightMs.length - 1) ? 1 : 0,
+                      borderBottomColor: colors.rim,
+                    }}
+                  >
+                    <Text style={{ flex: 2, fontSize: 13, color: colors.inkMid }}>
+                      {formatDate(m.measured_at)}
+                    </Text>
+                    <Text
+                      style={{
+                        flex: 1,
+                        fontSize: 13,
+                        fontWeight: '600',
+                        color: colors.ink,
+                        textAlign: 'right',
+                      }}
+                    >
+                      {m.value}
+                    </Text>
+                    <Text
+                      style={{
+                        flex: 1,
+                        fontSize: 13,
+                        color: changeColor,
+                        textAlign: 'right',
+                      }}
+                    >
+                      {change == null
+                        ? '--'
+                        : change > 0
+                          ? `+${change.toFixed(1)}`
+                          : change.toFixed(1)}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+            {weightMs.length > 15 && (
+              <Text style={{ fontSize: 11, color: colors.inkDim, marginTop: -14, marginBottom: 20 }}>
+                {weightMs.length - 15} earlier entries not shown
+              </Text>
+            )}
+          </>
+        )}
+
+        {/* Behavioral measurements */}
+        {allTypes
+          .filter((t) => t !== 'weight' && PRESET_TYPES.has(t))
+          .map((type) => {
+            const ms = (byType[type] ?? []).sort((a, b) =>
+              b.measured_at.localeCompare(a.measured_at),
+            );
+            const cutoff = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString();
+            const recent = ms.filter((m) => m.measured_at >= cutoff);
+            const shown = recent.length > 0 ? recent : ms.slice(0, 8);
+            if (shown.length === 0) return null;
+
+            return (
+              <View key={type} style={{ marginBottom: 20 }}>
+                <SectionHeader title={TYPE_LABELS[type] ?? type} />
+                <Text
+                  style={{
+                    fontSize: 11,
+                    color: colors.inkDim,
+                    marginBottom: 8,
+                    marginTop: -8,
+                  }}
+                >
+                  {TYPE_UNIT_LABEL[type]}
+                </Text>
+                <View
+                  style={{
+                    backgroundColor: colors.surface,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: colors.rim,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      paddingVertical: 8,
+                      paddingHorizontal: 12,
+                      backgroundColor: colors.surfaceHi,
+                      borderBottomWidth: 1,
+                      borderBottomColor: colors.rim,
+                    }}
+                  >
+                    <Text
+                      style={{ flex: 2, fontSize: 11, fontWeight: '600', color: colors.inkDim }}
+                    >
+                      Date & time
+                    </Text>
+                    <Text
+                      style={{
+                        flex: 1,
+                        fontSize: 11,
+                        fontWeight: '600',
+                        color: colors.inkDim,
+                        textAlign: 'right',
+                      }}
+                    >
+                      Value
+                    </Text>
+                  </View>
+                  {shown.map((m, i) => (
+                    <View
+                      key={m.id}
+                      style={{
+                        flexDirection: 'row',
+                        paddingVertical: 8,
+                        paddingHorizontal: 12,
+                        borderBottomWidth: i < shown.length - 1 ? 1 : 0,
+                        borderBottomColor: colors.rim,
+                      }}
+                    >
+                      <Text style={{ flex: 2, fontSize: 13, color: colors.inkMid }}>
+                        {formatDateTime(m.measured_at)}
+                      </Text>
+                      <Text
+                        style={{
+                          flex: 1,
+                          fontSize: 13,
+                          fontWeight: '600',
+                          color: colors.ink,
+                          textAlign: 'right',
+                        }}
+                      >
+                        {getPresetLabel(m.type, m.value)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+                {ms.length > shown.length && (
+                  <Text style={{ fontSize: 11, color: colors.inkDim, marginTop: 4 }}>
+                    {ms.length - shown.length} earlier entries not shown
+                  </Text>
+                )}
+              </View>
+            );
+          })}
+
+        {/* Correlations / Observed patterns */}
+        {correlations.length > 0 && (
+          <>
+            <SectionHeader title="Observed Patterns" />
+            <Text
+              style={{
+                fontSize: 11,
+                color: colors.inkDim,
+                marginBottom: 12,
+                marginTop: -8,
+              }}
+            >
+              Based on owner-reported behavioral data corroborating objective weight measurements.
+            </Text>
+
+            {confluence && (
+              <View
+                style={{
+                  backgroundColor: '#fef3c720',
+                  borderWidth: 1,
+                  borderColor: colors.honey,
+                  borderRadius: 10,
+                  padding: 12,
+                  marginBottom: 12,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontWeight: '700',
+                    color: colors.honey,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                    marginBottom: 4,
+                  }}
+                >
+                  Multi-pattern cluster — {confluence.clusterName}
+                </Text>
+                <Text style={{ fontSize: 13, color: colors.ink, lineHeight: 18 }}>
+                  {confluence.vetNote}
+                </Text>
+              </View>
+            )}
+
+            {correlations.map((r) => (
+              <View
+                key={`${r.typeA}-${r.typeB}`}
+                style={{ flexDirection: 'row', marginBottom: 10, paddingRight: 8 }}
+              >
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: '600',
+                    color: r.strength === 'notable' ? colors.lavender : colors.amber,
+                    marginRight: 6,
+                  }}
+                >
+                  {r.strength === 'notable' ? '\u25CF' : '\u25CB'}
+                </Text>
+                <Text style={{ flex: 1, fontSize: 13, color: colors.inkMid, lineHeight: 19 }}>
+                  {describeCorrelation(r, cat.name, cat.sex, 'vet')}
+                </Text>
+              </View>
+            ))}
+          </>
+        )}
+
+        {/* Methodology */}
+        <View
+          style={{
+            borderTopWidth: 1,
+            borderTopColor: colors.rim,
+            paddingTop: 16,
+            marginTop: 20,
+            marginBottom: 20,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 10,
+              fontWeight: '700',
+              color: colors.inkDim,
+              textTransform: 'uppercase',
+              letterSpacing: 0.5,
+              marginBottom: 8,
+            }}
+          >
+            Methodology
+          </Text>
+          <Text style={{ fontSize: 11, color: colors.inkDim, lineHeight: 16, marginBottom: 8 }}>
+            Weight status thresholds follow AAFP and WSAVA feline nutritional guidelines: urgent
+            ({'>'}2%/week loss or {'>'}10% from recent baseline), concerning (1-2%/week or {'>'}7%
+            total), watch (0.5-1%/week). Rapid gain {'>'}3%/week is also flagged as concerning.
+            Baseline weight is computed as the 90th percentile of measurements in the past 180
+            days.
+          </Text>
+          <Text style={{ fontSize: 11, color: colors.inkDim, lineHeight: 16 }}>
+            Behavioral indicators are owner-reported observations on a 0-3 scale. Observed
+            patterns use Pearson correlation with 0-4 week lag on weekly buckets; minimum 4
+            aligned weeks required. Clinical interpretation references AAFP Pain Management
+            Guidelines (2022), ISFM Feline Stress Consensus (2020), AAFP FLUTD/FIC Consensus,
+            and IRIS CKD Guidelines.
+          </Text>
+        </View>
+
+        {/* Footer */}
+        <View
+          style={{
+            borderTopWidth: 1,
+            borderTopColor: colors.rim,
+            paddingTop: 12,
+          }}
+        >
+          <Text style={{ fontSize: 11, color: colors.inkDim }}>
+            Generated by Whisker Health {'\u00B7'} {generatedAt}
+          </Text>
+        </View>
+      </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function SectionHeader({ title }: { title: string }) {
+  return (
+    <Text
+      style={{
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#6b5f85',
+        textTransform: 'uppercase',
+        letterSpacing: 0.8,
+        marginBottom: 10,
+      }}
+    >
+      {title}
+    </Text>
+  );
+}
+
+function InfoRow({
+  label,
+  value,
+  valueColor,
+}: {
+  label: string;
+  value: string;
+  valueColor?: string;
+}) {
+  return (
+    <View style={{ flexDirection: 'row', marginBottom: 4 }}>
+      <Text style={{ fontSize: 13, fontWeight: '600', color: '#ede9f6', marginRight: 4 }}>
+        {label}:
+      </Text>
+      <Text style={{ fontSize: 13, color: valueColor ?? '#a899c0', flex: 1 }}>{value}</Text>
+    </View>
   );
 }

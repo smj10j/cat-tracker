@@ -26,18 +26,18 @@
 | [PRD-microchip-id.md](PRD-microchip-id.md) | Microchip ID as Cat Identifier | `Implemented` | 2026-03-07 10:25 |
 | [PRD-profile-clarity.md](PRD-profile-clarity.md) | Cat Profile — Insights Panel Clarity | `Implemented` | 2026-03-07 10:25 |
 | [PRD-security.md](PRD-security.md) | Security Hardening | `Implemented` | 2026-03-07 10:39 |
-| [PRD-medication-reminders.md](PRD-medication-reminders.md) | Medication Reminders | `Implemented` | 2026-03-07 12:00 |
-| [PRD-household-sharing.md](PRD-household-sharing.md) | Household Sharing & Multi-User Access | `Implemented` | 2026-03-07 18:00 |
+| [PRD-medication-reminders.md](PRD-medication-reminders.md) | Medication Reminders | `Partial` | 2026-04-11 |
+| [PRD-household-sharing.md](PRD-household-sharing.md) | Household Sharing & Multi-User Access | `Partial` | 2026-04-11 |
 | [PRD-household-sharing-phase2.md](PRD-household-sharing-phase2.md) | Household Sharing — Phase 2 (lifecycle + audit) | `Draft` | 2026-03-07 13:00 |
 | [PRD-cat-photos.md](PRD-cat-photos.md) | Cat Photo Uploads | `Implemented` | 2026-03-07 20:00 |
-| [PRD-ux-redesign.md](PRD-ux-redesign.md) | UX Redesign — Competitive Analysis & Next-Gen Features | `Partial` | 2026-03-07 |
+| [PRD-ux-redesign.md](PRD-ux-redesign.md) | UX Redesign — Competitive Analysis & Next-Gen Features | `Partial` | 2026-04-11 |
 | [PRD-daily-checkin.md](PRD-daily-checkin.md) | Daily Check-In — Multi-Measurement Entry Screen | `Implemented` | 2026-03-07 |
 | [PRD-evidence-base.md](PRD-evidence-base.md) | Veterinary Evidence Base — Sources, Citations, and Research Infrastructure | `Implemented` | 2026-03-07 |
 | [PRD-accessibility.md](PRD-accessibility.md) | Accessibility — Color Independence, Touch Targets, Screen Reader Support | `Partial` | 2026-03-07 |
 | [PRD-usability.md](PRD-usability.md) | Usability Polish — Scroll, Feedback, Disabled States, Delete Confirmation | `Partial` | 2026-03-07 |
-| [PRD-app-settings.md](PRD-app-settings.md) | App Settings — Dark/Light/System Mode Toggle | `Implemented` | 2026-03-08 |
-| [PRD-deceased-cat.md](PRD-deceased-cat.md) | In Memoriam — Marking a Cat as Deceased | `Implemented` | 2026-04-10 |
-| [PRD-weight-alert-sensitivity.md](PRD-weight-alert-sensitivity.md) | Weight Alert Sensitivity Review | `Implemented` | 2026-04-10 |
+| [PRD-app-settings.md](PRD-app-settings.md) | App Settings — Dark/Light/System Mode Toggle | `Partial` | 2026-04-11 |
+| [PRD-deceased-cat.md](PRD-deceased-cat.md) | In Memoriam — Marking a Cat as Deceased | `Implemented` | 2026-04-11 |
+| [PRD-weight-alert-sensitivity.md](PRD-weight-alert-sensitivity.md) | Weight Alert Sensitivity Review | `Implemented` | 2026-04-11 |
 | [PRD-ios-app-store.md](PRD-ios-app-store.md) | iOS App Store Deployment | `In Progress` | 2026-04-10 |
 | [PRD-api-versioning.md](PRD-api-versioning.md) | API Versioning & Backend-Driven Updates | `Draft` | 2026-04-11 |
 | [PRD-security-phase2.md](PRD-security-phase2.md) | Security Hardening Phase 2 — Native App & Multi-Client | `Draft` | 2026-04-11 |
@@ -96,10 +96,9 @@ Each entry below provides full implementation notes and open questions. The summ
 - Health severity visuals (status-tinted cards, badges, sorted by severity)
 
 **Not yet implemented:**
-- Photo upload (R2) — still viable; no PRD written yet
-- Date range filtering on charts
+- Date range filtering on charts (see PRD-chart-time-navigation.md, Draft)
 - Trend regression / ideal weight band
-- "Due for weigh-in" badge (see PRD-killer-app.md P3)
+- "Due for weigh-in" badge (see PRD-killer-app.md P3 / PRD-ux-redesign.md 3C)
 
 **Superseded:**
 - §5 Sharing / token-based household access — replaced by PRD-auth.md (full user accounts)
@@ -163,12 +162,12 @@ Each entry below provides full implementation notes and open questions. The summ
 |----------|---------|--------|
 | P0 | Vet export / shareable visit summary | Implemented (see PRD-vet-export.md) |
 | P1 | Daily check-in (multi-measurement single screen) | Implemented (see PRD-daily-checkin.md) |
-| P2 | Streak & consistency tracking | Not started |
-| P3 | Weigh-in reminders (`reminder_interval_days` per cat) | Not started |
+| P2 | Streak & consistency tracking | Not started (spec in PRD-ux-redesign.md 3B) |
+| P3 | Weigh-in reminders (`reminder_interval_days` per cat) | Not started (spec in PRD-ux-redesign.md 3C) |
 | P4 | Correlation insights (food drop → weight drop) | Implemented (see PRD-correlations.md) |
-| P5 | Household sharing (on top of auth) | Not started |
+| P5 | Household sharing (on top of auth) | Partial (see PRD-household-sharing.md) |
 | P6 | Shelter mode (rooms, triage view, medical templates) | Not started |
-| P7 | AI health narrative (Claude API weekly summaries) | Not started |
+| P7 | AI health narrative (Claude API weekly summaries) | Not started (concept in PRD-ux-redesign.md 3D) |
 | P8 | Smart scale integration | Not started |
 
 ---
@@ -302,13 +301,18 @@ Each entry below provides full implementation notes and open questions. The summ
 | | |
 |---|---|
 | **Status** | `Partial` |
-| **Last updated** | 2026-03-07 11:00 |
+| **Last updated** | 2026-04-11 |
 
 **Problem:** Cat owners with recurring medications (flea prevention, daily pills, heartworm) have no reminder system. Missing doses can have serious health consequences (thyroid crisis, flea infestation).
 
 **Scope:** Medication schedule management, recurring/one-time reminders, finite courses, in-app notification inbox, mark-given/skip-dose, refill reminders, web push notifications (VAPID), cron-driven delivery, pre-built medication presets.
 
-**Implemented Phase A** (core scheduling + in-app inbox). Phase B (web push), C (email), D (refill stock UI) remain as future work.
+**Implemented Phase A** — core scheduling + in-app inbox: `medications` and `medication_doses` tables, CRUD endpoints, 90-day dose generation with cron, `/notifications` inbox (overdue/due-today/upcoming/refill), mark-given/skip endpoints, MedicationFormPage with presets, NotificationsPage, home screen badge count.
+
+**Not yet implemented:**
+- Phase B — Web Push notifications (VAPID key pair, service worker, `/api/push/*` endpoints, push delivery in cron)
+- Phase C — Email fallback (Resend email when no push subscription and dose becomes overdue)
+- Phase D — Refill stock tracking UI (doses_remaining management on medication edit form)
 
 ---
 
@@ -317,13 +321,19 @@ Each entry below provides full implementation notes and open questions. The summ
 | | |
 |---|---|
 | **Status** | `Partial` |
-| **Last updated** | 2026-03-07 12:30 |
+| **Last updated** | 2026-04-11 |
 
 **Problem:** Cat Tracker is single-user. Multi-person households (spouses, family members, pet sitters) can't share access to the same cats.
 
 **Scope:** Household entity owns cats; 4-role permission system (Viewer/Contributor/Editor/Admin); email invite flow via Resend (`noreply@01j.me`); household settings UI accessible from profile popover; migration from current per-user cat ownership to household-based ownership.
 
-**Implemented Phase A** (household model, invite system, role-based access, member management, household settings page, invite acceptance page, home screen household labels, household-scoped cat and measurement authorization).
+**Implemented Phase A** — household model, invite system (with SHA-256 token hashing), role-based access, member management (role change + removal), household settings page, invite acceptance page, home screen household labels, household-scoped cat and measurement authorization. All core features working in production.
+
+**Not yet implemented (Phase B):**
+- Custom confirmation dialogs for role changes and member removal (currently uses browser `confirm()`)
+- Invitation reminder email (resend if not accepted after 3 days)
+- Email notification to Admins when someone accepts an invite
+- Email notification to removed member when they are removed
 
 ---
 
@@ -363,20 +373,25 @@ Each entry below provides full implementation notes and open questions. The summ
 
 | | |
 |---|---|
-| **Status** | `Draft` |
-| **Last updated** | 2026-03-07 |
+| **Status** | `Partial` |
+| **Last updated** | 2026-04-11 |
 | **Depends on** | PRD-killer-app.md (P1, P2, P3, P7) |
 
 **Origin:** Competitive analysis of a vet practice pet management app (PetDesk-like). Five screens analyzed covering pet profile, reminder system, and reminder creation flow.
 
-**Scope:** 5 proposals across 5 phases:
-- **2A** Profile Hero Redesign (full-bleed photo, gradient overlay, structured details) — **Implemented**
-- **2B** Structured Pet Details with Icons + neuter/spay status field — **Implemented**
-- **2C** Rename Medications to "Care Schedule," add vet event types, emoji icon system — **Implemented**
-- **2D** CatProfile tab reorganization (Health / Care / About) — **Implemented**
-- **2E** Photo gallery/timeline — Not started
+**Implemented (Phases 1-2):**
+- **2A** Profile Hero Redesign (full-bleed photo, gradient overlay, structured details)
+- **2B** Structured Pet Details with Icons + neuter/spay status field
+- **2C** Rename Medications to "Care Schedule," add vet event types, emoji icon system
+- **2D** CatProfile tab reorganization (Health / Care / About)
+- **3A** Daily Check-In — implemented separately via PRD-daily-checkin.md
 
-Plus 5 Killer App promotions: Daily Check-In (P1), Streaks (P2), Weigh-In Reminders (P3), AI Health Narrative (P7), Vet Integration concept (future).
+**Not yet implemented:**
+- **2E** Photo gallery/timeline — not started (low priority)
+- **3B** Streak & consistency tracking — not started (fully specified in PRD, high priority)
+- **3C** Weigh-in reminders — not started (medium priority)
+- **3D** AI Health Narrative (Claude API) — not started (needs separate detailed PRD)
+- **3E** Vet integration two-way data — future concept only
 
 ---
 
@@ -411,14 +426,12 @@ Plus 5 Killer App promotions: Daily Check-In (P1), Streaks (P2), Weigh-In Remind
 
 | | |
 |---|---|
-| **Status** | `Draft` |
-| **Last updated** | 2026-04-10 |
+| **Status** | `Implemented` |
+| **Last updated** | 2026-04-11 |
 
 **Problem:** Cat Tracker has no way to mark a cat as deceased. The only option is deletion, which permanently destroys data that may be irreplaceable — a record of a life and the observations that helped prompt veterinary care.
 
-**Scope:** A gentle "passed away" flow on the Edit Cat page (not a delete button); date-of-passing field and optional 150-char memorial note; deceased cats hidden from the active home list and shown in a quiet "In Memoriam" section; a read-only Memorial Record page at `/cats/:id/memorial` with hero, memorial note, life summary, collapsible health history, and PDF export button; auto-deactivation of medications; exclusion from CompareChart. Two new DB columns (`deceased_at`, `memorial_note`). No new API routes — extends `PUT /api/cats/:id` and `GET /api/cats?status=`.
-
-**Do not implement** — status is `Draft`. Requires product owner approval.
+**Implemented:** Full "passed away" flow on the Edit Cat page with date-of-passing and optional 150-char memorial note; deceased cats hidden from the active home list and shown in a quiet "In Memoriam" section; Memorial Record page at `/cats/:id/memorial` with hero, memorial note, life summary, collapsible health history, and PDF export button; auto-deactivation of medications and deletion of future doses; exclusion from CompareChart and QuickAdd. Two DB columns (`deceased_at`, `memorial_note`) added; `GET /api/cats?status=active|memorial|all` filter; un-marking ("restore") flow for errors. See Phase 31 in TODO.md.
 
 ---
 
@@ -426,16 +439,12 @@ Plus 5 Killer App promotions: Daily Check-In (P1), Streaks (P2), Weigh-In Remind
 
 | | |
 |---|---|
-| **Status** | `Draft` |
-| **Last updated** | 2026-04-10 |
+| **Status** | `Implemented` |
+| **Last updated** | 2026-04-11 |
 
 **Problem:** All cats in a household are showing health alert states (watch/concerning) after a ~2.5% weight loss. The alerts are noise-driven, eroding owner trust in the system.
 
-**Root causes identified:** (1) Rate extrapolation: %/week calculated from sub-weekly intervals amplifies noise 3–4×. (2) No noise floor: scale precision and biological variation (~0.1–0.2 lbs) triggers `concerning` alerts. (3) Peak-weight ratchet: all-time maximum weight is used as baseline, so intentional weight loss or a single outlier measurement permanently inflates the alarm state.
-
-**Scope:** Three algorithm changes to `healthMetrics.ts`: minimum interval gate (skip rate calculation for intervals < 5 days), relative noise floor (require ≥0.5% absolute change before any non-ok classification), and robust peak reference (90th percentile of measurements in the last 6 months instead of all-time max). Clinical thresholds themselves do not change — only their application. Requires `docs/research/weight-thresholds.md` update to document the engineering heuristics.
-
-**Do not implement** — status is `Draft`. Requires product owner approval.
+**Implemented:** All three algorithm changes to `healthMetrics.ts`: (1) minimum interval gate — skip rate classification for measurements < 5 days apart (`skipped: true` on PeriodHealth); (2) relative noise floor — require ≥0.5% absolute change before any non-ok classification; (3) robust peak reference — 90th percentile of measurements in the last 180 days (fallback to all-time max when < 8 measurements). `referencePeak` exposed on `HealthAssessment`. InsightsPanel and CatExportPage updated to reference "recent weight" instead of "peak body weight." `docs/research/weight-thresholds.md` updated with engineering heuristic documentation. New test cases added to `healthMetrics.test.ts`. See Phase 30 in TODO.md.
 
 ---
 
@@ -446,7 +455,7 @@ Items mentioned or implied by existing PRDs that have not yet been formally spec
 | Feature | Origin | Notes |
 |---------|--------|-------|
 | ~~Photo upload (R2)~~ | ~~PRD-features-backlog.md~~ | Superseded by PRD-cat-photos.md |
-| Date range filter on charts | PRD-features-backlog.md | Low priority so far |
+| ~~Date range filter on charts~~ | ~~PRD-features-backlog.md~~ | Now specified in PRD-chart-time-navigation.md |
 | ~~Daily check-in screen~~ | ~~PRD-killer-app.md P1~~ | Now specified in PRD-daily-checkin.md |
 | ~~Streak tracking~~ | ~~PRD-killer-app.md P2~~ | Now fully specified in PRD-ux-redesign.md 3B |
 | AI Health Narrative | PRD-killer-app.md P7, PRD-ux-redesign.md 3D | Needs separate detailed PRD if approved |
@@ -470,7 +479,11 @@ Nothing rejected yet.
 
 **Scope:** Three phases — (A) zero-visual-impact fixes: label associations, `aria-live`/`role="alert"`, `aria-expanded`, `role="tablist"`, `:focus-visible` ring; (B) text and touch targets: min 12px text, min 44px touch targets; (C) color independence: text labels on concern-tier presets, stroke dash patterns in CompareChart, STATUS_LABEL always alongside STATUS_EMOJI.
 
-**Phases A and B implemented** — `:focus-visible` ring, `htmlFor`/`id` on all forms, `aria-live`/`role="status"/"alert"` on dynamic feedback, `aria-busy` on save buttons, `aria-expanded` on toggles (InsightsPanel, WellnessGuide), `role="tablist"/"tab"/"aria-selected"` on CatProfile tabs. All `text-[10px]` replaced with `text-xs`. `min-h-[44px]` on DailyCheckin preset buttons and MeasurementForm close button. Phase C (color-independence signals, CompareChart dash patterns) remains.
+**Implemented (Phases A + B):** `:focus-visible` ring, `htmlFor`/`id` on all forms, `aria-live`/`role="status"/"alert"` on dynamic feedback, `aria-busy` on save buttons, `aria-expanded` on toggles (InsightsPanel, WellnessGuide), `role="tablist"/"tab"/"aria-selected"` on CatProfile tabs. All `text-[10px]` replaced with `text-xs`. `min-h-[44px]` on DailyCheckin preset buttons and MeasurementForm close button. Concern-tier preset buttons have "! " prefix.
+
+**Not yet implemented (Phase C — color independence):**
+- CompareChart: stroke dash patterns (solid vs dashed) as second per-cat differentiator alongside color
+- InsightsPanel: STATUS_LABEL text badge always alongside STATUS_EMOJI (not just on hover)
 
 ---
 
@@ -485,7 +498,12 @@ Nothing rejected yet.
 
 **Scope:** Three phases — (A) zero-risk wins: `ScrollToTop` component, disabled button copy, actionable error messages, save confirmation in MeasurementForm; (B) interaction model: two-step preset save in MeasurementForm, two-step delete confirmation, back nav audit; (C) state and hierarchy: loading state standardization, empty state improvements, CatProfile health status visibility.
 
-**Phases A and B implemented** — `ScrollToTop` component, disabled button always says "Log Check-In" with contextual hint below, `role="alert"` on errors, `role="status"` on save banners, `aria-busy` on save buttons, MeasurementForm preset select-then-save model (no accidental immediate saves), two-step inline delete confirmation in CatProfile, back nav fixed to `navigate(-1)` with fallback. Phase C (loading state standardization, empty state improvements, CatProfile hierarchy) remains.
+**Implemented (Phases A + B):** `ScrollToTop` component, disabled button always says "Log Check-In" with contextual hint below, `role="alert"` on errors, `role="status"` on save banners, `aria-busy` on save buttons, MeasurementForm preset select-then-save model (no accidental immediate saves), two-step inline delete confirmation in CatProfile, back nav fixed to `navigate(-1)` with fallback, MeasurementForm "Saved!" flash for 1s before close.
+
+**Not yet implemented (Phase C — state and hierarchy):**
+- Shared `<LoadingShell>` component for consistent loading states across all pages
+- Empty state improvements (CatProfile no-measurement state with call-to-action)
+- CatProfile health status always visible without scrolling on 375px screen
 
 ---
 
@@ -493,16 +511,17 @@ Nothing rejected yet.
 
 | | |
 |---|---|
-| **Status** | `Draft` |
-| **Last updated** | 2026-03-07 |
+| **Status** | `Partial` |
+| **Last updated** | 2026-04-11 |
 
 **Problem:** No user-configurable settings. Immediate request: dark/light/system mode toggle accessible from the profile menu.
 
 **Scope:** `/settings` route + `SettingsPage.tsx`; profile popover "Settings" link; theme toggle with localStorage persistence; CSS token layer for light theme.
 
-**Three phases:** (A) Settings screen + toggle UI only, no light theme yet; (B) full CSS token migration and functional light theme; (C) system mode + D1 sync.
+**Implemented Phases A + B** — Settings screen at `/settings` with Dark/Light/System segmented control; ThemeContext with localStorage persistence and `data-theme` attribute on `<html>`; full CSS variable layer with dark and light token sets; system mode respects `prefers-color-scheme` via media query listener; all component inline styles migrated to CSS variables.
 
-**Do not implement** — status is `Draft`. Requires product owner approval.
+**Not yet implemented:**
+- Phase C — D1 `user_preferences` column for cross-device theme sync
 
 ---
 
@@ -572,4 +591,4 @@ Nothing rejected yet.
 
 ---
 
-*Last updated: 2026-04-11*
+*Last updated: 2026-04-11 — status audit completed*

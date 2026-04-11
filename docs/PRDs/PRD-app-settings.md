@@ -1,7 +1,7 @@
 # PRD: App Settings
 
-**Status:** Draft
-**Last updated:** 2026-03-07
+**Status:** Partial (Phases A + B implemented; Phase C remaining)
+**Last updated:** 2026-04-11
 
 ---
 

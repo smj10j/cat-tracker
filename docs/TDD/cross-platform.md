@@ -1,10 +1,9 @@
 # Cat Tracker — Cross-Platform Architecture TDD
 
-> **Status: Plan — not yet implemented.**
-> This document describes the target architecture for a unified iOS / Android / web app.
-> The current production system is documented in [web.md](web.md).
-> The Worker API and D1 schema described in web.md remain authoritative for both architectures.
-> Product requirements and phased delivery plan: [PRD-ios-app-store.md](../PRDs/PRD-ios-app-store.md).
+> **Status: Implemented — iOS app in TestFlight.**
+> The Expo/React Native app lives in `app/`. It shares business logic with the web frontend (`frontend/`).
+> The Worker API and D1 schema described in [web.md](web.md) remain authoritative for all platforms.
+> Product requirements: [PRD-ios-app-store.md](../PRDs/PRD-ios-app-store.md). App name: **Whisker Health** (Bundle ID: `me.01j.whisker`).
 
 ---
 

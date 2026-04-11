@@ -10,7 +10,7 @@ Each TDD covers one platform or architectural layer. Read the one relevant to th
 | Document | Covers | Status |
 |---|---|---|
 | [web.md](web.md) | Current production architecture: Cloudflare Worker + D1 + R2 + React/Vite SPA on Pages | **Current** |
-| [cross-platform.md](cross-platform.md) | Plan for unified iOS / Android / web app using Expo + Expo Router | **Plan (not yet implemented)** |
+| [cross-platform.md](cross-platform.md) | iOS app (Whisker Health) using Expo SDK 54 + Expo Router v6 + NativeWind v4 | **Implemented — in TestFlight** |
 
 ---
 

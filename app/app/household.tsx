@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { api } from '../lib/api';
 import type { HouseholdResponse, HouseholdMember, PendingInvite } from '../lib/api';
+import { useThemeColors } from '../hooks/useThemeColors';
 
 const ROLES = ['viewer', 'contributor', 'editor', 'admin'] as const;
 type Role = (typeof ROLES)[number];
@@ -31,22 +32,8 @@ const ROLE_COLORS: Record<string, string> = {
   viewer: '#a899c0',
 };
 
-const colors = {
-  night: '#16111f',
-  surface: '#1f1830',
-  surfaceHi: '#2a2040',
-  lavender: '#c084fc',
-  ink: '#ede9f6',
-  inkMid: '#a899c0',
-  inkDim: '#6b5f85',
-  rim: 'rgba(255,255,255,0.07)',
-  jade: '#4ade80',
-  coral: '#f97316',
-  rose: '#f87171',
-  honey: '#fbbf24',
-};
-
 export default function HouseholdScreen() {
+  const colors = useThemeColors();
   const router = useRouter();
   const [data, setData] = useState<HouseholdResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -323,9 +310,9 @@ export default function HouseholdScreen() {
                     paddingHorizontal: 12,
                     paddingVertical: 6,
                     borderRadius: 10,
-                    backgroundColor: 'rgba(255,255,255,0.06)',
+                    backgroundColor: colors.card,
                     borderWidth: 1,
-                    borderColor: 'rgba(255,255,255,0.1)',
+                    borderColor: colors.rim,
                   }}
                 >
                   <Text style={{ fontSize: 12, color: colors.inkDim }}>Rename</Text>
@@ -439,7 +426,7 @@ export default function HouseholdScreen() {
               style={{
                 backgroundColor: 'transparent',
                 borderWidth: 1,
-                borderColor: 'rgba(255,255,255,0.12)',
+                borderColor: colors.rim,
                 borderRadius: 12,
                 paddingHorizontal: 12,
                 paddingVertical: 10,
@@ -474,7 +461,7 @@ export default function HouseholdScreen() {
                         marginRight: 8,
                         backgroundColor: active ? `${ROLE_COLORS[r]}20` : 'transparent',
                         borderWidth: 1,
-                        borderColor: active ? ROLE_COLORS[r] : 'rgba(255,255,255,0.1)',
+                        borderColor: active ? ROLE_COLORS[r] : colors.rim,
                       }}
                     >
                       <Text
@@ -557,6 +544,7 @@ function MemberRow({
   onRemove: (userId: string) => void;
   isLast: boolean;
 }) {
+  const colors = useThemeColors();
   const initial = (member.display_name?.[0] ?? member.email?.[0] ?? '?').toUpperCase();
   const [showRoles, setShowRoles] = useState(false);
 
@@ -567,7 +555,7 @@ function MemberRow({
         alignItems: 'center',
         paddingVertical: 10,
         borderBottomWidth: isLast ? 0 : 1,
-        borderBottomColor: 'rgba(255,255,255,0.05)',
+        borderBottomColor: colors.card,
         gap: 10,
       }}
     >
@@ -582,24 +570,24 @@ function MemberRow({
           alignItems: 'center',
         }}
       >
-        <Text style={{ fontSize: 12, fontWeight: '700', color: '#c084fc' }}>{initial}</Text>
+        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.lavender }}>{initial}</Text>
       </View>
 
       {/* Name + email */}
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Text
-            style={{ fontSize: 14, fontWeight: '600', color: '#ede9f6' }}
+            style={{ fontSize: 14, fontWeight: '600', color: colors.ink }}
             numberOfLines={1}
           >
             {member.display_name ?? member.email ?? 'Unknown'}
           </Text>
           {isOwnerMember && (
-            <Text style={{ fontSize: 11, color: '#6b5f85', marginLeft: 6 }}>Owner</Text>
+            <Text style={{ fontSize: 11, color: colors.inkDim, marginLeft: 6 }}>Owner</Text>
           )}
         </View>
         {member.email && member.display_name && (
-          <Text style={{ fontSize: 12, color: '#6b5f85' }} numberOfLines={1}>
+          <Text style={{ fontSize: 12, color: colors.inkDim }} numberOfLines={1}>
             {member.email}
           </Text>
         )}
@@ -615,22 +603,22 @@ function MemberRow({
               paddingVertical: 4,
               borderRadius: 8,
               borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.1)',
-              backgroundColor: `${ROLE_COLORS[member.role] ?? '#a899c0'}15`,
+              borderColor: colors.rim,
+              backgroundColor: `${ROLE_COLORS[member.role] ?? colors.inkMid}15`,
             }}
           >
             <Text
               style={{
                 fontSize: 11,
                 fontWeight: '600',
-                color: ROLE_COLORS[member.role] ?? '#a899c0',
+                color: ROLE_COLORS[member.role] ?? colors.inkMid,
               }}
             >
               {member.role} {'\u25BE'}
             </Text>
           </Pressable>
           <Pressable onPress={() => onRemove(member.user_id)} style={{ padding: 4 }}>
-            <Text style={{ fontSize: 16, color: '#f8717180' }}>{'\u00D7'}</Text>
+            <Text style={{ fontSize: 16, color: `${colors.rose}80` }}>{'\u00D7'}</Text>
           </Pressable>
         </View>
       ) : (
@@ -639,14 +627,14 @@ function MemberRow({
             paddingHorizontal: 10,
             paddingVertical: 3,
             borderRadius: 12,
-            backgroundColor: `${ROLE_COLORS[member.role] ?? '#a899c0'}15`,
+            backgroundColor: `${ROLE_COLORS[member.role] ?? colors.inkMid}15`,
           }}
         >
           <Text
             style={{
               fontSize: 11,
               fontWeight: '600',
-              color: ROLE_COLORS[member.role] ?? '#a899c0',
+              color: ROLE_COLORS[member.role] ?? colors.inkMid,
             }}
           >
             {member.role}
@@ -661,10 +649,10 @@ function MemberRow({
             position: 'absolute',
             right: 40,
             top: 40,
-            backgroundColor: '#2a2040',
+            backgroundColor: colors.surfaceHi,
             borderRadius: 10,
             borderWidth: 1,
-            borderColor: 'rgba(255,255,255,0.12)',
+            borderColor: colors.rim,
             padding: 4,
             zIndex: 10,
             minWidth: 120,
@@ -681,13 +669,13 @@ function MemberRow({
                 paddingHorizontal: 12,
                 paddingVertical: 8,
                 borderRadius: 6,
-                backgroundColor: member.role === r ? 'rgba(255,255,255,0.06)' : 'transparent',
+                backgroundColor: member.role === r ? colors.card : 'transparent',
               }}
             >
               <Text
                 style={{
                   fontSize: 13,
-                  color: member.role === r ? '#c084fc' : '#a899c0',
+                  color: member.role === r ? colors.lavender : colors.inkMid,
                   fontWeight: member.role === r ? '600' : '400',
                 }}
               >
@@ -710,6 +698,7 @@ function PendingInviteRow({
   onRevoke: (id: string) => void;
   isLast: boolean;
 }) {
+  const colors = useThemeColors();
   const daysLeft = invite.invite_expires_at
     ? Math.max(
         0,
@@ -728,7 +717,7 @@ function PendingInviteRow({
         alignItems: 'flex-start',
         paddingVertical: 10,
         borderBottomWidth: isLast ? 0 : 1,
-        borderBottomColor: 'rgba(255,255,255,0.05)',
+        borderBottomColor: colors.card,
         gap: 10,
       }}
     >
@@ -746,10 +735,10 @@ function PendingInviteRow({
         <Text style={{ fontSize: 14 }}>{'\u2709'}</Text>
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 14, color: '#ede9f6' }} numberOfLines={1}>
+        <Text style={{ fontSize: 14, color: colors.ink }} numberOfLines={1}>
           {invite.invite_email}
         </Text>
-        <Text style={{ fontSize: 12, color: '#6b5f85', marginTop: 2 }}>
+        <Text style={{ fontSize: 12, color: colors.inkDim, marginTop: 2 }}>
           {invite.role} {'\u00B7'}{' '}
           {daysLeft !== null ? `expires in ${daysLeft}d` : 'no expiry'}
         </Text>
@@ -761,10 +750,10 @@ function PendingInviteRow({
           paddingVertical: 5,
           borderRadius: 8,
           borderWidth: 1,
-          borderColor: 'rgba(255,255,255,0.08)',
+          borderColor: colors.rim,
         }}
       >
-        <Text style={{ fontSize: 12, color: '#6b5f85' }}>Revoke</Text>
+        <Text style={{ fontSize: 12, color: colors.inkDim }}>Revoke</Text>
       </Pressable>
     </View>
   );

@@ -3,6 +3,7 @@ import { View, Text, Pressable, TextInput, ScrollView } from 'react-native';
 import { api } from '../lib/api';
 import type { Measurement } from '../lib/api';
 import { PRESETS, PRESET_TYPES } from '../lib/measurementPresets';
+import { useThemeColors } from '../hooks/useThemeColors';
 
 interface Props {
   catId: string;
@@ -20,6 +21,7 @@ const TYPE_OPTIONS = [
 ];
 
 export default function MeasurementForm({ catId, onAdded }: Props) {
+  const colors = useThemeColors();
   const [open, setOpen] = useState(false);
   const [type, setType] = useState('weight');
   const [weightValue, setWeightValue] = useState('');
@@ -90,7 +92,7 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
           alignItems: 'center',
         }}
       >
-        <Text style={{ color: '#c084fc', fontWeight: '600', fontSize: 14 }}>+ Add Measurement</Text>
+        <Text style={{ color: colors.lavender, fontWeight: '600', fontSize: 14 }}>+ Add Measurement</Text>
       </Pressable>
     );
   }
@@ -108,30 +110,30 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
     >
       {/* Header */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text style={{ fontWeight: '600', fontSize: 16, color: '#ede9f6' }}>New Measurement</Text>
+        <Text style={{ fontWeight: '600', fontSize: 16, color: colors.ink }}>New Measurement</Text>
         <Pressable
           onPress={() => setOpen(false)}
           style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
         >
-          <Text style={{ color: '#6b5f85', fontSize: 22 }}>{'\u00D7'}</Text>
+          <Text style={{ color: colors.inkDim, fontSize: 22 }}>{'\u00D7'}</Text>
         </Pressable>
       </View>
 
       {savedFlash && (
-        <Text style={{ color: '#4ade80', fontWeight: '600', fontSize: 14, textAlign: 'center' }}>
+        <Text style={{ color: colors.jade, fontWeight: '600', fontSize: 14, textAlign: 'center' }}>
           {'\u2713'} Saved!
         </Text>
       )}
 
       {error && (
         <View style={{ backgroundColor: 'rgba(248,113,113,0.1)', borderRadius: 8, padding: 8 }}>
-          <Text style={{ color: '#f87171', fontSize: 14 }}>{error}</Text>
+          <Text style={{ color: colors.rose, fontSize: 14 }}>{error}</Text>
         </View>
       )}
 
       {/* Type selector */}
       <View>
-        <Text style={{ fontSize: 11, fontWeight: '600', color: '#a899c0', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+        <Text style={{ fontSize: 11, fontWeight: '600', color: colors.inkMid, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
           Type
         </Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
@@ -143,16 +145,16 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
                 paddingHorizontal: 14,
                 paddingVertical: 8,
                 borderRadius: 10,
-                backgroundColor: type === opt.value ? 'rgba(192,132,252,0.15)' : 'rgba(255,255,255,0.05)',
+                backgroundColor: type === opt.value ? 'rgba(192,132,252,0.15)' : colors.card,
                 borderWidth: 1,
-                borderColor: type === opt.value ? 'rgba(192,132,252,0.25)' : 'rgba(255,255,255,0.07)',
+                borderColor: type === opt.value ? 'rgba(192,132,252,0.25)' : colors.rim,
               }}
             >
               <Text
                 style={{
                   fontSize: 13,
                   fontWeight: '600',
-                  color: type === opt.value ? '#c084fc' : '#6b5f85',
+                  color: type === opt.value ? colors.lavender : colors.inkDim,
                 }}
               >
                 {opt.label}
@@ -165,7 +167,7 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
       {/* Input area */}
       {isPresetType ? (
         <View>
-          <Text style={{ fontSize: 11, fontWeight: '600', color: '#a899c0', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+          <Text style={{ fontSize: 11, fontWeight: '600', color: colors.inkMid, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
             Observation
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -184,11 +186,11 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
                     alignItems: 'center',
                     backgroundColor: isSelected
                       ? (preset.concern ? 'rgba(248,113,113,0.18)' : 'rgba(192,132,252,0.15)')
-                      : (preset.concern ? 'rgba(248,113,113,0.08)' : 'rgba(255,255,255,0.05)'),
+                      : (preset.concern ? 'rgba(248,113,113,0.08)' : colors.card),
                     borderWidth: isSelected ? 1.5 : 1,
                     borderColor: isSelected
                       ? (preset.concern ? 'rgba(248,113,113,0.5)' : 'rgba(192,132,252,0.4)')
-                      : (preset.concern ? 'rgba(248,113,113,0.25)' : 'rgba(255,255,255,0.07)'),
+                      : (preset.concern ? 'rgba(248,113,113,0.25)' : colors.rim),
                   }}
                 >
                   <Text
@@ -196,8 +198,8 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
                       fontSize: 14,
                       fontWeight: '600',
                       color: isSelected
-                        ? (preset.concern ? '#f87171' : '#c084fc')
-                        : (preset.concern ? 'rgba(248,113,113,0.8)' : '#ede9f6'),
+                        ? (preset.concern ? colors.rose : colors.lavender)
+                        : (preset.concern ? 'rgba(248,113,113,0.8)' : colors.ink),
                     }}
                   >
                     {preset.concern ? '! ' : ''}{saving ? '\u2026' : preset.label}
@@ -212,7 +214,7 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
               disabled={saving}
               style={{
                 marginTop: 12,
-                backgroundColor: '#c084fc',
+                backgroundColor: colors.lavender,
                 borderRadius: 12,
                 paddingVertical: 12,
                 alignItems: 'center',
@@ -229,29 +231,29 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
         <View style={{ gap: 12 }}>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <View style={{ flex: 2 }}>
-              <Text style={{ fontSize: 11, fontWeight: '600', color: '#a899c0', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+              <Text style={{ fontSize: 11, fontWeight: '600', color: colors.inkMid, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
                 Weight
               </Text>
               <TextInput
                 value={weightValue}
                 onChangeText={setWeightValue}
                 placeholder="e.g. 9.4"
-                placeholderTextColor="#6b5f85"
+                placeholderTextColor={colors.inkDim}
                 keyboardType="decimal-pad"
                 style={{
-                  backgroundColor: 'rgba(255,255,255,0.05)',
+                  backgroundColor: colors.card,
                   borderWidth: 1,
-                  borderColor: 'rgba(255,255,255,0.07)',
+                  borderColor: colors.rim,
                   borderRadius: 12,
                   paddingHorizontal: 12,
                   paddingVertical: 10,
-                  color: '#ede9f6',
+                  color: colors.ink,
                   fontSize: 14,
                 }}
               />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 11, fontWeight: '600', color: '#a899c0', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+              <Text style={{ fontSize: 11, fontWeight: '600', color: colors.inkMid, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
                 Unit
               </Text>
               <View style={{ flexDirection: 'row', gap: 4 }}>
@@ -264,12 +266,12 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
                       paddingVertical: 10,
                       borderRadius: 12,
                       alignItems: 'center',
-                      backgroundColor: weightUnit === u ? 'rgba(192,132,252,0.15)' : 'rgba(255,255,255,0.05)',
+                      backgroundColor: weightUnit === u ? 'rgba(192,132,252,0.15)' : colors.card,
                       borderWidth: 1,
-                      borderColor: weightUnit === u ? 'rgba(192,132,252,0.25)' : 'rgba(255,255,255,0.07)',
+                      borderColor: weightUnit === u ? 'rgba(192,132,252,0.25)' : colors.rim,
                     }}
                   >
-                    <Text style={{ color: weightUnit === u ? '#c084fc' : '#6b5f85', fontWeight: '600', fontSize: 14 }}>
+                    <Text style={{ color: weightUnit === u ? colors.lavender : colors.inkDim, fontWeight: '600', fontSize: 14 }}>
                       {u}
                     </Text>
                   </Pressable>
@@ -281,7 +283,7 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
             onPress={handleWeightSubmit}
             disabled={saving}
             style={{
-              backgroundColor: '#c084fc',
+              backgroundColor: colors.lavender,
               borderRadius: 12,
               paddingVertical: 12,
               alignItems: 'center',

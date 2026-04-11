@@ -15,6 +15,7 @@ import { assessHealth, STATUS_COLORS, STATUS_LABEL, STATUS_EMOJI } from '../../l
 import type { HealthStatus } from '../../lib/healthMetrics';
 import LineChart, { type ChartDataPoint } from '../../components/LineChart';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
+import { useThemeColors } from '../../hooks/useThemeColors';
 
 const LINE_COLORS = ['#c084fc', '#4ade80', '#f97316', '#fbbf24', '#fb923c', '#f87171'];
 
@@ -27,21 +28,6 @@ const TYPE_OPTIONS = [
   { value: 'activity', label: 'Activity' },
   { value: 'vomiting', label: 'Vomiting' },
 ];
-
-const colors = {
-  night: '#16111f',
-  surface: '#1f1830',
-  surfaceHi: '#2a2040',
-  lavender: '#c084fc',
-  ink: '#ede9f6',
-  inkMid: '#a899c0',
-  inkDim: '#6b5f85',
-  rim: 'rgba(255,255,255,0.07)',
-  jade: '#4ade80',
-  coral: '#f97316',
-  rose: '#f87171',
-  honey: '#fbbf24',
-};
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -71,6 +57,7 @@ function buildTableData(
 }
 
 export default function CompareScreen() {
+  const colors = useThemeColors();
   const [cats, setCats] = useState<Cat[]>([]);
   const [measurementsByCat, setMeasurementsByCat] = useState<Map<string, Measurement[]>>(
     new Map(),

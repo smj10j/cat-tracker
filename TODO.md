@@ -12,6 +12,43 @@
 - [x] Write TDD (docs/TDD.md)
 - [x] Create this TODO list
 
+## Phase 46: iOS Dark/Light/System Theme (2026-04-11)
+
+### Infrastructure (Phase 1)
+- [x] Install @react-native-async-storage/async-storage
+- [x] Add CSS variables to app/global.css (light :root + .dark override)
+- [x] Update app/tailwind.config.ts: darkMode: 'class', CSS var color references
+- [x] Create app/lib/colors.ts (dark/light palette constants)
+- [x] Create app/hooks/useThemeColors.ts
+- [x] Create app/contexts/ThemeContext.tsx (AsyncStorage + NativeWind bridge)
+- [x] Update app/app/_layout.tsx (ThemeProvider + dynamic StatusBar)
+
+### Settings UI (Phase 2)
+- [x] Add Appearance section with Dark/Light/System segmented control to settings.tsx
+
+### Inline Color Migration (Phase 3)
+- [x] app/app/(tabs)/_layout.tsx — tab bar colors
+- [x] app/app/(tabs)/index.tsx — cat list
+- [x] app/app/(tabs)/log.tsx — daily check-in
+- [x] app/app/(tabs)/compare.tsx — compare chart
+- [x] app/app/cats/[id]/index.tsx — cat detail
+- [x] app/app/cats/[id]/edit.tsx — edit form
+- [x] app/app/cats/[id]/care-item.tsx
+- [x] app/app/cats/[id]/export.tsx
+- [x] app/app/cats/[id]/health.tsx
+- [x] app/app/cats/new.tsx
+- [x] app/app/household.tsx
+- [x] app/app/notifications.tsx
+- [x] app/components/QuickAdd.tsx
+- [x] app/components/MeasurementForm.tsx
+- [x] app/components/InsightsPanel.tsx
+- [x] app/components/LineChart.tsx
+- [x] app/components/ErrorBoundary.tsx
+
+### Verification
+- [x] All tests pass (65 shared + 93 worker + 44 frontend + 45 app = 247)
+- [x] Grep confirms no leftover hardcoded dark-theme hex values
+
 ## Phase 45: Screen Smoke Tests + CatProfile Hook Fix (2026-04-11)
 
 ### Infrastructure

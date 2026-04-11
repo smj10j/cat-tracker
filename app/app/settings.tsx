@@ -4,11 +4,21 @@ import { useRouter } from 'expo-router';
 import { File, Paths } from 'expo-file-system/next';
 import * as Sharing from 'expo-sharing';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme, ThemePreference } from '../contexts/ThemeContext';
+import { useThemeColors } from '../hooks/useThemeColors';
 import { api } from '../lib/api';
+
+const THEME_OPTIONS: { value: ThemePreference; label: string; icon: string }[] = [
+  { value: 'dark', label: 'Dark', icon: '\uD83C\uDF19' },
+  { value: 'light', label: 'Light', icon: '\u2600\uFE0F' },
+  { value: 'system', label: 'System', icon: '\u2699\uFE0F' },
+];
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { user, signOut } = useAuth();
+  const { theme, setTheme } = useTheme();
+  const colors = useThemeColors();
 
   const handleDeleteAccount = () => {
     if (Platform.OS === 'web') {
@@ -76,6 +86,44 @@ export default function SettingsScreen() {
           <Text className="text-ink-mid text-sm">{user?.email}</Text>
           <Text className="text-ink-dim text-xs mt-1">
             Signed in with {user?.oauth_provider === 'apple' ? 'Apple' : 'Google'}
+          </Text>
+        </View>
+
+        {/* Appearance */}
+        <View className="bg-surface rounded-card p-4 border border-rim">
+          <Text className="text-ink-mid text-xs font-semibold uppercase tracking-wider mb-3">
+            Appearance
+          </Text>
+          <Text className="text-ink text-sm font-medium mb-2">Theme</Text>
+          <View className="flex-row rounded-xl p-1 gap-1 bg-surface-hi">
+            {THEME_OPTIONS.map(({ value, label, icon }) => {
+              const isActive = theme === value;
+              return (
+                <Pressable
+                  key={value}
+                  onPress={() => setTheme(value)}
+                  className="flex-1 flex-row items-center justify-center gap-1 py-2.5 rounded-lg"
+                  style={isActive ? {
+                    backgroundColor: '#c084fc',
+                  } : undefined}
+                >
+                  <Text style={{ fontSize: 14 }}>{icon}</Text>
+                  <Text
+                    className="text-sm font-semibold"
+                    style={{ color: isActive ? '#ffffff' : colors.inkDim }}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text className="text-ink-dim text-xs mt-2">
+            {theme === 'system'
+              ? "Follows your device\u2019s display settings."
+              : theme === 'light'
+              ? 'Always uses the light theme.'
+              : 'Always uses the dark theme.'}
           </Text>
         </View>
 

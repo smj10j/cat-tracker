@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../../lib/api';
 import type { Cat } from '../../lib/api';
 import { PRESETS } from '../../lib/measurementPresets';
+import { useThemeColors } from '../../hooks/useThemeColors';
 
 type Selections = Partial<Record<string, number>>;
 
@@ -41,6 +42,7 @@ function formatHour(hour: number): string {
 }
 
 export default function LogScreen() {
+  const colors = useThemeColors();
   const [cats, setCats] = useState<Cat[]>([]);
   const [selectedCatId, setSelectedCatId] = useState('');
   const [hour, setHour] = useState(currentHour);
@@ -118,14 +120,14 @@ export default function LogScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#16111f' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
           {/* Header */}
-          <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)' }}>
-            <Text style={{ fontWeight: '700', fontSize: 18, color: '#ede9f6' }}>Daily Check-In</Text>
+          <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.rim }}>
+            <Text style={{ fontWeight: '700', fontSize: 18, color: colors.ink }}>Daily Check-In</Text>
             {selectedCat && (
-              <Text style={{ fontSize: 12, color: '#a899c0', marginTop: 2 }}>{selectedCat.name}</Text>
+              <Text style={{ fontSize: 12, color: colors.inkMid, marginTop: 2 }}>{selectedCat.name}</Text>
             )}
           </View>
 
@@ -157,10 +159,10 @@ export default function LogScreen() {
             {cats.length !== 1 && (
               <View style={{
                 borderRadius: 16, paddingHorizontal: 16, paddingVertical: 12,
-                backgroundColor: 'rgba(255,255,255,0.03)',
-                borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)',
+                backgroundColor: colors.card,
+                borderWidth: 1, borderColor: colors.rim,
               }}>
-                <Text style={{ fontSize: 11, fontWeight: '600', color: '#a899c0', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: colors.inkMid, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
                   Cat
                 </Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
@@ -177,7 +179,7 @@ export default function LogScreen() {
                     >
                       <Text style={{
                         fontSize: 13, fontWeight: '600',
-                        color: selectedCatId === c.id ? '#c084fc' : '#6b5f85',
+                        color: selectedCatId === c.id ? colors.lavender : colors.inkDim,
                       }}>
                         {c.name}
                       </Text>
@@ -190,10 +192,10 @@ export default function LogScreen() {
             {/* Time */}
             <View style={{
               borderRadius: 16, paddingHorizontal: 16, paddingVertical: 12,
-              backgroundColor: 'rgba(255,255,255,0.03)',
-              borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)',
+              backgroundColor: colors.card,
+              borderWidth: 1, borderColor: colors.rim,
             }}>
-              <Text style={{ fontSize: 11, fontWeight: '600', color: '#a899c0', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+              <Text style={{ fontSize: 11, fontWeight: '600', color: colors.inkMid, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
                 When
               </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 4 }}>
@@ -208,7 +210,7 @@ export default function LogScreen() {
                       borderColor: 'rgba(192,132,252,0.25)',
                     }}
                   >
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: hour === h ? '#c084fc' : '#6b5f85' }}>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: hour === h ? colors.lavender : colors.inkDim }}>
                       {formatHour(h)}
                     </Text>
                   </Pressable>
@@ -219,10 +221,10 @@ export default function LogScreen() {
             {/* Weight */}
             <View style={{
               borderRadius: 16, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16,
-              backgroundColor: 'rgba(255,255,255,0.03)',
-              borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)',
+              backgroundColor: colors.card,
+              borderWidth: 1, borderColor: colors.rim,
             }}>
-              <Text style={{ fontSize: 11, fontWeight: '600', color: '#a899c0', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
+              <Text style={{ fontSize: 11, fontWeight: '600', color: colors.inkMid, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
                 Weight
               </Text>
               <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
@@ -230,16 +232,16 @@ export default function LogScreen() {
                   value={weightValue}
                   onChangeText={setWeightValue}
                   placeholder="e.g. 9.4 \u2014 leave blank to skip"
-                  placeholderTextColor="#6b5f85"
+                  placeholderTextColor={colors.inkDim}
                   keyboardType="decimal-pad"
                   returnKeyType="done"
                   style={{
                     flex: 1,
-                    backgroundColor: 'rgba(255,255,255,0.05)',
-                    borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)',
+                    backgroundColor: colors.card,
+                    borderWidth: 1, borderColor: colors.rim,
                     borderRadius: 12,
                     paddingHorizontal: 12, paddingVertical: 10,
-                    color: '#ede9f6', fontSize: 14,
+                    color: colors.ink, fontSize: 14,
                   }}
                 />
                 <View style={{ flexDirection: 'row', gap: 4 }}>
@@ -254,7 +256,7 @@ export default function LogScreen() {
                         borderColor: weightUnit === u ? 'rgba(192,132,252,0.25)' : 'rgba(255,255,255,0.07)',
                       }}
                     >
-                      <Text style={{ color: weightUnit === u ? '#c084fc' : '#6b5f85', fontWeight: '600', fontSize: 14 }}>
+                      <Text style={{ color: weightUnit === u ? colors.lavender : colors.inkDim, fontWeight: '600', fontSize: 14 }}>
                         {u}
                       </Text>
                     </Pressable>
@@ -266,10 +268,10 @@ export default function LogScreen() {
             {/* Behavioral observations */}
             <View style={{
               borderRadius: 16, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8,
-              backgroundColor: 'rgba(255,255,255,0.03)',
-              borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)',
+              backgroundColor: colors.card,
+              borderWidth: 1, borderColor: colors.rim,
             }}>
-              <Text style={{ fontSize: 11, fontWeight: '600', color: '#a899c0', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
+              <Text style={{ fontSize: 11, fontWeight: '600', color: colors.inkMid, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
                 Observations \u2014 tap to select, skip any row
               </Text>
 
@@ -287,12 +289,12 @@ export default function LogScreen() {
                       gap: 8,
                       paddingVertical: 8,
                       borderBottomWidth: isLast ? 0 : 1,
-                      borderBottomColor: 'rgba(255,255,255,0.07)',
+                      borderBottomColor: colors.rim,
                     }}
                   >
                     <Text style={{
                       width: 64, fontSize: 12, fontWeight: '500', flexShrink: 0,
-                      color: selectedVal !== undefined ? '#ede9f6' : '#6b5f85',
+                      color: selectedVal !== undefined ? colors.ink : colors.inkDim,
                     }}>
                       {label}
                     </Text>
@@ -315,7 +317,7 @@ export default function LogScreen() {
                               justifyContent: 'center',
                               backgroundColor: isSelected
                                 ? (preset.concern ? 'rgba(248,113,113,0.18)' : 'rgba(74,222,128,0.13)')
-                                : '#1f1830',
+                                : colors.surface,
                               borderWidth: isSelected ? 1.5 : 1,
                               borderColor: isSelected
                                 ? (preset.concern ? 'rgba(248,113,113,0.45)' : 'rgba(74,222,128,0.35)')
@@ -325,8 +327,8 @@ export default function LogScreen() {
                             <Text style={{
                               fontSize: 11, fontWeight: '600', lineHeight: 14, textAlign: 'center',
                               color: isSelected
-                                ? (preset.concern ? '#f87171' : '#4ade80')
-                                : '#6b5f85',
+                                ? (preset.concern ? colors.rose : colors.jade)
+                                : colors.inkDim,
                             }}>
                               {preset.label}
                             </Text>
@@ -342,9 +344,9 @@ export default function LogScreen() {
             {/* Submit */}
             <View style={{ paddingTop: 4 }}>
               {measurementCount > 0 && selectedCatId ? (
-                <Text style={{ textAlign: 'center', fontSize: 12, color: '#a899c0', marginBottom: 12 }}>
+                <Text style={{ textAlign: 'center', fontSize: 12, color: colors.inkMid, marginBottom: 12 }}>
                   Logging {measurementCount} measurement{measurementCount !== 1 ? 's' : ''} for{' '}
-                  <Text style={{ color: '#ede9f6', fontWeight: '600' }}>{selectedCat?.name ?? '\u2026'}</Text>
+                  <Text style={{ color: colors.ink, fontWeight: '600' }}>{selectedCat?.name ?? '\u2026'}</Text>
                 </Text>
               ) : null}
               <Pressable
@@ -363,7 +365,7 @@ export default function LogScreen() {
                 </Text>
               </Pressable>
               {!canSubmit && !saving && (
-                <Text style={{ textAlign: 'center', fontSize: 12, color: '#6b5f85', marginTop: 8 }}>
+                <Text style={{ textAlign: 'center', fontSize: 12, color: colors.inkDim, marginTop: 8 }}>
                   {!selectedCatId
                     ? 'Select a cat above to continue'
                     : 'Select at least one measurement above to log'}

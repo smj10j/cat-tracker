@@ -279,6 +279,28 @@ vi.mock('../../global.css', () => ({}));
 vi.mock('../global.css', () => ({}));
 
 // ---------------------------------------------------------------------------
+// Mock: nativewind
+// ---------------------------------------------------------------------------
+vi.mock('nativewind', () => ({
+  useColorScheme: () => ({
+    colorScheme: 'dark',
+    setColorScheme: vi.fn(),
+    toggleColorScheme: vi.fn(),
+  }),
+}));
+
+// ---------------------------------------------------------------------------
+// Mock: @react-native-async-storage/async-storage
+// ---------------------------------------------------------------------------
+vi.mock('@react-native-async-storage/async-storage', () => ({
+  default: {
+    getItem: vi.fn(() => Promise.resolve('dark')),
+    setItem: vi.fn(() => Promise.resolve()),
+    removeItem: vi.fn(() => Promise.resolve()),
+  },
+}));
+
+// ---------------------------------------------------------------------------
 // Mock: AuthContext
 // ---------------------------------------------------------------------------
 const mockUser = {
@@ -300,6 +322,22 @@ vi.mock('../../contexts/AuthContext', () => ({
     signOut: vi.fn(),
   }),
   AuthProvider: ({ children }: any) => React.createElement('div', null, children),
+}));
+
+vi.mock('../../contexts/ThemeContext', () => ({
+  useTheme: () => ({
+    theme: 'dark',
+    setTheme: vi.fn(),
+  }),
+  ThemeProvider: ({ children }: any) => React.createElement('div', null, children),
+}));
+
+vi.mock('../../../contexts/ThemeContext', () => ({
+  useTheme: () => ({
+    theme: 'dark',
+    setTheme: vi.fn(),
+  }),
+  ThemeProvider: ({ children }: any) => React.createElement('div', null, children),
 }));
 
 // Also mock the relative path used by deeper screens

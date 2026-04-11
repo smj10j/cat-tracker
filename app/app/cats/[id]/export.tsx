@@ -13,25 +13,7 @@ import {
 } from '../../../lib/correlations';
 import { getPresetLabel, PRESET_TYPES } from '../../../lib/measurementPresets';
 import { catAge } from '../../../lib/dates';
-
-const colors = {
-  night: '#16111f',
-  surface: '#1f1830',
-  surfaceHi: '#2a2040',
-  lavender: '#c084fc',
-  ink: '#ede9f6',
-  inkMid: '#a899c0',
-  inkDim: '#6b5f85',
-  rim: 'rgba(255,255,255,0.07)',
-  jade: '#4ade80',
-  coral: '#f97316',
-  rose: '#f87171',
-  honey: '#fbbf24',
-  amber: '#fb923c',
-  white: '#ffffff',
-  lightGray: '#6b7280',
-  borderLight: '#e5e7eb',
-};
+import { useThemeColors } from '../../../hooks/useThemeColors';
 
 const TYPE_LABELS: Record<string, string> = {
   weight: 'Weight',
@@ -154,6 +136,7 @@ function buildShareText(
 }
 
 export default function CatExportScreen() {
+  const colors = useThemeColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
@@ -678,12 +661,13 @@ export default function CatExportScreen() {
 }
 
 function SectionHeader({ title }: { title: string }) {
+  const colors = useThemeColors();
   return (
     <Text
       style={{
         fontSize: 11,
         fontWeight: '700',
-        color: '#6b5f85',
+        color: colors.inkDim,
         textTransform: 'uppercase',
         letterSpacing: 0.8,
         marginBottom: 10,
@@ -703,12 +687,13 @@ function InfoRow({
   value: string;
   valueColor?: string;
 }) {
+  const colors = useThemeColors();
   return (
     <View style={{ flexDirection: 'row', marginBottom: 4 }}>
-      <Text style={{ fontSize: 13, fontWeight: '600', color: '#ede9f6', marginRight: 4 }}>
+      <Text style={{ fontSize: 13, fontWeight: '600', color: colors.ink, marginRight: 4 }}>
         {label}:
       </Text>
-      <Text style={{ fontSize: 13, color: valueColor ?? '#a899c0', flex: 1 }}>{value}</Text>
+      <Text style={{ fontSize: 13, color: valueColor ?? colors.inkMid, flex: 1 }}>{value}</Text>
     </View>
   );
 }

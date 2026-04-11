@@ -2,16 +2,18 @@ import { useState } from 'react';
 import { Tabs, Redirect } from 'expo-router';
 import { Text, View, ActivityIndicator } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
+import { useThemeColors } from '../../hooks/useThemeColors';
 import QuickAdd from '../../components/QuickAdd';
 
 export default function TabLayout() {
   const { isAuthenticated, isLoading } = useAuth();
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const colors = useThemeColors();
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#16111f', alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color="#c084fc" size="large" />
+      <View style={{ flex: 1, backgroundColor: colors.night, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={colors.lavender} size="large" />
       </View>
     );
   }
@@ -26,11 +28,11 @@ export default function TabLayout() {
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
-            backgroundColor: '#16111f',
-            borderTopColor: 'rgba(255,255,255,0.07)',
+            backgroundColor: colors.night,
+            borderTopColor: colors.rim,
           },
-          tabBarActiveTintColor: '#c084fc',
-          tabBarInactiveTintColor: '#6b5f85',
+          tabBarActiveTintColor: colors.lavender,
+          tabBarInactiveTintColor: colors.inkDim,
         }}
       >
         <Tabs.Screen

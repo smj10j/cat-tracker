@@ -524,6 +524,8 @@ Nothing rejected yet.
 
 **Implemented Phases A + B** — Settings screen at `/settings` with Dark/Light/System segmented control; ThemeContext with localStorage persistence and `data-theme` attribute on `<html>`; full CSS variable layer with dark and light token sets; system mode respects `prefers-color-scheme` via media query listener; all component inline styles migrated to CSS variables.
 
+**Implemented Phase D (native)** — iOS/Expo app now supports dark/light/system mode. NativeWind `darkMode: 'class'` with CSS variables in `global.css`; `ThemeContext` with AsyncStorage persistence; `useThemeColors()` hook for inline styles; all 17 files with hardcoded hex migrated; Settings screen has segmented control; dynamic StatusBar; 247 tests pass.
+
 **Not yet implemented:**
 - Phase C — D1 `user_preferences` column for cross-device theme sync
 

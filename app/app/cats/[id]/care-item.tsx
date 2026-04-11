@@ -13,18 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { api, CARE_TYPE_ICONS } from '../../../lib/api';
 import type { Cat, Medication } from '../../../lib/api';
-
-const colors = {
-  night: '#16111f',
-  surface: '#1f1830',
-  surfaceHi: '#2a2040',
-  lavender: '#c084fc',
-  ink: '#ede9f6',
-  inkMid: '#a899c0',
-  inkDim: '#6b5f85',
-  rim: 'rgba(255,255,255,0.07)',
-  rose: '#f87171',
-};
+import { useThemeColors } from '../../../hooks/useThemeColors';
 
 interface Preset {
   name: string;
@@ -76,6 +65,7 @@ function todayStr(): string {
 }
 
 export default function CareItemScreen() {
+  const colors = useThemeColors();
   const { id, medId } = useLocalSearchParams<{ id: string; medId?: string }>();
   const router = useRouter();
   const isEdit = Boolean(medId);
@@ -477,6 +467,7 @@ export default function CareItemScreen() {
 }
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+  const colors = useThemeColors();
   return (
     <View style={{
       backgroundColor: 'rgba(192,132,252,0.04)',
@@ -502,6 +493,7 @@ function SectionCard({ title, children }: { title: string; children: React.React
 }
 
 function FieldLabel({ label }: { label: string }) {
+  const colors = useThemeColors();
   return (
     <Text style={{
       fontSize: 11,
@@ -523,6 +515,7 @@ function StyledInput(props: {
   keyboardType?: 'default' | 'number-pad';
   multiline?: boolean;
 }) {
+  const colors = useThemeColors();
   return (
     <TextInput
       value={props.value}
@@ -557,6 +550,7 @@ function PillPicker({
   value: string;
   onChange: (v: string) => void;
 }) {
+  const colors = useThemeColors();
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
       {options.map((opt) => {

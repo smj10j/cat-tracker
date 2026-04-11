@@ -10,6 +10,7 @@ import { assessHealth, STATUS_COLORS, STATUS_LABEL } from '../../lib/healthMetri
 import type { HealthStatus } from '../../lib/healthMetrics';
 import { detectCorrelations, getHomeBadge } from '../../lib/correlations';
 import { catAge, formatLocalDate } from '../../lib/dates';
+import { useThemeColors } from '../../hooks/useThemeColors';
 
 const STATUS_RANK: Record<string, number> = { urgent: 3, concerning: 2, watch: 1, ok: 0 };
 
@@ -24,6 +25,7 @@ interface CatCardData {
 export default function HomeScreen() {
   const { user, signOut } = useAuth();
   const router = useRouter();
+  const colors = useThemeColors();
   const [catData, setCatData] = useState<CatCardData[]>([]);
   const [memorialCats, setMemorialCats] = useState<Cat[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -108,14 +110,14 @@ export default function HomeScreen() {
   const initial = (user?.display_name?.[0] ?? user?.email?.[0] ?? '?').toUpperCase();
 
   const CARD_BG: Record<string, string> = {
-    ok: '#1f1830',
-    watch: '#1f1830',
+    ok: colors.surface,
+    watch: colors.surface,
     concerning: 'rgba(249,115,22,0.07)',
     urgent: 'rgba(248,113,113,0.09)',
   };
 
   const CARD_BORDER: Record<string, string> = {
-    ok: 'rgba(255,255,255,0.07)',
+    ok: colors.rim,
     watch: 'rgba(251,191,36,0.4)',
     concerning: 'rgba(249,115,22,0.5)',
     urgent: 'rgba(248,113,113,0.6)',
@@ -174,7 +176,7 @@ export default function HomeScreen() {
 
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <Text style={{ fontWeight: '700', color: '#ede9f6', fontSize: 16 }} numberOfLines={1}>
+            <Text style={{ fontWeight: '700', color: colors.ink, fontSize: 16 }} numberOfLines={1}>
               {cat.name}
             </Text>
             {!isOk && (
@@ -196,8 +198,8 @@ export default function HomeScreen() {
             )}
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 }}>
-            <Text style={{ color: '#a899c0', fontSize: 12 }}>{catAge(cat.birthdate)}</Text>
-            {cat.breed ? <Text style={{ color: '#a899c0', fontSize: 12 }}>{'\u00B7'} {cat.breed}</Text> : null}
+            <Text style={{ color: colors.inkMid, fontSize: 12 }}>{catAge(cat.birthdate)}</Text>
+            {cat.breed ? <Text style={{ color: colors.inkMid, fontSize: 12 }}>{'\u00B7'} {cat.breed}</Text> : null}
           </View>
           {!isOk && (
             <Text style={{ fontSize: 12, marginTop: 6, fontWeight: '500', color: statusColor }}>
@@ -217,7 +219,7 @@ export default function HomeScreen() {
             <Text style={{ fontWeight: '700', fontSize: 18, color: isOk ? '#fb923c' : statusColor }}>
               {latestWeight}
             </Text>
-            <Text style={{ color: '#6b5f85', fontSize: 12 }}>{latestUnit}</Text>
+            <Text style={{ color: colors.inkDim, fontSize: 12 }}>{latestUnit}</Text>
           </View>
         )}
       </Pressable>
@@ -235,24 +237,24 @@ export default function HomeScreen() {
           paddingHorizontal: 16,
           paddingVertical: 12,
           borderRadius: 16,
-          backgroundColor: '#1f1830',
+          backgroundColor: colors.surface,
           borderWidth: 1,
-          borderColor: 'rgba(255,255,255,0.07)',
+          borderColor: colors.rim,
           opacity: 0.75,
         }}
       >
-        <View style={{ width: 40, height: 40, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' }}>
+        <View style={{ width: 40, height: 40, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: colors.rim }}>
           <CatAvatar photoUrl={cat.photo_url} name={cat.name} size={40} grayscale />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#a899c0' }} numberOfLines={1}>{cat.name}</Text>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: colors.inkMid }} numberOfLines={1}>{cat.name}</Text>
           {cat.deceased_at && (
-            <Text style={{ fontSize: 12, color: '#6b5f85', marginTop: 2 }}>
+            <Text style={{ fontSize: 12, color: colors.inkDim, marginTop: 2 }}>
               {formatLocalDate(cat.deceased_at)}
             </Text>
           )}
         </View>
-        <Text style={{ color: '#6b5f85', fontSize: 14 }}>{'\u2192'}</Text>
+        <Text style={{ color: colors.inkDim, fontSize: 14 }}>{'\u2192'}</Text>
       </Pressable>
     );
   }
@@ -260,14 +262,14 @@ export default function HomeScreen() {
   const ListHeader = () => (
     <View style={{ gap: 12 }}>
       {error && (
-        <View style={{ backgroundColor: '#1f1830', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' }}>
+        <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.rim }}>
           <Text style={{ color: '#f87171', fontSize: 14 }}>{error}</Text>
         </View>
       )}
 
       {user?.hasOrphanedCats && (
         <View style={{
-          backgroundColor: '#1f1830',
+          backgroundColor: colors.surface,
           borderRadius: 16,
           padding: 16,
           borderWidth: 1,
@@ -275,8 +277,8 @@ export default function HomeScreen() {
           gap: 12,
         }}>
           <View>
-            <Text style={{ fontSize: 14, fontWeight: '600', color: '#ede9f6' }}>Existing cats found</Text>
-            <Text style={{ fontSize: 12, color: '#a899c0', marginTop: 2 }}>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: colors.ink }}>Existing cats found</Text>
+            <Text style={{ fontSize: 12, color: colors.inkMid, marginTop: 2 }}>
               Some cats here aren't linked to your account yet
             </Text>
           </View>
@@ -300,7 +302,7 @@ export default function HomeScreen() {
               onPress={() => {/* dismiss */}}
               style={{ paddingVertical: 8, paddingHorizontal: 12 }}
             >
-              <Text style={{ color: '#6b5f85', fontSize: 12 }}>Skip</Text>
+              <Text style={{ color: colors.inkDim, fontSize: 12 }}>Skip</Text>
             </Pressable>
           </View>
         </View>
@@ -325,8 +327,8 @@ export default function HomeScreen() {
           borderColor: 'rgba(192,132,252,0.25)',
         }}
       >
-        <Text style={{ fontSize: 18, color: '#6b5f85' }}>{'\uFF0B'}</Text>
-        <Text style={{ fontSize: 14, fontWeight: '600', color: '#6b5f85' }}>Add a cat</Text>
+        <Text style={{ fontSize: 18, color: colors.inkDim }}>{'\uFF0B'}</Text>
+        <Text style={{ fontSize: 14, fontWeight: '600', color: colors.inkDim }}>Add a cat</Text>
       </Pressable>
 
       {/* Wellness Guide */}
@@ -339,19 +341,19 @@ export default function HomeScreen() {
           paddingHorizontal: 20,
           paddingVertical: 16,
           borderRadius: 20,
-          backgroundColor: 'rgba(255,255,255,0.04)',
+          backgroundColor: colors.card,
           borderWidth: 1,
-          borderColor: 'rgba(255,255,255,0.07)',
+          borderColor: colors.rim,
         }}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <Text style={{ fontSize: 20 }}>{'\uD83D\uDC3E'}</Text>
           <View>
-            <Text style={{ fontSize: 14, fontWeight: '600', color: '#ede9f6' }}>Cat Wellness Guide</Text>
-            <Text style={{ fontSize: 12, color: '#6b5f85', marginTop: 2 }}>Monthly checks, vitals, vet signs</Text>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: colors.ink }}>Cat Wellness Guide</Text>
+            <Text style={{ fontSize: 12, color: colors.inkDim, marginTop: 2 }}>Monthly checks, vitals, vet signs</Text>
           </View>
         </View>
-        <Text style={{ fontSize: 14, color: '#6b5f85' }}>{'\u2192'}</Text>
+        <Text style={{ fontSize: 14, color: colors.inkDim }}>{'\u2192'}</Text>
       </Pressable>
 
       {/* In Memoriam */}
@@ -359,7 +361,7 @@ export default function HomeScreen() {
         <View style={{ marginTop: 12 }}>
           <Text style={{
             fontSize: 11, fontWeight: '600', textTransform: 'uppercase',
-            letterSpacing: 2, color: '#6b5f85', marginBottom: 12,
+            letterSpacing: 2, color: colors.inkDim, marginBottom: 12,
           }}>
             In Memoriam
           </Text>
@@ -374,7 +376,7 @@ export default function HomeScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#16111f' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
       {/* Profile popover overlay */}
       {showProfile && (
         <Pressable
@@ -393,9 +395,9 @@ export default function HomeScreen() {
               borderRadius: 16,
               padding: 16,
               gap: 12,
-              backgroundColor: '#2a2040',
+              backgroundColor: colors.surfaceHi,
               borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.1)',
+              borderColor: colors.rim,
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 8 },
               shadowOpacity: 0.4,
@@ -405,18 +407,18 @@ export default function HomeScreen() {
             }}
           >
             <View>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#ede9f6' }} numberOfLines={1}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: colors.ink }} numberOfLines={1}>
                 {user?.display_name ?? 'You'}
               </Text>
-              <Text style={{ fontSize: 12, color: '#6b5f85' }} numberOfLines={1}>{user?.email}</Text>
+              <Text style={{ fontSize: 12, color: colors.inkDim }} numberOfLines={1}>{user?.email}</Text>
             </View>
             <Pressable
               onPress={() => { setShowProfile(false); router.push('/settings' as never); }}
               style={{ paddingVertical: 4 }}
             >
-              <Text style={{ fontSize: 14, color: '#6b5f85' }}>Settings {'\u2192'}</Text>
+              <Text style={{ fontSize: 14, color: colors.inkDim }}>Settings {'\u2192'}</Text>
             </Pressable>
-            <View style={{ borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)', marginVertical: 2 }} />
+            <View style={{ borderTopWidth: 1, borderTopColor: colors.rim, marginVertical: 2 }} />
             <Pressable
               onPress={() => { setShowProfile(false); signOut(); }}
               style={{ paddingVertical: 4 }}
@@ -450,8 +452,8 @@ export default function HomeScreen() {
           )}
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 22, fontWeight: '700', color: '#ede9f6' }}>My Cats</Text>
-          <Text style={{ fontSize: 13, color: '#6b5f85', marginTop: 2 }}>
+          <Text style={{ fontSize: 22, fontWeight: '700', color: colors.ink }}>My Cats</Text>
+          <Text style={{ fontSize: 13, color: colors.inkDim, marginTop: 2 }}>
             {catCount > 0 ? `${catCount} cat${catCount !== 1 ? 's' : ''} tracked` : 'Add a cat to get started'}
           </Text>
         </View>
@@ -461,7 +463,7 @@ export default function HomeScreen() {
           onPress={() => router.push('/notifications' as never)}
           style={{ padding: 8, position: 'relative' }}
         >
-          <Text style={{ fontSize: 20, color: '#6b5f85' }}>{'\uD83D\uDD14'}</Text>
+          <Text style={{ fontSize: 20, color: colors.inkDim }}>{'\uD83D\uDD14'}</Text>
           {notifCount > 0 && (
             <View style={{
               position: 'absolute', top: 2, right: 2,
@@ -485,7 +487,7 @@ export default function HomeScreen() {
         keyExtractor={(item) => item.cat.id}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24, gap: 12 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#c084fc" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.lavender} />
         }
         ListHeaderComponent={<ListHeader />}
         ListFooterComponent={!loading ? <ListFooter /> : null}
@@ -498,9 +500,9 @@ export default function HomeScreen() {
                   style={{
                     height: 84,
                     borderRadius: 20,
-                    backgroundColor: '#1f1830',
+                    backgroundColor: colors.surface,
                     borderWidth: 1,
-                    borderColor: 'rgba(255,255,255,0.07)',
+                    borderColor: colors.rim,
                   }}
                 />
               ))}

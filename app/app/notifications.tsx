@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { api, CARE_TYPE_ICONS } from '../lib/api';
 import type { DoseWithContext, Medication, NotificationInbox } from '../lib/api';
+import { useThemeColors } from '../hooks/useThemeColors';
 
 type SectionItem =
   | { kind: 'dose'; data: DoseWithContext }
@@ -25,6 +26,7 @@ interface Section {
 }
 
 export default function NotificationsScreen() {
+  const colors = useThemeColors();
   const router = useRouter();
   const [inbox, setInbox] = useState<NotificationInbox | null>(null);
   const [loading, setLoading] = useState(true);
@@ -97,7 +99,7 @@ export default function NotificationsScreen() {
           ? [
               {
                 title: 'Overdue',
-                accent: '#f87171',
+                accent: colors.rose,
                 data: inbox.overdue.map((d) => ({ kind: 'dose' as const, data: d })),
               },
             ]
@@ -106,7 +108,7 @@ export default function NotificationsScreen() {
           ? [
               {
                 title: 'Due Today',
-                accent: '#fbbf24',
+                accent: colors.honey,
                 data: inbox.due_today.map((d) => ({ kind: 'dose' as const, data: d })),
               },
             ]
@@ -115,7 +117,7 @@ export default function NotificationsScreen() {
           ? [
               {
                 title: 'Upcoming',
-                accent: '#a899c0',
+                accent: colors.inkMid,
                 data: inbox.upcoming.map((d) => ({ kind: 'dose' as const, data: d })),
               },
             ]
@@ -124,7 +126,7 @@ export default function NotificationsScreen() {
           ? [
               {
                 title: 'Refill Needed',
-                accent: '#fb923c',
+                accent: colors.amber,
                 data: inbox.refill_alerts.map((r) => ({
                   kind: 'refill' as const,
                   data: r,
@@ -137,14 +139,14 @@ export default function NotificationsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#16111f', justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator color="#c084fc" size="large" />
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator color={colors.lavender} size="large" />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#16111f' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
       <View
         style={{
           flexDirection: 'row',
@@ -152,14 +154,14 @@ export default function NotificationsScreen() {
           paddingHorizontal: 16,
           paddingVertical: 12,
           borderBottomWidth: 1,
-          borderBottomColor: 'rgba(255,255,255,0.07)',
+          borderBottomColor: colors.rim,
           gap: 12,
         }}
       >
         <Pressable onPress={() => router.back()}>
-          <Text style={{ color: '#c084fc', fontSize: 15 }}>{'\u2190'} Back</Text>
+          <Text style={{ color: colors.lavender, fontSize: 15 }}>{'\u2190'} Back</Text>
         </Pressable>
-        <Text style={{ color: '#ede9f6', fontSize: 20, fontWeight: '700' }}>
+        <Text style={{ color: colors.ink, fontSize: 20, fontWeight: '700' }}>
           Notifications
         </Text>
       </View>
@@ -173,7 +175,7 @@ export default function NotificationsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#c084fc"
+            tintColor={colors.lavender}
           />
         }
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
@@ -200,7 +202,7 @@ export default function NotificationsScreen() {
               <Pressable
                 onPress={() => router.push(`/cats/${med.cat_id}` as never)}
                 style={{
-                  backgroundColor: '#1f1830',
+                  backgroundColor: colors.surface,
                   borderRadius: 14,
                   padding: 14,
                   marginBottom: 8,
@@ -215,13 +217,13 @@ export default function NotificationsScreen() {
                   {CARE_TYPE_ICONS[med.type] ?? '\uD83D\uDCC5'}
                 </Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#ede9f6', fontSize: 14, fontWeight: '600' }}>
+                  <Text style={{ color: colors.ink, fontSize: 14, fontWeight: '600' }}>
                     {med.name}
                   </Text>
-                  <Text style={{ color: '#a899c0', fontSize: 13, marginTop: 2 }}>
+                  <Text style={{ color: colors.inkMid, fontSize: 13, marginTop: 2 }}>
                     {med.cat_name}
                   </Text>
-                  <Text style={{ color: '#fb923c', fontSize: 12, marginTop: 2 }}>
+                  <Text style={{ color: colors.amber, fontSize: 12, marginTop: 2 }}>
                     {med.doses_remaining ?? 0} doses remaining
                     {med.refill_alert_threshold
                       ? ` (threshold: ${med.refill_alert_threshold})`
@@ -237,12 +239,12 @@ export default function NotificationsScreen() {
           return (
             <View
               style={{
-                backgroundColor: '#1f1830',
+                backgroundColor: colors.surface,
                 borderRadius: 14,
                 padding: 14,
                 marginBottom: 8,
                 borderWidth: 1,
-                borderColor: 'rgba(255,255,255,0.07)',
+                borderColor: colors.rim,
               }}
             >
               <Pressable
@@ -253,19 +255,19 @@ export default function NotificationsScreen() {
                   {CARE_TYPE_ICONS[dose.med_type] ?? '\uD83D\uDCC5'}
                 </Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#ede9f6', fontSize: 14, fontWeight: '600' }}>
+                  <Text style={{ color: colors.ink, fontSize: 14, fontWeight: '600' }}>
                     {dose.med_name}
                   </Text>
-                  <Text style={{ color: '#a899c0', fontSize: 13, marginTop: 2 }}>
+                  <Text style={{ color: colors.inkMid, fontSize: 13, marginTop: 2 }}>
                     {dose.cat_name}
                   </Text>
                   {dose.dose && (
-                    <Text style={{ color: '#6b5f85', fontSize: 12, marginTop: 2 }}>
+                    <Text style={{ color: colors.inkDim, fontSize: 12, marginTop: 2 }}>
                       {dose.dose}
                     </Text>
                   )}
                 </View>
-                <Text style={{ color: '#6b5f85', fontSize: 12 }}>
+                <Text style={{ color: colors.inkDim, fontSize: 12 }}>
                   {dose.due_at.slice(11, 16)}
                 </Text>
               </Pressable>
@@ -278,7 +280,7 @@ export default function NotificationsScreen() {
                   marginTop: 10,
                   paddingTop: 10,
                   borderTopWidth: 1,
-                  borderTopColor: 'rgba(255,255,255,0.05)',
+                  borderTopColor: colors.card,
                 }}
               >
                 <Pressable
@@ -298,7 +300,7 @@ export default function NotificationsScreen() {
                 >
                   <Text
                     style={{
-                      color: '#4ade80',
+                      color: colors.jade,
                       fontSize: 13,
                       fontWeight: '600',
                     }}
@@ -314,12 +316,12 @@ export default function NotificationsScreen() {
                     paddingHorizontal: 16,
                     borderRadius: 10,
                     alignItems: 'center',
-                    backgroundColor: 'rgba(255,255,255,0.04)',
+                    backgroundColor: colors.card,
                     borderWidth: 1,
-                    borderColor: 'rgba(255,255,255,0.07)',
+                    borderColor: colors.rim,
                   }}
                 >
-                  <Text style={{ color: '#6b5f85', fontSize: 13, fontWeight: '500' }}>
+                  <Text style={{ color: colors.inkDim, fontSize: 13, fontWeight: '500' }}>
                     Skip
                   </Text>
                 </Pressable>
@@ -330,12 +332,12 @@ export default function NotificationsScreen() {
         ListEmptyComponent={
           <View style={{ alignItems: 'center', paddingVertical: 60 }}>
             <Text style={{ fontSize: 40, marginBottom: 12 }}>{'\uD83D\uDD14'}</Text>
-            <Text style={{ color: '#a899c0', fontSize: 16, fontWeight: '600' }}>
+            <Text style={{ color: colors.inkMid, fontSize: 16, fontWeight: '600' }}>
               All caught up!
             </Text>
             <Text
               style={{
-                color: '#6b5f85',
+                color: colors.inkDim,
                 fontSize: 14,
                 marginTop: 6,
                 textAlign: 'center',

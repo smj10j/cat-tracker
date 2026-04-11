@@ -6,6 +6,7 @@ import {
 import { api } from '../lib/api';
 import type { Cat } from '../lib/api';
 import { PRESETS, PRESET_TYPES } from '../lib/measurementPresets';
+import { useThemeColors } from '../hooks/useThemeColors';
 
 interface Props {
   open: boolean;
@@ -23,6 +24,7 @@ const TYPE_OPTIONS = [
 ];
 
 export default function QuickAdd({ open, onClose }: Props) {
+  const colors = useThemeColors();
   const [cats, setCats] = useState<Cat[]>([]);
   const [selectedCatId, setSelectedCatId] = useState('');
   const [type, setType] = useState('weight');
@@ -123,11 +125,11 @@ export default function QuickAdd({ open, onClose }: Props) {
             <Pressable
               onPress={(e) => e.stopPropagation()}
               style={{
-                backgroundColor: '#2a2040',
+                backgroundColor: colors.surfaceHi,
                 borderTopLeftRadius: 24,
                 borderTopRightRadius: 24,
                 borderTopWidth: 1,
-                borderTopColor: 'rgba(255,255,255,0.1)',
+                borderTopColor: colors.rim,
                 padding: 20,
                 paddingBottom: 36,
               }}
@@ -139,7 +141,7 @@ export default function QuickAdd({ open, onClose }: Props) {
                 alignSelf: 'center', marginBottom: 20,
               }} />
 
-              <Text style={{ fontWeight: '700', color: '#ede9f6', fontSize: 18, marginBottom: 20 }}>
+              <Text style={{ fontWeight: '700', color: colors.ink, fontSize: 18, marginBottom: 20 }}>
                 Log Measurement
               </Text>
 
@@ -152,22 +154,22 @@ export default function QuickAdd({ open, onClose }: Props) {
                     borderWidth: 1, borderColor: 'rgba(74,222,128,0.3)',
                     marginBottom: 12,
                   }}>
-                    <Text style={{ fontSize: 24, color: '#4ade80' }}>{'\u2713'}</Text>
+                    <Text style={{ fontSize: 24, color: colors.jade }}>{'\u2713'}</Text>
                   </View>
-                  <Text style={{ fontWeight: '600', color: '#4ade80' }}>Saved!</Text>
+                  <Text style={{ fontWeight: '600', color: colors.jade }}>Saved!</Text>
                 </View>
               ) : (
                 <View style={{ gap: 16 }}>
                   {error && (
                     <View style={{ backgroundColor: 'rgba(248,113,113,0.1)', borderRadius: 12, padding: 10 }}>
-                      <Text style={{ color: '#f87171', fontSize: 14 }}>{error}</Text>
+                      <Text style={{ color: colors.rose, fontSize: 14 }}>{error}</Text>
                     </View>
                   )}
 
                   {/* Cat selector */}
                   {cats.length > 1 && (
                     <View>
-                      <Text style={{ fontSize: 11, fontWeight: '600', color: '#a899c0', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                      <Text style={{ fontSize: 11, fontWeight: '600', color: colors.inkMid, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
                         Cat
                       </Text>
                       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
@@ -177,14 +179,14 @@ export default function QuickAdd({ open, onClose }: Props) {
                             onPress={() => setSelectedCatId(c.id)}
                             style={{
                               paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
-                              backgroundColor: selectedCatId === c.id ? 'rgba(192,132,252,0.15)' : 'rgba(255,255,255,0.05)',
+                              backgroundColor: selectedCatId === c.id ? 'rgba(192,132,252,0.15)' : colors.card,
                               borderWidth: 1,
-                              borderColor: selectedCatId === c.id ? 'rgba(192,132,252,0.25)' : 'rgba(255,255,255,0.07)',
+                              borderColor: selectedCatId === c.id ? 'rgba(192,132,252,0.25)' : colors.rim,
                             }}
                           >
                             <Text style={{
                               fontSize: 13, fontWeight: '600',
-                              color: selectedCatId === c.id ? '#c084fc' : '#6b5f85',
+                              color: selectedCatId === c.id ? colors.lavender : colors.inkDim,
                             }}>
                               {c.name}
                             </Text>
@@ -196,7 +198,7 @@ export default function QuickAdd({ open, onClose }: Props) {
 
                   {/* Type selector */}
                   <View>
-                    <Text style={{ fontSize: 11, fontWeight: '600', color: '#a899c0', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '600', color: colors.inkMid, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
                       What to log
                     </Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
@@ -206,14 +208,14 @@ export default function QuickAdd({ open, onClose }: Props) {
                           onPress={() => handleTypeChange(opt.value)}
                           style={{
                             paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
-                            backgroundColor: type === opt.value ? 'rgba(192,132,252,0.15)' : 'rgba(255,255,255,0.05)',
+                            backgroundColor: type === opt.value ? 'rgba(192,132,252,0.15)' : colors.card,
                             borderWidth: 1,
-                            borderColor: type === opt.value ? 'rgba(192,132,252,0.25)' : 'rgba(255,255,255,0.07)',
+                            borderColor: type === opt.value ? 'rgba(192,132,252,0.25)' : colors.rim,
                           }}
                         >
                           <Text style={{
                             fontSize: 13, fontWeight: '600',
-                            color: type === opt.value ? '#c084fc' : '#6b5f85',
+                            color: type === opt.value ? colors.lavender : colors.inkDim,
                           }}>
                             {opt.label}
                           </Text>
@@ -225,7 +227,7 @@ export default function QuickAdd({ open, onClose }: Props) {
                   {/* Input area */}
                   {isPresetType ? (
                     <View>
-                      <Text style={{ fontSize: 11, fontWeight: '600', color: '#a899c0', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                      <Text style={{ fontSize: 11, fontWeight: '600', color: colors.inkMid, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
                         Observation
                       </Text>
                       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -244,18 +246,18 @@ export default function QuickAdd({ open, onClose }: Props) {
                                 alignItems: 'center',
                                 backgroundColor: isSelected
                                   ? (preset.concern ? 'rgba(248,113,113,0.2)' : 'rgba(74,222,128,0.15)')
-                                  : 'rgba(255,255,255,0.05)',
+                                  : colors.card,
                                 borderWidth: isSelected ? 1.5 : 1,
                                 borderColor: isSelected
                                   ? (preset.concern ? 'rgba(248,113,113,0.5)' : 'rgba(74,222,128,0.4)')
-                                  : 'rgba(255,255,255,0.08)',
+                                  : colors.rim,
                               }}
                             >
                               <Text style={{
                                 fontSize: 14, fontWeight: '600',
                                 color: isSelected
-                                  ? (preset.concern ? '#f87171' : '#4ade80')
-                                  : '#ede9f6',
+                                  ? (preset.concern ? colors.rose : colors.jade)
+                                  : colors.ink,
                               }}>
                                 {saving && isSelected ? '\u2026' : preset.label}
                               </Text>
@@ -268,30 +270,30 @@ export default function QuickAdd({ open, onClose }: Props) {
                     <View style={{ gap: 12 }}>
                       <View style={{ flexDirection: 'row', gap: 8 }}>
                         <View style={{ flex: 2 }}>
-                          <Text style={{ fontSize: 11, fontWeight: '600', color: '#a899c0', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                          <Text style={{ fontSize: 11, fontWeight: '600', color: colors.inkMid, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
                             Weight
                           </Text>
                           <TextInput
                             value={weightValue}
                             onChangeText={setWeightValue}
                             placeholder="e.g. 9.4"
-                            placeholderTextColor="#6b5f85"
+                            placeholderTextColor={colors.inkDim}
                             keyboardType="decimal-pad"
                             returnKeyType="done"
                             style={{
-                              backgroundColor: 'rgba(255,255,255,0.05)',
+                              backgroundColor: colors.card,
                               borderWidth: 1,
-                              borderColor: 'rgba(255,255,255,0.07)',
+                              borderColor: colors.rim,
                               borderRadius: 12,
                               paddingHorizontal: 12,
                               paddingVertical: 12,
-                              color: '#ede9f6',
+                              color: colors.ink,
                               fontSize: 14,
                             }}
                           />
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Text style={{ fontSize: 11, fontWeight: '600', color: '#a899c0', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                          <Text style={{ fontSize: 11, fontWeight: '600', color: colors.inkMid, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
                             Unit
                           </Text>
                           <View style={{ flexDirection: 'row', gap: 4 }}>
@@ -304,13 +306,13 @@ export default function QuickAdd({ open, onClose }: Props) {
                                   paddingVertical: 12,
                                   borderRadius: 12,
                                   alignItems: 'center',
-                                  backgroundColor: weightUnit === u ? 'rgba(192,132,252,0.15)' : 'rgba(255,255,255,0.05)',
+                                  backgroundColor: weightUnit === u ? 'rgba(192,132,252,0.15)' : colors.card,
                                   borderWidth: 1,
-                                  borderColor: weightUnit === u ? 'rgba(192,132,252,0.25)' : 'rgba(255,255,255,0.07)',
+                                  borderColor: weightUnit === u ? 'rgba(192,132,252,0.25)' : colors.rim,
                                 }}
                               >
                                 <Text style={{
-                                  color: weightUnit === u ? '#c084fc' : '#6b5f85',
+                                  color: weightUnit === u ? colors.lavender : colors.inkDim,
                                   fontWeight: '600', fontSize: 14,
                                 }}>
                                   {u}
@@ -324,7 +326,7 @@ export default function QuickAdd({ open, onClose }: Props) {
                         onPress={handleWeightSubmit}
                         disabled={saving}
                         style={{
-                          backgroundColor: '#c084fc',
+                          backgroundColor: colors.lavender,
                           borderRadius: 12,
                           paddingVertical: 14,
                           alignItems: 'center',

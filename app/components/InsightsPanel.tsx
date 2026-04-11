@@ -5,6 +5,7 @@ import type { Cat, Measurement } from '../lib/api';
 import { STATUS_COLORS } from '../lib/healthMetrics';
 import type { HealthAssessment } from '../lib/healthMetrics';
 import { detectCorrelations, describeCorrelation, detectConfluence } from '../lib/correlations';
+import { useThemeColors } from '../hooks/useThemeColors';
 
 const STATUS_ICON: Record<string, string> = {
   watch: '\uD83D\uDC40',
@@ -24,6 +25,7 @@ interface Props {
 export default function InsightsPanel({
   cat, status, health, measurementsByType, availableTypes, hasWeightData,
 }: Props) {
+  const colors = useThemeColors();
   const router = useRouter();
   const [patternsOpen, setPatternsOpen] = useState(false);
 
@@ -45,7 +47,7 @@ export default function InsightsPanel({
 
   if (!hasInsights) return null;
 
-  const statusColor = STATUS_COLORS[status as keyof typeof STATUS_COLORS] ?? '#c084fc';
+  const statusColor = STATUS_COLORS[status as keyof typeof STATUS_COLORS] ?? colors.lavender;
 
   const panelBg = isUrgent
     ? 'rgba(248,113,113,0.08)'
@@ -71,7 +73,7 @@ export default function InsightsPanel({
     ? 'rgba(249,115,22,0.15)'
     : isWatch
     ? 'rgba(251,191,36,0.12)'
-    : 'rgba(255,255,255,0.07)';
+    : colors.rim;
 
   return (
     <View
@@ -99,7 +101,7 @@ export default function InsightsPanel({
                   : `${cat.name}'s weight is worth watching`}
                 {health.peakLossPct > 0 ? ` \u2014 ${health.peakLossPct}% below recent weight` : ''}
               </Text>
-              <Text style={{ color: '#a899c0', fontSize: 14 }}>{health.summary}</Text>
+              <Text style={{ color: colors.inkMid, fontSize: 14 }}>{health.summary}</Text>
             </View>
           </View>
 
@@ -123,7 +125,7 @@ export default function InsightsPanel({
               <Text style={{ fontSize: 12, fontWeight: '600', color: statusColor }}>
                 What to watch for & when to go to the vet
               </Text>
-              <Text style={{ fontSize: 12, color: '#6b5f85', marginTop: 2 }}>
+              <Text style={{ fontSize: 12, color: colors.inkDim, marginTop: 2 }}>
                 Behavioral signs, vet thresholds, and what this means
               </Text>
             </View>
@@ -148,11 +150,11 @@ export default function InsightsPanel({
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Text style={{ fontSize: 14 }}>{'\uD83D\uDC3E'}</Text>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: '#c084fc' }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.lavender }}>
                 Cat Wellness Guide
               </Text>
             </View>
-            <Text style={{ fontSize: 14, color: '#c084fc' }}>{'\u2192'}</Text>
+            <Text style={{ fontSize: 14, color: colors.lavender }}>{'\u2192'}</Text>
           </Pressable>
         </View>
       )}
@@ -171,23 +173,23 @@ export default function InsightsPanel({
             }}
           >
             <Text style={{ fontSize: 14, flexShrink: 0 }}>{'\uD83D\uDCC8'}</Text>
-            <Text style={{ fontSize: 12, fontWeight: '600', color: '#a899c0', flex: 1 }}>Patterns</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.inkMid, flex: 1 }}>Patterns</Text>
 
             <View
               style={{
                 paddingHorizontal: 8,
                 paddingVertical: 2,
                 borderRadius: 999,
-                backgroundColor: correlations.length > 0 ? 'rgba(192,132,252,0.15)' : 'rgba(255,255,255,0.05)',
+                backgroundColor: correlations.length > 0 ? 'rgba(192,132,252,0.15)' : colors.card,
                 borderWidth: 1,
-                borderColor: correlations.length > 0 ? 'rgba(192,132,252,0.25)' : 'rgba(255,255,255,0.07)',
+                borderColor: correlations.length > 0 ? 'rgba(192,132,252,0.25)' : colors.rim,
               }}
             >
               <Text
                 style={{
                   fontSize: 12,
                   fontWeight: '700',
-                  color: correlations.length > 0 ? '#c084fc' : '#6b5f85',
+                  color: correlations.length > 0 ? colors.lavender : colors.inkDim,
                 }}
               >
                 {correlations.length > 0 ? `${correlations.length} detected` : 'None yet'}
@@ -205,7 +207,7 @@ export default function InsightsPanel({
                   borderColor: 'rgba(249,115,22,0.35)',
                 }}
               >
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#f97316' }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.coral }}>
                   {'\u26A0\uFE0F'} Multiple signals
                 </Text>
               </View>
@@ -213,7 +215,7 @@ export default function InsightsPanel({
 
             <Text
               style={{
-                color: '#6b5f85',
+                color: colors.inkDim,
                 fontSize: 14,
                 marginLeft: 4,
                 transform: [{ rotate: patternsOpen ? '180deg' : '0deg' }],
@@ -236,7 +238,7 @@ export default function InsightsPanel({
                     borderColor: 'rgba(249,115,22,0.4)',
                   }}
                 >
-                  <Text style={{ fontSize: 12, fontWeight: '700', letterSpacing: 0.5, marginBottom: 6, color: '#f97316', textTransform: 'uppercase' }}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', letterSpacing: 0.5, marginBottom: 6, color: colors.coral, textTransform: 'uppercase' }}>
                     Multiple signals \u2014 {confluence.clusterName}
                   </Text>
                   <Text style={{ fontSize: 14, lineHeight: 20, color: '#fdba74' }}>
@@ -246,7 +248,7 @@ export default function InsightsPanel({
               )}
 
               {correlations.length === 0 ? (
-                <Text style={{ fontSize: 14, color: '#6b5f85' }}>
+                <Text style={{ fontSize: 14, color: colors.inkDim }}>
                   No patterns detected yet \u2014 keep logging to see trends emerge.
                 </Text>
               ) : (
@@ -259,10 +261,10 @@ export default function InsightsPanel({
                           height: 8,
                           borderRadius: 4,
                           marginTop: 5,
-                          backgroundColor: r.strength === 'notable' ? '#c084fc' : '#fb923c',
+                          backgroundColor: r.strength === 'notable' ? colors.lavender : colors.amber,
                         }}
                       />
-                      <Text style={{ flex: 1, fontSize: 14, color: '#a899c0', lineHeight: 20 }}>
+                      <Text style={{ flex: 1, fontSize: 14, color: colors.inkMid, lineHeight: 20 }}>
                         {describeCorrelation(r, cat.name, cat.sex)}
                       </Text>
                     </View>

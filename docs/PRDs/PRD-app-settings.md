@@ -1,6 +1,6 @@
 # PRD: App Settings
 
-**Status:** Partial (Phases A + B implemented; Phase C remaining)
+**Status:** Partial (Phases A + B implemented; Phase C remaining; Phase D in progress)
 **Last updated:** 2026-04-11
 
 ---
@@ -143,6 +143,32 @@ Minimal for Phase A — just the display section with the toggle.
 - Selecting Dark / Light / System persists across page reloads
 - Light theme makes all pages readable (no invisible text, no broken layouts)
 - System mode automatically switches when OS appearance changes
+
+---
+
+---
+
+## Phase D — Native (iOS) Theme Support
+
+The iOS/Expo app (`app/`) currently only supports dark mode with hardcoded hex values. Phase D brings dark/light/system mode parity to native.
+
+### Approach
+
+- **NativeWind `darkMode: 'class'`** + CSS variables in `global.css` — Tailwind class-based colors (`bg-night`, `text-ink`) switch automatically
+- **`useThemeColors()` hook** for inline styles — 17 files use hardcoded hex values that can't be reached by CSS vars
+- **AsyncStorage persistence** — key `'whisker-theme'`, default `'dark'` (no visual change for existing users)
+- **NativeWind's `useColorScheme()`** — provides `setColorScheme('dark' | 'light' | 'system')` at runtime
+
+### Implementation steps
+
+1. Install `@react-native-async-storage/async-storage`
+2. Define CSS variables in `app/global.css` (`:root` = light, `.dark` = dark)
+3. Update `app/tailwind.config.ts`: `darkMode: 'class'`, colors reference CSS vars
+4. Create `app/lib/colors.ts` (palette objects), `app/hooks/useThemeColors.ts` (hook)
+5. Create `app/contexts/ThemeContext.tsx` (AsyncStorage persistence + NativeWind bridge)
+6. Update `app/app/_layout.tsx` with `ThemeProvider` + dynamic `StatusBar`
+7. Add theme toggle UI to `app/app/settings.tsx`
+8. Migrate 17 files with inline hardcoded hex to use `useThemeColors()`
 
 ---
 

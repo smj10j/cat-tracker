@@ -14,19 +14,10 @@ import {
   URGENT_VET_SIGNS,
 } from '../../../lib/healthMetrics';
 import { catAge } from '../../../lib/dates';
-
-const colors = {
-  night: '#16111f',
-  surface: '#1f1830',
-  ink: '#ede9f6',
-  inkMid: '#a899c0',
-  inkDim: '#6b5f85',
-  rim: 'rgba(255,255,255,0.07)',
-  rose: '#f87171',
-  lavender: '#c084fc',
-};
+import { useThemeColors } from '../../../hooks/useThemeColors';
 
 export default function HealthGuidanceScreen() {
+  const colors = useThemeColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
@@ -206,7 +197,7 @@ export default function HealthGuidanceScreen() {
             style={{
               borderRadius: 16,
               padding: 20,
-              backgroundColor: 'rgba(255,255,255,0.03)',
+              backgroundColor: colors.card,
               borderWidth: 1,
               borderColor: sectionBorder,
             }}
@@ -237,9 +228,9 @@ export default function HealthGuidanceScreen() {
               borderRadius: 16,
               paddingHorizontal: 20,
               paddingVertical: 16,
-              backgroundColor: 'rgba(255,255,255,0.03)',
+              backgroundColor: colors.card,
               borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.06)',
+              borderColor: colors.rim,
             }}
           >
             <Text style={{ fontSize: 14, color: colors.inkMid, lineHeight: 20 }}>
@@ -258,9 +249,9 @@ export default function HealthGuidanceScreen() {
               paddingVertical: 14,
               borderRadius: 16,
               alignItems: 'center',
-              backgroundColor: 'rgba(255,255,255,0.03)',
+              backgroundColor: colors.card,
               borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.06)',
+              borderColor: colors.rim,
             }}
           >
             <Text style={{ fontSize: 14, fontWeight: '600', color: colors.inkDim }}>

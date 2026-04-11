@@ -23,6 +23,7 @@ import {
   PanResponder,
   LayoutChangeEvent,
 } from 'react-native';
+import { useThemeColors } from '../hooks/useThemeColors';
 import Svg, {
   Path,
   Circle,
@@ -152,6 +153,7 @@ export default function LineChart({
   formatY = (v) => String(Math.round(v * 10) / 10),
   formatX = formatShortDate,
 }: LineChartProps) {
+  const colors = useThemeColors();
   const [containerWidth, setContainerWidth] = useState(
     Dimensions.get('window').width - 32,
   );
@@ -180,7 +182,7 @@ export default function LineChart({
   if (cleanData.length === 0) {
     return (
       <View style={{ height, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: '#6b5f85', fontSize: 14 }}>No data to chart</Text>
+        <Text style={{ color: colors.inkDim, fontSize: 14 }}>No data to chart</Text>
       </View>
     );
   }
@@ -200,7 +202,7 @@ export default function LineChart({
             </Text>
           );
         })}
-        <Text style={{ color: '#6b5f85', fontSize: 12, marginTop: 4 }}>
+        <Text style={{ color: colors.inkDim, fontSize: 12, marginTop: 4 }}>
           {formatX(point.date)} — single data point
         </Text>
       </View>
@@ -311,7 +313,7 @@ export default function LineChart({
             position: 'absolute',
             top: 0,
             left: 4,
-            color: '#6b5f85',
+            color: colors.inkDim,
             fontSize: 10,
             fontWeight: '600',
             textTransform: 'uppercase',
@@ -332,7 +334,7 @@ export default function LineChart({
               Math.max(activePx - 70, 4),
               containerWidth - 144,
             ),
-            backgroundColor: '#2a2040',
+            backgroundColor: colors.surfaceHi,
             borderRadius: 10,
             paddingHorizontal: 10,
             paddingVertical: 6,
@@ -342,7 +344,7 @@ export default function LineChart({
             minWidth: 140,
           }}
         >
-          <Text style={{ color: '#a899c0', fontSize: 10, marginBottom: 2 }}>
+          <Text style={{ color: colors.inkMid, fontSize: 10, marginBottom: 2 }}>
             {formatX(activePoint.date)}
           </Text>
           {seriesKeys.map((key, i) => {
@@ -360,7 +362,7 @@ export default function LineChart({
                     backgroundColor: color,
                   }}
                 />
-                <Text style={{ color: '#ede9f6', fontSize: 12, fontWeight: '600' }}>
+                <Text style={{ color: colors.ink, fontSize: 12, fontWeight: '600' }}>
                   {seriesKeys.length > 1 ? `${label}: ` : ''}
                   {formatY(v)}
                   {yLabel ? ` ${yLabel}` : ''}
@@ -397,7 +399,7 @@ export default function LineChart({
               x2={containerWidth - MARGIN.right}
               y1={yScale(tick)}
               y2={yScale(tick)}
-              stroke="rgba(255,255,255,0.06)"
+              stroke={colors.card}
               strokeWidth={1}
             />
           ))}
@@ -409,7 +411,7 @@ export default function LineChart({
               x={MARGIN.left - 6}
               y={yScale(tick) + 4}
               textAnchor="end"
-              fill="#6b5f85"
+              fill={colors.inkDim}
               fontSize={10}
             >
               {formatY(tick)}
@@ -423,7 +425,7 @@ export default function LineChart({
               x={xScale(ts)}
               y={height - 4}
               textAnchor="middle"
-              fill="#6b5f85"
+              fill={colors.inkDim}
               fontSize={10}
             >
               {formatX(ts)}
@@ -479,7 +481,7 @@ export default function LineChart({
                   cx={pt.x}
                   cy={pt.y}
                   r={activeIdx === pt.idx ? 6 : 3}
-                  fill={activeIdx === pt.idx ? s.color : '#16111f'}
+                  fill={activeIdx === pt.idx ? s.color : colors.night}
                   stroke={s.color}
                   strokeWidth={activeIdx === pt.idx ? 2.5 : 1.5}
                 />
@@ -538,7 +540,7 @@ export default function LineChart({
                     backgroundColor: color,
                   }}
                 />
-                <Text style={{ color: '#a899c0', fontSize: 11 }}>{label}</Text>
+                <Text style={{ color: colors.inkMid, fontSize: 11 }}>{label}</Text>
               </View>
             );
           })}

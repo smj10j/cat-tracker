@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text } from 'react-native';
+import { palette } from '../lib/colors';
 
 interface Props {
   fallback?: React.ReactNode;
@@ -24,7 +25,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
     if (this.state.hasError) {
       return this.props.fallback ?? (
         <View style={{ padding: 16, alignItems: 'center' }}>
-          <Text style={{ color: '#6b5f85', fontSize: 14, textAlign: 'center' }}>
+          <Text style={{ color: palette.dark.inkDim, fontSize: 14, textAlign: 'center' }}>
             Chart unavailable — showing data table instead
           </Text>
         </View>

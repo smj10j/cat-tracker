@@ -13,6 +13,7 @@ import { getPresetLabel } from '../../../lib/measurementPresets';
 import { catAge, formatLocalDate } from '../../../lib/dates';
 import LineChart from '../../../components/LineChart';
 import { ErrorBoundary } from '../../../components/ErrorBoundary';
+import { useThemeColors } from '../../../hooks/useThemeColors';
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -93,6 +94,7 @@ function formatSexNeuter(sex: string | null, isNeutered: number | null): string 
 }
 
 export default function CatProfileScreen() {
+  const colors = useThemeColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [cat, setCat] = useState<Cat | null>(null);
@@ -149,17 +151,17 @@ export default function CatProfileScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#16111f', justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ color: '#a899c0' }}>Loading...</Text>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: colors.inkMid }}>Loading...</Text>
       </SafeAreaView>
     );
   }
 
   if (error) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#16111f', padding: 16 }}>
-        <View style={{ backgroundColor: '#1f1830', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' }}>
-          <Text style={{ color: '#f87171', fontSize: 14 }}>{error}</Text>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night, padding: 16 }}>
+        <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.rim }}>
+          <Text style={{ color: colors.rose, fontSize: 14 }}>{error}</Text>
         </View>
       </SafeAreaView>
     );
@@ -193,13 +195,13 @@ export default function CatProfileScreen() {
   const hasRealMicrochip = cat.microchip_id && !cat.microchip_id.startsWith('temp-microchip-id-');
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#16111f' }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
       <ScrollView style={{ flex: 1 }}>
         {/* Hero */}
         <View
           style={{
             height: 280,
-            backgroundColor: '#1f1830',
+            backgroundColor: colors.surface,
             position: 'relative',
             overflow: 'hidden',
           }}
@@ -271,7 +273,7 @@ export default function CatProfileScreen() {
             </View>
             {latestWeight && !isDeceased && (
               <View style={{ alignItems: 'flex-end', flexShrink: 0 }}>
-                <Text style={{ fontWeight: '700', fontSize: 24, color: status !== 'ok' ? statusColor : '#fb923c' }}>
+                <Text style={{ fontWeight: '700', fontSize: 24, color: status !== 'ok' ? statusColor : colors.amber }}>
                   {latestWeight.value}{' '}
                   <Text style={{ fontSize: 14, fontWeight: '400', color: 'rgba(255,255,255,0.4)' }}>{latestWeight.unit}</Text>
                 </Text>
@@ -305,7 +307,7 @@ export default function CatProfileScreen() {
             borderWidth: 1,
             borderColor: 'rgba(192,132,252,0.15)',
           }}>
-            <Text style={{ color: '#a899c0', fontSize: 14, fontStyle: 'italic', lineHeight: 20 }}>
+            <Text style={{ color: colors.inkMid, fontSize: 14, fontStyle: 'italic', lineHeight: 20 }}>
               {cat.memorial_note}
             </Text>
           </View>
@@ -319,7 +321,7 @@ export default function CatProfileScreen() {
           marginTop: 16,
           padding: 4,
           borderRadius: 12,
-          backgroundColor: 'rgba(255,255,255,0.05)',
+          backgroundColor: colors.card,
         }}>
           {(['health', 'care', 'about'] as const).map((key) => (
             <Pressable
@@ -338,7 +340,7 @@ export default function CatProfileScreen() {
               <Text style={{
                 fontSize: 12,
                 fontWeight: '600',
-                color: profileTab === key ? '#c084fc' : '#6b5f85',
+                color: profileTab === key ? colors.lavender : colors.inkDim,
                 textTransform: 'capitalize',
               }}>
                 {key === 'health' ? 'Health' : key === 'care' ? 'Care' : 'About'}
@@ -377,15 +379,15 @@ export default function CatProfileScreen() {
                       paddingHorizontal: 16,
                       paddingVertical: 8,
                       borderRadius: 20,
-                      backgroundColor: chartTab === t.key ? 'rgba(192,132,252,0.2)' : 'rgba(255,255,255,0.04)',
+                      backgroundColor: chartTab === t.key ? 'rgba(192,132,252,0.2)' : colors.card,
                       borderWidth: 1,
-                      borderColor: chartTab === t.key ? 'rgba(192,132,252,0.4)' : 'rgba(255,255,255,0.07)',
+                      borderColor: chartTab === t.key ? 'rgba(192,132,252,0.4)' : colors.rim,
                       minHeight: 44,
                       justifyContent: 'center',
                     }}
                   >
                     <Text style={{
-                      color: chartTab === t.key ? '#c084fc' : '#6b5f85',
+                      color: chartTab === t.key ? colors.lavender : colors.inkDim,
                       fontSize: 13,
                       fontWeight: chartTab === t.key ? '600' : '400',
                     }}>
@@ -399,13 +401,13 @@ export default function CatProfileScreen() {
             {/* Weight chart */}
             {chartTab === 'weight' && weightMeasurements.length >= 2 && (
               <View style={{
-                backgroundColor: '#1f1830',
+                backgroundColor: colors.surface,
                 borderRadius: 16,
                 padding: 16,
                 borderWidth: 1,
-                borderColor: 'rgba(255,255,255,0.07)',
+                borderColor: colors.rim,
               }}>
-                <Text style={{ fontWeight: '600', fontSize: 14, color: '#a899c0', marginBottom: 4 }}>
+                <Text style={{ fontWeight: '600', fontSize: 14, color: colors.inkMid, marginBottom: 4 }}>
                   Weight Trend
                 </Text>
                 {health && (
@@ -432,13 +434,13 @@ export default function CatProfileScreen() {
             {chartTab === 'food' && (() => {
               const foodMeasurements = measurements.filter(m => m.type === 'food');
               if (foodMeasurements.length < 2) return (
-                <View style={{ backgroundColor: '#1f1830', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)', alignItems: 'center' }}>
-                  <Text style={{ color: '#6b5f85', fontSize: 14 }}>Not enough food data to chart</Text>
+                <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.rim, alignItems: 'center' }}>
+                  <Text style={{ color: colors.inkDim, fontSize: 14 }}>Not enough food data to chart</Text>
                 </View>
               );
               return (
-                <View style={{ backgroundColor: '#1f1830', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' }}>
-                  <Text style={{ fontWeight: '600', fontSize: 14, color: '#a899c0', marginBottom: 12 }}>Food Intake</Text>
+                <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.rim }}>
+                  <Text style={{ fontWeight: '600', fontSize: 14, color: colors.inkMid, marginBottom: 12 }}>Food Intake</Text>
                   <ErrorBoundary>
                     <LineChart
                       data={foodMeasurements
@@ -446,7 +448,7 @@ export default function CatProfileScreen() {
                         .map(m => ({ date: new Date(m.measured_at).getTime(), value: m.value }))}
                       seriesKeys={['value']}
                       seriesLabels={{ value: 'Food' }}
-                      seriesColors={{ value: '#4ade80' }}
+                      seriesColors={{ value: colors.jade }}
                       height={180}
                       yLabel="scale"
                       formatY={(v) => getPresetLabel('food', Math.round(v))}
@@ -460,13 +462,13 @@ export default function CatProfileScreen() {
             {chartTab === 'water' && (() => {
               const waterMeasurements = measurements.filter(m => m.type === 'water');
               if (waterMeasurements.length < 2) return (
-                <View style={{ backgroundColor: '#1f1830', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)', alignItems: 'center' }}>
-                  <Text style={{ color: '#6b5f85', fontSize: 14 }}>Not enough water data to chart</Text>
+                <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.rim, alignItems: 'center' }}>
+                  <Text style={{ color: colors.inkDim, fontSize: 14 }}>Not enough water data to chart</Text>
                 </View>
               );
               return (
-                <View style={{ backgroundColor: '#1f1830', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' }}>
-                  <Text style={{ fontWeight: '600', fontSize: 14, color: '#a899c0', marginBottom: 12 }}>Water Intake</Text>
+                <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.rim }}>
+                  <Text style={{ fontWeight: '600', fontSize: 14, color: colors.inkMid, marginBottom: 12 }}>Water Intake</Text>
                   <ErrorBoundary>
                     <LineChart
                       data={waterMeasurements
@@ -487,10 +489,10 @@ export default function CatProfileScreen() {
             {/* Behavior charts */}
             {chartTab === 'behavior' && (() => {
               const behaviorTypes = ['grooming', 'activity', 'litter', 'vomiting'].filter(t => measurementsByType[t]?.length);
-              const typeColors: Record<string, string> = { grooming: '#c084fc', activity: '#4ade80', litter: '#fbbf24', vomiting: '#f87171' };
+              const typeColors: Record<string, string> = { grooming: colors.lavender, activity: colors.jade, litter: colors.honey, vomiting: colors.rose };
               if (behaviorTypes.length === 0) return (
-                <View style={{ backgroundColor: '#1f1830', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)', alignItems: 'center' }}>
-                  <Text style={{ color: '#6b5f85', fontSize: 14 }}>No behavioral data to chart</Text>
+                <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.rim, alignItems: 'center' }}>
+                  <Text style={{ color: colors.inkDim, fontSize: 14 }}>No behavioral data to chart</Text>
                 </View>
               );
               return (
@@ -499,8 +501,8 @@ export default function CatProfileScreen() {
                     const typeMeasurements = measurementsByType[type] ?? [];
                     if (typeMeasurements.length < 2) return null;
                     return (
-                      <View key={type} style={{ backgroundColor: '#1f1830', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' }}>
-                        <Text style={{ fontWeight: '600', fontSize: 14, color: '#a899c0', marginBottom: 12 }}>
+                      <View key={type} style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.rim }}>
+                        <Text style={{ fontWeight: '600', fontSize: 14, color: colors.inkMid, marginBottom: 12 }}>
                           {MEAS_TYPE_LABELS[type] ?? type}
                         </Text>
                         <ErrorBoundary>
@@ -510,7 +512,7 @@ export default function CatProfileScreen() {
                               .map(m => ({ date: new Date(m.measured_at).getTime(), value: m.value }))}
                             seriesKeys={['value']}
                             seriesLabels={{ value: MEAS_TYPE_LABELS[type] ?? type }}
-                            seriesColors={{ value: typeColors[type] ?? '#c084fc' }}
+                            seriesColors={{ value: typeColors[type] ?? colors.lavender }}
                             height={150}
                             yLabel="scale"
                             formatY={(v) => getPresetLabel(type, Math.round(v))}
@@ -540,24 +542,24 @@ export default function CatProfileScreen() {
               const filteredOlderCount = filteredOlderGroups.reduce((sum, g) => sum + g.items.length, 0);
               return filteredMeasurements.length > 0 && (
               <View style={{
-                backgroundColor: '#1f1830',
+                backgroundColor: colors.surface,
                 borderRadius: 16,
                 padding: 20,
                 borderWidth: 1,
-                borderColor: 'rgba(255,255,255,0.07)',
+                borderColor: colors.rim,
               }}>
-                <Text style={{ fontWeight: '600', fontSize: 16, color: '#ede9f6', marginBottom: 16 }}>
+                <Text style={{ fontWeight: '600', fontSize: 16, color: colors.ink, marginBottom: 16 }}>
                   History
                 </Text>
 
                 {filteredVisibleGroups.map((group) => (
                   <View key={group.dateStr} style={{ marginBottom: 20 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#6b5f85' }}>{group.label}</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: colors.inkDim }}>{group.label}</Text>
                       <Text style={{ fontSize: 12, color: 'rgba(107,95,133,0.6)' }}>
                         {group.items.length} {group.items.length === 1 ? 'entry' : 'entries'}
                       </Text>
-                      <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.07)' }} />
+                      <View style={{ flex: 1, height: 1, backgroundColor: colors.rim }} />
                     </View>
 
                     {group.items.map((m, idx) => (
@@ -569,19 +571,19 @@ export default function CatProfileScreen() {
                           justifyContent: 'space-between',
                           paddingVertical: 10,
                           borderBottomWidth: idx < group.items.length - 1 ? 1 : 0,
-                          borderBottomColor: 'rgba(255,255,255,0.05)',
+                          borderBottomColor: colors.card,
                         }}
                       >
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
-                          <Text style={{ color: '#6b5f85', fontSize: 12, width: 64, flexShrink: 0 }}>
+                          <Text style={{ color: colors.inkDim, fontSize: 12, width: 64, flexShrink: 0 }}>
                             {formatTime(m.measured_at)}
                           </Text>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', flex: 1 }}>
-                            <Text style={{ fontWeight: '600', fontSize: 14, color: '#ede9f6' }}>
+                            <Text style={{ fontWeight: '600', fontSize: 14, color: colors.ink }}>
                               {m.unit === 'scale' ? getPresetLabel(m.type, m.value) : `${m.value} ${m.unit}`}
                             </Text>
-                            <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999, backgroundColor: '#1f1830' }}>
-                              <Text style={{ fontSize: 11, color: '#6b5f85' }}>
+                            <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999, backgroundColor: colors.surface }}>
+                              <Text style={{ fontSize: 11, color: colors.inkDim }}>
                                 {MEAS_TYPE_LABELS[m.type] ?? m.type}
                               </Text>
                             </View>
@@ -593,15 +595,15 @@ export default function CatProfileScreen() {
                             <View style={{ flexDirection: 'row', gap: 4, marginLeft: 12 }}>
                               <Pressable
                                 onPress={() => setPendingDeleteId(null)}
-                                style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: '#1f1830' }}
+                                style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: colors.surface }}
                               >
-                                <Text style={{ color: '#6b5f85', fontSize: 12 }}>Cancel</Text>
+                                <Text style={{ color: colors.inkDim, fontSize: 12 }}>Cancel</Text>
                               </Pressable>
                               <Pressable
                                 onPress={() => executeDeleteMeasurement(m.id)}
                                 style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(248,113,113,0.1)' }}
                               >
-                                <Text style={{ color: '#f87171', fontSize: 12, fontWeight: '600' }}>Delete</Text>
+                                <Text style={{ color: colors.rose, fontSize: 12, fontWeight: '600' }}>Delete</Text>
                               </Pressable>
                             </View>
                           ) : (
@@ -625,12 +627,12 @@ export default function CatProfileScreen() {
                       paddingVertical: 10,
                       borderRadius: 12,
                       alignItems: 'center',
-                      backgroundColor: '#1f1830',
+                      backgroundColor: colors.surface,
                       borderWidth: 1,
-                      borderColor: 'rgba(255,255,255,0.07)',
+                      borderColor: colors.rim,
                     }}
                   >
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#6b5f85' }}>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: colors.inkDim }}>
                       View {filteredOlderCount} older {filteredOlderCount === 1 ? 'entry' : 'entries'}
                     </Text>
                   </Pressable>
@@ -645,18 +647,18 @@ export default function CatProfileScreen() {
         {profileTab === 'care' && (
           <View style={{ paddingHorizontal: 16, gap: 16, marginTop: 16, paddingBottom: 32 }}>
             <View style={{
-              backgroundColor: '#1f1830',
+              backgroundColor: colors.surface,
               borderRadius: 16,
               padding: 20,
               borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.07)',
+              borderColor: colors.rim,
             }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontWeight: '600', fontSize: 16, color: '#ede9f6' }}>Care Schedule</Text>
+                  <Text style={{ fontWeight: '600', fontSize: 16, color: colors.ink }}>Care Schedule</Text>
                   {meds.reduce((sum, m) => sum + (m.overdue_count ?? 0), 0) > 0 && (
                     <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, backgroundColor: 'rgba(248,113,113,0.15)' }}>
-                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#f87171' }}>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: colors.rose }}>
                         {meds.reduce((sum, m) => sum + (m.overdue_count ?? 0), 0)} overdue
                       </Text>
                     </View>
@@ -665,7 +667,7 @@ export default function CatProfileScreen() {
               </View>
 
               {meds.length === 0 ? (
-                <Text style={{ fontSize: 12, color: '#6b5f85', paddingVertical: 4 }}>No care items tracked yet.</Text>
+                <Text style={{ fontSize: 12, color: colors.inkDim, paddingVertical: 4 }}>No care items tracked yet.</Text>
               ) : (
                 <View style={{ gap: 4 }}>
                   {meds.map((med) => (
@@ -679,20 +681,20 @@ export default function CatProfileScreen() {
                       </Text>
                       <View style={{ flex: 1, minWidth: 0 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                          <Text style={{ fontSize: 14, fontWeight: '600', color: '#ede9f6' }} numberOfLines={1}>
+                          <Text style={{ fontSize: 14, fontWeight: '600', color: colors.ink }} numberOfLines={1}>
                             {med.name}
                           </Text>
                           {(med.overdue_count ?? 0) > 0 && (
                             <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999, backgroundColor: 'rgba(248,113,113,0.15)' }}>
-                              <Text style={{ fontSize: 11, fontWeight: '700', color: '#f87171' }}>overdue</Text>
+                              <Text style={{ fontSize: 11, fontWeight: '700', color: colors.rose }}>overdue</Text>
                             </View>
                           )}
                         </View>
-                        <Text style={{ fontSize: 12, color: '#6b5f85', marginTop: 2 }}>
+                        <Text style={{ fontSize: 12, color: colors.inkDim, marginTop: 2 }}>
                           {FREQ_SHORT[med.frequency] ?? med.frequency} {'\u00B7'} {formatNextDue(med.next_due_at)}
                         </Text>
                       </View>
-                      <Text style={{ color: '#6b5f85', fontSize: 14 }}>{'\u203A'}</Text>
+                      <Text style={{ color: colors.inkDim, fontSize: 14 }}>{'\u203A'}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -712,7 +714,7 @@ export default function CatProfileScreen() {
                     backgroundColor: 'rgba(192,132,252,0.04)',
                   }}
                 >
-                  <Text style={{ color: '#c084fc', fontSize: 14, fontWeight: '600' }}>
+                  <Text style={{ color: colors.lavender, fontSize: 14, fontWeight: '600' }}>
                     + Add Care Item
                   </Text>
                 </Pressable>
@@ -723,21 +725,21 @@ export default function CatProfileScreen() {
             <Pressable
               onPress={() => router.push('/notifications' as never)}
               style={{
-                backgroundColor: '#1f1830',
+                backgroundColor: colors.surface,
                 borderRadius: 16,
                 padding: 16,
                 borderWidth: 1,
-                borderColor: 'rgba(255,255,255,0.07)',
+                borderColor: colors.rim,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
               }}
             >
               <View>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#ede9f6' }}>Reminders & Notifications</Text>
-                <Text style={{ fontSize: 12, color: '#6b5f85', marginTop: 2 }}>View upcoming doses and overdue items</Text>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: colors.ink }}>Reminders & Notifications</Text>
+                <Text style={{ fontSize: 12, color: colors.inkDim, marginTop: 2 }}>View upcoming doses and overdue items</Text>
               </View>
-              <Text style={{ color: '#6b5f85', fontSize: 18 }}>{'\u203A'}</Text>
+              <Text style={{ color: colors.inkDim, fontSize: 18 }}>{'\u203A'}</Text>
             </Pressable>
           </View>
         )}
@@ -746,12 +748,12 @@ export default function CatProfileScreen() {
         {profileTab === 'about' && (
           <View style={{ paddingHorizontal: 16, gap: 16, marginTop: 16, paddingBottom: 32 }}>
             <View style={{
-              backgroundColor: '#1f1830',
+              backgroundColor: colors.surface,
               borderRadius: 16,
               paddingHorizontal: 20,
               paddingVertical: 16,
               borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.07)',
+              borderColor: colors.rim,
             }}>
               {/* Breed */}
               <DetailRow icon={'\uD83D\uDC3E'} label="Breed" value={cat.breed ?? '\u2014'} />
@@ -773,7 +775,7 @@ export default function CatProfileScreen() {
                   icon={'\u2696\uFE0F'}
                   label="Weight"
                   value={`${latestWeight.value} ${latestWeight.unit}`}
-                  valueColor={status !== 'ok' ? statusColor : '#fb923c'}
+                  valueColor={status !== 'ok' ? statusColor : colors.amber}
                   statusBadge={weightMeasurements.length >= 2 ? STATUS_LABEL[status] : undefined}
                   statusColor={statusColor}
                 />
@@ -786,14 +788,14 @@ export default function CatProfileScreen() {
 
             {cat.notes && (
               <View style={{
-                backgroundColor: '#1f1830',
+                backgroundColor: colors.surface,
                 borderRadius: 16,
                 paddingHorizontal: 20,
                 paddingVertical: 16,
                 borderWidth: 1,
-                borderColor: 'rgba(255,255,255,0.07)',
+                borderColor: colors.rim,
               }}>
-                <Text style={{ color: '#a899c0', fontSize: 14, fontStyle: 'italic' }}>{cat.notes}</Text>
+                <Text style={{ color: colors.inkMid, fontSize: 14, fontStyle: 'italic' }}>{cat.notes}</Text>
               </View>
             )}
 
@@ -808,7 +810,7 @@ export default function CatProfileScreen() {
                 backgroundColor: 'rgba(192,132,252,0.06)',
               }}
             >
-              <Text style={{ color: '#c084fc', fontSize: 14, fontWeight: '600' }}>Edit profile</Text>
+              <Text style={{ color: colors.lavender, fontSize: 14, fontWeight: '600' }}>Edit profile</Text>
             </Pressable>
           </View>
         )}
@@ -828,6 +830,7 @@ function DetailRow({
   statusColor?: string;
   isLast?: boolean;
 }) {
+  const colors = useThemeColors();
   return (
     <View style={{
       flexDirection: 'row',
@@ -835,12 +838,12 @@ function DetailRow({
       gap: 12,
       paddingVertical: 12,
       borderBottomWidth: isLast ? 0 : 1,
-      borderBottomColor: 'rgba(255,255,255,0.07)',
+      borderBottomColor: colors.rim,
     }}>
       <Text style={{ fontSize: 16, width: 24, textAlign: 'center' }}>{icon}</Text>
-      <Text style={{ fontSize: 12, color: '#6b5f85', width: 80, flexShrink: 0 }}>{label}</Text>
+      <Text style={{ fontSize: 12, color: colors.inkDim, width: 80, flexShrink: 0 }}>{label}</Text>
       <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <Text style={{ fontSize: 14, color: valueColor ?? '#ede9f6', fontWeight: valueColor ? '600' : '400' }}>
+        <Text style={{ fontSize: 14, color: valueColor ?? colors.ink, fontWeight: valueColor ? '600' : '400' }}>
           {value}
         </Text>
         {statusBadge && statusColor && (

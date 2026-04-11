@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../lib/api';
+import { useThemeColors } from '../hooks/useThemeColors';
 import type { InvitePreview } from '../lib/api';
 
 const ROLE_DESC: Record<string, string> = {
@@ -14,6 +15,7 @@ const ROLE_DESC: Record<string, string> = {
 };
 
 export default function InviteScreen() {
+  const colors = useThemeColors();
   const { token } = useLocalSearchParams<{ token: string }>();
   const router = useRouter();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
@@ -85,7 +87,7 @@ export default function InviteScreen() {
   if (previewLoading || authLoading) {
     return (
       <SafeAreaView className="flex-1 bg-night items-center justify-center">
-        <ActivityIndicator color="#c084fc" size="large" />
+        <ActivityIndicator color={colors.lavender} size="large" />
         <Text className="text-ink-dim text-sm mt-4">Loading invite...</Text>
       </SafeAreaView>
     );

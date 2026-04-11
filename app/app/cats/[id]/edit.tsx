@@ -77,7 +77,9 @@ export default function EditCatScreen() {
       setPhotoRemoved(false);
       if (id) {
         try {
-          await api.uploadCatPhoto(id, result.assets[0].uri);
+          const { photo_url } = await api.uploadCatPhoto(id, result.assets[0].uri);
+          // Update existing URL so downstream screens get the cache-busted URL
+          setExistingPhotoUrl(photo_url);
         } catch {
           setError('Photo upload failed');
         }
@@ -431,6 +433,7 @@ export default function EditCatScreen() {
         animationType="fade"
         onRequestClose={() => setDeceasedModalOpen(false)}
       >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <Pressable onPress={Keyboard.dismiss} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
           <View style={{
             backgroundColor: colors.surface,
@@ -519,6 +522,7 @@ export default function EditCatScreen() {
             </Pressable>
           </View>
         </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

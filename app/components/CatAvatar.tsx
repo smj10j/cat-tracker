@@ -1,5 +1,5 @@
 import { View, Image, Text } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface CatAvatarProps {
   photoUrl: string | null | undefined;
@@ -10,6 +10,9 @@ interface CatAvatarProps {
 
 export default function CatAvatar({ photoUrl, size, grayscale }: CatAvatarProps) {
   const [hasError, setHasError] = useState(false);
+
+  // Reset error state when URL changes (e.g. photo replaced)
+  useEffect(() => { setHasError(false); }, [photoUrl]);
 
   if (photoUrl && !hasError) {
     return (

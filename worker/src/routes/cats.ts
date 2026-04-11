@@ -276,7 +276,7 @@ cats.post('/:id/photo', async (c) => {
   const key = `cats/${id}/photo.jpg`
   await c.env.PHOTOS.put(key, bytes, { httpMetadata: { contentType: 'image/jpeg' } })
 
-  const photoUrl = `${PHOTOS_BASE}/${key}`
+  const photoUrl = `${PHOTOS_BASE}/${key}?v=${Date.now()}`
   await c.env.DB.prepare("UPDATE cats SET photo_url = ?, updated_at = datetime('now') WHERE id = ?")
     .bind(photoUrl, id).run()
 

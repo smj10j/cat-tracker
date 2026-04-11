@@ -74,7 +74,9 @@ export default function AddEditCat() {
     reader.onload = (ev) => setPreviewUrl((ev.target?.result as string) ?? null)
     reader.readAsDataURL(file)
     if (isEdit && id) {
-      uploadCatPhoto(id, file).catch((err: Error) => setError(err.message))
+      uploadCatPhoto(id, file)
+        .then(({ photo_url }) => setExistingPhotoUrl(photo_url))
+        .catch((err: Error) => setError(err.message))
     } else {
       setPendingBlob(file)
     }
@@ -207,8 +209,8 @@ export default function AddEditCat() {
       {deceasedSheetOpen && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setDeceasedSheetOpen(false)}>
           <div
-            className="rounded-t-3xl p-6 space-y-5"
-            style={{ background: 'var(--color-surface-hi)', border: '1px solid var(--color-rim-hi)' }}
+            className="rounded-t-3xl p-6 space-y-5 overflow-y-auto"
+            style={{ background: 'var(--color-surface-hi)', border: '1px solid var(--color-rim-hi)', maxHeight: '100dvh' }}
             onClick={e => e.stopPropagation()}
           >
             <div className="text-center">

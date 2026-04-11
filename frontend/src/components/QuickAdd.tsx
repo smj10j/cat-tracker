@@ -107,13 +107,14 @@ export default function QuickAdd({ open, onClose }: Props) {
     >
       <div
         ref={sheetRef}
-        className="w-full animate-slide-up opacity-0"
+        className="w-full animate-slide-up opacity-0 overflow-y-auto"
         style={{
           background: 'var(--color-surface-hi)',
           borderTop: '1px solid var(--color-rim)',
           borderRadius: '24px 24px 0 0',
           padding: '20px 20px calc(20px + env(safe-area-inset-bottom))',
           animationFillMode: 'forwards',
+          maxHeight: '100dvh',
         }}
       >
         {/* Handle */}

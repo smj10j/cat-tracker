@@ -21,8 +21,10 @@ import MemorialPage from './pages/MemorialPage'
 import PrivacyPage from './pages/PrivacyPage'
 import PageShell from './components/PageShell'
 import ScrollToTop from './components/ScrollToTop'
+import { useKeyboardScroll } from './hooks/useKeyboardScroll'
 
 export default function App() {
+  useKeyboardScroll()
   return (
     <BrowserRouter>
       <ScrollToTop />

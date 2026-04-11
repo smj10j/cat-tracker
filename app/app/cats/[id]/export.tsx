@@ -629,10 +629,12 @@ export default function CatExportScreen() {
           </Text>
           <Text style={{ fontSize: 11, color: colors.inkDim, lineHeight: 16, marginBottom: 8 }}>
             Weight status thresholds follow AAFP and WSAVA feline nutritional guidelines: urgent
-            ({'>'}2%/week loss or {'>'}10% from recent baseline), concerning (1-2%/week or {'>'}7%
-            total), watch (0.5-1%/week). Rapid gain {'>'}3%/week is also flagged as concerning.
+            ({'>'}2%/week loss or {'>'}10% from recent baseline), concerning (1.5-2%/week or {'>'}7%
+            total), watch (0.75-1.5%/week). Rapid gain {'>'}3%/week is also flagged as concerning.
             Baseline weight is computed as the 90th percentile of measurements in the past 180
-            days.
+            days. Changes below 0.2 lbs or 1.5% of body weight are treated as within home-scale
+            measurement error and excluded from rate analysis. Alerts require a sustained trend
+            across consecutive weigh-ins.
           </Text>
           <Text style={{ fontSize: 11, color: colors.inkDim, lineHeight: 16 }}>
             Behavioral indicators are owner-reported observations on a 0-3 scale. Observed

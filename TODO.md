@@ -12,6 +12,30 @@
 - [x] Write TDD (docs/TDD.md)
 - [x] Create this TODO list
 
+## Phase 47: Reduce False-Positive Health Alerts (2026-04-11)
+
+### Documentation
+- [x] Update docs/research/weight-thresholds.md with home scale accuracy rationale
+- [x] Update vet export methodology in frontend/src/pages/CatExportPage.tsx
+- [x] Update vet export methodology in app/app/cats/[id]/export.tsx
+
+### Algorithm (shared/lib/healthMetrics.ts)
+- [x] Raise noise floor to 1.5% relative OR 0.2 lbs absolute
+- [x] Raise rate thresholds (watch: 0.75%/wk, concerning: 1.5%/wk, watch gain: 2%/wk)
+- [x] Add consecutive-period requirement for overallStatus escalation
+
+### Tests (shared/__tests__/healthMetrics.test.ts)
+- [x] Update existing threshold tests for new values
+- [x] Add test: oscillating ±0.1 lbs on 8 lb cat = ok (Mochi scenario)
+- [x] Add test: oscillating ±0.2 lbs on 10 lb cat = ok (Biscuit scenario)
+- [x] Add test: 0.1 lb drop on 7 lb cat = ok (Pepper scenario)
+- [x] Add test: sustained decline = watch (Oscar scenario)
+- [x] Add test: single bad period + recovery = ok (consecutive requirement)
+
+### Verification
+- [x] All tests pass (74 shared + 93 worker + 44 frontend + 45 app = 256)
+- [x] Review account cats: Mochi=ok, Biscuit=ok, Pepper=ok, Oscar=watch
+
 ## Phase 46: iOS Dark/Light/System Theme (2026-04-11)
 
 ### Infrastructure (Phase 1)

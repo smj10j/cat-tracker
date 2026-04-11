@@ -24,27 +24,31 @@ export interface HealthAssessment {
 // Weight loss/gain thresholds — see docs/research/weight-thresholds.md for full citations.
 //
 // Rate-of-change thresholds (classifyRate):
-//   >2%/week loss  → urgent     (hepatic lipidosis risk; AAFP Nutritional Guidelines;
-//                                 Armstrong & Blanchard, VCNA 2009; WSAVA Nutrition Guidelines)
-//   1–2%/week loss → concerning (exceeds safe intentional loss rate; WSAVA/AAFP Weight Mgmt Guidelines)
-//   0.5–1%/week loss → watch    (low-end of clinically significant; AAFP clinical convention)
-//   >3%/week gain  → concerning (fluid retention or metabolic dysfunction; AAFP Hyperthyroidism Guidelines)
-//   1.5–3%/week gain → watch
+//   >2%/week loss    → urgent     (hepatic lipidosis risk; AAFP Nutritional Guidelines;
+//                                   Armstrong & Blanchard, VCNA 2009; WSAVA Nutrition Guidelines)
+//   1.5–2%/week loss → concerning (exceeds safe intentional loss rate; WSAVA/AAFP Weight Mgmt Guidelines)
+//   0.75–1.5%/week loss → watch   (above home-scale noise; see docs/research/weight-thresholds.md)
+//   >3%/week gain    → concerning (fluid retention or metabolic dysfunction; AAFP Hyperthyroidism Guidelines)
+//   2–3%/week gain   → watch
 //
 // Total-loss-from-peak thresholds (assessHealth):
 //   >10% from peak → urgent     (clinically significant; Merck Vet Manual; JVIM; Ettinger & Feldman)
 //   7–10% from peak → concerning (ISFM Feline Nutrition Guidelines)
 //   4–7% from peak → watch      (conservative lower bound; AAFP guidance)
+//
+// Noise floor: changes < 1.5% relative OR < 0.2 lbs absolute are treated as scale noise.
+// Consecutive-period requirement: a single non-ok period does not escalate overallStatus;
+//   two consecutive non-ok periods in the same direction are required.
 
 function classifyRate(changePerWeek: number): HealthStatus {
   const loss = -changePerWeek // positive = losing weight
   if (loss >= 2) return 'urgent'
-  if (loss >= 1) return 'concerning'
-  if (loss >= 0.5) return 'watch'
+  if (loss >= 1.5) return 'concerning'
+  if (loss >= 0.75) return 'watch'
   // gain side
   const gain = changePerWeek
   if (gain >= 3) return 'concerning'
-  if (gain >= 1.5) return 'watch'
+  if (gain >= 2) return 'watch'
   return 'ok'
 }
 
@@ -117,19 +121,35 @@ export function assessHealth(measurements: Measurement[]): HealthAssessment {
       continue
     }
 
-    // Noise floor: change < 0.5% of previous weight is within scale/biological noise
+    // Noise floor: change < 1.5% of previous weight OR < 0.2 lbs absolute
+    // is within home-scale accuracy / biological variation.
+    // See docs/research/weight-thresholds.md "Home scale measurement accuracy".
     const absChangePct = Math.abs(lbsChange) / prev.value
-    if (absChangePct < 0.005) {
+    if (absChangePct < 0.015 || Math.abs(lbsChange) < 0.2) {
       periods.push({ ...periodBase, status: 'ok', skipped: false })
       continue
     }
 
     const status = classifyRate(changePerWeek)
-    overallStatus = worstStatus(overallStatus, status)
     periods.push({ ...periodBase, status, skipped: false })
   }
 
-  // Factor in total loss from recent baseline
+  // Consecutive-period requirement: a single non-ok period does not escalate overallStatus.
+  // Two consecutive non-ok periods in the same direction are required to confirm a trend.
+  // This filters oscillation noise (e.g. ±0.2 lbs week-to-week on home scales).
+  let prevNonSkippedPeriod: PeriodHealth | null = null
+  for (const p of periods) {
+    if (p === null || p.skipped) continue
+    if (p.status === 'ok') { prevNonSkippedPeriod = p; continue }
+    // p.status is non-ok here; only escalate if previous was also non-ok in same direction
+    if (prevNonSkippedPeriod !== null && prevNonSkippedPeriod.status !== 'ok'
+        && prevNonSkippedPeriod.direction === p.direction) {
+      overallStatus = worstStatus(overallStatus, p.status)
+    }
+    prevNonSkippedPeriod = p
+  }
+
+  // Factor in total loss from recent baseline (unconditional — cumulative loss IS a trend)
   const roundedPeakLossPct = Math.round(peakLossPct * 10) / 10
   if (roundedPeakLossPct >= 10) overallStatus = worstStatus(overallStatus, 'urgent')
   else if (roundedPeakLossPct >= 7) overallStatus = worstStatus(overallStatus, 'concerning')
@@ -164,12 +184,12 @@ function buildSummary(
   if (status === 'concerning') {
     if (peakLossPct >= 7)
       return `Lost ${peakLossPct}% from recent weight. Clinically significant — worth discussing with your vet.`
-    return `Fastest rate: ${Math.abs(worstPeriod?.changePerWeek ?? 0).toFixed(1)}%/week loss. AAFP and WSAVA guidelines recommend no more than ~1% body weight loss per week without veterinary guidance.`
+    return `Fastest rate: ${Math.abs(worstPeriod?.changePerWeek ?? 0).toFixed(1)}%/week loss. AAFP and WSAVA guidelines recommend no more than ~1% body weight loss per week without veterinary guidance. Sustained loss above 1.5%/week warrants clinical attention.`
   }
 
   // watch
   if (worstPeriod?.direction === 'gain')
-    return `Rapid weight gain detected (${worstPeriod.changePerWeek.toFixed(1)}%/week). Gaining >1.5%/week can indicate fluid retention or overfeeding.`
+    return `Rapid weight gain detected (${worstPeriod.changePerWeek.toFixed(1)}%/week). Sustained gain >2%/week can indicate fluid retention or overfeeding.`
   return `Mild weight loss trend detected (${Math.abs(worstPeriod?.changePerWeek ?? 0).toFixed(1)}%/week). Monitor closely and track future measurements.`
 }
 

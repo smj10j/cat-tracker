@@ -22,29 +22,34 @@ Documents every numeric threshold used in `frontend/src/lib/healthMetrics.ts` wi
 
 ---
 
-### 1–2%/week loss → `concerning`
+### 1.5–2%/week loss → `concerning`
 
-**Claim:** Loss of 1–2% of body weight per week exceeds the recommended maximum rate for intentional feline weight loss.
+**Claim:** Loss of 1.5–2% of body weight per week clearly exceeds the recommended maximum rate for intentional feline weight loss and warrants clinical attention.
 
 **Basis:**
-- WSAVA Nutritional Assessment Guidelines and AAFP Weight Management Guidelines both cite 0.5–1% per week as the maximum safe rate for supervised intentional weight loss. Unintentional loss at this rate warrants clinical attention.
-- At this rate, if sustained, a cat would lose 7% of body weight in ~7 weeks — approaching the threshold for clinically significant total loss.
+- WSAVA Nutritional Assessment Guidelines and AAFP Weight Management Guidelines both cite 0.5–1% per week as the maximum safe rate for supervised intentional weight loss. At 1.5%/week, the rate is 50% above the upper bound of the safe range, providing high confidence this represents a genuine clinical signal rather than measurement noise.
+- At this rate, if sustained, a cat would lose ~6% of body weight in 4 weeks — approaching the threshold for clinically significant total loss.
 
 **Sources:**
 - WSAVA Global Nutrition Committee Nutritional Assessment Guidelines
 - AAFP/AAHA Weight Management Guidelines for Dogs and Cats
 
+**Previous threshold:** 1%/week (changed 2026-04-11 — see "Home scale measurement accuracy" section for rationale)
+
 ---
 
-### 0.5–1%/week loss → `watch`
+### 0.75–1.5%/week loss → `watch`
 
-**Claim:** Loss of 0.5–1%/week is at or near the lower bound of clinically significant rate; worth monitoring.
+**Claim:** Loss of 0.75–1.5%/week is a meaningful rate that warrants monitoring but is below the clinical intervention threshold.
 
 **Basis:**
-- 0.5%/week is the lower boundary of the safe intentional weight-loss range per AAFP guidelines. Unintentional loss at this rate is a soft signal — not urgent, but worth tracking. Clinical convention supports a "watch" classification here.
+- AAFP guidelines cite 0.5–1%/week as the safe intentional weight-loss range. However, the previous 0.5%/week `watch` threshold produced frequent false positives from normal home-scale fluctuations (see "Home scale measurement accuracy" below). The 0.75%/week lower bound provides a buffer above scale noise while remaining well below the clinical intervention threshold of 1.5%/week.
+- At 0.75%/week sustained, a cat would lose ~3% in a month — enough to warrant attention but not clinical concern on its own.
 
 **Sources:**
 - AAFP Weight Management Guidelines; WSAVA Nutritional Assessment Guidelines (see above)
+
+**Previous threshold:** 0.5%/week (changed 2026-04-11 — see "Home scale measurement accuracy" section for rationale)
 
 ---
 
@@ -62,9 +67,11 @@ Documents every numeric threshold used in `frontend/src/lib/healthMetrics.ts` wi
 
 ---
 
-### 1.5–3%/week gain → `watch`
+### 2–3%/week gain → `watch`
 
-**Basis:** Linear interpolation of the gain `concerning` threshold; conservative lower bound for monitoring.
+**Basis:** Lower bound raised from 1.5% to 2%/week to reduce false positives from normal post-meal or hydration fluctuations measured on home scales. Conservative lower bound for monitoring.
+
+**Previous threshold:** 1.5%/week (changed 2026-04-11)
 
 ---
 
@@ -135,11 +142,17 @@ These decisions address false-positive alert behaviour when the rate-of-change m
 
 **Decision:** Any consecutive pair with fewer than 5 days between measurements is recorded in the `periods` array with `skipped: true` and excluded from both rate classification and worst-period summary selection. The 5-day threshold is the minimum interval at which a weekly-rate extrapolation is meaningfully stable. It is not a clinical threshold.
 
-### Relative noise floor (< 0.5% absolute change → ok, not classified)
+### Noise floor (< 1.5% relative change or < 0.2 lbs absolute → ok, not classified)
 
-**Problem:** Home scales for cats (often infant-style scales) have a resolution of ±0.05–0.1 lbs. For a 10 lb cat this is ±0.5–1% absolute noise. Passing every measurement delta through the rate classifier treats scale resolution as a weight change signal.
+**Problem:** Home scales for cats (typically infant/kitchen/bathroom scales) have an accuracy of ±0.1–0.2 lbs. Normal daily biological weight variation in cats (hydration, meals, elimination) is 1–3% of body weight. The previous 0.5% relative-only noise floor was insufficient — it equated to just 0.04 lbs on an 8 lb cat, filtering essentially nothing. This caused normal ±0.1 lb fluctuations between weekly weigh-ins to trigger "watch" and even "concerning" alerts.
 
-**Decision:** If `|Δweight| / previous_weight < 0.005` (0.5%), the period is classified as `ok` without calling `classifyRate()`. The threshold is relative (fraction of body weight) so it is unit-safe (lbs and kg). The 0.5% value equals the lower bound of the `watch` rate (0.5%/week), so the floor does not suppress any signal that would be clinically significant over a 7-day interval.
+**Decision:** A measurement-to-measurement change is classified as `ok` (noise) when **either** condition is met:
+1. `|Δweight| / previous_weight < 0.015` (1.5% relative), **or**
+2. `|Δweight| < 0.2` lbs absolute
+
+The dual threshold ensures small cats (where 0.2 lbs is a larger percentage) and large cats (where 0.2 lbs is tiny) are both protected. The 0.2 lbs absolute value reflects the practical accuracy limit of consumer scales. The 1.5% relative value accounts for biological variation that is not clinically meaningful.
+
+**Previous threshold:** 0.5% relative only (changed 2026-04-11)
 
 ### Robust peak reference — 90th percentile of last 180 days
 
@@ -151,6 +164,37 @@ These decisions address false-positive alert behaviour when the rate-of-change m
 
 Neither the 180-day window nor the 90th-percentile level are clinical thresholds; both are engineering calibration choices documented here for future review.
 
+### Consecutive-period requirement for overallStatus escalation (added 2026-04-11)
+
+**Problem:** The `overallStatus` field previously took the worst status of *any single period* via `worstStatus()`. This meant one measurement-to-measurement dip — even if immediately followed by a return to the prior weight — would flag the cat's entire assessment as "watch" or worse. For cats weighed weekly on home scales, normal ±0.1 lb fluctuations produced frequent isolated non-ok periods that did not represent genuine trends.
+
+**Decision:** A period's non-ok rate classification only escalates `overallStatus` when the **previous non-skipped, non-noise-floor period** was also non-ok **in the same direction** (both loss, or both gain). This requires a sustained signal across at least two consecutive measurement intervals before the overall assessment changes.
+
+**Exception:** The cumulative peak-loss thresholds (4% → watch, 7% → concerning, 10% → urgent) are applied unconditionally, as cumulative loss from baseline *is* a trend signal by definition — it already accounts for the full history.
+
+**Rationale:** A single dip that bounces back is indistinguishable from scale noise or normal biological variation. Requiring two consecutive periods in the same direction filters oscillation patterns while still catching genuine sustained weight changes. This is an engineering judgement, not a clinical threshold.
+
+### Home scale measurement accuracy (added 2026-04-11)
+
+This section documents the real-world measurement constraints that inform the noise floor and rate threshold calibrations above.
+
+**Consumer scale accuracy:**
+- Bathroom scales (used to weigh owner holding cat, then subtract): ±0.2–0.5 lbs typical accuracy
+- Kitchen/food scales (for small cats): ±0.05–0.1 lbs, but max capacity often limits use
+- Infant scales (purpose-designed, best option): ±0.1 lbs typical accuracy
+- Pet-specific scales: vary widely; ±0.1–0.2 lbs is representative
+
+**Biological variation:**
+- A cat's weight varies 1–3% within a single day based on hydration, recent meals, and elimination. An 8 lb cat can weigh 7.9 lbs before breakfast and 8.15 lbs after. This is not a weight change.
+- The combination of scale accuracy (��0.1–0.2 lbs) and biological variation means differences of ≤0.2 lbs between weekly weigh-ins carry no clinical signal.
+
+**Implications for the algorithm:**
+- Any change < 0.2 lbs should be treated as stable regardless of percentage
+- Rate thresholds must be set high enough that normal scale-noise fluctuations (0.1–0.2 lbs on a weekly basis) do not trigger alerts
+- The "watch" rate threshold of 0.75%/week on a 10 lb cat = 0.075 lbs/week. Without the absolute noise floor, this would fire on every ±0.1 lb fluctuation. The 0.2 lbs absolute floor prevents this.
+
+These constraints are not clinical thresholds but practical calibration against the realities of home monitoring.
+
 ---
 
-*Last reviewed: 2026-04-10. Next review recommended when AAFP or WSAVA publish updated nutritional guidelines.*
+*Last reviewed: 2026-04-11. Next review recommended when AAFP or WSAVA publish updated nutritional guidelines.*

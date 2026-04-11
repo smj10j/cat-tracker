@@ -5,7 +5,12 @@
 set -euo pipefail
 
 API="https://cat-tracker-api.stevej-67b.workers.dev"
-TOKEN="c360ab88b6cb403abeb52e1d480f3d9c"
+# Session token for the Apple review account.
+# Rolling expiry: 7 days from last API call. If expired, sign into the
+# review account in the app and grab the new session from the DB:
+#   wrangler d1 execute cat-tracker-db --remote --command \
+#     "SELECT id FROM sessions WHERE user_id = '<review-user-id>' ORDER BY expires_at DESC LIMIT 1"
+TOKEN="${REVIEW_SESSION_TOKEN:?Set REVIEW_SESSION_TOKEN env var before running}"
 AUTH="Authorization: Bearer $TOKEN"
 CT="Content-Type: application/json"
 

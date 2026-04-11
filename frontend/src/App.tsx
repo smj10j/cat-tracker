@@ -18,6 +18,7 @@ import InvitePage from './pages/InvitePage'
 import DailyCheckin from './pages/DailyCheckin'
 import SettingsPage from './pages/SettingsPage'
 import MemorialPage from './pages/MemorialPage'
+import PrivacyPage from './pages/PrivacyPage'
 import PageShell from './components/PageShell'
 import ScrollToTop from './components/ScrollToTop'
 
@@ -30,6 +31,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/invite" element={<InvitePage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/*" element={
             <ProtectedRoute>
               <PageShell>

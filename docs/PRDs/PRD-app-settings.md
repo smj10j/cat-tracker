@@ -21,7 +21,7 @@ Cat Tracker has no user-configurable settings. As the app grows, preferences lik
 ### Out of scope
 - Per-cat settings (those belong in the cat edit form)
 - Notification delivery settings (belongs in PRD-medication-reminders.md Phase B)
-- Language / locale settings
+- Language / locale settings (see PRD-localization-preferences.md)
 
 ---
 

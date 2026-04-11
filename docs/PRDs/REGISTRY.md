@@ -44,6 +44,8 @@
 | [PRD-chart-time-navigation.md](PRD-chart-time-navigation.md) | Chart Time Range & Swipe Navigation | `Implemented` | 2026-04-11 |
 | [PRD-alert-acknowledgment.md](PRD-alert-acknowledgment.md) | Health Alert Acknowledgment | `Draft` | 2026-04-11 |
 | [PRD-behavioral-trends.md](PRD-behavioral-trends.md) | Behavioral Trend Charts | `Draft` | 2026-04-11 |
+| [PRD-localization-preferences.md](PRD-localization-preferences.md) | Localization & Regional Preferences | `Approved` | 2026-04-11 |
+| [PRD-landscape-charts.md](PRD-landscape-charts.md) | Landscape Mode — Full-Screen Chart Visualization | `Approved` | 2026-04-11 |
 
 ---
 
@@ -592,6 +594,34 @@ Nothing rejected yet.
 | **Last updated** | 2026-04-11 |
 
 **Implemented Phases A + B** — `useChartWindow` hook (time range state, window filtering, navigation, adaptive tick formatting). `ChartRangeSelector` pill bar (1W/1M/3M/6M/1Y/All, default All, 44px touch targets, horizontally scrollable). `SwipeableChart` touch gesture wrapper (50px min swipe, translateX feedback). Integrated into WeightChart, MeasurementChart, CompareChart. Health assessment uses global `assessHealth()` — not recomputed per window. 10 tests in `useChartWindow.test.ts`.
+
+---
+
+### PRD-landscape-charts.md — Landscape Mode: Full-Screen Chart Visualization
+
+| | |
+|---|---|
+| **Status** | `Approved` |
+| **Last updated** | 2026-04-11 |
+| **Related** | PRD-chart-time-navigation.md (range selector + swipe reused in landscape) |
+
+**Problem:** Mobile charts are compressed into ~60% of a narrow portrait viewport. Users studying trends or comparing time ranges can't see enough detail.
+
+**Scope:** Manual expand button (primary entry) + full-screen chart overlay with range selector and swipe navigation; opt-in `<FullScreenReady>` wrapper pattern; auto-rotate on native phones only (Phase B); no auto-rotate on web. Phase A = manual expand; Phase B = auto-rotate (native); Phase C = swipe dismiss + animation polish.
+
+---
+
+### PRD-localization-preferences.md — Localization & Regional Preferences
+
+| | |
+|---|---|
+| **Status** | `Approved` |
+| **Last updated** | 2026-04-11 |
+| **Related** | PRD-app-settings.md (Phase C — D1 user_preferences sync) |
+
+**Problem:** The app assumes US conventions (12h time, lbs, MM/DD/YYYY) everywhere. International users see unfamiliar formats with no override.
+
+**Scope:** Locale-first defaults framework in `shared/lib/preferences.ts`; explicit overrides in Settings (Regional section); Phase A1 = date/time format; Phase A2 = weight unit + healthMetrics migration; Phase B = week start, temperature, chart/export integration; Phase C = D1 sync + native parity.
 
 ---
 

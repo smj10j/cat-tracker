@@ -12,6 +12,19 @@
 - [x] Write TDD (docs/TDD.md)
 - [x] Create this TODO list
 
+## Phase 43: PRD — Landscape Mode Full-Screen Charts (2026-04-11)
+- [x] Write PRD stub (docs/PRDs/PRD-landscape-charts.md)
+- [x] Add to REGISTRY.md
+- [x] Multi-pass review (SWE + PM + business/design)
+- [x] Product owner approved
+
+## Phase 42: PRD — Localization & Regional Preferences (2026-04-11)
+- [x] Write PRD stub (docs/PRDs/PRD-localization-preferences.md)
+- [x] Add to REGISTRY.md
+- [x] Cross-reference from PRD-app-settings.md
+- [x] Multi-pass review (SWE + PM + business/design)
+- [x] Product owner approved
+
 ## Phase 41: iOS Critical Bug Fixes (2026-04-11)
 
 ### Bug 7: Compare tab crashes (SIGABRT)

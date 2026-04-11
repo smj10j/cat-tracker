@@ -245,10 +245,7 @@ export default function MedicationFormPage() {
                 key={p.name}
                 type="button"
                 onClick={() => applyPreset(p)}
-                className="w-full text-left px-3 py-2.5 rounded-xl text-sm transition-all"
-                style={{ color: '#ede9f6' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(192,132,252,0.1)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                className="w-full text-left px-3 py-2.5 rounded-xl text-sm text-ink transition-all hover:bg-lavender-glow"
               >
                 <span className="font-semibold">{p.name}</span>
                 <span className="text-ink-dim ml-2">

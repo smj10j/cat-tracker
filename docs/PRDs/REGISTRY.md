@@ -40,9 +40,10 @@
 | [PRD-weight-alert-sensitivity.md](PRD-weight-alert-sensitivity.md) | Weight Alert Sensitivity Review | `Implemented` | 2026-04-11 |
 | [PRD-ios-app-store.md](PRD-ios-app-store.md) | iOS App Store Deployment | `In Progress` | 2026-04-10 |
 | [PRD-api-versioning.md](PRD-api-versioning.md) | API Versioning & Backend-Driven Updates | `In Progress` | 2026-04-11 |
-| [PRD-security-phase2.md](PRD-security-phase2.md) | Security Hardening Phase 2 — Native App & Multi-Client | `Approved` | 2026-04-11 |
-| [PRD-chart-time-navigation.md](PRD-chart-time-navigation.md) | Chart Time Range & Swipe Navigation | `Approved` | 2026-04-11 |
+| [PRD-security-phase2.md](PRD-security-phase2.md) | Security Hardening Phase 2 — Native App & Multi-Client | `Partial` | 2026-04-11 |
+| [PRD-chart-time-navigation.md](PRD-chart-time-navigation.md) | Chart Time Range & Swipe Navigation | `Implemented` | 2026-04-11 |
 | [PRD-alert-acknowledgment.md](PRD-alert-acknowledgment.md) | Health Alert Acknowledgment | `Draft` | 2026-04-11 |
+| [PRD-behavioral-trends.md](PRD-behavioral-trends.md) | Behavioral Trend Charts | `Draft` | 2026-04-11 |
 
 ---
 

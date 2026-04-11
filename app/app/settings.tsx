@@ -71,7 +71,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-night">
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
       <View className="px-4 py-3 flex-row items-center gap-3">
         <Pressable onPress={() => router.back()}>
           <Text className="text-lavender text-base">← Back</Text>

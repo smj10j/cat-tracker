@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, useSearchParams, Link } from 'react-router-dom'
 import { useGoBack } from '../hooks/useGoBack'
 import { getCat, getMeasurements, deleteMeasurement, getMedications, uploadCatPhoto, deleteCatPhoto, CARE_TYPE_ICONS, type Cat, type Measurement, type Medication } from '../lib/api'
 import CatAvatar from '../components/CatAvatar'
@@ -15,7 +15,8 @@ import InsightsPanel from '../components/InsightsPanel'
 import { getPresetLabel } from '../lib/measurementPresets'
 import { catAge } from '../lib/dates'
 import { usePreferences } from '../contexts/PreferencesContext'
-import { formatTime as fmtTime, formatDateWithWeekday, formatWeight as fmtWeight } from '@shared/lib/preferences'
+import { formatTime as fmtTime, formatDateWithWeekday, formatDateShort as fmtDateShort, formatWeight as fmtWeight, type UserPreferences } from '@shared/lib/preferences'
+import { utcToLocal } from '@shared/lib/dates'
 
 interface DayGroup {
   dateStr: string
@@ -81,21 +82,29 @@ const FREQ_SHORT: Record<string, string> = {
   monthly: 'monthly', custom: 'every N days',
 }
 
-function formatNextDue(nextDueAt: string | null | undefined): string {
-  if (!nextDueAt) return 'No upcoming dose'
-  const [datePart, timePart] = nextDueAt.split(' ')
-  if (!datePart) return 'Upcoming'
-  const today = new Date().toISOString().slice(0, 10)
-  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
-  const [h, m] = (timePart ?? '09:00').split(':')
-  const hour = parseInt(h ?? '9', 10)
+/** Format an HH:MM time string according to user's time format preference */
+function formatTimeFromParts(timePart: string, prefs: UserPreferences): string {
+  const [h, m] = timePart.split(':')
+  const hour = parseInt(h ?? '0', 10)
   const minute = m ?? '00'
+  if (prefs.timeFormat === '24h') return `${String(hour).padStart(2, '0')}:${minute}`
   const ampm = hour >= 12 ? 'PM' : 'AM'
-  const timeStr = `${hour % 12 || 12}:${minute} ${ampm}`
+  return `${hour % 12 || 12}:${minute} ${ampm}`
+}
+
+function formatNextDue(nextDueAt: string | null | undefined, prefs: UserPreferences): string {
+  if (!nextDueAt) return 'No upcoming dose'
+  // next_due_at is stored in UTC — convert to local for display
+  const { date: datePart, time: timePart } = utcToLocal(nextDueAt)
+  if (!datePart) return 'Upcoming'
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const tom = new Date(Date.now() + 86400000)
+  const tomorrow = `${tom.getFullYear()}-${String(tom.getMonth() + 1).padStart(2, '0')}-${String(tom.getDate()).padStart(2, '0')}`
+  const timeStr = formatTimeFromParts(timePart ?? '09:00', prefs)
   if (datePart === today) return `Today at ${timeStr}`
   if (datePart === tomorrow) return `Tomorrow at ${timeStr}`
-  const d = new Date(datePart + 'T12:00:00')
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ` at ${timeStr}`
+  return fmtDateShort(datePart, prefs) + ` at ${timeStr}`
 }
 
 function CareScheduleSection({ catId, meds }: { catId: string; meds: Medication[] }) {
@@ -146,7 +155,7 @@ function CareScheduleSection({ catId, meds }: { catId: string; meds: Medication[
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-ink-dim mt-0.5">{FREQ_SHORT[med.frequency] ?? med.frequency} &middot; {formatNextDue(med.next_due_at)}</p>
+                <p className="text-xs text-ink-dim mt-0.5">{FREQ_SHORT[med.frequency] ?? med.frequency} &middot; {formatNextDue(med.next_due_at, prefs)}</p>
               </div>
               <span className="text-ink-dim text-sm ml-1 shrink-0">→</span>
             </Link>
@@ -170,13 +179,17 @@ function formatSexNeuter(sex: string | null, isNeutered: number | null): string 
 
 export default function CatProfile() {
   const { id } = useParams<{ id: string }>()
+  const [searchParams] = useSearchParams()
   const goBack = useGoBack('/')
   const { prefs } = usePreferences()
 
+  const initialTab = searchParams.get('tab')
   const [cat, setCat] = useState<Cat | null>(null)
   const [measurements, setMeasurements] = useState<Measurement[]>([])
   const [meds, setMeds] = useState<Medication[]>([])
-  const [profileTab, setProfileTab] = useState<ProfileTab>('health')
+  const [profileTab, setProfileTab] = useState<ProfileTab>(
+    initialTab === 'care' || initialTab === 'about' ? initialTab : 'health'
+  )
   const [chartTab, setChartTab] = useState<ChartTab>('weight')
   const [showOlderHistory, setShowOlderHistory] = useState(false)
   const [loading, setLoading] = useState(true)

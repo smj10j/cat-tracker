@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { createCat, updateCat, getCat, deleteCat, uploadCatPhoto, deleteCatPhoto, markDeceased, markAlive, ApiError } from '../lib/api'
 import CatAvatar from '../components/CatAvatar'
@@ -22,6 +22,7 @@ export default function AddEditCat() {
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const errorRef = useRef<HTMLDivElement>(null)
   const [catDeceasedAt, setCatDeceasedAt] = useState<string | null>(null)
   const [deceasedSheetOpen, setDeceasedSheetOpen] = useState(false)
   const [deceasedDate, setDeceasedDate] = useState('')
@@ -82,6 +83,11 @@ export default function AddEditCat() {
     }
   }
 
+  function showError(msg: string) {
+    setError(msg)
+    requestAnimationFrame(() => errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
@@ -115,12 +121,12 @@ export default function AddEditCat() {
     } catch (e: unknown) {
       if (e instanceof ApiError && e.message === 'microchip_id_conflict') {
         if (e.conflictingCatName) {
-          setError(`This microchip ID is already used by ${e.conflictingCatName}. Check for a typo, or edit that cat to update the record.`)
+          showError(`This microchip ID is already used by ${e.conflictingCatName}. Check for a typo, or edit that cat to update the record.`)
         } else {
-          setError('This microchip ID is already registered. If this is your cat, contact support.')
+          showError('This microchip ID is already registered. If this is your cat, contact support.')
         }
       } else {
-        setError((e as Error).message)
+        showError((e as Error).message)
       }
     } finally {
       setSaving(false)
@@ -136,7 +142,7 @@ export default function AddEditCat() {
       setDeceasedSheetOpen(false)
       navigate(`/cats/${id}/memorial`)
     } catch (e: unknown) {
-      setError((e as Error).message)
+      showError((e as Error).message)
     } finally {
       setMarkingDeceased(false)
     }
@@ -151,7 +157,7 @@ export default function AddEditCat() {
       setCatDeceasedAt(null)
       navigate(`/cats/${id}`)
     } catch (e: unknown) {
-      setError((e as Error).message)
+      showError((e as Error).message)
     } finally {
       setMarkingDeceased(false)
     }
@@ -166,7 +172,7 @@ export default function AddEditCat() {
       await deleteCat(id)
       navigate('/')
     } catch (e: unknown) {
-      setError((e as Error).message)
+      showError((e as Error).message)
       setDeleting(false)
     }
   }
@@ -281,7 +287,7 @@ export default function AddEditCat() {
       </div>
 
       {error && (
-        <div className="glass-card p-4 text-rose text-sm mb-4" style={{ borderColor: 'rgba(248,113,113,0.2)' }}>{error}</div>
+        <div ref={errorRef} className="glass-card p-4 text-rose text-sm mb-4" style={{ borderColor: 'rgba(248,113,113,0.2)' }}>{error}</div>
       )}
 
       <form onSubmit={handleSubmit} className="glass-card p-6 space-y-5">

@@ -82,6 +82,10 @@ function filterByRange(measurements: Measurement[], range: TimeRange): Measureme
 export default function CompareScreen() {
   const colors = useThemeColors();
   const { prefs } = usePreferences();
+  const formatChartDate = useCallback((ts: number) => {
+    const iso = new Date(ts).toISOString().slice(0, 10);
+    return formatDateShort(iso, prefs);
+  }, [prefs]);
   const [cats, setCats] = useState<Cat[]>([]);
   const [allMeasurementsByCat, setAllMeasurementsByCat] = useState<Map<string, Measurement[]>>(
     new Map(),
@@ -435,6 +439,7 @@ export default function CompareScreen() {
                         ? (v) => getPresetLabel(selectedType, Math.round(v))
                         : (v) => String(Math.round(v * 10) / 10)
                       }
+                      formatX={formatChartDate}
                     />
                   </ErrorBoundary>
                 </View>
@@ -458,6 +463,7 @@ export default function CompareScreen() {
                           ? (v) => getPresetLabel(selectedType, Math.round(v))
                           : (v) => String(Math.round(v * 10) / 10)
                         }
+                        formatX={formatChartDate}
                       />
                     </ErrorBoundary>
                   )}

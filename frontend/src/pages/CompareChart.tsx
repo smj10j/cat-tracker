@@ -9,6 +9,7 @@ import { assessHealth, STATUS_COLORS, STATUS_EMOJI, STATUS_LABEL, type HealthSta
 import { getPresetLabel, getPresetTicks, PRESET_TYPES } from '../lib/measurementPresets'
 import { useChartWindow, getTickFormatter, type TimeRange } from '../lib/useChartWindow'
 import { usePreferences } from '../contexts/PreferencesContext'
+import { formatDateShort, type UserPreferences } from '@shared/lib/preferences'
 import ChartRangeSelector from '../components/ChartRangeSelector'
 import SwipeableChart from '../components/SwipeableChart'
 import FullScreenReady from '../components/FullScreenReady'
@@ -25,20 +26,14 @@ const TYPE_OPTIONS = [
   { value: 'vomiting', label: 'Vomiting' },
 ]
 
-function formatDate(iso: string) {
-  // Internal date key for chart data — used as display label
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
-// Note: formatDate above is used for chart data keys — migrated to locale in tick formatter
-
 type ChartRow = { date: string; rawDate: string; [catName: string]: string | number | null }
 
-function buildChartData(cats: Cat[], measurementsByCat: Map<string, Measurement[]>): ChartRow[] {
+function buildChartData(cats: Cat[], measurementsByCat: Map<string, Measurement[]>, prefs: UserPreferences): ChartRow[] {
   const dateMap = new Map<string, ChartRow>()
   for (const cat of cats) {
     for (const m of measurementsByCat.get(cat.id) ?? []) {
       const key = m.measured_at.slice(0, 10)
-      if (!dateMap.has(key)) dateMap.set(key, { date: formatDate(m.measured_at), rawDate: key })
+      if (!dateMap.has(key)) dateMap.set(key, { date: formatDateShort(m.measured_at, prefs), rawDate: key })
       dateMap.get(key)![cat.name] = m.value
     }
   }
@@ -182,7 +177,7 @@ export default function CompareChart() {
     return filtered
   }, [measurementsByCat, windowStart, windowEnd])
 
-  const chartData = buildChartData(cats, filteredMeasurementsByCat)
+  const chartData = buildChartData(cats, filteredMeasurementsByCat, prefs)
   const healthIndex = isWeightType ? buildHealthIndex(cats, measurementsByCat) : new Map()
   const healthByCat = isWeightType
     ? new Map(cats.map((cat) => [cat.id, assessHealth(measurementsByCat.get(cat.id) ?? [])]))

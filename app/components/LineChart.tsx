@@ -133,7 +133,7 @@ function monotonePath(pts: { x: number; y: number }[]): string {
   return d;
 }
 
-function formatShortDate(ts: number): string {
+function formatShortDateDefault(ts: number): string {
   const d = new Date(ts);
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
@@ -151,7 +151,7 @@ export default function LineChart({
   height = 220,
   yLabel,
   formatY = (v) => String(Math.round(v * 10) / 10),
-  formatX = formatShortDate,
+  formatX = formatShortDateDefault,
 }: LineChartProps) {
   const colors = useThemeColors();
   const [containerWidth, setContainerWidth] = useState(

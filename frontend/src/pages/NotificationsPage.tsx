@@ -78,11 +78,11 @@ function DoseCard({ dose, variant, onAdminister, onSkip, acting, prefs }: DoseCa
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-ink text-sm truncate">
+          <p className="text-ink text-sm truncate">
             <span className="mr-1">{CARE_TYPE_ICONS[dose.med_type] ?? '📅'}</span>
-            {dose.cat_name}
+            <span className="font-bold">{dose.cat_name}</span>
             <span className="text-ink-dim font-normal"> &middot; </span>
-            {dose.med_name}
+            <span className="font-medium text-ink-mid">{dose.med_name}</span>
           </p>
           {dose.dose && (
             <p className="text-xs text-ink-dim mt-0.5">{dose.dose}</p>
@@ -95,7 +95,7 @@ function DoseCard({ dose, variant, onAdminister, onSkip, acting, prefs }: DoseCa
           </p>
         </div>
         <Link
-          to={`/cats/${dose.cat_id}`}
+          to={`/cats/${dose.cat_id}?tab=care`}
           className="text-xs text-ink-dim hover:text-lavender transition-colors shrink-0"
         >
           View cat

@@ -119,6 +119,7 @@ export function windowEnd90(): string {
 medications.get('/medications', async (c) => {
   const userId = c.get('userId')
   const catId = c.req.query('cat_id')
+  const nowUTC = new Date().toISOString().replace('T', ' ').slice(0, 19)
 
   const householdFilter = `(
       c.household_id IN (
@@ -131,30 +132,30 @@ medications.get('/medications', async (c) => {
         `SELECT m.*,
            (SELECT due_at FROM medication_doses d
             WHERE d.medication_id = m.id AND d.administered_at IS NULL AND d.skipped = 0
-              AND d.due_at >= datetime('now')
+              AND d.due_at >= ?
             ORDER BY d.due_at ASC LIMIT 1) AS next_due_at,
            (SELECT COUNT(*) FROM medication_doses d
             WHERE d.medication_id = m.id AND d.administered_at IS NULL AND d.skipped = 0
-              AND d.due_at < datetime('now')) AS overdue_count
+              AND d.due_at < ?) AS overdue_count
          FROM medications m
          JOIN cats c ON c.id = m.cat_id
          WHERE ${householdFilter} AND m.cat_id = ? AND m.is_active = 1
          ORDER BY m.name ASC`
-      ).bind(userId, userId, catId).all()
+      ).bind(nowUTC, nowUTC, userId, userId, catId).all()
     : await c.env.DB.prepare(
         `SELECT m.*,
            (SELECT due_at FROM medication_doses d
             WHERE d.medication_id = m.id AND d.administered_at IS NULL AND d.skipped = 0
-              AND d.due_at >= datetime('now')
+              AND d.due_at >= ?
             ORDER BY d.due_at ASC LIMIT 1) AS next_due_at,
            (SELECT COUNT(*) FROM medication_doses d
             WHERE d.medication_id = m.id AND d.administered_at IS NULL AND d.skipped = 0
-              AND d.due_at < datetime('now')) AS overdue_count
+              AND d.due_at < ?) AS overdue_count
          FROM medications m
          JOIN cats c ON c.id = m.cat_id
          WHERE ${householdFilter} AND m.is_active = 1
          ORDER BY m.name ASC`
-      ).bind(userId, userId).all()
+      ).bind(nowUTC, nowUTC, userId, userId).all()
 
   return c.json(rows.results)
 })
@@ -337,6 +338,56 @@ medications.delete('/medications/:id', async (c) => {
 // Notification inbox
 // ---------------------------------------------------------------------------
 
+// Compute the UTC boundaries of "today" in the user's timezone.
+// Returns { todayStartUTC, tomorrowStartUTC, weekEndUTC, nowUTC } as 'YYYY-MM-DD HH:MM:00' strings.
+function userDateBoundaries(timezone: string | null): {
+  nowUTC: string
+  todayStartUTC: string
+  tomorrowStartUTC: string
+  weekEndUTC: string
+} {
+  const now = new Date()
+  const nowUTC = now.toISOString().replace('T', ' ').slice(0, 19)
+
+  if (!timezone) {
+    // No timezone — fall back to UTC dates
+    const todayStr = now.toISOString().slice(0, 10)
+    const tom = new Date(now.getTime() + 86400000)
+    const weekEnd = new Date(now.getTime() + 8 * 86400000)
+    return {
+      nowUTC,
+      todayStartUTC: `${todayStr} 00:00:00`,
+      tomorrowStartUTC: `${tom.toISOString().slice(0, 10)} 00:00:00`,
+      weekEndUTC: `${weekEnd.toISOString().slice(0, 10)} 00:00:00`,
+    }
+  }
+
+  // Get user's local "today" date string using Intl
+  const localParts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(now)
+  const get = (type: string) => localParts.find(p => p.type === type)?.value ?? ''
+  const localToday = `${get('year')}-${get('month')}-${get('day')}`
+
+  // Convert local midnight boundaries to UTC using localToUTC
+  const todayStartUTC = localToUTC(localToday, '00:00', timezone)
+
+  // Tomorrow in user's timezone
+  const localTomDate = new Date(`${localToday}T12:00:00Z`)
+  localTomDate.setUTCDate(localTomDate.getUTCDate() + 1)
+  const tomorrowStr = localTomDate.toISOString().slice(0, 10)
+  const tomorrowStartUTC = localToUTC(tomorrowStr, '00:00', timezone)
+
+  // 8 days from today (end of 7-day upcoming window)
+  const localWeekDate = new Date(`${localToday}T12:00:00Z`)
+  localWeekDate.setUTCDate(localWeekDate.getUTCDate() + 8)
+  const weekEndStr = localWeekDate.toISOString().slice(0, 10)
+  const weekEndUTC = localToUTC(weekEndStr, '00:00', timezone)
+
+  return { nowUTC, todayStartUTC, tomorrowStartUTC, weekEndUTC }
+}
+
 // GET /api/notifications
 medications.get('/notifications', async (c) => {
   const userId = c.get('userId')
@@ -347,6 +398,10 @@ medications.get('/notifications', async (c) => {
       ) OR (c.user_id = ? AND c.household_id IS NULL)
     )`
 
+  // Look up user timezone for timezone-aware categorization
+  const userRow = await c.env.DB.prepare('SELECT timezone FROM users WHERE id = ?').bind(userId).first<{ timezone: string | null }>()
+  const { nowUTC, todayStartUTC, tomorrowStartUTC, weekEndUTC } = userDateBoundaries(userRow?.timezone ?? null)
+
   const [overdueR, todayR, upcomingR, refillR] = await Promise.all([
     // Overdue: due_at < now and not administered and not skipped
     c.env.DB.prepare(
@@ -356,12 +411,12 @@ medications.get('/notifications', async (c) => {
        JOIN medications m ON m.id = d.medication_id
        JOIN cats c ON c.id = m.cat_id
        WHERE ${hhFilter} AND m.is_active = 1
-         AND d.due_at < datetime('now')
+         AND d.due_at < ?
          AND d.administered_at IS NULL AND d.skipped = 0
        ORDER BY d.due_at ASC LIMIT 50`
-    ).bind(userId, userId).all(),
+    ).bind(userId, userId, nowUTC).all(),
 
-    // Due today: due_at >= now AND date(due_at) = date('now')
+    // Due today: due_at >= now AND within today in user's timezone
     c.env.DB.prepare(
       `SELECT d.*, m.name AS med_name, m.dose, m.type AS med_type,
               c.name AS cat_name, c.id AS cat_id
@@ -369,13 +424,13 @@ medications.get('/notifications', async (c) => {
        JOIN medications m ON m.id = d.medication_id
        JOIN cats c ON c.id = m.cat_id
        WHERE ${hhFilter} AND m.is_active = 1
-         AND d.due_at >= datetime('now')
-         AND date(d.due_at) = date('now')
+         AND d.due_at >= ?
+         AND d.due_at >= ? AND d.due_at < ?
          AND d.administered_at IS NULL AND d.skipped = 0
        ORDER BY d.due_at ASC LIMIT 50`
-    ).bind(userId, userId).all(),
+    ).bind(userId, userId, nowUTC, todayStartUTC, tomorrowStartUTC).all(),
 
-    // Upcoming 7 days (excluding today)
+    // Upcoming: after today in user's timezone, within 7 days
     c.env.DB.prepare(
       `SELECT d.*, m.name AS med_name, m.dose, m.type AS med_type,
               c.name AS cat_name, c.id AS cat_id
@@ -383,11 +438,11 @@ medications.get('/notifications', async (c) => {
        JOIN medications m ON m.id = d.medication_id
        JOIN cats c ON c.id = m.cat_id
        WHERE ${hhFilter} AND m.is_active = 1
-         AND date(d.due_at) > date('now')
-         AND date(d.due_at) <= date('now', '+7 days')
+         AND d.due_at >= ?
+         AND d.due_at < ?
          AND d.administered_at IS NULL AND d.skipped = 0
        ORDER BY d.due_at ASC LIMIT 50`
-    ).bind(userId, userId).all(),
+    ).bind(userId, userId, tomorrowStartUTC, weekEndUTC).all(),
 
     // Refill alerts: doses_remaining <= threshold
     c.env.DB.prepare(

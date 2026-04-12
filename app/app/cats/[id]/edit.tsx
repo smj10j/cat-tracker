@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   View, Text, Pressable, TextInput, ScrollView,
   KeyboardAvoidingView, Platform, Alert, Modal, Keyboard,
@@ -31,6 +31,7 @@ export default function EditCatScreen() {
   const colors = useThemeColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const scrollRef = useRef<ScrollView>(null);
 
   const [form, setForm] = useState({
     name: '', birthdate: '', breed: '', coloring: '', notes: '',
@@ -51,6 +52,11 @@ export default function EditCatScreen() {
   const [showBirthdatePicker, setShowBirthdatePicker] = useState(false);
   const [showDeceasedDatePicker, setShowDeceasedDatePicker] = useState(false);
   const [showDeceasedDatePickerModal, setShowDeceasedDatePickerModal] = useState(false);
+
+  function showError(msg: string) {
+    setError(msg);
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+  }
 
   useEffect(() => {
     if (!id) return;
@@ -105,8 +111,8 @@ export default function EditCatScreen() {
 
   async function handleSubmit() {
     if (!id) return;
-    if (!form.name.trim()) { setError('Name is required.'); return; }
-    if (!form.birthdate.trim()) { setError('Birthdate is required.'); return; }
+    if (!form.name.trim()) { showError('Name is required.'); return; }
+    if (!form.birthdate.trim()) { showError('Birthdate is required.'); return; }
     setSaving(true);
     setError(null);
     try {
@@ -126,7 +132,7 @@ export default function EditCatScreen() {
       }
       router.back();
     } catch (e: unknown) {
-      setError((e as Error).message);
+      showError((e as Error).message);
     } finally {
       setSaving(false);
     }
@@ -202,7 +208,7 @@ export default function EditCatScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
+        <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 16, paddingBottom: 48 }} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
           {/* Header */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24 }}>
             <Pressable

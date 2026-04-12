@@ -51,7 +51,8 @@ function buildMeasuredAt(localDate: string, hour: number): string {
   return new Date(y!, mo! - 1, d!, hour, 0, 0).toISOString();
 }
 
-function formatHour(hour: number): string {
+function formatHour(hour: number, use24h: boolean): string {
+  if (use24h) return `${String(hour).padStart(2, '0')}:00`;
   if (hour === 0) return '12 AM';
   if (hour < 12) return `${hour} AM`;
   if (hour === 12) return '12 PM';
@@ -293,7 +294,7 @@ export default function LogScreen() {
                     }}
                   >
                     <Text style={{ fontSize: 12, fontWeight: '600', color: hour === h ? colors.lavender : colors.inkDim }}>
-                      {formatHour(h)}
+                      {formatHour(h, prefs.timeFormat === '24h')}
                     </Text>
                   </Pressable>
                 ))}

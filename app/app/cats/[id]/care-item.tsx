@@ -16,6 +16,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { api, CARE_TYPE_ICONS } from '../../../lib/api';
 import type { Cat, Medication } from '../../../lib/api';
 import { useThemeColors } from '../../../hooks/useThemeColors';
+import { usePreferences } from '../../../contexts/PreferencesContext';
 
 interface Preset {
   name: string;
@@ -98,8 +99,9 @@ function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function formatHourLabel(time: string): string {
+function formatHourLabel(time: string, use24h: boolean): string {
   const hour = parseInt(time.split(':')[0] ?? '9', 10);
+  if (use24h) return `${String(hour).padStart(2, '0')}:00`;
   if (hour === 0) return '12:00 AM';
   if (hour < 12) return `${hour}:00 AM`;
   if (hour === 12) return '12:00 PM';
@@ -128,6 +130,7 @@ function formatDate(date: Date): string {
 
 export default function CareItemScreen() {
   const colors = useThemeColors();
+  const { prefs } = usePreferences();
   const { id, medId } = useLocalSearchParams<{ id: string; medId?: string }>();
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
@@ -144,6 +147,7 @@ export default function CareItemScreen() {
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const timePickerRef = useRef<ScrollView>(null);
 
   // Form fields
   const [name, setName] = useState('');
@@ -248,7 +252,8 @@ export default function CareItemScreen() {
       } else {
         await api.createMedication(payload);
       }
-      router.back();
+      // Navigate back to the cat's Care tab
+      router.replace(`/cats/${catId}?tab=care` as never);
     } catch (e: unknown) {
       showError((e as Error).message);
     } finally {
@@ -521,13 +526,24 @@ export default function CareItemScreen() {
                 }}
               >
                 <Text style={{ color: colors.ink, fontSize: 14 }}>
-                  {formatHourLabel(reminderTime)}
+                  {formatHourLabel(reminderTime, prefs.timeFormat === '24h')}
                 </Text>
               </Pressable>
             </View>
           </View>
           {showTimePicker && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 4, paddingVertical: 8 }}>
+            <ScrollView
+              ref={timePickerRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 4, paddingVertical: 8 }}
+              onLayout={() => {
+                const selectedHour = parseInt(reminderTime.split(':')[0] ?? '9', 10);
+                const pillWidth = 58;
+                const offset = Math.max(0, selectedHour * pillWidth - 100);
+                timePickerRef.current?.scrollTo({ x: offset, animated: false });
+              }}
+            >
               {Array.from({ length: 24 }, (_, i) => {
                 const val = `${String(i).padStart(2, '0')}:00`;
                 const active = reminderTime === val;
@@ -543,7 +559,7 @@ export default function CareItemScreen() {
                     }}
                   >
                     <Text style={{ fontSize: 12, fontWeight: '600', color: active ? colors.lavender : colors.inkDim }}>
-                      {formatHourLabel(val)}
+                      {formatHourLabel(val, prefs.timeFormat === '24h')}
                     </Text>
                   </Pressable>
                 );

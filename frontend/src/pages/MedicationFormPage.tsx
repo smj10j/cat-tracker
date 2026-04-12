@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import {
   getCat, getMedication, createMedication, updateMedication, archiveMedication,
   type Cat, type Medication,
 } from '../lib/api'
 import { useGoBack } from '../hooks/useGoBack'
+import { usePreferences } from '../contexts/PreferencesContext'
 
 // ---------------------------------------------------------------------------
 // Preset medications
@@ -93,6 +94,7 @@ export default function MedicationFormPage() {
   const navigate = useNavigate()
   const { catId, medId } = useParams<{ catId?: string; medId?: string }>()
   const goBack = useGoBack('/')
+  const { prefs } = usePreferences()
   const isEdit = Boolean(medId)
 
   const [cat, setCat] = useState<Cat | null>(null)
@@ -101,6 +103,7 @@ export default function MedicationFormPage() {
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const errorRef = useRef<HTMLDivElement>(null)
   const [showPresets, setShowPresets] = useState(false)
 
   // Form fields
@@ -165,13 +168,18 @@ export default function MedicationFormPage() {
     setShowPresets(false)
   }
 
+  function showError(msg: string) {
+    setError(msg)
+    requestAnimationFrame(() => errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim()) { setError('Name is required'); return }
-    if (!startDate) { setError('Start date is required'); return }
+    if (!name.trim()) { showError('Name is required'); return }
+    if (!startDate) { showError('Start date is required'); return }
 
     const resolvedCatId = catId ?? existing?.cat_id
-    if (!resolvedCatId) { setError('Cat is required'); return }
+    if (!resolvedCatId) { showError('Cat is required'); return }
 
     setSaving(true)
     setError(null)
@@ -194,16 +202,17 @@ export default function MedicationFormPage() {
 
       if (isEdit && medId) {
         await updateMedication(medId, payload)
-        goBack()
+        // Navigate to care tab of the cat profile
+        const targetCatId = catId ?? existing?.cat_id
+        if (targetCatId) navigate(`/cats/${targetCatId}?tab=care`, { replace: true })
+        else goBack()
       } else {
         const med = await createMedication(payload)
-        // New medication: navigate back to the cat profile (which is the parent page)
-        const histIdx = (window.history.state as { idx?: number } | null)?.idx ?? 0
-        if (histIdx > 0) navigate(-1)
-        else navigate(`/cats/${med.cat_id}`, { replace: true })
+        // Navigate to care tab of the cat profile
+        navigate(`/cats/${med.cat_id}?tab=care`, { replace: true })
       }
     } catch (e: unknown) {
-      setError((e as Error).message)
+      showError((e as Error).message)
     } finally {
       setSaving(false)
     }
@@ -250,7 +259,7 @@ export default function MedicationFormPage() {
       </div>
 
       {error && (
-        <div className="mb-4 text-rose text-sm p-3 rounded-xl" style={{ background: 'rgba(248,113,113,0.1)' }}>
+        <div ref={errorRef} className="mb-4 text-rose text-sm p-3 rounded-xl" style={{ background: 'rgba(248,113,113,0.1)' }}>
           {error}
         </div>
       )}
@@ -380,6 +389,9 @@ export default function MedicationFormPage() {
               >
                 {Array.from({ length: 24 }, (_, i) => {
                   const v = `${String(i).padStart(2, '0')}:00`
+                  if (prefs.timeFormat === '24h') {
+                    return <option key={v} value={v}>{String(i).padStart(2, '0')}:00</option>
+                  }
                   const h = i === 0 ? 12 : i > 12 ? i - 12 : i
                   const ap = i < 12 ? 'AM' : 'PM'
                   return <option key={v} value={v}>{h}:00 {ap}</option>

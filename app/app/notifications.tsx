@@ -15,6 +15,8 @@ import { api, CARE_TYPE_ICONS } from '../lib/api';
 import type { DoseWithContext, Medication, NotificationInbox } from '../lib/api';
 import { utcToLocal } from '../../shared/lib/dates';
 import { useThemeColors } from '../hooks/useThemeColors';
+import { usePreferences } from '../contexts/PreferencesContext';
+import type { UserPreferences } from '../../shared/lib/preferences';
 
 type SectionItem =
   | { kind: 'dose'; data: DoseWithContext }
@@ -26,8 +28,18 @@ interface Section {
   data: SectionItem[];
 }
 
+function formatTimeFromParts(timePart: string, prefs: UserPreferences): string {
+  const [h, m] = timePart.split(':');
+  const hour = parseInt(h ?? '0', 10);
+  const minute = m ?? '00';
+  if (prefs.timeFormat === '24h') return `${String(hour).padStart(2, '0')}:${minute}`;
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  return `${hour % 12 || 12}:${minute} ${ampm}`;
+}
+
 export default function NotificationsScreen() {
   const colors = useThemeColors();
+  const { prefs } = usePreferences();
   const router = useRouter();
   const [inbox, setInbox] = useState<NotificationInbox | null>(null);
   const [loading, setLoading] = useState(true);
@@ -201,7 +213,7 @@ export default function NotificationsScreen() {
             const med = item.data;
             return (
               <Pressable
-                onPress={() => router.push(`/cats/${med.cat_id}` as never)}
+                onPress={() => router.push(`/cats/${med.cat_id}?tab=care` as never)}
                 style={{
                   backgroundColor: colors.surface,
                   borderRadius: 14,
@@ -249,18 +261,18 @@ export default function NotificationsScreen() {
               }}
             >
               <Pressable
-                onPress={() => router.push(`/cats/${dose.cat_id}` as never)}
+                onPress={() => router.push(`/cats/${dose.cat_id}?tab=care` as never)}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
               >
                 <Text style={{ fontSize: 24 }}>
                   {CARE_TYPE_ICONS[dose.med_type] ?? '\uD83D\uDCC5'}
                 </Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.ink, fontSize: 14, fontWeight: '600' }}>
-                    {dose.med_name}
+                  <Text style={{ color: colors.ink, fontSize: 15, fontWeight: '700' }}>
+                    {dose.cat_name}
                   </Text>
                   <Text style={{ color: colors.inkMid, fontSize: 13, marginTop: 2 }}>
-                    {dose.cat_name}
+                    {dose.med_name}
                   </Text>
                   {dose.dose && (
                     <Text style={{ color: colors.inkDim, fontSize: 12, marginTop: 2 }}>
@@ -269,7 +281,7 @@ export default function NotificationsScreen() {
                   )}
                 </View>
                 <Text style={{ color: colors.inkDim, fontSize: 12 }}>
-                  {utcToLocal(dose.due_at).time}
+                  {formatTimeFromParts(utcToLocal(dose.due_at).time, prefs)}
                 </Text>
               </Pressable>
 

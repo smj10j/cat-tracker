@@ -75,6 +75,15 @@ function formatFreqShort(frequency: string, frequencyDays?: number | null): stri
   return labels[frequency] ?? frequency;
 }
 
+function formatTimeFromParts(timePart: string, prefs: import('../../../../shared/lib/preferences').UserPreferences): string {
+  const [h, m] = timePart.split(':');
+  const hour = parseInt(h ?? '0', 10);
+  const minute = m ?? '00';
+  if (prefs.timeFormat === '24h') return `${String(hour).padStart(2, '0')}:${minute}`;
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  return `${hour % 12 || 12}:${minute} ${ampm}`;
+}
+
 function formatNextDue(nextDueAt: string | null | undefined, prefs: import('../../../../shared/lib/preferences').UserPreferences): string {
   if (!nextDueAt) return 'No upcoming dose';
   // Convert UTC due_at to local time for display
@@ -84,10 +93,7 @@ function formatNextDue(nextDueAt: string | null | undefined, prefs: import('../.
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const tom = new Date(Date.now() + 86400000);
   const tomorrow = `${tom.getFullYear()}-${String(tom.getMonth() + 1).padStart(2, '0')}-${String(tom.getDate()).padStart(2, '0')}`;
-  const [h] = (timePart ?? '09:00').split(':');
-  const hour = parseInt(h ?? '9', 10);
-  const ampm = hour >= 12 ? 'PM' : 'AM';
-  const timeStr = `${hour % 12 || 12}:00 ${ampm}`;
+  const timeStr = formatTimeFromParts(timePart ?? '09:00', prefs);
   if (datePart === today) return `Today at ${timeStr}`;
   if (datePart === tomorrow) return `Tomorrow at ${timeStr}`;
   return formatDateShort(datePart, prefs) + ` at ${timeStr}`;
@@ -108,6 +114,11 @@ export default function CatProfileScreen() {
   const colors = useThemeColors();
   const { prefs } = usePreferences();
   const insets = useSafeAreaInsets();
+
+  const formatChartDate = useCallback((ts: number) => {
+    const iso = new Date(ts).toISOString().slice(0, 10);
+    return formatDateShort(iso, prefs);
+  }, [prefs]);
 
   function formatDayLabel(dateStr: string): string {
     const today = new Date().toLocaleDateString('en-CA');
@@ -473,6 +484,7 @@ export default function CatProfileScreen() {
                       seriesColors={{ value: statusColor }}
                       height={180}
                       yLabel={prefs.weightUnit}
+                      formatX={formatChartDate}
                     />
                   </ErrorBoundary>
                 </View>
@@ -493,6 +505,7 @@ export default function CatProfileScreen() {
                         seriesColors={{ value: statusColor }}
                         height={height - 16}
                         yLabel={prefs.weightUnit}
+                        formatX={formatChartDate}
                       />
                     </ErrorBoundary>
                   )}
@@ -522,6 +535,7 @@ export default function CatProfileScreen() {
                       height={180}
                       yLabel="scale"
                       formatY={(v) => getPresetLabel('food', Math.round(v))}
+                      formatX={formatChartDate}
                     />
                   </ErrorBoundary>
                 </View>
@@ -550,6 +564,7 @@ export default function CatProfileScreen() {
                       height={180}
                       yLabel="scale"
                       formatY={(v) => getPresetLabel('water', Math.round(v))}
+                      formatX={formatChartDate}
                     />
                   </ErrorBoundary>
                 </View>
@@ -586,6 +601,7 @@ export default function CatProfileScreen() {
                             height={150}
                             yLabel="scale"
                             formatY={(v) => getPresetLabel(type, Math.round(v))}
+                            formatX={formatChartDate}
                           />
                         </ErrorBoundary>
                       </View>

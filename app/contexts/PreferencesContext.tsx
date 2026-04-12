@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getLocales } from 'expo-localization';
+import { getLocales, getCalendars } from 'expo-localization';
 import { deriveDefaults, US_DEFAULTS, type UserPreferences } from '../../shared/lib/preferences';
 
 const STORAGE_KEY = 'cat-tracker-prefs';
@@ -34,7 +34,19 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
   const [overrides, setOverrides] = useState<Partial<UserPreferences>>({});
   const [ready, setReady] = useState(false);
 
-  const defaults = useMemo(() => deriveDefaults(getDeviceLocale()), []);
+  const defaults = useMemo(() => {
+    const derived = deriveDefaults(getDeviceLocale());
+    // On native, expo-localization's getCalendars() gives the actual system 24h clock
+    // setting, which is more reliable than deriving from locale (e.g., en-US user who
+    // toggled 24-hour time in iOS Settings).
+    try {
+      const calendars = getCalendars();
+      const sys24h = calendars[0]?.uses24hourClock;
+      if (sys24h === true) derived.timeFormat = '24h';
+      else if (sys24h === false) derived.timeFormat = '12h';
+    } catch { /* getCalendars not available — keep locale-derived default */ }
+    return derived;
+  }, []);
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((raw) => {

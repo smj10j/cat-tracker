@@ -54,7 +54,8 @@ cat-tracker/
 │   ├── API.md                        # Full API specification
 │   ├── DESIGN.md                     # Visual design system
 │   ├── SECURITY.md                   # Security model and guidelines
-│   └── TESTING.md                    # Testing strategy
+│   ├── TESTING.md                    # Testing strategy
+│   └── app-store-submissions.md      # TestFlight & App Store submission history
 ├── worker/                 # Cloudflare Worker — REST API
 │   ├── src/
 │   │   ├── index.ts              # Hono app entry + CORS + security headers
@@ -369,3 +370,4 @@ Thresholds follow [AAFP](https://aafponline.org) and [WSAVA](https://wsava.org) 
 | [`docs/DESIGN.md`](docs/DESIGN.md) | Visual design system |
 | [`docs/SECURITY.md`](docs/SECURITY.md) | Security model, auth guidelines, known limitations |
 | [`docs/TESTING.md`](docs/TESTING.md) | Testing strategy |
+| [`docs/app-store-submissions.md`](docs/app-store-submissions.md) | TestFlight & App Store submission history (commit hashes, dates) |

@@ -21,7 +21,7 @@ const MEAS_LABELS: Record<string, string> = {
 }
 
 function buildSparklineData(
-  measA: Measurement[], measB: Measurement[], typeA: string, typeB: string,
+  measA: Measurement[], measB: Measurement[],
 ): { week: string; a: number | null; b: number | null }[] {
   const bucketsA = bucketByWeek(measA)
   const bucketsB = bucketByWeek(measB)
@@ -43,7 +43,7 @@ function MiniSparkline({ correlation, measurementsByType }: {
 }) {
   const { typeA, typeB } = correlation
   const data = useMemo(
-    () => buildSparklineData(measurementsByType[typeA] ?? [], measurementsByType[typeB] ?? [], typeA, typeB),
+    () => buildSparklineData(measurementsByType[typeA] ?? [], measurementsByType[typeB] ?? []),
     [measurementsByType, typeA, typeB],
   )
   if (data.length < 2) return null

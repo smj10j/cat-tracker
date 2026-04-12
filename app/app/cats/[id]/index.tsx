@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { View, Text, Pressable, ScrollView, Image, Dimensions } from 'react-native';
+import { View, Text, Pressable, ScrollView, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
@@ -482,18 +482,20 @@ export default function CatProfileScreen() {
                   subtitle={prefs.weightUnit}
                   onClose={() => setExpandedChart(null)}
                 >
-                  <ErrorBoundary>
-                    <LineChart
-                      data={weightMeasurements
-                        .sort((a, b) => a.measured_at.localeCompare(b.measured_at))
-                        .map(m => ({ date: new Date(m.measured_at).getTime(), value: m.value }))}
-                      seriesKeys={['value']}
-                      seriesLabels={{ value: cat.name }}
-                      seriesColors={{ value: statusColor }}
-                      height={Dimensions.get('window').height * 0.7}
-                      yLabel={prefs.weightUnit}
-                    />
-                  </ErrorBoundary>
+                  {({ height }) => (
+                    <ErrorBoundary>
+                      <LineChart
+                        data={weightMeasurements
+                          .sort((a, b) => a.measured_at.localeCompare(b.measured_at))
+                          .map(m => ({ date: new Date(m.measured_at).getTime(), value: m.value }))}
+                        seriesKeys={['value']}
+                        seriesLabels={{ value: cat.name }}
+                        seriesColors={{ value: statusColor }}
+                        height={height - 16}
+                        yLabel={prefs.weightUnit}
+                      />
+                    </ErrorBoundary>
+                  )}
                 </FullScreenChartModal>
               </View>
             )}

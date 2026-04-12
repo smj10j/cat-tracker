@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import {
   Animated,
   Dimensions,
@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Text,
   View,
+  type LayoutChangeEvent,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -22,7 +23,8 @@ interface FullScreenChartModalProps {
   title: string;
   subtitle?: string;
   onClose: () => void;
-  children: React.ReactNode;
+  /** Render prop receives measured chart area dimensions so charts adapt to orientation */
+  children: React.ReactNode | ((layout: { width: number; height: number }) => React.ReactNode);
 }
 
 export function FullScreenChartModal({
@@ -37,6 +39,12 @@ export function FullScreenChartModal({
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(0)).current;
   const isSwipingDown = useRef(false);
+  const [chartLayout, setChartLayout] = useState({ width: 0, height: 0 });
+
+  const onChartAreaLayout = useCallback((e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    setChartLayout({ width, height });
+  }, []);
 
   // Orientation lock: unlock when modal opens, lock back when it closes
   useEffect(() => {
@@ -193,8 +201,12 @@ export function FullScreenChartModal({
           </Pressable>
         </View>
 
-        {/* Chart area */}
-        <View style={styles.chartArea}>{children}</View>
+        {/* Chart area — measured via onLayout so charts adapt to orientation */}
+        <View style={styles.chartArea} onLayout={onChartAreaLayout}>
+          {chartLayout.height > 0
+            ? (typeof children === 'function' ? children(chartLayout) : children)
+            : null}
+        </View>
       </Animated.View>
     </Modal>
   );

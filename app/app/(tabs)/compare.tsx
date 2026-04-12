@@ -13,7 +13,6 @@ import type { Cat, Measurement } from '../../lib/api';
 import { getPresetLabel, PRESET_TYPES } from '../../lib/measurementPresets';
 import { assessHealth, STATUS_COLORS, STATUS_LABEL, STATUS_EMOJI } from '../../lib/healthMetrics';
 import type { HealthStatus } from '../../lib/healthMetrics';
-import { Dimensions } from 'react-native';
 import LineChart, { type ChartDataPoint } from '../../components/LineChart';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { ChartExpandButton } from '../../components/ChartExpandButton';
@@ -445,21 +444,23 @@ export default function CompareScreen() {
                   subtitle={isWeightType ? prefs.weightUnit : selectedType}
                   onClose={() => setChartExpanded(false)}
                 >
-                  <ErrorBoundary>
-                    <LineChart
-                      data={chartData}
-                      seriesKeys={chartSeriesKeys}
-                      seriesLabels={chartSeriesLabels}
-                      seriesColors={chartSeriesColors}
-                      dotEmojis={chartDotEmojis}
-                      height={Dimensions.get('window').height * 0.7}
-                      yLabel={isWeightType ? prefs.weightUnit : undefined}
-                      formatY={isScaleType
-                        ? (v) => getPresetLabel(selectedType, Math.round(v))
-                        : (v) => String(Math.round(v * 10) / 10)
-                      }
-                    />
-                  </ErrorBoundary>
+                  {({ height }) => (
+                    <ErrorBoundary>
+                      <LineChart
+                        data={chartData}
+                        seriesKeys={chartSeriesKeys}
+                        seriesLabels={chartSeriesLabels}
+                        seriesColors={chartSeriesColors}
+                        dotEmojis={chartDotEmojis}
+                        height={height - 16}
+                        yLabel={isWeightType ? prefs.weightUnit : undefined}
+                        formatY={isScaleType
+                          ? (v) => getPresetLabel(selectedType, Math.round(v))
+                          : (v) => String(Math.round(v * 10) / 10)
+                        }
+                      />
+                    </ErrorBoundary>
+                  )}
                 </FullScreenChartModal>
               </View>
             )}

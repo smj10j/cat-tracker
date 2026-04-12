@@ -141,13 +141,22 @@ cd "$ROOT/frontend" && npm run build --silent 2>&1 | tail -1
 npx wrangler pages deploy dist --project-name cat-tracker --commit-dirty=true 2>&1 | tail -1
 echo ""
 
-# 6. Deploy Worker if changed
-WORKER_CHANGED=$(git diff HEAD~1 --name-only -- worker/ 2>/dev/null | head -1)
-if [ -n "$WORKER_CHANGED" ]; then
-  echo "▸ Worker files changed — deploying..."
-  cd "$ROOT/worker" && npx wrangler deploy 2>&1 | tail -1
+# 6. Deploy Worker if worker/ or shared/ changed since last deploy.
+# Uses a git tag to track when we last deployed the worker. Falls back to
+# checking the last 10 commits if no deploy tag exists yet.
+LAST_DEPLOY_TAG=$(git tag -l 'worker-deployed-*' --sort=-creatordate 2>/dev/null | head -1)
+if [ -n "$LAST_DEPLOY_TAG" ]; then
+  WORKER_CHANGED=$(git diff "$LAST_DEPLOY_TAG" --name-only -- worker/ shared/ 2>/dev/null | head -1)
 else
-  echo "▸ No worker changes — skipping deploy."
+  WORKER_CHANGED=$(git diff HEAD~10 --name-only -- worker/ shared/ 2>/dev/null | head -1)
+fi
+if [ -n "$WORKER_CHANGED" ]; then
+  echo "▸ Worker or shared files changed — deploying..."
+  cd "$ROOT/worker" && npx wrangler deploy 2>&1 | tail -1
+  # Tag this commit so future runs know when the worker was last deployed
+  git tag -f "worker-deployed-$(date +%Y%m%d%H%M%S)" HEAD 2>/dev/null || true
+else
+  echo "▸ No worker/shared changes since last deploy — skipping."
 fi
 
 echo ""

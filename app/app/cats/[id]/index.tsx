@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { View, Text, Pressable, ScrollView, Image } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { api, CARE_TYPE_ICONS } from '../../../lib/api';
@@ -234,16 +235,16 @@ export default function CatProfileScreen() {
             </View>
           )}
 
-          {/* Top gradient */}
-          <View style={{
-            position: 'absolute', top: 0, left: 0, right: 0, height: 80 + insets.top,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-          }} />
-          {/* Bottom gradient */}
-          <View style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0, height: 120,
-            backgroundColor: 'rgba(0,0,0,0.65)',
-          }} />
+          {/* Top gradient — fades from dark to transparent for status bar legibility */}
+          <LinearGradient
+            colors={['rgba(0,0,0,0.55)', 'transparent']}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 80 + insets.top }}
+          />
+          {/* Bottom gradient — fades from transparent to dark for text legibility */}
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.7)']}
+            style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 140 }}
+          />
 
           {/* Top nav — positioned below the status bar */}
           <View style={{ position: 'absolute', top: insets.top + 8, left: 16, right: 16, flexDirection: 'row', alignItems: 'center' }}>

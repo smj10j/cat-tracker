@@ -10,9 +10,9 @@ describe('POST /api/import', () => {
     const user = await seedUser()
     const session = await seedSession(user.id)
 
-    const csv = `cat_name,date,type,value,unit
-Luna,2026-01-15,weight,9.4,lbs
-Luna,2026-01-16,weight,9.5,lbs`
+    const csv = `date,cat_name,type,value,unit
+1/15/2026,Luna,weight,9.4,lbs
+1/16/2026,Luna,weight,9.5,lbs`
 
     const res = await SELF.fetch('http://localhost/api/import', {
       method: 'POST',
@@ -20,8 +20,8 @@ Luna,2026-01-16,weight,9.5,lbs`
       body: csv,
     })
     expect(res.status).toBe(200)
-    const data = await res.json() as { created: number; errors: string[] }
-    expect(data.created).toBeGreaterThan(0)
+    const data = await res.json() as { imported: number; errors: string[] }
+    expect(data.imported).toBeGreaterThan(0)
 
     // Verify cat was created
     const cats = await env.DB.prepare('SELECT * FROM cats WHERE name = ?').bind('Luna').all()
@@ -62,7 +62,7 @@ Luna,2026-01-16,weight,9.5,lbs`
       body: 'cat_name,date,type,value,unit\n',
     })
     expect(res.status).toBe(200)
-    const data = await res.json() as { created: number }
-    expect(data.created).toBe(0)
+    const data = await res.json() as { imported: number }
+    expect(data.imported).toBe(0)
   })
 })

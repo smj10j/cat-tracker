@@ -44,6 +44,7 @@ docs/
     behavioral-indicators.md  Citations for behavioral alert lists
     feline-resources.md       Reference directory (journals, guidelines, orgs)
   DESIGN.md   Visual design system
+  app-store-submissions.log  TestFlight/App Store submission history (commit hashes, dates)
 TODO.md       Task tracking — keep this updated
 ```
 
@@ -69,7 +70,7 @@ cd frontend && npm run build && npx wrangler pages deploy dist --project-name ca
 ```
 
 #### `scripts/deploy-testflight.sh`
-One-command pipeline: runs all tests (shared + app + frontend + worker), verifies Expo web export, builds production iOS, submits to TestFlight, deploys web frontend, and conditionally deploys Worker. Requires EAS login and API key in `keys/`.
+One-command pipeline: runs all tests (shared + app + frontend + worker), verifies Expo web export, builds production iOS, submits to TestFlight, deploys web frontend, and conditionally deploys Worker. Each submission is logged to `docs/app-store-submissions.log` with commit hash, date, and version. Requires EAS login and API key in `keys/`.
 
 **Build modes:**
 - **Default (no flag):** Tries EAS cloud build first. If the free plan quota is exhausted, automatically falls back to a local build (`eas build --local`).

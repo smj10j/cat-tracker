@@ -135,6 +135,25 @@ else
 fi
 echo ""
 
+# Log submission to docs/app-store-submissions.log
+COMMIT_HASH=$(git rev-parse --short HEAD)
+COMMIT_HASH_FULL=$(git rev-parse HEAD)
+APP_VERSION=$(cd "$ROOT/app" && node -p "require('./app.json').expo.version" 2>/dev/null || echo "unknown")
+SUBMIT_DATE=$(date +%Y-%m-%d)
+SUBMIT_TIME=$(date +%H:%M:%S)
+COMMIT_MSG=$(git log -1 --format='%s')
+cat >> "$ROOT/docs/app-store-submissions.log" <<LOGEOF
+
+## Version ${APP_VERSION} (Build ${SUBMIT_DATE})
+- **Submitted**: ${SUBMIT_DATE} ${SUBMIT_TIME}
+- **Commit**: ${COMMIT_HASH} (${COMMIT_HASH_FULL})
+- **Commit message**: ${COMMIT_MSG}
+- **App Store Connect**: https://appstoreconnect.apple.com/apps/6762031793/testflight/ios
+- **Status**: Submitted to TestFlight
+LOGEOF
+echo "▸ Logged submission to docs/app-store-submissions.log (commit ${COMMIT_HASH})"
+echo ""
+
 # 5. Deploy web frontend
 echo "▸ Deploying web frontend..."
 cd "$ROOT/frontend" && npm run build --silent 2>&1 | tail -1

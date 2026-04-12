@@ -19,8 +19,7 @@ export async function requireAuth(c: Context<AppEnv>, next: Next) {
   // SEC-10: Soft enforcement — log device fingerprint mismatches (no blocking yet)
   const currentDeviceId = c.req.header('X-Device-Id')
   if (session.device_fingerprint && currentDeviceId && session.device_fingerprint !== currentDeviceId) {
-    console.warn(`SEC-10: Device fingerprint mismatch for session ${sessionId.slice(0, 8)}... ` +
-      `stored=${session.device_fingerprint.slice(0, 16)} current=${currentDeviceId.slice(0, 16)}`)
+    console.warn(`SEC-10: Device fingerprint mismatch for session ${sessionId.slice(0, 8)}...`)
   }
 
   // Rolling session: extend expiry by 7 days

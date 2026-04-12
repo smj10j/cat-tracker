@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import type { ThresholdOverrides } from '../../../shared/lib/healthMetrics'
+import type { ThresholdOverrides } from '@shared/lib/healthMetrics'
 
 export interface AppConfig {
   minSupportedVersion: string

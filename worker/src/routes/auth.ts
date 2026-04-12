@@ -540,6 +540,7 @@ auth.get('/auth/export', requireAuth, async (c) => {
   // SEC-12: Rate limit data exports to 5 per hour per user
   const { allowed, retryAfterSeconds } = await checkRateLimit(c.env.DB, userId, 'data_export', 5)
   if (!allowed) {
+    logAudit(c, 'data_exported', { blocked: true, reason: 'rate_limited' })
     return c.json(
       { error: `You've exported your data recently. You can export again in ${Math.ceil(retryAfterSeconds / 60)} minutes.` },
       429,

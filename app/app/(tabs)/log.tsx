@@ -231,7 +231,7 @@ export default function LogScreen() {
                 <TextInput
                   value={weightValue}
                   onChangeText={setWeightValue}
-                  placeholder="e.g. 9.4 \u2014 leave blank to skip"
+                  placeholder="e.g. 9.4 — leave blank to skip"
                   placeholderTextColor={colors.inkDim}
                   keyboardType="decimal-pad"
                   returnKeyType="done"

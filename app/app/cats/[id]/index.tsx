@@ -8,10 +8,10 @@ import type { Cat, Measurement, Medication } from '../../../lib/api';
 import CatAvatar from '../../../components/CatAvatar';
 import InsightsPanel from '../../../components/InsightsPanel';
 import MeasurementForm from '../../../components/MeasurementForm';
-import { assessHealth, STATUS_COLORS, STATUS_LABEL, STATUS_EMOJI } from '../../../lib/healthMetrics';
-import type { HealthStatus } from '../../../lib/healthMetrics';
-import { getPresetLabel } from '../../../lib/measurementPresets';
-import { catAge, formatLocalDate } from '../../../lib/dates';
+import { assessHealth, STATUS_COLORS, STATUS_LABEL, STATUS_EMOJI } from '@shared/lib/healthMetrics';
+import type { HealthStatus } from '@shared/lib/healthMetrics';
+import { getPresetLabel } from '@shared/lib/measurementPresets';
+import { catAge, formatLocalDate } from '@shared/lib/dates';
 import LineChart from '../../../components/LineChart';
 import { ErrorBoundary } from '../../../components/ErrorBoundary';
 import { ChartExpandButton } from '../../../components/ChartExpandButton';
@@ -22,22 +22,11 @@ import { usePreferences } from '../../../contexts/PreferencesContext';
 import {
   formatTime as formatTimePref,
   formatDateShort,
-} from '../../../../shared/lib/preferences';
-import { groupByDay, formatFreqShort, formatNextDue } from '../../../lib/formatting';
+} from '@shared/lib/preferences';
+import { groupByDay, formatFreqShort, formatNextDue, formatSexNeuter } from '@shared/lib/formatting';
 import { MEASUREMENT_TYPE_LABELS as MEAS_TYPE_LABELS, BEHAVIOR_CHART_TYPES as BEHAVIORAL_TYPES } from '@shared/lib/constants';
 
 type ProfileTab = 'health' | 'care' | 'about';
-
-function formatSexNeuter(sex: string | null, isNeutered: number | null): string {
-  if (!sex && isNeutered === null) return 'Unknown';
-  const sexStr = sex ?? 'Unknown sex';
-  if (isNeutered === 1) {
-    const neuterStr = sex === 'Female' ? 'Spayed' : 'Neutered';
-    return `${sexStr} \u00B7 ${neuterStr}`;
-  }
-  if (isNeutered === 0) return `${sexStr} \u00B7 Intact`;
-  return sexStr;
-}
 
 export default function CatProfileScreen() {
   const colors = useThemeColors();

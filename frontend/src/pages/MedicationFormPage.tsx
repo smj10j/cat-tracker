@@ -13,8 +13,8 @@ import {
   MEDICATION_TYPE_LABELS,
   formatFrequencyLabel,
   type MedicationPreset as Preset,
-} from '../lib/medicationPresets'
-import { todayLocalDate, roundToHour } from '../lib/formatting'
+} from '@shared/lib/medicationPresets'
+import { todayLocalDate, roundToHour } from '@shared/lib/formatting'
 
 // Extended labels for web where there's room for longer text
 const FREQ_LABELS: Record<string, string> = {

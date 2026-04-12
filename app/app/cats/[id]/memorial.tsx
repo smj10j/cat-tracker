@@ -6,12 +6,12 @@ import { api } from '../../../lib/api';
 import type { Cat, Measurement } from '../../../lib/api';
 import CatAvatar from '../../../components/CatAvatar';
 import LineChart, { type ChartDataPoint } from '../../../components/LineChart';
-import { assessHealth, STATUS_COLORS, STATUS_LABEL } from '../../../lib/healthMetrics';
-import type { HealthStatus } from '../../../lib/healthMetrics';
-import { parseLocalDate, formatLocalDate } from '../../../lib/dates';
+import { assessHealth, STATUS_COLORS, STATUS_LABEL } from '@shared/lib/healthMetrics';
+import type { HealthStatus } from '@shared/lib/healthMetrics';
+import { parseLocalDate, formatLocalDate } from '@shared/lib/dates';
 import { useThemeColors } from '../../../hooks/useThemeColors';
 import { usePreferences } from '../../../contexts/PreferencesContext';
-import { formatWeight } from '../../../../shared/lib/preferences';
+import { formatWeight } from '@shared/lib/preferences';
 
 function catLifespan(birthdate: string, deceasedAt: string): string {
   const birth = parseLocalDate(birthdate);

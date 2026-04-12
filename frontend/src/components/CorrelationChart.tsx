@@ -4,8 +4,8 @@ import {
   ResponsiveContainer, Legend,
 } from 'recharts'
 import type { Measurement } from '../lib/api'
-import { bucketByWeek, lagCorrelation, normalize, describeCorrelation, detectTrend, INPUT_TYPES, OUTCOME_TYPES } from '../lib/correlations'
-import type { CorrelationResult } from '../lib/correlations'
+import { bucketByWeek, lagCorrelation, normalize, describeCorrelation, detectTrend, INPUT_TYPES, OUTCOME_TYPES } from '@shared/lib/correlations'
+import type { CorrelationResult } from '@shared/lib/correlations'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { formatDateShort } from '@shared/lib/preferences'
 

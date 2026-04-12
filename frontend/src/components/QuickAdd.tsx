@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { createMeasurement, getCats, type Cat } from '../lib/api'
-import { PRESETS, PRESET_TYPES } from '../lib/measurementPresets'
+import { PRESETS, PRESET_TYPES } from '@shared/lib/measurementPresets'
 import { usePreferences } from '../contexts/PreferencesContext'
-import { toLocalDatetimeString } from '../lib/formatting'
+import { toLocalDatetimeString } from '@shared/lib/formatting'
 import { VALID_MEASUREMENT_TYPES, MEASUREMENT_TYPE_LABELS } from '@shared/lib/constants'
 
 interface Props {

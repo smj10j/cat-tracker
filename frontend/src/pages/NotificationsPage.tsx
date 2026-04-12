@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useGoBack } from '../hooks/useGoBack'
 import { getNotifications, administerDose, skipDose, CARE_TYPE_ICONS, type NotificationInbox, type DoseWithContext, type Medication } from '../lib/api'
 import { usePreferences } from '../contexts/PreferencesContext'
-import { formatDueAt, formatFutureDueAt } from '../lib/formatting'
+import { formatDueAt, formatFutureDueAt } from '@shared/lib/formatting'
 import type { UserPreferences } from '@shared/lib/preferences'
 
 interface DoseCardProps {

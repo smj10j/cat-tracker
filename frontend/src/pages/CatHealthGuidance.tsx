@@ -5,8 +5,8 @@ import { useGoBack } from '../hooks/useGoBack'
 import {
   assessHealth, STATUS_COLORS, STATUS_LABEL,
   WATCH_ATTENTION, CONCERNING_ATTENTION, URGENT_VET_SIGNS,
-} from '../lib/healthMetrics'
-import { catAge } from '../lib/dates'
+} from '@shared/lib/healthMetrics'
+import { catAge } from '@shared/lib/dates'
 
 export default function CatHealthGuidance() {
   const { id } = useParams<{ id: string }>()

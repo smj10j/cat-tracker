@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { api } from '../lib/api';
 import type { Cat } from '../lib/api';
-import { PRESETS, PRESET_TYPES } from '../lib/measurementPresets';
+import { PRESETS, PRESET_TYPES } from '@shared/lib/measurementPresets';
 import { useThemeColors } from '../hooks/useThemeColors';
 import { usePreferences } from '../contexts/PreferencesContext';
 import { VALID_MEASUREMENT_TYPES, MEASUREMENT_TYPE_LABELS } from '@shared/lib/constants';

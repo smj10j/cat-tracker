@@ -17,7 +17,7 @@ import { api, CARE_TYPE_ICONS } from '../../../lib/api';
 import type { Cat, Medication } from '../../../lib/api';
 import { useThemeColors } from '../../../hooks/useThemeColors';
 import { usePreferences } from '../../../contexts/PreferencesContext';
-import { formatHour } from '../../../lib/formatting';
+import { formatHour } from '@shared/lib/formatting';
 import {
   MEDICATION_PRESETS as PRESETS,
   MEDICATION_PRESET_CATEGORIES as PRESET_CATEGORIES,
@@ -25,13 +25,13 @@ import {
   MEDICATION_TYPE_LABELS,
   formatFrequencyLabel,
   type MedicationPreset as Preset,
-} from '../../../lib/medicationPresets';
+} from '@shared/lib/medicationPresets';
 import { parseDate, formatDateStr as formatDate } from '../../../lib/dateHelpers';
 
 const FREQ_OPTIONS = Object.entries(MEDICATION_FREQ_LABELS).map(([value, label]) => ({ value, label }));
 const TYPE_OPTIONS = Object.entries(MEDICATION_TYPE_LABELS).map(([value, label]) => ({ value, label }));
 
-import { todayLocalDate, roundToHour } from '../../../lib/formatting';
+import { todayLocalDate, roundToHour } from '@shared/lib/formatting';
 
 export default function CareItemScreen() {
   const colors = useThemeColors();

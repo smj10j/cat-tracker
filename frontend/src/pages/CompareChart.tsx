@@ -5,8 +5,8 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { getCats, getMeasurements, type Cat, type Measurement } from '../lib/api'
-import { assessHealth, STATUS_COLORS, STATUS_EMOJI, STATUS_LABEL, type HealthStatus, type PeriodHealth } from '../lib/healthMetrics'
-import { getPresetLabel, getPresetTicks, PRESET_TYPES } from '../lib/measurementPresets'
+import { assessHealth, STATUS_COLORS, STATUS_EMOJI, STATUS_LABEL, type HealthStatus, type PeriodHealth } from '@shared/lib/healthMetrics'
+import { getPresetLabel, getPresetTicks, PRESET_TYPES } from '@shared/lib/measurementPresets'
 import { useChartWindow, getTickFormatter, type TimeRange } from '../lib/useChartWindow'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { formatDateShort, type UserPreferences } from '@shared/lib/preferences'

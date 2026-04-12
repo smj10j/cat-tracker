@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { assessHealth, type ThresholdOverrides } from '../../lib/healthMetrics'
+import { assessHealth, type ThresholdOverrides } from '@shared/lib/healthMetrics'
 import type { Measurement } from '../../lib/api'
 
 function makeMeasurement(value: number, daysAgo: number): Measurement {

@@ -6,17 +6,17 @@ import CatAvatar from '../components/CatAvatar'
 
 import {
   assessHealth, STATUS_COLORS, STATUS_EMOJI, STATUS_LABEL,
-} from '../lib/healthMetrics'
+} from '@shared/lib/healthMetrics'
 import WeightChart from '../components/WeightChart'
 import MeasurementForm from '../components/MeasurementForm'
 import MeasurementChart from '../components/MeasurementChart'
 import FullScreenReady from '../components/FullScreenReady'
 import InsightsPanel from '../components/InsightsPanel'
-import { getPresetLabel } from '../lib/measurementPresets'
-import { catAge } from '../lib/dates'
+import { getPresetLabel } from '@shared/lib/measurementPresets'
+import { catAge } from '@shared/lib/dates'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { formatTime as fmtTime, formatWeight as fmtWeight } from '@shared/lib/preferences'
-import { groupByDay, formatFreqShort, formatNextDue } from '../lib/formatting'
+import { groupByDay, formatFreqShort, formatNextDue, formatSexNeuter } from '@shared/lib/formatting'
 import { MEASUREMENT_TYPE_LABELS as MEAS_TYPE_LABELS, BEHAVIOR_CHART_TYPES as BEHAVIORAL_TYPES } from '@shared/lib/constants'
 
 type ChartTab = 'weight' | 'food' | 'water' | 'behavior' | 'all'
@@ -97,17 +97,6 @@ function CareScheduleSection({ catId, meds }: { catId: string; meds: Medication[
       )}
     </div>
   )
-}
-
-function formatSexNeuter(sex: string | null, isNeutered: number | null): string {
-  if (!sex && isNeutered === null) return 'Unknown'
-  const sexStr = sex ?? 'Unknown sex'
-  if (isNeutered === 1) {
-    const neuterStr = sex === 'Female' ? 'Spayed' : 'Neutered'
-    return `${sexStr} · ${neuterStr}`
-  }
-  if (isNeutered === 0) return `${sexStr} · Intact`
-  return sexStr
 }
 
 export default function CatProfile() {

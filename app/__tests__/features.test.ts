@@ -10,8 +10,8 @@
  * - UTC↔local time conversion for medication doses
  */
 import { describe, it, expect } from 'vitest';
-import { localToUTC, utcToLocal } from '../../shared/lib/dates';
-import { roundToHour } from '../../shared/lib/formatting';
+import { localToUTC, utcToLocal } from '@shared/lib/dates';
+import { roundToHour } from '@shared/lib/formatting';
 
 // ---------------------------------------------------------------------------
 // Push notification registration

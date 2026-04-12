@@ -6,13 +6,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../lib/api';
 import type { Cat, Measurement } from '../../lib/api';
 import CatAvatar from '../../components/CatAvatar';
-import { assessHealth, STATUS_COLORS, STATUS_LABEL } from '../../lib/healthMetrics';
-import type { HealthStatus } from '../../lib/healthMetrics';
-import { detectCorrelations, getHomeBadge } from '../../lib/correlations';
-import { catAge, formatLocalDate } from '../../lib/dates';
+import { assessHealth, STATUS_COLORS, STATUS_LABEL } from '@shared/lib/healthMetrics';
+import type { HealthStatus } from '@shared/lib/healthMetrics';
+import { detectCorrelations, getHomeBadge } from '@shared/lib/correlations';
+import { catAge, formatLocalDate } from '@shared/lib/dates';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { usePreferences } from '../../contexts/PreferencesContext';
-import { formatWeightValue } from '../../../shared/lib/preferences';
+import { formatWeightValue } from '@shared/lib/preferences';
 
 const STATUS_RANK: Record<string, number> = { urgent: 3, concerning: 2, watch: 1, ok: 0 };
 

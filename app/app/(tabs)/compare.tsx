@@ -10,9 +10,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../../lib/api';
 import type { Cat, Measurement } from '../../lib/api';
-import { getPresetLabel, PRESET_TYPES } from '../../lib/measurementPresets';
-import { assessHealth, STATUS_COLORS, STATUS_LABEL, STATUS_EMOJI } from '../../lib/healthMetrics';
-import type { HealthStatus } from '../../lib/healthMetrics';
+import { getPresetLabel, PRESET_TYPES } from '@shared/lib/measurementPresets';
+import { assessHealth, STATUS_COLORS, STATUS_LABEL, STATUS_EMOJI } from '@shared/lib/healthMetrics';
+import type { HealthStatus } from '@shared/lib/healthMetrics';
 import LineChart, { type ChartDataPoint } from '../../components/LineChart';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { ChartExpandButton } from '../../components/ChartExpandButton';
@@ -20,7 +20,7 @@ import { FullScreenChartModal } from '../../components/FullScreenChartModal';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useAutoLandscape } from '../../hooks/useAutoLandscape';
 import { usePreferences } from '../../contexts/PreferencesContext';
-import { formatDateShort, formatWeight } from '../../../shared/lib/preferences';
+import { formatDateShort, formatWeight } from '@shared/lib/preferences';
 
 import { VALID_MEASUREMENT_TYPES, MEASUREMENT_TYPE_LABELS, CHART_LINE_COLORS as LINE_COLORS } from '@shared/lib/constants';
 

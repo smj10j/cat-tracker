@@ -8,7 +8,7 @@ import { useTheme, ThemePreference } from '../contexts/ThemeContext';
 import { usePreferences } from '../contexts/PreferencesContext';
 import { useThemeColors } from '../hooks/useThemeColors';
 import { api } from '../lib/api';
-import type { DateFormat, TimeFormat, WeightUnit } from '../../shared/lib/preferences';
+import type { DateFormat, TimeFormat, WeightUnit } from '@shared/lib/preferences';
 
 const DATE_OPTIONS: { value: DateFormat; label: string }[] = [
   { value: 'MDY', label: 'MM/DD' },

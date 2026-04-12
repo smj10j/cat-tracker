@@ -173,3 +173,18 @@ export function formatFutureDueAt(dueAt: string, prefs: UserPreferences): string
   if (datePart === tomorrow) return `Tomorrow at ${timeStr}`
   return formatDateWithWeekday(datePart, prefs) + ` at ${timeStr}`
 }
+
+/**
+ * Format a cat's sex and neuter status for display.
+ * e.g. "Female · Spayed", "Male · Intact", "Unknown"
+ */
+export function formatSexNeuter(sex: string | null, isNeutered: number | null): string {
+  if (!sex && isNeutered === null) return 'Unknown'
+  const sexStr = sex ?? 'Unknown sex'
+  if (isNeutered === 1) {
+    const neuterStr = sex === 'Female' ? 'Spayed' : 'Neutered'
+    return `${sexStr} · ${neuterStr}`
+  }
+  if (isNeutered === 0) return `${sexStr} · Intact`
+  return sexStr
+}

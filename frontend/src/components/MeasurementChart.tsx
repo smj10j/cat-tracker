@@ -3,7 +3,7 @@ import {
   ResponsiveContainer, Area, AreaChart,
 } from 'recharts'
 import type { Measurement } from '../lib/api'
-import { getPresetLabel, getPresetTicks } from '../lib/measurementPresets'
+import { getPresetLabel, getPresetTicks } from '@shared/lib/measurementPresets'
 import { useChartWindow, getTickFormatter, type TimeRange } from '../lib/useChartWindow'
 import { usePreferences } from '../contexts/PreferencesContext'
 import ChartRangeSelector from './ChartRangeSelector'

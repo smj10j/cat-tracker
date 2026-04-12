@@ -4,10 +4,10 @@ import {
   ComposedChart, Line, XAxis, YAxis, ResponsiveContainer,
 } from 'recharts'
 import type { Cat, Measurement } from '../lib/api'
-import { STATUS_COLORS } from '../lib/healthMetrics'
-import type { HealthAssessment } from '../lib/healthMetrics'
-import { detectCorrelations, describeCorrelation, detectConfluence, bucketByWeek, normalize } from '../lib/correlations'
-import type { CorrelationResult } from '../lib/correlations'
+import { STATUS_COLORS } from '@shared/lib/healthMetrics'
+import type { HealthAssessment } from '@shared/lib/healthMetrics'
+import { detectCorrelations, describeCorrelation, detectConfluence, bucketByWeek, normalize } from '@shared/lib/correlations'
+import type { CorrelationResult } from '@shared/lib/correlations'
 import CorrelationChart from './CorrelationChart'
 
 const STATUS_ICON: Record<string, string> = {

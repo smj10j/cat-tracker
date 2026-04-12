@@ -12,8 +12,8 @@ import {
   WATCH_ATTENTION,
   CONCERNING_ATTENTION,
   URGENT_VET_SIGNS,
-} from '../../../lib/healthMetrics';
-import { catAge } from '../../../lib/dates';
+} from '@shared/lib/healthMetrics';
+import { catAge } from '@shared/lib/dates';
 import { useThemeColors } from '../../../hooks/useThemeColors';
 
 export default function HealthGuidanceScreen() {

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import type { Measurement } from '../lib/api'
-import { assessHealth, type HealthAssessment } from '../lib/healthMetrics'
+import { assessHealth, type HealthAssessment } from '@shared/lib/healthMetrics'
 import { useThresholds } from '../contexts/ConfigContext'
 
 /**

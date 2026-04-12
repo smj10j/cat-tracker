@@ -4,22 +4,22 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { api } from '../../../lib/api';
 import type { Cat, Measurement } from '../../../lib/api';
-import { assessHealth, STATUS_LABEL } from '../../../lib/healthMetrics';
-import type { HealthStatus } from '../../../lib/healthMetrics';
+import { assessHealth, STATUS_LABEL } from '@shared/lib/healthMetrics';
+import type { HealthStatus } from '@shared/lib/healthMetrics';
 import {
   detectCorrelations,
   describeCorrelation,
   detectConfluence,
-} from '../../../lib/correlations';
-import { getPresetLabel, PRESET_TYPES } from '../../../lib/measurementPresets';
-import { catAge } from '../../../lib/dates';
+} from '@shared/lib/correlations';
+import { getPresetLabel, PRESET_TYPES } from '@shared/lib/measurementPresets';
+import { catAge } from '@shared/lib/dates';
 import { useThemeColors } from '../../../hooks/useThemeColors';
 import { usePreferences } from '../../../contexts/PreferencesContext';
 import {
   formatDate as formatDatePref,
   formatDateTime as formatDateTimePref,
   formatWeight,
-} from '../../../../shared/lib/preferences';
+} from '@shared/lib/preferences';
 
 const TYPE_LABELS: Record<string, string> = {
   weight: 'Weight',

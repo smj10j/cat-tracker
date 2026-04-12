@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useGoBack } from '../hooks/useGoBack'
 import { createMeasurement, getCats, type Cat } from '../lib/api'
-import { PRESETS } from '../lib/measurementPresets'
+import { PRESETS } from '@shared/lib/measurementPresets'
 import { usePreferences } from '../contexts/PreferencesContext'
 import type { WeightUnit } from '@shared/lib/preferences'
-import { todayLocalDate, buildMeasuredAt, formatHour, currentHour } from '../lib/formatting'
+import { todayLocalDate, buildMeasuredAt, formatHour, currentHour } from '@shared/lib/formatting'
 import { BEHAVIORAL_TYPES } from '@shared/lib/constants'
 
 type Selections = Partial<Record<string, number>>

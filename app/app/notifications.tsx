@@ -15,7 +15,7 @@ import { api, CARE_TYPE_ICONS } from '../lib/api';
 import type { DoseWithContext, Medication, NotificationInbox } from '../lib/api';
 import { useThemeColors } from '../hooks/useThemeColors';
 import { usePreferences } from '../contexts/PreferencesContext';
-import { formatDueAt, formatFutureDueAt } from '../lib/formatting';
+import { formatDueAt, formatFutureDueAt } from '@shared/lib/formatting';
 
 type SectionItem =
   | { kind: 'dose'; data: DoseWithContext }

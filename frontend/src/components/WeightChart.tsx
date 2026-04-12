@@ -3,7 +3,7 @@ import {
   ResponsiveContainer, Area, AreaChart,
 } from 'recharts'
 import type { Measurement } from '../lib/api'
-import { assessHealth, STATUS_COLORS, STATUS_EMOJI, type PeriodHealth } from '../lib/healthMetrics'
+import { assessHealth, STATUS_COLORS, STATUS_EMOJI, type PeriodHealth } from '@shared/lib/healthMetrics'
 import { useChartWindow, getTickFormatter, type TimeRange } from '../lib/useChartWindow'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { formatWeightValue, convertWeight } from '@shared/lib/preferences'

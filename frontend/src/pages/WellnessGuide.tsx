@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useGoBack } from '../hooks/useGoBack'
-import { URGENT_VET_SIGNS } from '../lib/healthMetrics'
+import { URGENT_VET_SIGNS } from '@shared/lib/healthMetrics'
 
 interface WellnessCard {
   icon: string

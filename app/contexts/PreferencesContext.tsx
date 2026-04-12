@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getLocales, getCalendars } from 'expo-localization';
-import { deriveDefaults, US_DEFAULTS, type UserPreferences } from '../../shared/lib/preferences';
+import { deriveDefaults, US_DEFAULTS, type UserPreferences } from '@shared/lib/preferences';
 
 const STORAGE_KEY = 'cat-tracker-prefs';
 

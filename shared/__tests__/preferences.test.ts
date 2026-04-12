@@ -6,6 +6,8 @@ import {
   formatWeightValue,
   formatDate,
   formatDateShort,
+  formatDateWithWeekday,
+  formatDateFull,
   formatTime,
   formatDateTime,
   getLocaleTickFormatter,
@@ -76,7 +78,7 @@ describe('convertWeight', () => {
     expect(convertWeight(4.5, 'kg', 'kg')).toBe(4.5)
   })
 
-  it('round-trip lbs->kg->lbs returns within 0.01', () => {
+  it('round-trip lbs->kg->lbs returns within 0.02', () => {
     const original = 9.4
     const kg = convertWeight(original, 'lbs', 'kg')
     const backToLbs = convertWeight(kg, 'kg', 'lbs')
@@ -85,6 +87,12 @@ describe('convertWeight', () => {
 
   it('handles 0 correctly', () => {
     expect(convertWeight(0, 'lbs', 'kg')).toBe(0)
+  })
+
+  it('handles small values', () => {
+    const result = convertWeight(0.1, 'lbs', 'kg')
+    expect(result).toBeGreaterThan(0)
+    expect(result).toBeLessThan(0.1)
   })
 })
 
@@ -98,6 +106,15 @@ describe('formatWeight', () => {
 
   it('displays without conversion when units match', () => {
     expect(formatWeight(9.4, 'lbs', lbsPrefs)).toBe('9.4 lbs')
+  })
+
+  it('converts from kg to lbs', () => {
+    expect(formatWeight(4.54, 'kg', lbsPrefs)).toBe('10.01 lbs')
+  })
+
+  it('handles unknown stored unit as lbs', () => {
+    // fromUnit not 'kg' → treated as 'lbs'
+    expect(formatWeight(9.4, 'pounds', lbsPrefs)).toBe('9.4 lbs')
   })
 })
 
@@ -136,13 +153,24 @@ describe('formatDate', () => {
   it('handles empty string', () => {
     expect(formatDate('', mdyPrefs)).toBe('')
   })
+
+  it('handles datetime ISO strings', () => {
+    const result = formatDate('2026-03-07T15:30:00Z', mdyPrefs)
+    expect(result).toContain('Mar')
+    expect(result).toContain('2026')
+  })
+
+  it('handles invalid date string', () => {
+    expect(formatDate('not-a-date', mdyPrefs)).toBe('')
+  })
 })
 
 describe('formatDateShort', () => {
   const mdyPrefs: UserPreferences = { ...US_DEFAULTS, dateFormat: 'MDY' }
   const dmyPrefs: UserPreferences = { ...US_DEFAULTS, dateFormat: 'DMY' }
+  const ymdPrefs: UserPreferences = { ...US_DEFAULTS, dateFormat: 'YMD' }
 
-  it('formats short MDY', () => {
+  it('formats short MDY without year', () => {
     const result = formatDateShort('2026-03-07', mdyPrefs)
     expect(result).toContain('Mar')
     expect(result).toContain('7')
@@ -154,6 +182,54 @@ describe('formatDateShort', () => {
     expect(result).toContain('Mar')
     expect(result).toContain('7')
   })
+
+  it('formats short YMD as MM-DD', () => {
+    const result = formatDateShort('2026-03-07', ymdPrefs)
+    expect(result).toBe('03-07')
+  })
+})
+
+describe('formatDateWithWeekday', () => {
+  const mdyPrefs: UserPreferences = { ...US_DEFAULTS, dateFormat: 'MDY' }
+  const dmyPrefs: UserPreferences = { ...US_DEFAULTS, dateFormat: 'DMY' }
+  const ymdPrefs: UserPreferences = { ...US_DEFAULTS, dateFormat: 'YMD' }
+
+  it('includes weekday for MDY', () => {
+    const result = formatDateWithWeekday('2026-03-07', mdyPrefs)
+    expect(result).toMatch(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun),/)
+    expect(result).toContain('Mar')
+    expect(result).toContain('7')
+  })
+
+  it('includes weekday for DMY', () => {
+    const result = formatDateWithWeekday('2026-03-07', dmyPrefs)
+    expect(result).toMatch(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun),/)
+  })
+
+  it('includes weekday for YMD', () => {
+    const result = formatDateWithWeekday('2026-03-07', ymdPrefs)
+    expect(result).toMatch(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun),/)
+  })
+})
+
+describe('formatDateFull', () => {
+  const mdyPrefs: UserPreferences = { ...US_DEFAULTS, dateFormat: 'MDY' }
+  const dmyPrefs: UserPreferences = { ...US_DEFAULTS, dateFormat: 'DMY' }
+
+  it('does not duplicate weekday in MDY format', () => {
+    const result = formatDateFull('2026-03-07', mdyPrefs)
+    // Should be "Sat, Mar 7, 2026" — NOT "Sat, Sat, Mar 7, 2026"
+    const weekdayMatches = result.match(/(Mon|Tue|Wed|Thu|Fri|Sat|Sun)/g) ?? []
+    expect(weekdayMatches.length).toBe(1)
+    expect(result).toContain('2026')
+  })
+
+  it('includes year in DMY format', () => {
+    const result = formatDateFull('2026-03-07', dmyPrefs)
+    expect(result).toContain('2026')
+    const weekdayMatches = result.match(/(Mon|Tue|Wed|Thu|Fri|Sat|Sun)/g) ?? []
+    expect(weekdayMatches.length).toBe(1)
+  })
 })
 
 describe('formatTime', () => {
@@ -162,7 +238,6 @@ describe('formatTime', () => {
 
   it('formats 12-hour time', () => {
     const result = formatTime('2026-03-07T15:45:00Z', h12Prefs)
-    // Account for timezone offset — just check format pattern
     expect(result).toMatch(/\d{1,2}:\d{2}\s?(AM|PM)/i)
   })
 
@@ -170,13 +245,25 @@ describe('formatTime', () => {
     const result = formatTime('2026-03-07T15:45:00Z', h24Prefs)
     expect(result).toMatch(/\d{2}:\d{2}/)
   })
+
+  it('returns empty for invalid date', () => {
+    expect(formatTime('invalid', h12Prefs)).toBe('')
+  })
 })
 
 describe('formatDateTime', () => {
-  it('combines date and time', () => {
+  it('combines date and time with "at"', () => {
     const result = formatDateTime('2026-03-07T15:45:00Z', US_DEFAULTS)
     expect(result).toContain('at')
     expect(result).toContain('Mar')
+  })
+
+  it('respects 24h time format', () => {
+    const prefs: UserPreferences = { ...US_DEFAULTS, timeFormat: '24h' }
+    const result = formatDateTime('2026-03-07T15:45:00Z', prefs)
+    expect(result).toContain('at')
+    // Should not contain AM/PM
+    expect(result).not.toMatch(/AM|PM/)
   })
 })
 
@@ -191,5 +278,31 @@ describe('getLocaleTickFormatter', () => {
     const formatter = getLocaleTickFormatter('1M', US_DEFAULTS)
     const result = formatter('2026-03-07T12:00:00Z')
     expect(result).toMatch(/^\d+$/)
+  })
+
+  it('returns short date for 3M range', () => {
+    const formatter = getLocaleTickFormatter('3M', US_DEFAULTS)
+    const result = formatter('2026-03-07T12:00:00Z')
+    expect(result).toContain('Mar')
+  })
+
+  it('returns month for 6M and 1Y ranges', () => {
+    for (const range of ['6M', '1Y']) {
+      const formatter = getLocaleTickFormatter(range, US_DEFAULTS)
+      const result = formatter('2026-03-07T12:00:00Z')
+      expect(result).toMatch(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/)
+    }
+  })
+
+  it('returns short date for All range', () => {
+    const formatter = getLocaleTickFormatter('All', US_DEFAULTS)
+    const result = formatter('2026-03-07T12:00:00Z')
+    expect(result).toContain('Mar')
+  })
+
+  it('handles invalid date gracefully', () => {
+    const formatter = getLocaleTickFormatter('1W', US_DEFAULTS)
+    const result = formatter('invalid')
+    expect(result).toBe('')
   })
 })

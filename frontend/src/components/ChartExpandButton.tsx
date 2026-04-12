@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 interface Props {
   onClick: () => void
@@ -9,19 +9,25 @@ const HINT_KEY = 'chart-expand-hint-seen'
 
 export default function ChartExpandButton({ onClick, visible }: Props) {
   const [showHint, setShowHint] = useState(false)
+  const showTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!visible) return
     try {
       if (localStorage.getItem(HINT_KEY)) return
     } catch { return }
-    const timer = setTimeout(() => {
+
+    showTimer.current = setTimeout(() => {
       setShowHint(true)
       try { localStorage.setItem(HINT_KEY, '1') } catch {}
-      const dismiss = setTimeout(() => setShowHint(false), 4000)
-      return () => clearTimeout(dismiss)
+      dismissTimer.current = setTimeout(() => setShowHint(false), 4000)
     }, 1000)
-    return () => clearTimeout(timer)
+
+    return () => {
+      if (showTimer.current) clearTimeout(showTimer.current)
+      if (dismissTimer.current) clearTimeout(dismissTimer.current)
+    }
   }, [visible])
 
   if (!visible) return null

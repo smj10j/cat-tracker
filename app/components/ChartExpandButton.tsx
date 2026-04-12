@@ -14,7 +14,8 @@ export function ChartExpandButton({ onPress, visible }: ChartExpandButtonProps) 
   const colors = useThemeColors();
   const [showHint, setShowHint] = useState(false);
   const hintOpacity = useRef(new Animated.Value(0)).current;
-  const hintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!visible) return;
@@ -24,7 +25,7 @@ export function ChartExpandButton({ onPress, visible }: ChartExpandButtonProps) 
     AsyncStorage.getItem(HINT_STORAGE_KEY).then((seen) => {
       if (cancelled || seen === 'true') return;
 
-      hintTimer.current = setTimeout(() => {
+      showTimer.current = setTimeout(() => {
         if (cancelled) return;
         setShowHint(true);
         Animated.timing(hintOpacity, {
@@ -33,8 +34,7 @@ export function ChartExpandButton({ onPress, visible }: ChartExpandButtonProps) 
           useNativeDriver: true,
         }).start();
 
-        // Auto-dismiss after 3 seconds
-        setTimeout(() => {
+        dismissTimer.current = setTimeout(() => {
           if (cancelled) return;
           Animated.timing(hintOpacity, {
             toValue: 0,
@@ -49,7 +49,8 @@ export function ChartExpandButton({ onPress, visible }: ChartExpandButtonProps) 
 
     return () => {
       cancelled = true;
-      if (hintTimer.current) clearTimeout(hintTimer.current);
+      if (showTimer.current) clearTimeout(showTimer.current);
+      if (dismissTimer.current) clearTimeout(dismissTimer.current);
     };
   }, [visible, hintOpacity]);
 

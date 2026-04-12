@@ -167,7 +167,7 @@ export function formatDateFull(iso: string, prefs: UserPreferences): string {
     case 'DMY': return `${weekday}, ${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
     case 'YMD': return `${weekday}, ${d.toLocaleDateString('sv-SE')}`
     case 'MDY':
-    default: return `${weekday}, ${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}`
+    default: return `${weekday}, ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
   }
 }
 

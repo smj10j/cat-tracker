@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import ChartExpandButton from './ChartExpandButton'
 import LandscapeChartOverlay from './LandscapeChartOverlay'
 
@@ -16,6 +16,11 @@ export default function FullScreenReady({ title, subtitle, children, hasData = t
 
   const handleExpand = useCallback(() => setExpanded(true), [])
   const handleClose = useCallback(() => setExpanded(false), [])
+
+  // Close overlay if data disappears while expanded
+  useEffect(() => {
+    if (!hasData && expanded) setExpanded(false)
+  }, [hasData, expanded])
 
   return (
     <div className="relative">

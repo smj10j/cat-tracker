@@ -25,7 +25,7 @@ export default function LandscapeChartOverlay({ title, subtitle, onClose, childr
     window.history.pushState({ chartFullScreen: true }, '')
     pushedState.current = true
 
-    const onPopState = (_e: PopStateEvent) => {
+    const onPopState = () => {
       if (pushedState.current) {
         pushedState.current = false
         onClose()
@@ -34,6 +34,8 @@ export default function LandscapeChartOverlay({ title, subtitle, onClose, childr
     window.addEventListener('popstate', onPopState)
     return () => {
       window.removeEventListener('popstate', onPopState)
+      // Only pop our history entry if the overlay is unmounting while still open
+      // (e.g., parent component unmounts due to route change)
       if (pushedState.current) {
         pushedState.current = false
         window.history.back()
@@ -50,19 +52,37 @@ export default function LandscapeChartOverlay({ title, subtitle, onClose, childr
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [handleClose])
 
-  // Trap focus
+  // Focus management: focus overlay on mount, restore on unmount.
+  // Tab key is trapped within the overlay via onKeyDown below.
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null
     overlayRef.current?.focus()
     return () => prev?.focus?.()
   }, [])
 
-  // Close overlay if QuickAdd opens (prevent stacking modals)
+  // Trap Tab key within the overlay
   useEffect(() => {
-    const onQuickAdd = () => handleClose()
-    window.addEventListener('openQuickAdd', onQuickAdd)
-    return () => window.removeEventListener('openQuickAdd', onQuickAdd)
-  }, [handleClose])
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return
+      const overlay = overlayRef.current
+      if (!overlay) return
+      const focusable = overlay.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      )
+      if (focusable.length === 0) return
+      const first = focusable[0]!
+      const last = focusable[focusable.length - 1]!
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   const overlay = (
     <div

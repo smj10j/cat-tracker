@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import FullScreenReady from '../../components/FullScreenReady'
 
@@ -60,5 +60,52 @@ describe('FullScreenReady', () => {
 
     fireEvent.click(screen.getByLabelText('Close full-screen chart'))
     expect(screen.queryByLabelText('Close full-screen chart')).toBeNull()
+  })
+
+  it('closes overlay on Escape key', () => {
+    render(
+      <FullScreenReady title="Weight" hasData={true}>
+        {(fs) => <div data-testid="chart">{fs ? 'fullscreen' : 'inline'}</div>}
+      </FullScreenReady>
+    )
+
+    fireEvent.click(screen.getByLabelText('Expand chart to full screen'))
+    expect(screen.getByLabelText('Close full-screen chart')).toBeTruthy()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByLabelText('Close full-screen chart')).toBeNull()
+  })
+
+  it('closes overlay when hasData transitions to false', () => {
+    const { rerender } = render(
+      <FullScreenReady title="Weight" hasData={true}>
+        {(fs) => <div data-testid="chart">{fs ? 'fullscreen' : 'inline'}</div>}
+      </FullScreenReady>
+    )
+
+    fireEvent.click(screen.getByLabelText('Expand chart to full screen'))
+    expect(screen.getByLabelText('Close full-screen chart')).toBeTruthy()
+
+    // Re-render with hasData=false
+    rerender(
+      <FullScreenReady title="Weight" hasData={false}>
+        {(fs) => <div data-testid="chart">{fs ? 'fullscreen' : 'inline'}</div>}
+      </FullScreenReady>
+    )
+
+    expect(screen.queryByLabelText('Close full-screen chart')).toBeNull()
+  })
+
+  it('renders overlay with correct title and subtitle', () => {
+    render(
+      <FullScreenReady title="Luna" subtitle="kg" hasData={true}>
+        {() => <div>Chart</div>}
+      </FullScreenReady>
+    )
+
+    fireEvent.click(screen.getByLabelText('Expand chart to full screen'))
+
+    expect(screen.getByText('Luna')).toBeTruthy()
+    expect(screen.getByText('kg')).toBeTruthy()
   })
 })

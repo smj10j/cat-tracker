@@ -15,39 +15,8 @@ import InsightsPanel from '../components/InsightsPanel'
 import { getPresetLabel } from '../lib/measurementPresets'
 import { catAge } from '../lib/dates'
 import { usePreferences } from '../contexts/PreferencesContext'
-import { formatTime as fmtTime, formatDateWithWeekday, formatDateShort as fmtDateShort, formatWeight as fmtWeight, type UserPreferences } from '@shared/lib/preferences'
-import { utcToLocal } from '@shared/lib/dates'
-
-interface DayGroup {
-  dateStr: string
-  label: string
-  items: Measurement[]
-}
-
-function formatDayLabel(dateStr: string, prefs: import('@shared/lib/preferences').UserPreferences): string {
-  const today = new Date().toLocaleDateString('en-CA')
-  const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA')
-  if (dateStr === today) return 'Today'
-  if (dateStr === yesterday) return 'Yesterday'
-  return formatDateWithWeekday(dateStr, prefs)
-}
-
-function groupByDay(measurements: Measurement[], prefs: import('@shared/lib/preferences').UserPreferences): DayGroup[] {
-  const map = new Map<string, Measurement[]>()
-  for (const m of measurements) {
-    const dateStr = new Date(m.measured_at).toLocaleDateString('en-CA')
-    const bucket = map.get(dateStr) ?? []
-    bucket.push(m)
-    map.set(dateStr, bucket)
-  }
-  return [...map.entries()]
-    .sort(([a], [b]) => b.localeCompare(a))
-    .map(([dateStr, items]) => ({
-      dateStr,
-      label: formatDayLabel(dateStr, prefs),
-      items: items.sort((a, b) => b.measured_at.localeCompare(a.measured_at)),
-    }))
-}
+import { formatTime as fmtTime, formatWeight as fmtWeight } from '@shared/lib/preferences'
+import { groupByDay, formatFreqShort, formatNextDue } from '../lib/formatting'
 
 const BEHAVIORAL_TYPES = new Set(['grooming', 'play', 'activity', 'vomiting', 'litter'])
 
@@ -77,37 +46,8 @@ function SkeletonProfile() {
   )
 }
 
-const FREQ_SHORT: Record<string, string> = {
-  daily: 'daily', twice_daily: 'twice daily', weekly: 'weekly',
-  monthly: 'monthly', custom: 'every N days',
-}
-
-/** Format an HH:MM time string according to user's time format preference */
-function formatTimeFromParts(timePart: string, prefs: UserPreferences): string {
-  const [h, m] = timePart.split(':')
-  const hour = parseInt(h ?? '0', 10)
-  const minute = m ?? '00'
-  if (prefs.timeFormat === '24h') return `${String(hour).padStart(2, '0')}:${minute}`
-  const ampm = hour >= 12 ? 'PM' : 'AM'
-  return `${hour % 12 || 12}:${minute} ${ampm}`
-}
-
-function formatNextDue(nextDueAt: string | null | undefined, prefs: UserPreferences): string {
-  if (!nextDueAt) return 'No upcoming dose'
-  // next_due_at is stored in UTC — convert to local for display
-  const { date: datePart, time: timePart } = utcToLocal(nextDueAt)
-  if (!datePart) return 'Upcoming'
-  const now = new Date()
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  const tom = new Date(Date.now() + 86400000)
-  const tomorrow = `${tom.getFullYear()}-${String(tom.getMonth() + 1).padStart(2, '0')}-${String(tom.getDate()).padStart(2, '0')}`
-  const timeStr = formatTimeFromParts(timePart ?? '09:00', prefs)
-  if (datePart === today) return `Today at ${timeStr}`
-  if (datePart === tomorrow) return `Tomorrow at ${timeStr}`
-  return fmtDateShort(datePart, prefs) + ` at ${timeStr}`
-}
-
 function CareScheduleSection({ catId, meds }: { catId: string; meds: Medication[] }) {
+  const { prefs } = usePreferences()
   const overdueCount = meds.reduce((sum, m) => sum + (m.overdue_count ?? 0), 0)
 
   return (
@@ -155,7 +95,7 @@ function CareScheduleSection({ catId, meds }: { catId: string; meds: Medication[
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-ink-dim mt-0.5">{FREQ_SHORT[med.frequency] ?? med.frequency} &middot; {formatNextDue(med.next_due_at, prefs)}</p>
+                <p className="text-xs text-ink-dim mt-0.5">{formatFreqShort(med.frequency, med.frequency_days)} &middot; {formatNextDue(med.next_due_at, prefs)}</p>
               </div>
               <span className="text-ink-dim text-sm ml-1 shrink-0">→</span>
             </Link>

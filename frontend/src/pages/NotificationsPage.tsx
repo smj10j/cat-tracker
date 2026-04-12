@@ -3,49 +3,8 @@ import { Link } from 'react-router-dom'
 import { useGoBack } from '../hooks/useGoBack'
 import { getNotifications, administerDose, skipDose, CARE_TYPE_ICONS, type NotificationInbox, type DoseWithContext, type Medication } from '../lib/api'
 import { usePreferences } from '../contexts/PreferencesContext'
-import { formatDateShort, formatDateWithWeekday, type UserPreferences } from '@shared/lib/preferences'
-import { utcToLocal } from '@shared/lib/dates'
-
-function formatTimeStr(timePart: string, prefs: UserPreferences): string {
-  const [h, m] = timePart.split(':')
-  const hour = parseInt(h ?? '0', 10)
-  const minute = m ?? '00'
-  if (prefs.timeFormat === '24h') {
-    return `${String(hour).padStart(2, '0')}:${minute}`
-  }
-  const ampm = hour >= 12 ? 'PM' : 'AM'
-  const h12 = hour % 12 || 12
-  return `${h12}:${minute} ${ampm}`
-}
-
-function formatDueAt(dueAt: string, prefs: UserPreferences): string {
-  // dueAt is UTC 'YYYY-MM-DD HH:MM:00' — convert to local for display
-  const { date: datePart, time: timePart } = utcToLocal(dueAt)
-  if (!datePart || !timePart) return dueAt
-  const now = new Date()
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  const yest = new Date(Date.now() - 86400000)
-  const yesterday = `${yest.getFullYear()}-${String(yest.getMonth() + 1).padStart(2, '0')}-${String(yest.getDate()).padStart(2, '0')}`
-  const timeStr = formatTimeStr(timePart, prefs)
-
-  if (datePart === today) return `Today at ${timeStr}`
-  if (datePart === yesterday) return `Yesterday at ${timeStr}`
-  return formatDateShort(datePart, prefs) + ` at ${timeStr}`
-}
-
-function formatFutureDueAt(dueAt: string, prefs: UserPreferences): string {
-  const { date: datePart, time: timePart } = utcToLocal(dueAt)
-  if (!datePart || !timePart) return dueAt
-  const now = new Date()
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  const tom = new Date(Date.now() + 86400000)
-  const tomorrow = `${tom.getFullYear()}-${String(tom.getMonth() + 1).padStart(2, '0')}-${String(tom.getDate()).padStart(2, '0')}`
-  const timeStr = formatTimeStr(timePart, prefs)
-
-  if (datePart === today) return `Today at ${timeStr}`
-  if (datePart === tomorrow) return `Tomorrow at ${timeStr}`
-  return formatDateWithWeekday(datePart, prefs) + ` at ${timeStr}`
-}
+import { formatDueAt, formatFutureDueAt } from '../lib/formatting'
+import type { UserPreferences } from '@shared/lib/preferences'
 
 interface DoseCardProps {
   dose: DoseWithContext

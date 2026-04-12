@@ -3,7 +3,51 @@
 ## Status Key
 - [ ] Not started
 - [x] Complete
-- [-] In progress
+- [x] In progress
+
+---
+
+## Phase 54: Shared Library Consolidation (2026-04-12)
+
+### Step 1 — Reconcile User type
+- [x] Add `timezone: string | null` to shared User type
+
+### Step 2 — Add missing types to shared
+- [x] Add MedicationInput, HouseholdListItem, DayGroup to shared/lib/types.ts
+
+### Step 3 — Remove duplicate types from frontend api.ts
+- [x] Replace 12 duplicate type definitions with imports/re-exports from shared
+
+### Step 4 — Create shared/lib/formatting.ts
+- [x] Implement 10 formatting functions (formatTimeFromParts, todayLocalDate, buildMeasuredAt, formatHour, formatDayLabel, groupByDay, formatNextDue, formatFreqShort, formatDueAt, formatFutureDueAt)
+- [x] Write shared/__tests__/formatting.test.ts
+
+### Step 5 — Add re-export files
+- [x] Create frontend/src/lib/formatting.ts and app/lib/formatting.ts
+
+### Step 6 — Migrate frontend consumers
+- [x] CatProfile.tsx: remove 5 local functions, import from shared
+- [x] NotificationsPage.tsx: remove 3 local functions, import from shared
+- [x] DailyCheckin.tsx: remove 3 local functions, import from shared
+- [x] MeasurementForm.tsx: remove 2 local functions, import from shared
+
+### Step 7 ��� Migrate app consumers
+- [x] app/cats/[id]/index.tsx: remove 5 local functions, import from shared
+- [x] app/notifications.tsx: remove formatTimeFromParts, import from shared
+- [x] app/(tabs)/log.tsx: remove 4 local functions, import from shared
+- [x] app/cats/[id]/care-item.tsx: remove formatHourLabel, import from shared
+
+### Step 8 — Create shared/lib/constants.ts
+- [x] Implement validation constants (VALID_MEASUREMENT_TYPES, VALID_UNITS, VALID_FREQUENCIES, LIMITS, ROLE_LEVEL, hasRole)
+- [x] Write shared/__tests__/constants.test.ts
+
+### Step 9 — Migrate worker to shared constants
+- [x] measurements.ts, medications.ts, cats.ts, import.ts, household.ts: use shared constants
+- [x] frontend/api.ts: use LIMITS.PHOTO_BYTES
+
+### Step 10 — Final verification
+- [x] All 4 test suites pass (shared, worker, frontend, app)
+- [x] Grep confirms zero orphaned local function copies
 
 ---
 
@@ -348,7 +392,7 @@
 ### Deploy
 - [x] Run all tests (93 worker, 109 frontend)
 - [x] Expo web export compiles
-- [-] Commit and push
+- [x] Commit and push
 - [ ] Deploy to TestFlight via deploy-testflight.sh
 
 ## Phase 40: Security Phase 2A + API Versioning A + Chart Time Navigation (2026-04-11)
@@ -400,7 +444,7 @@
 - [x] Worker deployed
 - [x] Frontend deployed
 - [x] Update REGISTRY.md statuses
-- [-] Commit and push
+- [x] Commit and push
 
 ## Phase 32: iOS App Store Planning (PRD-ios-app-store.md)
 - [x] Write PRD-ios-app-store.md (Draft): product requirements, asset strategy, automated deployment, App Store metadata, privacy, phased delivery (Phases 0–7), success metrics
@@ -1238,7 +1282,7 @@
 - [x] Worker secrets: APPLE_SERVICE_ID, APPLE_PRIVATE_KEY, APPLE_TEAM_ID, APPLE_KEY_ID
 - [x] App Store Connect API key for automated submission (AN6N75VF8R)
 - [x] Production build + TestFlight submission
-- [-] TestFlight beta testing (in progress)
+- [x] TestFlight beta testing (in progress)
 - [ ] App Store review submission
 
 ### Infrastructure

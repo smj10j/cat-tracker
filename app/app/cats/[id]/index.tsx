@@ -21,37 +21,9 @@ import { useAutoLandscape } from '../../../hooks/useAutoLandscape';
 import { usePreferences } from '../../../contexts/PreferencesContext';
 import {
   formatTime as formatTimePref,
-  formatDateWithWeekday,
   formatDateShort,
 } from '../../../../shared/lib/preferences';
-import { utcToLocal } from '../../../../shared/lib/dates';
-
-// formatTime removed — use formatTimePref from shared preferences
-
-// formatDayLabel is defined inside the component to access prefs
-
-interface DayGroup {
-  dateStr: string;
-  label: string;
-  items: Measurement[];
-}
-
-function groupByDay(measurements: Measurement[], dayLabelFn: (dateStr: string) => string): DayGroup[] {
-  const map = new Map<string, Measurement[]>();
-  for (const m of measurements) {
-    const dateStr = new Date(m.measured_at).toLocaleDateString('en-CA');
-    const bucket = map.get(dateStr) ?? [];
-    bucket.push(m);
-    map.set(dateStr, bucket);
-  }
-  return [...map.entries()]
-    .sort(([a], [b]) => b.localeCompare(a))
-    .map(([dateStr, items]) => ({
-      dateStr,
-      label: dayLabelFn(dateStr),
-      items: items.sort((a, b) => b.measured_at.localeCompare(a.measured_at)),
-    }));
-}
+import { groupByDay, formatFreqShort, formatNextDue } from '../../../lib/formatting';
 
 const BEHAVIORAL_TYPES = new Set(['grooming', 'play', 'activity', 'vomiting', 'litter']);
 
@@ -62,42 +34,6 @@ const MEAS_TYPE_LABELS: Record<string, string> = {
 };
 
 type ProfileTab = 'health' | 'care' | 'about';
-
-function formatFreqShort(frequency: string, frequencyDays?: number | null): string {
-  const labels: Record<string, string> = {
-    daily: 'daily', twice_daily: 'twice daily', weekly: 'weekly', monthly: 'monthly',
-  };
-  if (frequency === 'custom' && frequencyDays) {
-    if (frequencyDays === 365) return 'yearly';
-    if (frequencyDays === 1095) return 'every 3 years';
-    return `every ${frequencyDays} days`;
-  }
-  return labels[frequency] ?? frequency;
-}
-
-function formatTimeFromParts(timePart: string, prefs: import('../../../../shared/lib/preferences').UserPreferences): string {
-  const [h, m] = timePart.split(':');
-  const hour = parseInt(h ?? '0', 10);
-  const minute = m ?? '00';
-  if (prefs.timeFormat === '24h') return `${String(hour).padStart(2, '0')}:${minute}`;
-  const ampm = hour >= 12 ? 'PM' : 'AM';
-  return `${hour % 12 || 12}:${minute} ${ampm}`;
-}
-
-function formatNextDue(nextDueAt: string | null | undefined, prefs: import('../../../../shared/lib/preferences').UserPreferences): string {
-  if (!nextDueAt) return 'No upcoming dose';
-  // Convert UTC due_at to local time for display
-  const { date: datePart, time: timePart } = utcToLocal(nextDueAt);
-  if (!datePart) return 'Upcoming';
-  const now = new Date();
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  const tom = new Date(Date.now() + 86400000);
-  const tomorrow = `${tom.getFullYear()}-${String(tom.getMonth() + 1).padStart(2, '0')}-${String(tom.getDate()).padStart(2, '0')}`;
-  const timeStr = formatTimeFromParts(timePart ?? '09:00', prefs);
-  if (datePart === today) return `Today at ${timeStr}`;
-  if (datePart === tomorrow) return `Tomorrow at ${timeStr}`;
-  return formatDateShort(datePart, prefs) + ` at ${timeStr}`;
-}
 
 function formatSexNeuter(sex: string | null, isNeutered: number | null): string {
   if (!sex && isNeutered === null) return 'Unknown';
@@ -120,13 +56,6 @@ export default function CatProfileScreen() {
     return formatDateShort(iso, prefs);
   }, [prefs]);
 
-  function formatDayLabel(dateStr: string): string {
-    const today = new Date().toLocaleDateString('en-CA');
-    const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA');
-    if (dateStr === today) return 'Today';
-    if (dateStr === yesterday) return 'Yesterday';
-    return formatDateWithWeekday(dateStr, prefs);
-  }
   const { id, tab: initialTab } = useLocalSearchParams<{ id: string; tab?: string }>();
   const router = useRouter();
   const [cat, setCat] = useState<Cat | null>(null);
@@ -229,7 +158,7 @@ export default function CatProfileScreen() {
   }
   const availableTypes = Object.keys(measurementsByType);
 
-  const allDayGroups = groupByDay(measurements, formatDayLabel);
+  const allDayGroups = groupByDay(measurements, prefs);
   const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toLocaleDateString('en-CA');
   const recentGroups = allDayGroups.filter((g) => g.dateStr >= cutoff);
   const olderGroups = allDayGroups.filter((g) => g.dateStr < cutoff);
@@ -620,7 +549,7 @@ export default function CatProfileScreen() {
               const filteredMeasurements = chartTab === 'behavior'
                 ? measurements.filter(m => behaviorTypeSet.has(m.type))
                 : measurements.filter(m => m.type === chartTab);
-              const filteredDayGroups = groupByDay(filteredMeasurements, formatDayLabel);
+              const filteredDayGroups = groupByDay(filteredMeasurements, prefs);
               const filteredRecentGroups = filteredDayGroups.filter(g => g.dateStr >= cutoff);
               const filteredOlderGroups = filteredDayGroups.filter(g => g.dateStr < cutoff);
               const filteredDefaultGroups = filteredRecentGroups.length > 0 ? filteredRecentGroups : filteredDayGroups.slice(0, 3);

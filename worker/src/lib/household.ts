@@ -1,15 +1,5 @@
 import type { D1Database } from '@cloudflare/workers-types'
-
-export const ROLE_LEVEL: Record<string, number> = {
-  viewer: 1,
-  contributor: 2,
-  editor: 3,
-  admin: 4,
-}
-
-export function hasRole(userRole: string | null | undefined, required: string): boolean {
-  return (ROLE_LEVEL[userRole ?? ''] ?? 0) >= (ROLE_LEVEL[required] ?? 999)
-}
+export { ROLE_LEVEL, hasRole } from '../../../shared/lib/constants'
 
 export interface HouseholdContext {
   id: string

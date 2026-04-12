@@ -10,7 +10,7 @@ import type { Cat } from '../../lib/api';
 import { PRESETS } from '../../lib/measurementPresets';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { usePreferences } from '../../contexts/PreferencesContext';
-import { formatDateWithWeekday } from '../../../shared/lib/preferences';
+import { todayLocalDate, buildMeasuredAt, formatHour, formatDayLabel } from '../../lib/formatting';
 
 type Selections = Partial<Record<string, number>>;
 
@@ -22,11 +22,6 @@ const BEHAVIORAL_TYPES = [
   { key: 'activity', label: 'Activity' },
   { key: 'vomiting', label: 'Vomiting' },
 ] as const;
-
-function todayLocalDate(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 function parseDate(str: string): Date {
   const [y, m, d] = str.split('-').map(Number);
@@ -40,34 +35,14 @@ function formatDateStr(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-// formatDateLabel is defined inside the component to access prefs
-
 function currentHour(): number {
   return new Date().getHours();
-}
-
-function buildMeasuredAt(localDate: string, hour: number): string {
-  const [y, mo, d] = localDate.split('-').map(Number);
-  return new Date(y!, mo! - 1, d!, hour, 0, 0).toISOString();
-}
-
-function formatHour(hour: number, use24h: boolean): string {
-  if (use24h) return `${String(hour).padStart(2, '0')}:00`;
-  if (hour === 0) return '12 AM';
-  if (hour < 12) return `${hour} AM`;
-  if (hour === 12) return '12 PM';
-  return `${hour - 12} PM`;
 }
 
 export default function LogScreen() {
   const colors = useThemeColors();
   const { prefs } = usePreferences();
 
-  function formatDateLabel(dateStr: string): string {
-    const today = todayLocalDate();
-    if (dateStr === today) return 'Today';
-    return formatDateWithWeekday(dateStr, prefs);
-  }
   const hourScrollRef = useRef<ScrollView>(null);
   const [cats, setCats] = useState<Cat[]>([]);
   const [selectedCatId, setSelectedCatId] = useState('');
@@ -245,7 +220,7 @@ export default function LogScreen() {
                 }}
               >
                 <Text style={{ color: colors.ink, fontSize: 14, fontWeight: '500' }}>
-                  {formatDateLabel(date)}
+                  {formatDayLabel(date, prefs)}
                   {date !== todayLocalDate() && (
                     <Text style={{ color: colors.inkDim, fontWeight: '400' }}>  {date}</Text>
                   )}
@@ -294,7 +269,7 @@ export default function LogScreen() {
                     }}
                   >
                     <Text style={{ fontSize: 12, fontWeight: '600', color: hour === h ? colors.lavender : colors.inkDim }}>
-                      {formatHour(h, prefs.timeFormat === '24h')}
+                      {formatHour(h, prefs)}
                     </Text>
                   </Pressable>
                 ))}

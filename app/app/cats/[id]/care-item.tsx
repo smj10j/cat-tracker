@@ -17,6 +17,7 @@ import { api, CARE_TYPE_ICONS } from '../../../lib/api';
 import type { Cat, Medication } from '../../../lib/api';
 import { useThemeColors } from '../../../hooks/useThemeColors';
 import { usePreferences } from '../../../contexts/PreferencesContext';
+import { formatHour } from '../../../lib/formatting';
 
 interface Preset {
   name: string;
@@ -97,15 +98,6 @@ const TYPE_OPTIONS: { value: string; label: string }[] = [
 
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
-}
-
-function formatHourLabel(time: string, use24h: boolean): string {
-  const hour = parseInt(time.split(':')[0] ?? '9', 10);
-  if (use24h) return `${String(hour).padStart(2, '0')}:00`;
-  if (hour === 0) return '12:00 AM';
-  if (hour < 12) return `${hour}:00 AM`;
-  if (hour === 12) return '12:00 PM';
-  return `${hour - 12}:00 PM`;
 }
 
 function roundToHour(time: string): string {
@@ -526,7 +518,7 @@ export default function CareItemScreen() {
                 }}
               >
                 <Text style={{ color: colors.ink, fontSize: 14 }}>
-                  {formatHourLabel(reminderTime, prefs.timeFormat === '24h')}
+                  {formatHour(parseInt(reminderTime.split(':')[0] ?? '9', 10), prefs)}
                 </Text>
               </Pressable>
             </View>
@@ -559,7 +551,7 @@ export default function CareItemScreen() {
                     }}
                   >
                     <Text style={{ fontSize: 12, fontWeight: '600', color: active ? colors.lavender : colors.inkDim }}>
-                      {formatHourLabel(val, prefs.timeFormat === '24h')}
+                      {formatHour(parseInt(val.split(':')[0] ?? '9', 10), prefs)}
                     </Text>
                   </Pressable>
                 );

@@ -1,13 +1,14 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../types'
 import { getCatRole, hasRole } from '../lib/household'
+import { VALID_MEASUREMENT_TYPES, VALID_UNITS as VALID_UNITS_ARRAY, LIMITS } from '../../../shared/lib/constants'
 
 const measurements = new Hono<AppEnv>()
 
-// SEC-05: Measurement type and unit allowlists
-const VALID_TYPES = new Set(['weight', 'food', 'water', 'litter', 'grooming', 'activity', 'vomiting'])
-const VALID_UNITS = new Set(['lbs', 'kg', 'scale'])
-const MAX_NOTES = 1000
+// SEC-05: Measurement type and unit allowlists (from shared/lib/constants.ts)
+const VALID_TYPES = new Set(VALID_MEASUREMENT_TYPES)
+const VALID_UNITS = new Set(VALID_UNITS_ARRAY)
+const MAX_NOTES = LIMITS.MEASUREMENT_NOTES
 
 // GET /api/cats/:id/measurements?type=weight
 measurements.get('/cats/:id/measurements', async (c) => {

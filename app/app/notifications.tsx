@@ -16,7 +16,7 @@ import type { DoseWithContext, Medication, NotificationInbox } from '../lib/api'
 import { utcToLocal } from '../../shared/lib/dates';
 import { useThemeColors } from '../hooks/useThemeColors';
 import { usePreferences } from '../contexts/PreferencesContext';
-import type { UserPreferences } from '../../shared/lib/preferences';
+import { formatTimeFromParts } from '../lib/formatting';
 
 type SectionItem =
   | { kind: 'dose'; data: DoseWithContext }
@@ -26,15 +26,6 @@ interface Section {
   title: string;
   accent: string;
   data: SectionItem[];
-}
-
-function formatTimeFromParts(timePart: string, prefs: UserPreferences): string {
-  const [h, m] = timePart.split(':');
-  const hour = parseInt(h ?? '0', 10);
-  const minute = m ?? '00';
-  if (prefs.timeFormat === '24h') return `${String(hour).padStart(2, '0')}:${minute}`;
-  const ampm = hour >= 12 ? 'PM' : 'AM';
-  return `${hour % 12 || 12}:${minute} ${ampm}`;
 }
 
 export default function NotificationsScreen() {

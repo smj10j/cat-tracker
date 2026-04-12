@@ -4,6 +4,7 @@ import { createMeasurement, getCats, type Cat } from '../lib/api'
 import { PRESETS } from '../lib/measurementPresets'
 import { usePreferences } from '../contexts/PreferencesContext'
 import type { WeightUnit } from '@shared/lib/preferences'
+import { todayLocalDate, buildMeasuredAt, formatHour } from '../lib/formatting'
 
 type Selections = Partial<Record<string, number>>
 
@@ -16,26 +17,8 @@ const BEHAVIORAL_TYPES = [
   { key: 'vomiting', label: 'Vomiting' },
 ] as const
 
-function todayLocalDate(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
 function currentHour(): number {
   return new Date().getHours()
-}
-
-function buildMeasuredAt(localDate: string, hour: number): string {
-  const [y, mo, d] = localDate.split('-').map(Number)
-  return new Date(y!, mo! - 1, d!, hour, 0, 0).toISOString()
-}
-
-function formatHour(hour: number, use24h: boolean): string {
-  if (use24h) return `${String(hour).padStart(2, '0')}:00`
-  if (hour === 0) return '12:00 AM'
-  if (hour < 12) return `${hour}:00 AM`
-  if (hour === 12) return '12:00 PM'
-  return `${hour - 12}:00 PM`
 }
 
 export default function DailyCheckin() {
@@ -216,7 +199,7 @@ export default function DailyCheckin() {
               aria-label="Hour"
             >
               {Array.from({ length: 24 }, (_, i) => (
-                <option key={i} value={i}>{formatHour(i, prefs.timeFormat === '24h')}</option>
+                <option key={i} value={i}>{formatHour(i, prefs)}</option>
               ))}
             </select>
           </div>

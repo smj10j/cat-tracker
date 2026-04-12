@@ -1,12 +1,13 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../types'
 import { ensureHousehold } from '../lib/household'
+import { LIMITS } from '../../../shared/lib/constants'
 
 const importRoute = new Hono<AppEnv>()
 
 const IMPORT_MAX_BYTES = 1024 * 1024 // 1 MB — SEC-06
-const MAX_CAT_NAME = 200
-const MAX_NOTES = 4000
+const MAX_CAT_NAME = LIMITS.CAT_NAME
+const MAX_NOTES = LIMITS.NOTES
 
 // POST /api/import
 importRoute.post('/import', async (c) => {

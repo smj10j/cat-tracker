@@ -1,60 +1,15 @@
-export interface Cat {
-  id: string
-  name: string
-  birthdate: string
-  breed: string | null
-  coloring: string | null
-  notes: string | null
-  photo_url: string | null
-  sex: string | null
-  is_neutered: number | null
-  microchip_id: string | null
-  household_id: string | null
-  household_name: string | null
-  deceased_at: string | null
-  memorial_note: string | null
-  created_at: string
-  updated_at: string
-}
+// Types — re-exported from shared single source of truth
+export type {
+  Cat, Measurement, User, Medication, MedicationDose, DoseWithContext,
+  NotificationInbox, HouseholdMember, PendingInvite, HouseholdInfo,
+  InvitePreview, HouseholdResponse, MedicationInput, HouseholdListItem, DayGroup,
+} from '@shared/lib/types'
+export { CARE_TYPE_ICONS } from '@shared/lib/types'
 
-export const CARE_TYPE_ICONS: Record<string, string> = {
-  flea: '🦟',
-  heartworm: '❤️',
-  pill: '💊',
-  vaccine: '💉',
-  supplement: '🌿',
-  dental: '🦷',
-  exam: '🩺',
-  bloodwork: '🩸',
-  surgery: '🩹',
-  other: '📅',
-}
-
-export function catPronouns(sex: string | null | undefined): { subject: string; possessive: string; object: string } {
-  if (sex === 'Male') return { subject: 'he', possessive: 'his', object: 'him' }
-  if (sex === 'Female') return { subject: 'she', possessive: 'her', object: 'her' }
-  return { subject: 'they', possessive: 'their', object: 'them' }
-}
-
-export interface Measurement {
-  id: string
-  cat_id: string
-  type: string
-  value: number
-  unit: string
-  measured_at: string
-  notes: string | null
-  created_at: string
-}
-
-export interface User {
-  id: string
-  email: string
-  display_name: string | null
-  avatar_url: string | null
-  timezone: string | null
-  hasOrphanedCats: boolean
-}
+import type {
+  Cat, Measurement, User, Medication, MedicationDose, MedicationInput,
+  NotificationInbox, HouseholdResponse, HouseholdInfo, InvitePreview, HouseholdListItem,
+} from '@shared/lib/types'
 
 const BASE = '/api'
 const API_VERSION = '1.0.0'
@@ -97,7 +52,8 @@ export const markAlive = (id: string) =>
 export const deleteCat = (id: string) =>
   request<{ success: boolean }>(`/cats/${id}`, { method: 'DELETE' })
 
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024 // 5MB
+import { LIMITS } from '@shared/lib/constants'
+const MAX_PHOTO_BYTES = LIMITS.PHOTO_BYTES
 const MAX_CANVAS_DIM = 2048 // scale down images larger than this
 
 // Converts any image Blob to a JPEG Blob via canvas.
@@ -205,72 +161,6 @@ export const logout = () => request<{ success: boolean }>('/auth/logout', { meth
 export const claimCats = () => request<{ claimed: number }>('/auth/claim-cats', { method: 'POST' })
 
 // Medications
-export interface Medication {
-  id: string
-  cat_id: string
-  user_id: string
-  name: string
-  type: string
-  dose: string | null
-  frequency: string
-  frequency_days: number | null
-  reminder_time: string
-  start_date: string
-  end_date: string | null
-  doses_total: number | null
-  notes: string | null
-  is_active: number
-  doses_remaining: number | null
-  refill_alert_threshold: number | null
-  created_at: string
-  updated_at: string
-  // Computed by list endpoint
-  next_due_at?: string | null
-  overdue_count?: number
-}
-
-export interface MedicationDose {
-  id: string
-  medication_id: string
-  due_at: string
-  administered_at: string | null
-  skipped: number
-  skip_reason: string | null
-  notes: string | null
-  created_at: string
-}
-
-export interface DoseWithContext extends MedicationDose {
-  med_name: string
-  dose: string | null
-  med_type: string
-  cat_name: string
-  cat_id: string
-}
-
-export interface NotificationInbox {
-  overdue: DoseWithContext[]
-  due_today: DoseWithContext[]
-  upcoming: DoseWithContext[]
-  refill_alerts: (Medication & { cat_name: string })[]
-}
-
-export type MedicationInput = {
-  cat_id: string
-  name: string
-  type?: string
-  dose?: string | null
-  frequency: string
-  frequency_days?: number | null
-  reminder_time?: string
-  start_date: string
-  end_date?: string | null
-  doses_total?: number | null
-  notes?: string | null
-  doses_remaining?: number | null
-  refill_alert_threshold?: number | null
-}
-
 export const getMedications = (catId?: string) =>
   request<Medication[]>(`/medications${catId ? `?cat_id=${catId}` : ''}`)
 export const getMedication = (id: string) =>
@@ -285,55 +175,6 @@ export const archiveMedication = (id: string) =>
 export const getNotifications = () => request<NotificationInbox>('/notifications')
 
 // Household
-export interface HouseholdMember {
-  id: string
-  user_id: string
-  role: string
-  invited_at: string
-  joined_at: string | null
-  display_name: string | null
-  email: string | null
-  avatar_url: string | null
-}
-
-export interface PendingInvite {
-  id: string
-  invite_email: string
-  role: string
-  invited_at: string
-  invite_expires_at: string | null
-  invited_by_name: string | null
-}
-
-export interface HouseholdInfo {
-  id: string
-  name: string
-  owner_user_id: string
-  created_at: string
-}
-
-export interface HouseholdResponse {
-  household: HouseholdInfo
-  members: HouseholdMember[]
-  pendingInvites: PendingInvite[]
-  myRole: string
-  isOwner: boolean
-}
-
-export interface HouseholdListItem {
-  id: string
-  name: string
-  role: string
-  is_owner: number
-}
-
-export interface InvitePreview {
-  household_name: string
-  invited_by_name: string | null
-  invite_email: string
-  role: string
-}
-
 export const getHousehold = () => request<HouseholdResponse>('/household')
 export const getHouseholdList = () => request<HouseholdListItem[]>('/household/list')
 export const renameHousehold = (name: string) =>

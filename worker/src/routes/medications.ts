@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import type { AppEnv } from '../types'
 import { getCatRole, hasRole } from '../lib/household'
 import { localToUTC } from '../../../shared/lib/dates'
+import { VALID_FREQUENCIES } from '../../../shared/lib/constants'
 
 const medications = new Hono<AppEnv>()
 
@@ -182,7 +183,7 @@ medications.post('/medications', async (c) => {
   if (!body.cat_id || !body.name?.trim() || !body.frequency || !body.start_date) {
     return c.json({ error: 'cat_id, name, frequency, and start_date are required' }, 400)
   }
-  const VALID_FREQS = new Set(['daily', 'twice_daily', 'weekly', 'monthly', 'custom'])
+  const VALID_FREQS = new Set(VALID_FREQUENCIES)
   if (!VALID_FREQS.has(body.frequency)) {
     return c.json({ error: 'Invalid frequency' }, 400)
   }

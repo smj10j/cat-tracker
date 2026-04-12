@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { createMeasurement, type Measurement } from '../lib/api'
 import { PRESETS, PRESET_TYPES } from '../lib/measurementPresets'
 import { usePreferences } from '../contexts/PreferencesContext'
+import { todayLocalDate, formatHour } from '../lib/formatting'
 
 interface Props {
   catId: string
@@ -17,19 +18,6 @@ const TYPE_OPTIONS = [
   { value: 'activity', label: 'Activity' },
   { value: 'vomiting', label: 'Vomiting' },
 ]
-
-function todayLocalDate(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function formatHour(hour: number, use24h: boolean): string {
-  if (use24h) return `${String(hour).padStart(2, '0')}:00`
-  if (hour === 0) return '12:00 AM'
-  if (hour < 12) return `${hour}:00 AM`
-  if (hour === 12) return '12:00 PM'
-  return `${hour - 12}:00 PM`
-}
 
 export default function MeasurementForm({ catId, onAdded }: Props) {
   const { prefs } = usePreferences()
@@ -167,7 +155,7 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
             className="input-dark px-3 py-2.5 text-sm" style={{ minWidth: 110 }}
             aria-label="Hour">
             {Array.from({ length: 24 }, (_, i) => (
-              <option key={i} value={i}>{formatHour(i, prefs.timeFormat === '24h')}</option>
+              <option key={i} value={i}>{formatHour(i, prefs)}</option>
             ))}
           </select>
         </div>

@@ -2,16 +2,17 @@ import { Hono } from 'hono'
 import type { AppEnv } from '../types'
 import { ensureHousehold, getCatRole, hasRole } from '../lib/household'
 import { logAudit } from '../lib/audit'
+import { LIMITS } from '../../../shared/lib/constants'
 
 const cats = new Hono<AppEnv>()
 
-// SEC-04: Field length limits
-const MAX_NAME = 200
-const MAX_BREED = 200
-const MAX_COLORING = 200
-const MAX_NOTES = 4000
-const MAX_MICROCHIP = 50
-const MAX_MEMORIAL_NOTE = 1024
+// SEC-04: Field length limits (from shared/lib/constants.ts)
+const MAX_NAME = LIMITS.CAT_NAME
+const MAX_BREED = LIMITS.BREED
+const MAX_COLORING = LIMITS.COLORING
+const MAX_NOTES = LIMITS.NOTES
+const MAX_MICROCHIP = LIMITS.MICROCHIP
+const MAX_MEMORIAL_NOTE = LIMITS.MEMORIAL_NOTE
 
 function isRealMicrochip(id: string) {
   return !id.startsWith('temp-microchip-id-')
@@ -256,7 +257,7 @@ cats.delete('/:id', async (c) => {
 })
 
 const PHOTOS_BASE = 'https://pub-40305f88ebb54339b47a48224f195f92.r2.dev'
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024 // 5MB
+const MAX_PHOTO_BYTES = LIMITS.PHOTO_BYTES
 
 cats.post('/:id/photo', async (c) => {
   const userId = c.get('userId')

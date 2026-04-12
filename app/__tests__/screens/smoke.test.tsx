@@ -138,13 +138,13 @@ describe('Log (Daily Check-In) screen', () => {
     });
   });
 
-  it('renders full 24-hour time range (12 AM through 11 PM)', async () => {
+  it('renders full 24-hour time range (12:00 AM through 11:00 PM)', async () => {
     await renderScreen(LogScreen);
     await waitFor(() => {
-      expect(screen.getByText('12 AM')).toBeTruthy();
-      expect(screen.getByText('6 AM')).toBeTruthy();
-      expect(screen.getByText('12 PM')).toBeTruthy();
-      expect(screen.getByText('11 PM')).toBeTruthy();
+      expect(screen.getByText('12:00 AM')).toBeTruthy();
+      expect(screen.getByText('6:00 AM')).toBeTruthy();
+      expect(screen.getByText('12:00 PM')).toBeTruthy();
+      expect(screen.getByText('11:00 PM')).toBeTruthy();
     });
   });
 

@@ -40,6 +40,7 @@ export interface User {
   email: string;
   display_name: string | null;
   avatar_url: string | null;
+  timezone: string | null;
   oauth_provider: string;
   hasOrphanedCats: boolean;
   session_age_seconds?: number;
@@ -134,6 +135,35 @@ export interface HouseholdResponse {
   pendingInvites: PendingInvite[];
   myRole: string;
   isOwner: boolean;
+}
+
+export type MedicationInput = {
+  cat_id: string;
+  name: string;
+  type?: string;
+  dose?: string | null;
+  frequency: string;
+  frequency_days?: number | null;
+  reminder_time?: string;
+  start_date: string;
+  end_date?: string | null;
+  doses_total?: number | null;
+  notes?: string | null;
+  doses_remaining?: number | null;
+  refill_alert_threshold?: number | null;
+};
+
+export interface HouseholdListItem {
+  id: string;
+  name: string;
+  role: string;
+  is_owner: number;
+}
+
+export interface DayGroup {
+  dateStr: string;
+  label: string;
+  items: Measurement[];
 }
 
 export const CARE_TYPE_ICONS: Record<string, string> = {

@@ -162,7 +162,7 @@ export default function CatProfileScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night, justifyContent: 'center', alignItems: 'center' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night, justifyContent: 'center', alignItems: 'center' }} edges={['top']}>
         <Text style={{ color: colors.inkMid }}>Loading...</Text>
       </SafeAreaView>
     );
@@ -170,7 +170,7 @@ export default function CatProfileScreen() {
 
   if (error) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night, padding: 16 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night, padding: 16 }} edges={['top']}>
         <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.rim }}>
           <Text style={{ color: colors.rose, fontSize: 14 }}>{error}</Text>
         </View>

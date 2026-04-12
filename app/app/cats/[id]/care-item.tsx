@@ -268,14 +268,14 @@ export default function CareItemScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night, justifyContent: 'center', alignItems: 'center' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night, justifyContent: 'center', alignItems: 'center' }} edges={['top']}>
         <ActivityIndicator color={colors.lavender} size="large" />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
       {/* Header */}
       <View style={{
         flexDirection: 'row',

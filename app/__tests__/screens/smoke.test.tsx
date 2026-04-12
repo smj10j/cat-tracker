@@ -100,6 +100,59 @@ describe('Compare screen', () => {
     const { container } = await renderScreen(CompareScreen);
     expect(container).toBeTruthy();
   });
+
+  it('renders time range preset buttons (1W, 1M, 3M, 6M, 1Y, All)', async () => {
+    await renderScreen(CompareScreen);
+    await waitFor(() => {
+      expect(screen.getByText('1W')).toBeTruthy();
+      expect(screen.getByText('1M')).toBeTruthy();
+      expect(screen.getByText('3M')).toBeTruthy();
+      expect(screen.getByText('6M')).toBeTruthy();
+      expect(screen.getByText('1Y')).toBeTruthy();
+      expect(screen.getByText('All')).toBeTruthy();
+    });
+  });
+});
+
+describe('Log (Daily Check-In) screen', () => {
+  let LogScreen: React.ComponentType<any>;
+
+  beforeAll(async () => {
+    LogScreen = (await import('../../app/(tabs)/log')).default;
+  });
+
+  it('renders without crashing', async () => {
+    const { container } = await renderScreen(LogScreen);
+    expect(container).toBeTruthy();
+  });
+
+  it('renders the Daily Check-In header', async () => {
+    await renderScreen(LogScreen);
+    expect(screen.getByText('Daily Check-In')).toBeTruthy();
+  });
+
+  it('renders date picker button with "Today"', async () => {
+    await renderScreen(LogScreen);
+    await waitFor(() => {
+      expect(screen.getByText('Today')).toBeTruthy();
+    });
+  });
+
+  it('renders full 24-hour time range (12 AM through 11 PM)', async () => {
+    await renderScreen(LogScreen);
+    await waitFor(() => {
+      expect(screen.getByText('12 AM')).toBeTruthy();
+      expect(screen.getByText('6 AM')).toBeTruthy();
+      expect(screen.getByText('12 PM')).toBeTruthy();
+      expect(screen.getByText('11 PM')).toBeTruthy();
+    });
+  });
+
+  it('renders weight input with visible placeholder', async () => {
+    const { container } = await renderScreen(LogScreen);
+    expect(screen.getByText('Weight')).toBeTruthy();
+    expect(screen.getByText('Leave blank to skip')).toBeTruthy();
+  });
 });
 
 // ===========================================================================
@@ -121,6 +174,17 @@ describe('AddCat screen', () => {
   it('renders the Add Cat button', async () => {
     await renderScreen(AddCat);
     expect(screen.getByText('Add Cat')).toBeTruthy();
+  });
+
+  it('renders birthdate picker button (not text input)', async () => {
+    await renderScreen(AddCat);
+    expect(screen.getByText('Select birthdate')).toBeTruthy();
+  });
+
+  it('renders sex segmented control with Male and Female options', async () => {
+    await renderScreen(AddCat);
+    expect(screen.getByText('Male')).toBeTruthy();
+    expect(screen.getByText('Female')).toBeTruthy();
   });
 });
 

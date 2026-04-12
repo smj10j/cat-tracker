@@ -1,20 +1,40 @@
 import '../global.css';
-import { Stack } from 'expo-router';
+import { View, ActivityIndicator } from 'react-native';
+import { Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
-import { AuthProvider } from '../contexts/AuthContext';
+import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
+import { useThemeColors } from '../hooks/useThemeColors';
+import BottomNav from '../components/BottomNav';
 
 function ThemedStatusBar() {
   const { colorScheme } = useColorScheme();
   return <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />;
 }
 
-export default function RootLayout() {
+// Screens that should NOT show the bottom nav
+const HIDE_NAV_ROUTES = ['/(auth)/login', '/login'];
+
+function AppContent() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const pathname = usePathname();
+  const colors = useThemeColors();
+
+  const isLoginScreen = HIDE_NAV_ROUTES.some((r) => pathname === r || pathname.startsWith('/(auth)'));
+  const showNav = isAuthenticated && !isLoginScreen && !isLoading;
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.night, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={colors.lavender} size="large" />
+      </View>
+    );
+  }
+
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <ThemedStatusBar />
+    <View style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
         <Stack screenOptions={{ headerShown: false, animation: 'none' }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="(auth)/login" />
@@ -33,6 +53,18 @@ export default function RootLayout() {
           <Stack.Screen name="cats/[id]/memorial" />
           <Stack.Screen name="cats/[id]/health" />
         </Stack>
+      </View>
+      {showNav && <BottomNav />}
+    </View>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <ThemedStatusBar />
+        <AppContent />
       </AuthProvider>
     </ThemeProvider>
   );

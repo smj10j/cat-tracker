@@ -6,9 +6,22 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { api } from '../../lib/api';
 import CatAvatar from '../../components/CatAvatar';
 import { useThemeColors } from '../../hooks/useThemeColors';
+
+function parseDate(str: string): Date {
+  const [y, m, d] = str.split('-').map(Number);
+  return new Date(y!, (m ?? 1) - 1, d ?? 1);
+}
+
+function formatDateStr(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
 
 export default function NewCatScreen() {
   const colors = useThemeColors();
@@ -21,6 +34,7 @@ export default function NewCatScreen() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [showBirthdatePicker, setShowBirthdatePicker] = useState(false);
 
   function setField(key: string, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -74,7 +88,7 @@ export default function NewCatScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }}>
           {/* Header */}
@@ -116,20 +130,53 @@ export default function NewCatScreen() {
             </Pressable>
 
             <FormField label="Name" required value={form.name} onChangeText={(v) => setField('name', v)} placeholder="e.g. Luna" maxLength={200} />
-            <FormField label="Birthdate" required value={form.birthdate} onChangeText={(v) => setField('birthdate', v)} placeholder="YYYY-MM-DD" maxLength={10} />
 
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              <View style={{ flex: 1 }}>
-                <FormField label="Breed" value={form.breed} onChangeText={(v) => setField('breed', v)} placeholder="Domestic Shorthair" maxLength={200} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <FieldLabel label="Sex" />
-                <SegmentedControl
-                  options={[{ label: 'Unknown', value: '' }, { label: 'Male', value: 'Male' }, { label: 'Female', value: 'Female' }]}
-                  value={form.sex}
-                  onChange={(v) => setField('sex', v)}
+            {/* Birthdate with date picker */}
+            <View>
+              <FieldLabel label="Birthdate" required />
+              <Pressable
+                onPress={() => setShowBirthdatePicker((v) => !v)}
+                style={{
+                  backgroundColor: colors.card,
+                  borderWidth: 1,
+                  borderColor: showBirthdatePicker ? colors.lavender : colors.rim,
+                  borderRadius: 12,
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  minHeight: 44,
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ color: form.birthdate ? colors.ink : colors.inkDim, fontSize: 14 }}>
+                  {form.birthdate || 'Select birthdate'}
+                </Text>
+              </Pressable>
+              {showBirthdatePicker && (
+                <DateTimePicker
+                  value={form.birthdate ? parseDate(form.birthdate) : new Date()}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  themeVariant="dark"
+                  maximumDate={new Date()}
+                  onChange={(_event, selected) => {
+                    if (Platform.OS === 'android') setShowBirthdatePicker(false);
+                    if (selected) setField('birthdate', formatDateStr(selected));
+                  }}
+                  style={{ marginTop: 4 }}
                 />
-              </View>
+              )}
+            </View>
+
+            <FormField label="Breed" value={form.breed} onChangeText={(v) => setField('breed', v)} placeholder="Domestic Shorthair" maxLength={200} />
+
+            {/* Sex — full width, not squeezed beside breed */}
+            <View>
+              <FieldLabel label="Sex" />
+              <SegmentedControl
+                options={[{ label: 'Unknown', value: '' }, { label: 'Male', value: 'Male' }, { label: 'Female', value: 'Female' }]}
+                value={form.sex}
+                onChange={(v) => setField('sex', v)}
+              />
             </View>
 
             <View>
@@ -215,7 +262,7 @@ function FormField({
           color: colors.ink,
           fontSize: 14,
           textAlignVertical: multiline ? 'top' : 'center',
-          minHeight: multiline ? 80 : undefined,
+          minHeight: multiline ? 80 : 44,
         }}
       />
       {subtitle && (

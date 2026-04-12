@@ -169,7 +169,7 @@ export default function HouseholdScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color={colors.lavender} />
         </View>
@@ -179,7 +179,7 @@ export default function HouseholdScreen() {
 
   if (!data) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
         <View style={{ padding: 20 }}>
           <Text style={{ color: colors.rose, fontSize: 14 }}>
             {error ?? 'Failed to load household.'}
@@ -193,7 +193,7 @@ export default function HouseholdScreen() {
   const isAdmin = myRole === 'admin';
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
       {/* Header */}
       <View
         style={{

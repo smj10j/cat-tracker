@@ -182,6 +182,7 @@ const mockRouter = {
 
 vi.mock('expo-router', () => ({
   useRouter: () => mockRouter,
+  usePathname: () => '/',
   useLocalSearchParams: () => ({ id: 'test-cat-123' }),
   useFocusEffect: (cb: any) => {
     // Stable mock: always calls useEffect (matches the real hook's internal structure).
@@ -192,6 +193,8 @@ vi.mock('expo-router', () => ({
       return typeof cleanup === 'function' ? cleanup : undefined;
     }, []);
   },
+  Slot: ({ children }: any) => React.createElement('div', null, children),
+  Redirect: ({ href }: any) => React.createElement('div', { 'data-redirect': href }),
   Link: ({ children, href, ...props }: any) => React.createElement('a', { href, ...props }, children),
   router: mockRouter,
 }));

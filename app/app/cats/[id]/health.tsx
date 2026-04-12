@@ -39,7 +39,7 @@ export default function HealthGuidanceScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator size="large" color={colors.lavender} />
         </View>
@@ -49,7 +49,7 @@ export default function HealthGuidanceScreen() {
 
   if (error || !cat) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
         <View style={{ padding: 16 }}>
           <Pressable onPress={() => router.back()}>
             <Text style={{ color: colors.lavender, fontSize: 14 }}>{'\u2190'} Back</Text>
@@ -97,7 +97,7 @@ export default function HealthGuidanceScreen() {
     : 'rgba(251,191,36,0.15)';
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Header */}
         <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24, backgroundColor: headerBg }}>

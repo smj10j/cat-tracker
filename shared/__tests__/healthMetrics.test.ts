@@ -5,7 +5,7 @@ import type { Measurement } from '../lib/types'
 // Helper to build Measurement objects with just the fields assessHealth needs.
 // Use noon-UTC timestamps to avoid timezone edge cases in date bucketing.
 function m(value: number, measured_at: string): Measurement {
-  return { id: '', cat_id: '', type: 'weight', value, unit: 'lbs', measured_at, created_at: '' }
+  return { id: '', cat_id: '', type: 'weight', value, unit: 'lbs', measured_at, notes: null, created_at: '' }
 }
 
 describe('assessHealth', () => {
@@ -195,7 +195,7 @@ describe('assessHealth', () => {
   it('noise floor is relative (works correctly for kg measurements)', () => {
     // 4.5 kg → 4.2 kg = 6.7% over 7 days and 0.3 kg (> 0.2) → passes through
     const kgM = (v: number, d: string): Measurement =>
-      ({ id: '', cat_id: '', type: 'weight', value: v, unit: 'kg', measured_at: d, created_at: '' })
+      ({ id: '', cat_id: '', type: 'weight', value: v, unit: 'kg', measured_at: d, notes: null, created_at: '' })
     const measurements = [
       kgM(4.50, '2026-01-06T12:00:00Z'),
       kgM(4.20, '2026-01-13T12:00:00Z'),

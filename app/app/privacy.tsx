@@ -7,7 +7,7 @@ export default function PrivacyPolicyScreen() {
   const router = useRouter();
 
   return (
-    <SafeAreaView className="flex-1 bg-night">
+    <SafeAreaView className="flex-1 bg-night" edges={['top']}>
       <View className="px-4 py-3 flex-row items-center gap-3 border-b border-rim">
         <Pressable onPress={() => router.back()}>
           <Text className="text-lavender text-base">← Back</Text>

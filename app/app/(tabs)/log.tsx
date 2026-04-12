@@ -4,6 +4,7 @@ import {
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { api } from '../../lib/api';
 import type { Cat } from '../../lib/api';
 import { PRESETS } from '../../lib/measurementPresets';
@@ -23,6 +24,25 @@ const BEHAVIORAL_TYPES = [
 function todayLocalDate(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function parseDate(str: string): Date {
+  const [y, m, d] = str.split('-').map(Number);
+  return new Date(y!, (m ?? 1) - 1, d ?? 1);
+}
+
+function formatDateStr(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function formatDateLabel(dateStr: string): string {
+  const today = todayLocalDate();
+  if (dateStr === today) return 'Today';
+  const d = parseDate(dateStr);
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
 function currentHour(): number {
@@ -45,6 +65,8 @@ export default function LogScreen() {
   const colors = useThemeColors();
   const [cats, setCats] = useState<Cat[]>([]);
   const [selectedCatId, setSelectedCatId] = useState('');
+  const [date, setDate] = useState(todayLocalDate);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [hour, setHour] = useState(currentHour);
   const [weightValue, setWeightValue] = useState('');
   const [weightUnit, setWeightUnit] = useState<'lbs' | 'kg'>('lbs');
@@ -82,7 +104,9 @@ export default function LogScreen() {
   function reset() {
     setWeightValue('');
     setSelections({});
+    setDate(todayLocalDate());
     setHour(currentHour());
+    setShowDatePicker(false);
   }
 
   async function handleSubmit() {
@@ -90,7 +114,7 @@ export default function LogScreen() {
     setSaving(true);
     setError(null);
 
-    const measured_at = buildMeasuredAt(todayLocalDate(), hour);
+    const measured_at = buildMeasuredAt(date, hour);
     const toCreate: Array<{ type: string; value: number; unit: string }> = [];
 
     if (weightValid) {
@@ -120,9 +144,9 @@ export default function LogScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+        <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
           {/* Header */}
           <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.rim }}>
             <Text style={{ fontWeight: '700', fontSize: 18, color: colors.ink }}>Daily Check-In</Text>
@@ -189,7 +213,7 @@ export default function LogScreen() {
               </View>
             )}
 
-            {/* Time */}
+            {/* Date & Time */}
             <View style={{
               borderRadius: 16, paddingHorizontal: 16, paddingVertical: 12,
               backgroundColor: colors.card,
@@ -198,13 +222,55 @@ export default function LogScreen() {
               <Text style={{ fontSize: 11, fontWeight: '600', color: colors.inkMid, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
                 When
               </Text>
+
+              {/* Date picker */}
+              <Pressable
+                onPress={() => setShowDatePicker((v) => !v)}
+                style={{
+                  backgroundColor: colors.surface,
+                  borderWidth: 1,
+                  borderColor: showDatePicker ? colors.lavender : colors.rim,
+                  borderRadius: 12,
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  marginBottom: 10,
+                  minHeight: 44,
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ color: colors.ink, fontSize: 14, fontWeight: '500' }}>
+                  {formatDateLabel(date)}
+                  {date !== todayLocalDate() && (
+                    <Text style={{ color: colors.inkDim, fontWeight: '400' }}>  {date}</Text>
+                  )}
+                </Text>
+              </Pressable>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={parseDate(date)}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  themeVariant="dark"
+                  maximumDate={new Date()}
+                  onChange={(_event, selected) => {
+                    if (Platform.OS === 'android') setShowDatePicker(false);
+                    if (selected) setDate(formatDateStr(selected));
+                  }}
+                  style={{ marginBottom: 4 }}
+                />
+              )}
+
+              {/* Hour selector */}
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 4 }}>
-                {[6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22].map((h) => (
+                {Array.from({ length: 24 }, (_, i) => i).map((h) => (
                   <Pressable
                     key={h}
                     onPress={() => setHour(h)}
                     style={{
                       paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+                      minHeight: 36,
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       backgroundColor: hour === h ? 'rgba(192,132,252,0.15)' : 'transparent',
                       borderWidth: hour === h ? 1 : 0,
                       borderColor: 'rgba(192,132,252,0.25)',
@@ -231,17 +297,18 @@ export default function LogScreen() {
                 <TextInput
                   value={weightValue}
                   onChangeText={setWeightValue}
-                  placeholder="e.g. 9.4 — leave blank to skip"
+                  placeholder="e.g. 9.4"
                   placeholderTextColor={colors.inkDim}
                   keyboardType="decimal-pad"
                   returnKeyType="done"
                   style={{
                     flex: 1,
-                    backgroundColor: colors.card,
+                    backgroundColor: colors.surface,
                     borderWidth: 1, borderColor: colors.rim,
                     borderRadius: 12,
-                    paddingHorizontal: 12, paddingVertical: 10,
-                    color: colors.ink, fontSize: 14,
+                    paddingHorizontal: 14, paddingVertical: 12,
+                    color: colors.ink, fontSize: 16,
+                    minHeight: 44,
                   }}
                 />
                 <View style={{ flexDirection: 'row', gap: 4 }}>
@@ -250,7 +317,10 @@ export default function LogScreen() {
                       key={u}
                       onPress={() => setWeightUnit(u)}
                       style={{
-                        paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12,
+                        paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12,
+                        minHeight: 44,
+                        alignItems: 'center',
+                        justifyContent: 'center',
                         backgroundColor: weightUnit === u ? 'rgba(192,132,252,0.15)' : 'rgba(255,255,255,0.05)',
                         borderWidth: 1,
                         borderColor: weightUnit === u ? 'rgba(192,132,252,0.25)' : 'rgba(255,255,255,0.07)',
@@ -263,6 +333,9 @@ export default function LogScreen() {
                   ))}
                 </View>
               </View>
+              <Text style={{ fontSize: 12, color: colors.inkDim, marginTop: 8 }}>
+                Leave blank to skip
+              </Text>
             </View>
 
             {/* Behavioral observations */}
@@ -272,7 +345,7 @@ export default function LogScreen() {
               borderWidth: 1, borderColor: colors.rim,
             }}>
               <Text style={{ fontSize: 11, fontWeight: '600', color: colors.inkMid, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
-                Observations \u2014 tap to select, skip any row
+                Observations {'\u2014'} tap to select, skip any row
               </Text>
 
               {BEHAVIORAL_TYPES.map(({ key, label }, i) => {

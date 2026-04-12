@@ -198,4 +198,27 @@ describe('DailyCheckin', () => {
       expect(screen.getByText(/could not be saved/i)).toBeInTheDocument()
     )
   })
+
+  it('renders a date picker that allows selecting past dates', async () => {
+    renderCheckin()
+    await waitFor(() => expect(screen.getByText('Simba')).toBeInTheDocument())
+
+    const datePicker = screen.getByLabelText('When')
+    expect(datePicker).toBeInTheDocument()
+    expect(datePicker).toHaveAttribute('type', 'date')
+    // max is today — past dates allowed, future dates blocked
+    expect(datePicker).toHaveAttribute('max')
+  })
+
+  it('renders all 24 hour options', async () => {
+    renderCheckin()
+    await waitFor(() => expect(screen.getByText('Simba')).toBeInTheDocument())
+
+    const hourSelect = screen.getByLabelText('Hour')
+    const options = hourSelect.querySelectorAll('option')
+    expect(options.length).toBe(24)
+    expect(options[0]!.textContent).toBe('12:00 AM')
+    expect(options[12]!.textContent).toBe('12:00 PM')
+    expect(options[23]!.textContent).toBe('11:00 PM')
+  })
 })

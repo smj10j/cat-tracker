@@ -86,7 +86,7 @@ export default function InviteScreen() {
   // Loading state
   if (previewLoading || authLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-night items-center justify-center">
+      <SafeAreaView className="flex-1 bg-night items-center justify-center" edges={['top']}>
         <ActivityIndicator color={colors.lavender} size="large" />
         <Text className="text-ink-dim text-sm mt-4">Loading invite...</Text>
       </SafeAreaView>
@@ -96,7 +96,7 @@ export default function InviteScreen() {
   // Error state
   if (previewError) {
     return (
-      <SafeAreaView className="flex-1 bg-night items-center justify-center px-6">
+      <SafeAreaView className="flex-1 bg-night items-center justify-center px-6" edges={['top']}>
         <Text className="text-3xl mb-4">🐱</Text>
         <Text className="text-ink font-semibold text-base mb-2">Invite not found</Text>
         <Text className="text-ink-dim text-sm text-center mb-6">{previewError}</Text>
@@ -113,7 +113,7 @@ export default function InviteScreen() {
   // Success state
   if (done) {
     return (
-      <SafeAreaView className="flex-1 bg-night items-center justify-center px-6">
+      <SafeAreaView className="flex-1 bg-night items-center justify-center px-6" edges={['top']}>
         <Text className="text-3xl mb-4">🐾</Text>
         <Text className="text-ink font-semibold text-base mb-2">
           Welcome to {preview?.household_name}!
@@ -126,7 +126,7 @@ export default function InviteScreen() {
   // Not logged in — prompt sign-in
   if (!isAuthenticated || !user) {
     return (
-      <SafeAreaView className="flex-1 bg-night items-center justify-center px-6">
+      <SafeAreaView className="flex-1 bg-night items-center justify-center px-6" edges={['top']}>
         <View className="w-full max-w-sm bg-surface border border-rim rounded-3xl p-6">
           <View className="items-center mb-5">
             <Text className="text-3xl mb-3">🐱</Text>
@@ -166,7 +166,7 @@ export default function InviteScreen() {
   const roleDesc = ROLE_DESC[preview?.role ?? ''] ?? 'access the household';
 
   return (
-    <SafeAreaView className="flex-1 bg-night items-center justify-center px-6">
+    <SafeAreaView className="flex-1 bg-night items-center justify-center px-6" edges={['top']}>
       <View className="w-full max-w-sm bg-surface border border-rim rounded-3xl p-6">
         <View className="items-center mb-5">
           <Text className="text-3xl mb-3">🐱</Text>

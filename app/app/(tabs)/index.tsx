@@ -385,7 +385,7 @@ export default function HomeScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
       {/* Profile popover overlay */}
       {showProfile && (
         <Pressable

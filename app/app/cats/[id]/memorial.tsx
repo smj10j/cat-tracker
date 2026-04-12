@@ -50,7 +50,7 @@ export default function MemorialScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
         <View style={{ padding: 24, gap: 16 }}>
           <View style={{ height: 32, width: 128, borderRadius: 8, backgroundColor: colors.surface }} />
           <View style={{ height: 256, borderRadius: 16, backgroundColor: colors.surface }} />
@@ -61,7 +61,7 @@ export default function MemorialScreen() {
 
   if (!cat) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night, alignItems: 'center', justifyContent: 'center' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night, alignItems: 'center', justifyContent: 'center' }} edges={['top']}>
         <Text style={{ color: colors.inkDim, fontSize: 14 }}>Cat not found.</Text>
         <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
           <Text style={{ color: '#c084fc', fontSize: 14 }}>Go back</Text>
@@ -80,7 +80,7 @@ export default function MemorialScreen() {
   }));
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
       <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
         {/* Hero */}
         <View style={{ alignItems: 'center', paddingTop: 48, paddingBottom: 32, paddingHorizontal: 16 }}>

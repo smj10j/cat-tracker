@@ -158,7 +158,7 @@ export default function CatExportScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <Text style={{ color: colors.inkMid, fontSize: 14 }}>Preparing export...</Text>
         </View>
@@ -168,7 +168,7 @@ export default function CatExportScreen() {
 
   if (error || !cat) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
         <View style={{ padding: 20 }}>
           <Text style={{ color: colors.rose, fontSize: 14 }}>{error ?? 'Cat not found'}</Text>
         </View>
@@ -224,7 +224,7 @@ export default function CatExportScreen() {
           : colors.jade;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
       {/* Action bar */}
       <View
         style={{

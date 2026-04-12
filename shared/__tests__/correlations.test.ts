@@ -12,7 +12,7 @@ import type { Measurement } from '../lib/types'
 
 let _id = 0
 function m(type: string, value: number, measured_at: string): Measurement {
-  return { id: String(_id++), cat_id: 'cat-1', type, value, unit: 'lbs', measured_at, created_at: '' }
+  return { id: String(_id++), cat_id: 'cat-1', type, value, unit: 'lbs', measured_at, notes: null, created_at: '' }
 }
 
 // ── bucketByWeek ──────────────────────────────────────────────────────────────

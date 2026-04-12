@@ -7,6 +7,39 @@
 
 ---
 
+## Phase 48: iOS Bug Fixes & Persistent Bottom Nav (2026-04-11)
+
+### Architecture
+- [x] Rearchitect iOS app to use persistent BottomNav component at root layout level
+- [x] Replace Tabs navigator with Slot in (tabs)/_layout.tsx
+- [x] Create app/components/BottomNav.tsx with Cats/Log/Compare tabs
+- [x] Update root _layout.tsx to render BottomNav for all authenticated screens
+- [x] Add `edges={['top']}` to all SafeAreaView instances across 16 iOS screens
+
+### Bug Fixes
+- [x] Fix weight text clipping in Daily Checkin (increased font size, padding, min-height)
+- [x] Add date picker to Daily Checkin with preselection to today (DateTimePicker)
+- [x] Extend hour selector to full 24-hour range (was 6 AM–10 PM, now 12 AM–11 PM)
+- [x] Add date state to Daily Checkin (was locked to today only)
+- [x] Restore time range presets on Compare view (1W, 1M, 3M, 6M, 1Y, All)
+- [x] Fix Add Cat sex field wrapping (moved to full-width row, not side-by-side with breed)
+- [x] Replace text input birthdate with native DateTimePicker on Add Cat screen
+
+### Cross-Platform Consistency
+- [x] Verified web frontend has all features (date picker, time range, bottom nav) already correct
+- [x] No web-side changes needed — all bugs were iOS-only
+
+### Regression Tests
+- [x] Add BottomNav component test (renders tabs, visibility rules for auth/login)
+- [x] Add Compare screen test: time range presets (1W, 1M, 3M, 6M, 1Y, All)
+- [x] Add Log screen tests: date picker, 24-hour range, weight input visibility
+- [x] Add AddCat screen tests: birthdate picker, sex segmented control
+- [x] Add frontend DailyCheckin tests: date picker allows past dates, 24-hour options
+- [x] Fix pre-existing type errors in shared test fixtures (missing `notes` field)
+
+### Verification
+- [x] All tests pass (74 shared + 65 app + 46 frontend + 93 worker = 278)
+
 ## Phase 0: Planning
 - [x] Write PRD (docs/PRDs/PRD-mvp.md)
 - [x] Write TDD (docs/TDD.md)

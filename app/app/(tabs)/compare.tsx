@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -29,6 +29,17 @@ const TYPE_OPTIONS = [
   { value: 'vomiting', label: 'Vomiting' },
 ];
 
+type TimeRange = '1W' | '1M' | '3M' | '6M' | '1Y' | 'All';
+
+const RANGE_OPTIONS: { value: TimeRange; label: string; days: number | null }[] = [
+  { value: '1W', label: '1W', days: 7 },
+  { value: '1M', label: '1M', days: 30 },
+  { value: '3M', label: '3M', days: 90 },
+  { value: '6M', label: '6M', days: 180 },
+  { value: '1Y', label: '1Y', days: 365 },
+  { value: 'All', label: 'All', days: null },
+];
+
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
@@ -56,17 +67,35 @@ function buildTableData(
   return Array.from(dateMap.values()).sort((a, b) => b.rawDate.localeCompare(a.rawDate));
 }
 
+function filterByRange(measurements: Measurement[], range: TimeRange): Measurement[] {
+  const rangeOpt = RANGE_OPTIONS.find((r) => r.value === range);
+  if (!rangeOpt || rangeOpt.days === null) return measurements;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - rangeOpt.days);
+  return measurements.filter((m) => new Date(m.measured_at) >= cutoff);
+}
+
 export default function CompareScreen() {
   const colors = useThemeColors();
   const [cats, setCats] = useState<Cat[]>([]);
-  const [measurementsByCat, setMeasurementsByCat] = useState<Map<string, Measurement[]>>(
+  const [allMeasurementsByCat, setAllMeasurementsByCat] = useState<Map<string, Measurement[]>>(
     new Map(),
   );
   const [enabled, setEnabled] = useState<Set<string>>(new Set());
   const [selectedType, setSelectedType] = useState('weight');
+  const [selectedRange, setSelectedRange] = useState<TimeRange>('All');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Apply time range filter to measurements
+  const measurementsByCat = useMemo(() => {
+    const filtered = new Map<string, Measurement[]>();
+    for (const [catId, ms] of allMeasurementsByCat) {
+      filtered.set(catId, filterByRange(ms, selectedRange));
+    }
+    return filtered;
+  }, [allMeasurementsByCat, selectedRange]);
 
   const fetchMeasurements = useCallback(async (allCats: Cat[], type: string) => {
     const entries = await Promise.all(
@@ -74,7 +103,7 @@ export default function CompareScreen() {
         api.getMeasurements(cat.id, type).then((ms) => [cat.id, ms] as const),
       ),
     );
-    setMeasurementsByCat(new Map(entries));
+    setAllMeasurementsByCat(new Map(entries));
   }, []);
 
   const loadData = useCallback(async () => {
@@ -125,7 +154,7 @@ export default function CompareScreen() {
 
   // Build chart data: one point per date, one series per enabled cat
   const chartData: ChartDataPoint[] = [];
-  const chartDateKeys: string[] = []; // parallel array of date strings for emoji mapping
+  const chartDateKeys: string[] = [];
   const dateSet = new Set<string>();
   for (const cat of enabledCats) {
     for (const m of measurementsByCat.get(cat.id) ?? []) {
@@ -141,9 +170,7 @@ export default function CompareScreen() {
       const match = ms.find(m => m.measured_at.startsWith(dateKey));
       if (match) point[cat.id] = match.value;
     }
-    // Only include points that have at least one value
     if (enabledCats.some(c => point[c.id] !== undefined)) {
-      // Fill missing values with NaN so chart skips them
       for (const cat of enabledCats) {
         if (point[cat.id] === undefined) point[cat.id] = NaN;
       }
@@ -158,7 +185,7 @@ export default function CompareScreen() {
     enabledCats.map((c) => [c.id, LINE_COLORS[cats.indexOf(c) % LINE_COLORS.length]!])
   );
 
-  // Build emoji dot map for weight charts: map each chart data point index to a health emoji per cat
+  // Build emoji dot map for weight charts
   const chartDotEmojis: Record<string, Record<number, string>> | undefined = (() => {
     if (!isWeightType) return undefined;
     const result: Record<string, Record<number, string>> = {};
@@ -168,14 +195,12 @@ export default function CompareScreen() {
         .sort((a, b) => a.measured_at.localeCompare(b.measured_at));
       if (catMeasurements.length < 2) continue;
       const health = assessHealth(catMeasurements);
-      // Build date→status map from periods (1:1 with sorted measurements)
       const dateStatusMap = new Map<string, HealthStatus>();
       for (let i = 0; i < catMeasurements.length; i++) {
         const period = health.periods[i];
         const dateKey = catMeasurements[i]!.measured_at.slice(0, 10);
         dateStatusMap.set(dateKey, period?.status ?? 'ok');
       }
-      // Map chart data indices to emojis
       const catEmojis: Record<number, string> = {};
       for (let ci = 0; ci < chartDateKeys.length; ci++) {
         const status = dateStatusMap.get(chartDateKeys[ci]!);
@@ -200,10 +225,10 @@ export default function CompareScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.lavender} />
         }
@@ -270,7 +295,7 @@ export default function CompareScreen() {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              style={{ marginBottom: 16 }}
+              style={{ marginBottom: 12 }}
             >
               {cats.map((cat, i) => {
                 const lineColor = LINE_COLORS[i % LINE_COLORS.length]!;
@@ -333,6 +358,45 @@ export default function CompareScreen() {
               })}
             </ScrollView>
 
+            {/* Time range presets */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginBottom: 16 }}
+            >
+              {RANGE_OPTIONS.map(({ value, label }) => {
+                const active = selectedRange === value;
+                return (
+                  <Pressable
+                    key={value}
+                    onPress={() => setSelectedRange(value)}
+                    style={{
+                      paddingHorizontal: 14,
+                      paddingVertical: 6,
+                      borderRadius: 16,
+                      marginRight: 6,
+                      minHeight: 36,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: active ? 'rgba(168,85,247,0.2)' : colors.surface,
+                      borderWidth: 1,
+                      borderColor: active ? 'rgba(168,85,247,0.4)' : 'transparent',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        fontWeight: '600',
+                        color: active ? colors.lavender : colors.inkDim,
+                      }}
+                    >
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
             {/* Chart */}
             {enabledCats.length > 0 && chartData.length > 1 && (
               <View style={{
@@ -364,14 +428,14 @@ export default function CompareScreen() {
             {/* Data table */}
             {enabledCats.length === 0 ? (
               <View style={{ paddingVertical: 60, alignItems: 'center' }}>
-                <Text style={{ fontSize: 32, marginBottom: 8 }}>🐱</Text>
+                <Text style={{ fontSize: 32, marginBottom: 8 }}>{'\uD83D\uDC31'}</Text>
                 <Text style={{ color: colors.inkDim, fontSize: 14 }}>
                   Select cats above to compare
                 </Text>
               </View>
             ) : tableData.length === 0 ? (
               <View style={{ paddingVertical: 60, alignItems: 'center' }}>
-                <Text style={{ fontSize: 32, marginBottom: 8 }}>📊</Text>
+                <Text style={{ fontSize: 32, marginBottom: 8 }}>{'\uD83D\uDCCA'}</Text>
                 <Text style={{ color: colors.inkDim, fontSize: 14 }}>
                   No {selectedType} measurements yet
                 </Text>

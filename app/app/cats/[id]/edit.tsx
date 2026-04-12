@@ -190,7 +190,7 @@ export default function EditCatScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night, justifyContent: 'center', alignItems: 'center' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.night, justifyContent: 'center', alignItems: 'center' }} edges={['top']}>
         <Text style={{ color: colors.inkMid }}>Loading...</Text>
       </SafeAreaView>
     );
@@ -200,7 +200,7 @@ export default function EditCatScreen() {
   const displayPhotoUrl = photoRemoved ? null : (photoUri ?? existingPhotoUrl);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
           {/* Header */}

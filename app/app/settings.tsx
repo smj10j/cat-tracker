@@ -1,4 +1,4 @@
-import { View, Text, Pressable, Alert, Platform } from 'react-native';
+import { View, Text, Pressable, ScrollView, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { File, Paths } from 'expo-file-system/next';
@@ -99,7 +99,7 @@ export default function SettingsScreen() {
         <Text style={{ color: colors.ink, fontSize: 20, fontWeight: '700' }}>Settings</Text>
       </View>
 
-      <View style={{ paddingHorizontal: 16, marginTop: 16, gap: 16 }}>
+      <ScrollView style={{ paddingHorizontal: 16, marginTop: 16 }} contentContainerStyle={{ gap: 16, paddingBottom: 40 }}>
         {/* User info */}
         <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.rim }}>
           <Text style={{ color: colors.ink, fontWeight: '600' }}>{user?.display_name ?? 'User'}</Text>
@@ -250,7 +250,7 @@ export default function SettingsScreen() {
             Permanently delete your account and all associated data
           </Text>
         </Pressable>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

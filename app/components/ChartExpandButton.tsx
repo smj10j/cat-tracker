@@ -86,8 +86,10 @@ export function ChartExpandButton({ onPress, visible }: ChartExpandButtonProps) 
           { backgroundColor: colors.card, borderColor: colors.rim },
         ]}
       >
-        {/* Expand/fullscreen icon using Unicode arrows */}
-        <Text style={[styles.icon, { color: colors.inkMid }]}>{'\u26F6'}</Text>
+        <View style={styles.expandIcon}>
+          <View style={[styles.expandArrow, styles.expandArrowTR, { borderColor: colors.inkMid }]} />
+          <View style={[styles.expandArrow, styles.expandArrowBL, { borderColor: colors.inkMid }]} />
+        </View>
       </Pressable>
     </View>
   );
@@ -109,8 +111,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  icon: {
-    fontSize: 18,
+  expandIcon: {
+    width: 18,
+    height: 18,
+    position: 'relative',
+  },
+  expandArrow: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderWidth: 1.5,
+  },
+  expandArrowTR: {
+    top: 0,
+    right: 0,
+    borderBottomWidth: 0,
+    borderLeftWidth: 0,
+  },
+  expandArrowBL: {
+    bottom: 0,
+    left: 0,
+    borderTopWidth: 0,
+    borderRightWidth: 0,
   },
   tooltip: {
     position: 'absolute',

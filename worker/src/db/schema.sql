@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS users (
   avatar_url      TEXT,
   oauth_provider  TEXT NOT NULL,
   oauth_id        TEXT NOT NULL,
+  timezone        TEXT,              -- IANA timezone, e.g. 'America/New_York'
   created_at      TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(oauth_provider, oauth_id)
 );

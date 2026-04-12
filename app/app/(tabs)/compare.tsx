@@ -13,8 +13,11 @@ import type { Cat, Measurement } from '../../lib/api';
 import { getPresetLabel, PRESET_TYPES } from '../../lib/measurementPresets';
 import { assessHealth, STATUS_COLORS, STATUS_LABEL, STATUS_EMOJI } from '../../lib/healthMetrics';
 import type { HealthStatus } from '../../lib/healthMetrics';
+import { Dimensions } from 'react-native';
 import LineChart, { type ChartDataPoint } from '../../components/LineChart';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
+import { ChartExpandButton } from '../../components/ChartExpandButton';
+import { FullScreenChartModal } from '../../components/FullScreenChartModal';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { usePreferences } from '../../contexts/PreferencesContext';
 import { formatDateShort, formatWeight } from '../../../shared/lib/preferences';
@@ -86,6 +89,7 @@ export default function CompareScreen() {
   const [enabled, setEnabled] = useState<Set<string>>(new Set());
   const [selectedType, setSelectedType] = useState('weight');
   const [selectedRange, setSelectedRange] = useState<TimeRange>('All');
+  const [chartExpanded, setChartExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -409,21 +413,46 @@ export default function CompareScreen() {
                 padding: 12,
                 marginBottom: 16,
               }}>
-                <ErrorBoundary>
-                <LineChart
-                  data={chartData}
-                  seriesKeys={chartSeriesKeys}
-                  seriesLabels={chartSeriesLabels}
-                  seriesColors={chartSeriesColors}
-                  dotEmojis={chartDotEmojis}
-                  height={240}
-                  yLabel={isWeightType ? prefs.weightUnit : undefined}
-                  formatY={isScaleType
-                    ? (v) => getPresetLabel(selectedType, Math.round(v))
-                    : (v) => String(Math.round(v * 10) / 10)
-                  }
-                />
-              </ErrorBoundary>
+                <View style={{ position: 'relative' }}>
+                  <ChartExpandButton onPress={() => setChartExpanded(true)} visible={chartData.length > 1} />
+                  <ErrorBoundary>
+                    <LineChart
+                      data={chartData}
+                      seriesKeys={chartSeriesKeys}
+                      seriesLabels={chartSeriesLabels}
+                      seriesColors={chartSeriesColors}
+                      dotEmojis={chartDotEmojis}
+                      height={240}
+                      yLabel={isWeightType ? prefs.weightUnit : undefined}
+                      formatY={isScaleType
+                        ? (v) => getPresetLabel(selectedType, Math.round(v))
+                        : (v) => String(Math.round(v * 10) / 10)
+                      }
+                    />
+                  </ErrorBoundary>
+                </View>
+                <FullScreenChartModal
+                  visible={chartExpanded}
+                  title="Compare"
+                  subtitle={isWeightType ? prefs.weightUnit : selectedType}
+                  onClose={() => setChartExpanded(false)}
+                >
+                  <ErrorBoundary>
+                    <LineChart
+                      data={chartData}
+                      seriesKeys={chartSeriesKeys}
+                      seriesLabels={chartSeriesLabels}
+                      seriesColors={chartSeriesColors}
+                      dotEmojis={chartDotEmojis}
+                      height={Dimensions.get('window').height * 0.7}
+                      yLabel={isWeightType ? prefs.weightUnit : undefined}
+                      formatY={isScaleType
+                        ? (v) => getPresetLabel(selectedType, Math.round(v))
+                        : (v) => String(Math.round(v * 10) / 10)
+                      }
+                    />
+                  </ErrorBoundary>
+                </FullScreenChartModal>
               </View>
             )}
 

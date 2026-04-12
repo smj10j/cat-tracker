@@ -1,6 +1,6 @@
 # PRD: Landscape Mode — Full-Screen Chart Visualization
 
-**Status:** Approved
+**Status:** Implemented (Phase A)
 **Last updated:** 2026-04-11
 
 ---

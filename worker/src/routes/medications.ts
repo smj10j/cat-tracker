@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../types'
 import { getCatRole, hasRole } from '../lib/household'
+import { localToUTC } from '../../../shared/lib/dates'
 
 const medications = new Hono<AppEnv>()
 
@@ -24,17 +25,25 @@ function frequencyToDays(frequency: string, frequencyDays: number | null): numbe
 }
 
 // Generate doses for a medication within [startDate, min(endDate, windowEnd)]
+// When timezone is provided, due_at values are converted to UTC.
+// When null (unmigrated users), due_at remains as naive local time (legacy behavior).
 export function generateDoses(
   medicationId: string,
   startDate: string,    // YYYY-MM-DD
-  reminderTime: string, // HH:MM
+  reminderTime: string, // HH:MM (user's local time)
   frequency: string,
   frequencyDays: number | null,
   endDate: string | null,
   windowEnd: string,    // YYYY-MM-DD
+  timezone: string | null = null,
 ): DoseRow[] {
   const doses: DoseRow[] = []
   const effectiveEnd = endDate && endDate < windowEnd ? endDate : windowEnd
+
+  function makeDueAt(dateStr: string, timeStr: string): string {
+    if (timezone) return localToUTC(dateStr, timeStr, timezone)
+    return `${dateStr} ${timeStr}:00`
+  }
 
   if (frequency === 'twice_daily') {
     const [hStr, mStr] = reminderTime.split(':')
@@ -44,7 +53,6 @@ export function generateDoses(
     const t1 = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
     const t2 = `${String(h2).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 
-    // Day-by-day from startDate to effectiveEnd (inclusive)
     const startMs = Date.UTC(
       parseInt(startDate.slice(0, 4), 10),
       parseInt(startDate.slice(5, 7), 10) - 1,
@@ -58,8 +66,8 @@ export function generateDoses(
     const DAY = 86400000
     for (let ms = startMs; ms <= endMs; ms += DAY) {
       const d = new Date(ms).toISOString().slice(0, 10)
-      doses.push({ medication_id: medicationId, due_at: `${d} ${t1}:00` })
-      doses.push({ medication_id: medicationId, due_at: `${d} ${t2}:00` })
+      doses.push({ medication_id: medicationId, due_at: makeDueAt(d, t1) })
+      doses.push({ medication_id: medicationId, due_at: makeDueAt(d, t2) })
     }
   } else {
     const intervalDays = frequencyToDays(frequency, frequencyDays)
@@ -79,7 +87,7 @@ export function generateDoses(
       const dueMs = startMs + n * intervalMs
       if (dueMs > endMs) break
       const d = new Date(dueMs).toISOString().slice(0, 10)
-      doses.push({ medication_id: medicationId, due_at: `${d} ${reminderTime}:00` })
+      doses.push({ medication_id: medicationId, due_at: makeDueAt(d, reminderTime) })
       n++
     }
   }
@@ -211,9 +219,12 @@ medications.post('/medications', async (c) => {
     body.refill_alert_threshold ?? null,
   ).run()
 
+  // Look up user timezone for UTC dose generation
+  const userRow = await c.env.DB.prepare('SELECT timezone FROM users WHERE id = ?').bind(userId).first<{ timezone: string | null }>()
+
   // Generate 90 days of doses
   const doses = generateDoses(id, body.start_date, reminderTime, body.frequency,
-    body.frequency_days ?? null, body.end_date ?? null, windowEnd90())
+    body.frequency_days ?? null, body.end_date ?? null, windowEnd90(), userRow?.timezone ?? null)
   await insertDoses(c.env.DB, doses)
 
   const med = await c.env.DB.prepare('SELECT * FROM medications WHERE id = ?').bind(id).first()
@@ -293,8 +304,9 @@ medications.put('/medications/:id', async (c) => {
   ).bind(id, `${todayStr} 00:00:00`).run()
 
   if (isActive) {
+    const userRow = await c.env.DB.prepare('SELECT timezone FROM users WHERE id = ?').bind(userId).first<{ timezone: string | null }>()
     const doses = generateDoses(id, startDate, reminderTime, frequency,
-      frequencyDays, endDate, windowEnd90())
+      frequencyDays, endDate, windowEnd90(), userRow?.timezone ?? null)
     const futureDoses = doses.filter(d => d.due_at >= `${todayStr} 00:00:00`)
     await insertDoses(c.env.DB, futureDoses)
   }

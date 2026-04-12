@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { View, Text, Pressable, ScrollView, Image } from 'react-native';
+import { View, Text, Pressable, ScrollView, Image, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
@@ -14,6 +14,8 @@ import { getPresetLabel } from '../../../lib/measurementPresets';
 import { catAge, formatLocalDate } from '../../../lib/dates';
 import LineChart from '../../../components/LineChart';
 import { ErrorBoundary } from '../../../components/ErrorBoundary';
+import { ChartExpandButton } from '../../../components/ChartExpandButton';
+import { FullScreenChartModal } from '../../../components/FullScreenChartModal';
 import { useThemeColors } from '../../../hooks/useThemeColors';
 import { usePreferences } from '../../../contexts/PreferencesContext';
 import {
@@ -123,6 +125,7 @@ export default function CatProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [expandedChart, setExpandedChart] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -445,18 +448,40 @@ export default function CatProfileScreen() {
                     {STATUS_EMOJI[status]} {health.summary || 'Stable'}
                   </Text>
                 )}
-                <ErrorBoundary>
-                  <LineChart
-                    data={weightMeasurements
-                      .sort((a, b) => a.measured_at.localeCompare(b.measured_at))
-                      .map(m => ({ date: new Date(m.measured_at).getTime(), value: m.value }))}
-                    seriesKeys={['value']}
-                    seriesLabels={{ value: cat.name }}
-                    seriesColors={{ value: statusColor }}
-                    height={180}
-                    yLabel={prefs.weightUnit}
-                  />
-                </ErrorBoundary>
+                <View style={{ position: 'relative' }}>
+                  <ChartExpandButton onPress={() => setExpandedChart('weight')} visible={weightMeasurements.length > 0} />
+                  <ErrorBoundary>
+                    <LineChart
+                      data={weightMeasurements
+                        .sort((a, b) => a.measured_at.localeCompare(b.measured_at))
+                        .map(m => ({ date: new Date(m.measured_at).getTime(), value: m.value }))}
+                      seriesKeys={['value']}
+                      seriesLabels={{ value: cat.name }}
+                      seriesColors={{ value: statusColor }}
+                      height={180}
+                      yLabel={prefs.weightUnit}
+                    />
+                  </ErrorBoundary>
+                </View>
+                <FullScreenChartModal
+                  visible={expandedChart === 'weight'}
+                  title={cat.name}
+                  subtitle={prefs.weightUnit}
+                  onClose={() => setExpandedChart(null)}
+                >
+                  <ErrorBoundary>
+                    <LineChart
+                      data={weightMeasurements
+                        .sort((a, b) => a.measured_at.localeCompare(b.measured_at))
+                        .map(m => ({ date: new Date(m.measured_at).getTime(), value: m.value }))}
+                      seriesKeys={['value']}
+                      seriesLabels={{ value: cat.name }}
+                      seriesColors={{ value: statusColor }}
+                      height={Dimensions.get('window').height * 0.7}
+                      yLabel={prefs.weightUnit}
+                    />
+                  </ErrorBoundary>
+                </FullScreenChartModal>
               </View>
             )}
 

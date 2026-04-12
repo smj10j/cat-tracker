@@ -44,8 +44,8 @@
 | [PRD-chart-time-navigation.md](PRD-chart-time-navigation.md) | Chart Time Range & Swipe Navigation | `Implemented` | 2026-04-11 |
 | [PRD-alert-acknowledgment.md](PRD-alert-acknowledgment.md) | Health Alert Acknowledgment | `Draft` | 2026-04-11 |
 | [PRD-behavioral-trends.md](PRD-behavioral-trends.md) | Behavioral Trend Charts | `Draft` | 2026-04-11 |
-| [PRD-localization-preferences.md](PRD-localization-preferences.md) | Localization & Regional Preferences | `Approved` | 2026-04-11 |
-| [PRD-landscape-charts.md](PRD-landscape-charts.md) | Landscape Mode — Full-Screen Chart Visualization | `Approved` | 2026-04-11 |
+| [PRD-localization-preferences.md](PRD-localization-preferences.md) | Localization & Regional Preferences | `Implemented` | 2026-04-12 |
+| [PRD-landscape-charts.md](PRD-landscape-charts.md) | Landscape Mode — Full-Screen Chart Visualization | `Implemented` | 2026-04-12 |
 | [PRD-push-notifications.md](PRD-push-notifications.md) | Push Notifications (iOS Native) | `In Progress` | 2026-04-11 |
 
 ---

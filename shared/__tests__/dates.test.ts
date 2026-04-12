@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseLocalDate, formatLocalDate, catAge } from '../lib/dates'
+import { parseLocalDate, formatLocalDate, catAge, localToUTC, utcToLocal } from '../lib/dates'
 
 describe('parseLocalDate', () => {
   it('parses date-only strings to the correct calendar day', () => {
@@ -96,5 +96,85 @@ describe('catAge', () => {
     const expectedMonths = (d.getFullYear() - 2021) * 12 + (d.getMonth() - 9) // 9 = October zero-indexed
     const expectedYears = Math.floor(expectedMonths / 12)
     expect(age).toContain(String(expectedYears))
+  })
+})
+
+describe('localToUTC', () => {
+  it('converts Eastern Standard Time correctly (UTC-5)', () => {
+    // 9:00 AM EST = 14:00 UTC (January = EST)
+    expect(localToUTC('2026-01-15', '09:00', 'America/New_York'))
+      .toBe('2026-01-15 14:00:00')
+  })
+
+  it('converts Eastern Daylight Time correctly (UTC-4)', () => {
+    // 9:00 AM EDT = 13:00 UTC (July = EDT)
+    expect(localToUTC('2026-07-15', '09:00', 'America/New_York'))
+      .toBe('2026-07-15 13:00:00')
+  })
+
+  it('handles UTC timezone as identity', () => {
+    expect(localToUTC('2026-01-15', '09:00', 'UTC'))
+      .toBe('2026-01-15 09:00:00')
+  })
+
+  it('handles positive UTC offset (Tokyo UTC+9)', () => {
+    // 9:00 AM Tokyo = 00:00 UTC same day
+    expect(localToUTC('2026-01-15', '09:00', 'Asia/Tokyo'))
+      .toBe('2026-01-15 00:00:00')
+  })
+
+  it('handles late night local rolling to next UTC day', () => {
+    // 11:00 PM New York EST = 04:00 UTC next day
+    expect(localToUTC('2026-01-15', '23:00', 'America/New_York'))
+      .toBe('2026-01-16 04:00:00')
+  })
+
+  it('handles early morning positive offset rolling to previous UTC day', () => {
+    // 2:00 AM Tokyo (UTC+9) = 5:00 PM UTC previous day
+    expect(localToUTC('2026-01-15', '02:00', 'Asia/Tokyo'))
+      .toBe('2026-01-14 17:00:00')
+  })
+
+  it('handles Pacific timezone (UTC-8 / UTC-7)', () => {
+    // 9:00 AM PST = 17:00 UTC (January = PST)
+    expect(localToUTC('2026-01-15', '09:00', 'America/Los_Angeles'))
+      .toBe('2026-01-15 17:00:00')
+    // 9:00 AM PDT = 16:00 UTC (July = PDT)
+    expect(localToUTC('2026-07-15', '09:00', 'America/Los_Angeles'))
+      .toBe('2026-07-15 16:00:00')
+  })
+})
+
+describe('utcToLocal', () => {
+  it('converts UTC to Eastern Standard Time', () => {
+    const result = utcToLocal('2026-01-15 14:00:00', 'America/New_York')
+    expect(result.date).toBe('2026-01-15')
+    expect(result.time).toBe('09:00')
+  })
+
+  it('converts UTC to Eastern Daylight Time', () => {
+    const result = utcToLocal('2026-07-15 13:00:00', 'America/New_York')
+    expect(result.date).toBe('2026-07-15')
+    expect(result.time).toBe('09:00')
+  })
+
+  it('handles UTC timezone as identity', () => {
+    const result = utcToLocal('2026-01-15 09:00:00', 'UTC')
+    expect(result.date).toBe('2026-01-15')
+    expect(result.time).toBe('09:00')
+  })
+
+  it('handles date rollover from UTC to local', () => {
+    // 04:00 UTC = 11:00 PM EST previous day
+    const result = utcToLocal('2026-01-16 04:00:00', 'America/New_York')
+    expect(result.date).toBe('2026-01-15')
+    expect(result.time).toBe('23:00')
+  })
+
+  it('roundtrips correctly through localToUTC and utcToLocal', () => {
+    const utc = localToUTC('2026-03-15', '14:00', 'America/Chicago')
+    const back = utcToLocal(utc, 'America/Chicago')
+    expect(back.date).toBe('2026-03-15')
+    expect(back.time).toBe('14:00')
   })
 })

@@ -33,12 +33,26 @@ function mockTextComponent(name: string) {
 }
 
 // Strip RN-specific props that would cause DOM warnings
+function sanitizeStyle(style: any): any {
+  if (!style || typeof style !== 'object') return style;
+  if (Array.isArray(style)) return style.map(sanitizeStyle).reduce((a: any, b: any) => ({ ...a, ...b }), {});
+  const safe: Record<string, any> = {};
+  for (const [k, v] of Object.entries(style)) {
+    // Drop Animated.Value objects and other non-primitives that crash jsdom CSS proxy
+    if (v != null && typeof v !== 'string' && typeof v !== 'number') continue;
+    safe[k] = v;
+  }
+  return safe;
+}
+
 function filterDomProps(props: Record<string, any>) {
   const domSafe: Record<string, any> = {};
   for (const [k, v] of Object.entries(props)) {
     if (typeof v === 'function' && k.startsWith('on')) {
       domSafe[k.toLowerCase()] = v;
-    } else if (['className', 'style', 'id', 'role', 'title'].includes(k)) {
+    } else if (k === 'style') {
+      domSafe[k] = sanitizeStyle(v);
+    } else if (['className', 'id', 'role', 'title'].includes(k)) {
       domSafe[k] = v;
     }
     // Drop everything else (RN-specific props like numberOfLines, etc.)
@@ -94,8 +108,13 @@ vi.mock('react-native', () => {
     Animated: {
       View: mockComponent('Animated.View'),
       Text: mockTextComponent('Animated.Text'),
-      Value: vi.fn(() => ({ interpolate: vi.fn() })),
-      timing: vi.fn(() => ({ start: vi.fn() })),
+      Value: vi.fn(() => {
+        // Return a number-like object so that style props ({opacity: animatedValue}) don't crash in jsdom
+        const val = Object.assign(Object.create(Number.prototype), { interpolate: vi.fn(), setValue: vi.fn(), _value: 0 });
+        val.valueOf = () => 0;
+        return val;
+      }),
+      timing: vi.fn(() => ({ start: vi.fn((cb?: () => void) => cb?.()) })),
       spring: vi.fn(() => ({ start: vi.fn() })),
       parallel: vi.fn(() => ({ start: vi.fn() })),
     },

@@ -365,8 +365,8 @@ auth.get('/auth/me', requireAuth, async (c) => {
   const userId = c.get('userId')
   const sessionId = c.get('sessionId')
   const user = await c.env.DB.prepare(
-    'SELECT id, email, display_name, avatar_url, oauth_provider FROM users WHERE id = ?'
-  ).bind(userId).first<{ id: string; email: string; display_name: string | null; avatar_url: string | null; oauth_provider: string }>()
+    'SELECT id, email, display_name, avatar_url, oauth_provider, timezone FROM users WHERE id = ?'
+  ).bind(userId).first<{ id: string; email: string; display_name: string | null; avatar_url: string | null; oauth_provider: string; timezone: string | null }>()
 
   if (!user) return c.json({ error: 'User not found' }, 404)
 
@@ -391,9 +391,67 @@ auth.get('/auth/me', requireAuth, async (c) => {
     display_name: user.display_name,
     avatar_url: user.avatar_url,
     oauth_provider: user.oauth_provider,
+    timezone: user.timezone,
     hasOrphanedCats: (orphaned?.count ?? 0) > 0,
     session_age_seconds,
   })
+})
+
+// PUT /api/auth/me — Update user profile (timezone, etc.)
+auth.put('/auth/me', requireAuth, async (c) => {
+  const userId = c.get('userId')
+  const body = await c.req.json<{ timezone?: string }>()
+
+  if (body.timezone) {
+    // Validate IANA timezone
+    try {
+      Intl.DateTimeFormat('en-US', { timeZone: body.timezone })
+    } catch {
+      return c.json({ error: 'Invalid timezone' }, 400)
+    }
+
+    // Check if this is the first time timezone is being set
+    const existing = await c.env.DB.prepare(
+      'SELECT timezone FROM users WHERE id = ?'
+    ).bind(userId).first<{ timezone: string | null }>()
+
+    await c.env.DB.prepare(
+      'UPDATE users SET timezone = ? WHERE id = ?'
+    ).bind(body.timezone, userId).run()
+
+    // Lazy migration: regenerate future doses when timezone is set for the first time
+    if (!existing?.timezone) {
+      const { generateDoses, insertDoses, windowEnd90 } = await import('./medications')
+      const meds = await c.env.DB.prepare(
+        `SELECT id, start_date, reminder_time, frequency, frequency_days, end_date
+         FROM medications WHERE user_id = ? AND is_active = 1`
+      ).bind(userId).all<{
+        id: string; start_date: string; reminder_time: string;
+        frequency: string; frequency_days: number | null; end_date: string | null;
+      }>()
+
+      const todayStr = new Date().toISOString().slice(0, 10)
+      for (const med of meds.results) {
+        // Delete future unadministered/unskipped doses
+        await c.env.DB.prepare(
+          `DELETE FROM medication_doses
+           WHERE medication_id = ? AND administered_at IS NULL AND skipped = 0
+             AND due_at >= ?`
+        ).bind(med.id, `${todayStr} 00:00:00`).run()
+
+        // Regenerate with UTC conversion
+        const doses = generateDoses(
+          med.id, med.start_date, med.reminder_time,
+          med.frequency, med.frequency_days, med.end_date,
+          windowEnd90(), body.timezone,
+        )
+        const futureDoses = doses.filter(d => d.due_at >= `${todayStr} 00:00:00`)
+        await insertDoses(c.env.DB, futureDoses)
+      }
+    }
+  }
+
+  return c.json({ ok: true })
 })
 
 // POST /api/auth/claim-cats

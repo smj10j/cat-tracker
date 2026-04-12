@@ -1,6 +1,6 @@
 # PRD: Localization & Regional Preferences
 
-**Status:** Approved
+**Status:** Implemented (Phase A1 + A2)
 **Last updated:** 2026-04-11
 
 ---

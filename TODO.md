@@ -7,6 +7,47 @@
 
 ---
 
+## Phase 51: Localization Preferences + Landscape Charts (2026-04-12)
+
+### Localization & Regional Preferences (PRD-localization-preferences Phase A1+A2)
+- [x] Create shared/lib/preferences.ts — types, derivation, format helpers
+- [x] Create PreferencesContext for frontend (localStorage) and app (AsyncStorage)
+- [x] Wire PreferencesProvider into App.tsx and _layout.tsx roots
+- [x] Add Regional section to SettingsPage (web) — date format, time format, weight unit
+- [x] Add Regional section to settings.tsx (native) — date format, time format, weight unit
+- [x] Migrate healthMetrics.ts: lbsChange → absoluteChange, mixed-unit normalization, displayUnit param
+- [x] Migrate frontend date/time display: CatProfile, CompareChart, CorrelationChart, useChartWindow, NotificationsPage, CatExportPage, MemorialPage
+- [x] Migrate frontend weight display: WeightChart, Home, DailyCheckin, QuickAdd, MeasurementForm
+- [x] Migrate app date/time display: compare, log, export, cat profile, memorial
+- [x] Migrate app weight display: compare, cat profile, Home, QuickAdd, MeasurementForm
+- [x] Write shared/lib/preferences tests (deriveDefaults, convertWeight, formatDate/Time/Weight)
+
+### Landscape Charts (PRD-landscape-charts Phase A)
+- [x] Create ChartExpandButton.tsx (web) — expand icon with first-time tooltip
+- [x] Create LandscapeChartOverlay.tsx (web) — React portal, full viewport, Escape/back handling
+- [x] Create FullScreenReady.tsx (web) — wrapper with render prop for fullScreen flag
+- [x] Integrate landscape into CatProfile WeightChart and MeasurementChart
+- [x] Integrate landscape into CompareChart
+- [x] Add fullScreen prop to WeightChart and MeasurementChart (responsive height)
+- [x] Create ChartExpandButton.tsx (native) — expand icon with AsyncStorage tooltip
+- [x] Create FullScreenChartModal.tsx (native) — Modal with SafeAreaView header
+- [x] Integrate native landscape into cat profile weight chart
+- [x] Integrate native landscape into compare chart
+- [x] Write FullScreenReady tests (expand, close, visibility)
+
+### Tests & Deployment
+- [x] All shared tests pass (100 tests, 5 files)
+- [x] All frontend tests pass (59 tests, 8 files)
+- [x] All worker tests pass (115 tests, 9 files)
+- [x] All app tests pass (70 tests, 5 files)
+- [x] Fix app test setup: sanitize Animated.Value in style props for jsdom
+- [x] Update REGISTRY.md: both PRDs → Implemented
+- [x] Deploy worker
+- [x] Deploy frontend
+- [x] Git commit and push
+
+---
+
 ## Phase 50: Push Notifications — iOS Native (2026-04-11)
 
 ### PRD & Documentation

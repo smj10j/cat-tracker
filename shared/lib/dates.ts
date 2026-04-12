@@ -25,6 +25,53 @@ export function formatLocalDate(dateStr: string, options?: Intl.DateTimeFormatOp
 }
 
 /**
+ * Convert a local date + time in a given IANA timezone to a UTC datetime string.
+ * Handles DST transitions correctly — each date gets the right UTC offset.
+ *
+ * @param date - 'YYYY-MM-DD'
+ * @param time - 'HH:MM'
+ * @param timezone - IANA timezone string, e.g. 'America/New_York'
+ * @returns 'YYYY-MM-DD HH:MM:00' in UTC
+ */
+export function localToUTC(date: string, time: string, timezone: string): string {
+  // Treat the input as UTC provisionally, then compute the offset to the target timezone
+  const provisional = new Date(`${date}T${time}:00Z`);
+  const utcStr = provisional.toLocaleString('en-US', { timeZone: 'UTC' });
+  const localStr = provisional.toLocaleString('en-US', { timeZone: timezone });
+  const utcMs = new Date(utcStr).getTime();
+  const localMs = new Date(localStr).getTime();
+  const offsetMs = utcMs - localMs;
+  const result = new Date(provisional.getTime() + offsetMs);
+  return result.toISOString().replace('T', ' ').slice(0, 19);
+}
+
+/**
+ * Convert a UTC datetime string to local date and time components.
+ * Used client-side for display. Falls back to device timezone if none specified.
+ *
+ * @param utcDatetime - 'YYYY-MM-DD HH:MM:00' or 'YYYY-MM-DD HH:MM:SS' (UTC, no Z suffix)
+ * @param timezone - IANA timezone string (defaults to device timezone)
+ * @returns { date: 'YYYY-MM-DD', time: 'HH:MM' } in local time
+ */
+export function utcToLocal(
+  utcDatetime: string,
+  timezone?: string,
+): { date: string; time: string } {
+  const tz = timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const d = new Date(utcDatetime.replace(' ', 'T') + 'Z');
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(d);
+  const get = (type: string) => parts.find(p => p.type === type)?.value ?? '';
+  return {
+    date: `${get('year')}-${get('month')}-${get('day')}`,
+    time: `${get('hour')}:${get('minute')}`,
+  };
+}
+
+/**
  * Calculate age from a birthdate string.
  */
 export function catAge(birthdate: string): string {

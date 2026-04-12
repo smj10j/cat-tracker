@@ -1,5 +1,5 @@
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '../hooks/useThemeColors';
 
 interface FullScreenChartModalProps {
@@ -18,17 +18,24 @@ export function FullScreenChartModal({
   children,
 }: FullScreenChartModalProps) {
   const colors = useThemeColors();
+  const insets = useSafeAreaInsets();
 
   return (
     <Modal
       visible={visible}
       animationType="fade"
-      presentationStyle="fullScreen"
+      supportedOrientations={['portrait', 'landscape']}
       onRequestClose={onClose}
     >
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.night }]}
-        edges={['top', 'bottom']}
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.night,
+            paddingTop: insets.top,
+            paddingBottom: insets.bottom,
+          },
+        ]}
       >
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: colors.rim }]}>
@@ -52,12 +59,13 @@ export function FullScreenChartModal({
             onPress={onClose}
             accessibilityLabel="Close chart"
             accessibilityRole="button"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             style={[
               styles.closeButton,
               { backgroundColor: colors.card, borderColor: colors.rim },
             ]}
           >
-            <Text style={[styles.closeIcon, { color: colors.inkMid }]}>
+            <Text style={[styles.closeIcon, { color: colors.ink }]}>
               {'\u2715'}
             </Text>
           </Pressable>
@@ -65,7 +73,7 @@ export function FullScreenChartModal({
 
         {/* Chart area */}
         <View style={styles.chartArea}>{children}</View>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 }
@@ -79,7 +87,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: 1,
   },
   headerText: {
@@ -103,8 +111,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   closeIcon: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
   },
   chartArea: {
     flex: 1,

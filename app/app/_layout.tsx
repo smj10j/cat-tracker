@@ -5,11 +5,15 @@ import { Stack, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
 import * as Notifications from 'expo-notifications';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { PreferencesProvider } from '../contexts/PreferencesContext';
 import { useThemeColors } from '../hooks/useThemeColors';
 import BottomNav from '../components/BottomNav';
+
+// Lock to portrait by default; FullScreenChartModal unlocks when open
+ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
 
 // Configure foreground notification display
 Notifications.setNotificationHandler({

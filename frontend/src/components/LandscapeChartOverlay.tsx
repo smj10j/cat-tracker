@@ -91,6 +91,7 @@ export default function LandscapeChartOverlay({ title, subtitle, onClose, childr
       role="dialog"
       aria-label={`${title} chart, full screen`}
       aria-modal="true"
+      className="animate-fade-in"
       style={{
         position: 'fixed',
         inset: 0,

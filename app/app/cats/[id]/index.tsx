@@ -17,6 +17,7 @@ import { ErrorBoundary } from '../../../components/ErrorBoundary';
 import { ChartExpandButton } from '../../../components/ChartExpandButton';
 import { FullScreenChartModal } from '../../../components/FullScreenChartModal';
 import { useThemeColors } from '../../../hooks/useThemeColors';
+import { useAutoLandscape } from '../../../hooks/useAutoLandscape';
 import { usePreferences } from '../../../contexts/PreferencesContext';
 import {
   formatTime as formatTimePref,
@@ -129,6 +130,15 @@ export default function CatProfileScreen() {
   const [error, setError] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [expandedChart, setExpandedChart] = useState<string | null>(null);
+  const [measurementFormOpen, setMeasurementFormOpen] = useState(false);
+
+  // Auto-expand chart when device rotates to landscape (Phase B)
+  useAutoLandscape({
+    isExpanded: expandedChart !== null,
+    onExpand: () => setExpandedChart(chartTab === 'weight' ? 'weight' : chartTab),
+    onCollapse: () => setExpandedChart(null),
+    enabled: !measurementFormOpen,
+  });
 
   useEffect(() => {
     if (!id) return;

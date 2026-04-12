@@ -329,6 +329,33 @@ vi.mock('expo-linear-gradient', () => ({
 }));
 
 // ---------------------------------------------------------------------------
+// Mock: expo-screen-orientation
+// ---------------------------------------------------------------------------
+vi.mock('expo-screen-orientation', () => ({
+  lockAsync: vi.fn(() => Promise.resolve()),
+  unlockAsync: vi.fn(() => Promise.resolve()),
+  addOrientationChangeListener: vi.fn(() => ({ remove: vi.fn() })),
+  Orientation: {
+    PORTRAIT_UP: 1,
+    PORTRAIT_DOWN: 2,
+    LANDSCAPE_LEFT: 3,
+    LANDSCAPE_RIGHT: 4,
+  },
+  OrientationLock: {
+    PORTRAIT_UP: 1,
+    LANDSCAPE: 6,
+    DEFAULT: 0,
+  },
+}));
+
+// ---------------------------------------------------------------------------
+// Mock: expo-localization
+// ---------------------------------------------------------------------------
+vi.mock('expo-localization', () => ({
+  getLocales: vi.fn(() => [{ languageTag: 'en-US', languageCode: 'en', regionCode: 'US' }]),
+}));
+
+// ---------------------------------------------------------------------------
 // Mock: NativeWind global CSS (no-op)
 // ---------------------------------------------------------------------------
 vi.mock('../../global.css', () => ({}));

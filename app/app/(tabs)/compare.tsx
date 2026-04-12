@@ -19,6 +19,7 @@ import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { ChartExpandButton } from '../../components/ChartExpandButton';
 import { FullScreenChartModal } from '../../components/FullScreenChartModal';
 import { useThemeColors } from '../../hooks/useThemeColors';
+import { useAutoLandscape } from '../../hooks/useAutoLandscape';
 import { usePreferences } from '../../contexts/PreferencesContext';
 import { formatDateShort, formatWeight } from '../../../shared/lib/preferences';
 
@@ -93,6 +94,13 @@ export default function CompareScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-expand chart when device rotates to landscape (Phase B)
+  useAutoLandscape({
+    isExpanded: chartExpanded,
+    onExpand: () => setChartExpanded(true),
+    onCollapse: () => setChartExpanded(false),
+  });
 
   // Apply time range filter to measurements
   const measurementsByCat = useMemo(() => {

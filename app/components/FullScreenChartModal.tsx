@@ -1,6 +1,21 @@
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useCallback } from 'react';
+import {
+  Animated,
+  Dimensions,
+  Modal,
+  PanResponder,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { useThemeColors } from '../hooks/useThemeColors';
+
+const DISMISS_EDGE = 60; // Top edge zone for swipe-down dismiss (px)
+const DISMISS_THRESHOLD = 80; // Vertical distance to trigger dismiss (px)
 
 interface FullScreenChartModalProps {
   visible: boolean;
@@ -19,24 +34,131 @@ export function FullScreenChartModal({
 }: FullScreenChartModalProps) {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
+  const isSwipingDown = useRef(false);
+
+  // Orientation lock: unlock when modal opens, lock back when it closes
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+
+    if (visible) {
+      ScreenOrientation.unlockAsync();
+    } else {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+    }
+
+    return () => {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+    };
+  }, [visible]);
+
+  // Fade-in animation on mount
+  useEffect(() => {
+    if (visible) {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      fadeAnim.setValue(0);
+      translateY.setValue(0);
+    }
+  }, [visible, fadeAnim, translateY]);
+
+  const handleClose = useCallback(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => {
+      translateY.setValue(0);
+      onClose();
+    });
+  }, [fadeAnim, translateY, onClose]);
+
+  // Swipe-down dismiss from top edge (Phase C)
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: (evt) => {
+        // Only capture if touch starts in the top edge zone
+        return evt.nativeEvent.pageY < DISMISS_EDGE + (insets.top || 0);
+      },
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        // Capture if moving downward from top edge
+        return (
+          evt.nativeEvent.pageY < DISMISS_EDGE + (insets.top || 0) + 40 &&
+          gestureState.dy > 5 &&
+          Math.abs(gestureState.dy) > Math.abs(gestureState.dx)
+        );
+      },
+      onPanResponderGrant: () => {
+        isSwipingDown.current = true;
+      },
+      onPanResponderMove: (_evt, gestureState) => {
+        if (gestureState.dy > 0) {
+          translateY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_evt, gestureState) => {
+        isSwipingDown.current = false;
+        if (gestureState.dy > DISMISS_THRESHOLD) {
+          // Dismiss
+          Animated.timing(translateY, {
+            toValue: Dimensions.get('window').height,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => {
+            translateY.setValue(0);
+            onClose();
+          });
+        } else {
+          // Snap back
+          Animated.spring(translateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 120,
+            friction: 8,
+          }).start();
+        }
+      },
+      onPanResponderTerminate: () => {
+        isSwipingDown.current = false;
+        Animated.spring(translateY, {
+          toValue: 0,
+          useNativeDriver: true,
+        }).start();
+      },
+    })
+  ).current;
 
   return (
     <Modal
       visible={visible}
-      animationType="fade"
+      animationType="none"
+      transparent
       supportedOrientations={['portrait', 'landscape']}
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
-      <View
+      <Animated.View
         style={[
           styles.container,
           {
             backgroundColor: colors.night,
             paddingTop: insets.top,
             paddingBottom: insets.bottom,
+            opacity: fadeAnim,
+            transform: [{ translateY }],
           },
         ]}
+        {...panResponder.panHandlers}
       >
+        {/* Swipe indicator bar */}
+        <View style={styles.swipeIndicatorContainer}>
+          <View style={[styles.swipeIndicator, { backgroundColor: colors.rim }]} />
+        </View>
+
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: colors.rim }]}>
           <View style={styles.headerText}>
@@ -56,7 +178,7 @@ export function FullScreenChartModal({
             )}
           </View>
           <Pressable
-            onPress={onClose}
+            onPress={handleClose}
             accessibilityLabel="Close chart"
             accessibilityRole="button"
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
@@ -73,7 +195,7 @@ export function FullScreenChartModal({
 
         {/* Chart area */}
         <View style={styles.chartArea}>{children}</View>
-      </View>
+      </Animated.View>
     </Modal>
   );
 }
@@ -81,6 +203,17 @@ export function FullScreenChartModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  swipeIndicatorContainer: {
+    alignItems: 'center',
+    paddingTop: 6,
+    paddingBottom: 2,
+  },
+  swipeIndicator: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    opacity: 0.5,
   },
   header: {
     flexDirection: 'row',

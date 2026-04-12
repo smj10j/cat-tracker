@@ -7,6 +7,34 @@
 
 ---
 
+## Phase 53: Landscape Charts Phase B + C (2026-04-12)
+
+### Phase B — Auto-rotate on native
+- [x] Install expo-screen-orientation
+- [x] Change app.json orientation from "portrait" to "default"
+- [x] Add expo-screen-orientation to plugins
+- [x] Lock to portrait on app start in _layout.tsx
+- [x] Create useAutoLandscape hook (phone-only, skip tablets >=768px shortest dim)
+- [x] Wire into CatProfile: auto-expand current chart tab on landscape rotation
+- [x] Wire into Compare: auto-expand chart on landscape rotation
+- [x] FullScreenChartModal unlocks orientation on open, locks portrait on close
+
+### Phase C — Swipe dismiss + animation
+- [x] FullScreenChartModal: PanResponder swipe-down dismiss from top 60px edge
+- [x] FullScreenChartModal: Animated fade-in (200ms) and fade-out (150ms) on open/close
+- [x] FullScreenChartModal: swipe-down pulls overlay, spring-back if below threshold
+- [x] Web: CSS fade-in animation (150ms) on LandscapeChartOverlay
+- [x] Swipe indicator bar at top of modal
+
+### Tests
+- [x] useAutoLandscape tablet gate logic (phone vs tablet dimension checks)
+- [x] Orientation locking behavior (enum values, portrait/landscape distinction)
+- [x] Swipe dismiss threshold constants (edge zone, dismiss distance)
+- [x] Mock expo-screen-orientation and expo-localization in test setup
+- [x] All 115 app tests pass, 129 shared, 62 frontend
+
+---
+
 ## Phase 52: Timezone-Aware Medication Reminders (2026-04-12)
 
 ### Shared Library

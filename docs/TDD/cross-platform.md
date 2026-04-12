@@ -56,11 +56,11 @@ React Native UI layer; shared TypeScript business logic; Expo Router targets iOS
 
 Verdict: **recommended**. Best balance of code reuse, native quality, and implementation speed.
 
-### Decision: Expo SDK 52+ + Expo Router v4 + NativeWind v4
+### Decision: Expo SDK 54 + Expo Router v6 + NativeWind v4
 
-> **Version note:** Pin to the latest stable Expo SDK at time of project init (`npx create-expo-app@latest`). SDK 52 was current when this TDD was written; use whatever is stable at implementation time. The architecture decisions below are SDK-version-independent.
+> **Version note:** The app uses Expo SDK 54 (`expo@~54.0.33`) and Expo Router v6 (`expo-router@~6.0.23`). The architecture decisions below are SDK-version-independent.
 
-- **Expo Router v4** — file-based routing (same mental model as current React Router); ships web support that generates a static site deployable to Cloudflare Pages
+- **Expo Router v6** — file-based routing (same mental model as current React Router); ships web support that generates a static site deployable to Cloudflare Pages
 - **NativeWind v4** — Tailwind utility classes in React Native via `className` prop; design tokens from the existing `tailwind.config.ts` carry over directly
 - **Victory Native XL** — Skia-based chart library; replaces Recharts; same data shapes. **Risk:** Skia WASM adds to web bundle size — measure in Phase 3 and evaluate a platform split (Victory on native, Recharts on web via `.web.tsx` / `.native.tsx` files) if the increase exceeds 500 KB
 - **EAS Build + EAS Submit** — cloud compilation and App Store / Play Store submission without local native toolchains
@@ -70,25 +70,49 @@ Verdict: **recommended**. Best balance of code reuse, native quality, and implem
 
 ## Repository Structure After Migration
 
-The `frontend/` directory is retired. An `app/` directory (the Expo project) takes its place.
+Both `frontend/` and `app/` coexist. The `frontend/` directory continues to serve the production web SPA (React + Vite, deployed to Cloudflare Pages). The `app/` directory is the Expo/React Native project serving the native iOS app. Both platforms share business logic via the `shared/` directory.
 `worker/` is untouched.
 
 ```
 cat-tracker/
+├── shared/               # Single source of truth for business logic
+│   └── lib/
+│       ├── types.ts              # Cat, Measurement, User, etc.
+│       ├── correlations.ts       # Pearson lag, detectTrend
+│       ├── healthMetrics.ts      # Weight health status thresholds
+│       ├── measurementPresets.ts # Behavioral preset labels (0-3 scale)
+│       ├── dates.ts              # Timezone-safe date parsing
+│       ├── formatting.ts         # Display formatting helpers
+│       ├── constants.ts          # Shared constants
+│       └── preferences.ts        # User preference types
+│
 ├── worker/               # Cloudflare Worker — UNCHANGED
 │   └── src/
 │       ├── index.ts
-│       ├── middleware/auth.ts   # gains Bearer token support (see Auth section)
+│       ├── middleware/auth.ts   # Bearer token + cookie dual-path auth
 │       ├── routes/
-│       │   ├── auth.ts          # gains ?mode=native path (see Auth section)
+│       │   ├── auth.ts          # ?mode=native path for native OAuth
 │       │   ├── cats.ts
 │       │   ├── measurements.ts
 │       │   ├── medications.ts
 │       │   ├── household.ts
 │       │   └── import.ts
-│       └── db/schema.sql        # gains device_tokens table (see Push Notifications)
+│       └── db/schema.sql        # includes device_tokens table (see Push Notifications)
 │
-├── app/                  # Expo project — replaces frontend/
+├── frontend/             # React + Vite SPA — serves the production web version
+│   ├── src/
+│   │   ├── pages/               # Web-specific screens (React DOM)
+│   │   ├── components/          # Web-specific components (Recharts, HTML)
+│   │   └── lib/
+│   │       ├── api.ts           # Platform-specific: cookie-based auth
+│   │       ├── correlations.ts  # Re-export: export * from '@shared/lib/correlations'
+│   │       ├── healthMetrics.ts # Re-export: export * from '@shared/lib/healthMetrics'
+│   │       ├── measurementPresets.ts # Re-export
+│   │       ├── dates.ts         # Re-export
+│   │       └── formatting.ts    # Re-export
+│   └── functions/api/[[path]].ts  # Pages proxy to Worker
+│
+├── app/                  # Expo project — native iOS app
 │   ├── app/              # Expo Router file-based routes
 │   │   ├── _layout.tsx              # Root layout: auth gate, navigation shell
 │   │   ├── (auth)/
@@ -124,11 +148,13 @@ cat-tracker/
 │   │   ├── CropModal.tsx            # expo-image-manipulator (replaces Canvas)
 │   │   └── MeasurementForm.tsx
 │   │
-│   ├── lib/               # Direct copy from frontend/src/lib/ — zero changes
-│   │   ├── api.ts                   # URL config updated; Bearer token injected
-│   │   ├── correlations.ts          # Unchanged
-│   │   ├── healthMetrics.ts         # Unchanged
-│   │   └── measurementPresets.ts   # Unchanged
+│   ├── lib/               # Re-exports from shared/ + platform-specific API client
+│   │   ├── api.ts                   # Platform-specific: Bearer token auth, native transport
+│   │   ├── correlations.ts          # Re-export: export * from '@shared/lib/correlations'
+│   │   ├── healthMetrics.ts         # Re-export: export * from '@shared/lib/healthMetrics'
+│   │   ├── measurementPresets.ts    # Re-export: export * from '@shared/lib/measurementPresets'
+│   │   ├── dates.ts                 # Re-export: export * from '@shared/lib/dates'
+│   │   └── formatting.ts            # Re-export: export * from '@shared/lib/formatting'
 │   │
 │   ├── functions/          # Cloudflare Pages Functions (web target only)
 │   │   └── api/[[path]].ts          # Same proxy as frontend/functions/api/[[path]].ts
@@ -150,6 +176,7 @@ cat-tracker/
 │   │   ├── web.md
 │   │   └── cross-platform.md  (this file)
 │   ├── PRDs/
+│   ├── research/
 │   ├── API.md
 │   ├── DESIGN.md
 │   └── SECURITY.md
@@ -162,21 +189,35 @@ cat-tracker/
 
 ## Shared Code Strategy
 
-### What is shared without modification
+### Single source of truth: `shared/lib/`
 
-| File | Why it's portable |
+All business logic lives in `shared/lib/` and is the canonical source for both platforms. Neither `frontend/src/lib/` nor `app/lib/` contain their own copies of this logic. Instead, they use one-line re-exports:
+
+```typescript
+// frontend/src/lib/formatting.ts and app/lib/formatting.ts — identical
+export * from '@shared/lib/formatting'
+```
+
+This pattern applies to: `correlations.ts`, `healthMetrics.ts`, `measurementPresets.ts`, `dates.ts`, `formatting.ts`. The `@shared` path alias is configured in each platform's `tsconfig.json`.
+
+| Shared file (`shared/lib/`) | Why it's portable |
 |---|---|
-| `lib/correlations.ts` | Pure TypeScript math — no DOM, no RN, no I/O |
-| `lib/healthMetrics.ts` | Pure TypeScript — thresholds, status logic |
-| `lib/measurementPresets.ts` | Pure TypeScript — label/value maps |
-| All TypeScript types | Interfaces, enums, API response shapes |
-| `worker/` (entire) | The backend is platform-agnostic by design |
+| `types.ts` | Interfaces (Cat, Measurement, User, etc.) — no runtime deps |
+| `correlations.ts` | Pure TypeScript math — no DOM, no RN, no I/O |
+| `healthMetrics.ts` | Pure TypeScript — thresholds, status logic |
+| `measurementPresets.ts` | Pure TypeScript — label/value maps |
+| `dates.ts` | Timezone-safe date parsing — pure TypeScript |
+| `formatting.ts` | Display formatting helpers — pure TypeScript |
+| `constants.ts` | Shared constants |
+| `preferences.ts` | User preference types |
 
-### What is shared with minor adaptation
+The `worker/` (entire) is also platform-agnostic — it serves all clients.
 
-| File | Change |
-|---|---|
-| `lib/api.ts` | Base URL: env var instead of hardcoded; Bearer token injected from `useAuth` hook instead of relying on cookies |
+### What differs by platform
+
+| File | `frontend/` (web) | `app/` (native) |
+|---|---|---|
+| `lib/api.ts` | Cookie-based auth (`credentials: 'same-origin'`); relative URLs via Pages proxy | Bearer token auth (`Authorization` header); direct Worker URL; types re-exported from `@shared/lib/types` |
 
 ### What uses Expo's platform file extension system
 
@@ -344,7 +385,7 @@ async function apiFetch(path: string, options: RequestInit = {}) {
 
 ## Navigation
 
-Expo Router v4 uses a file-based system directly analogous to React Router's declarative routes.
+Expo Router v6 uses a file-based system directly analogous to React Router's declarative routes.
 
 | Current React Router path | Expo Router file |
 |---|---|

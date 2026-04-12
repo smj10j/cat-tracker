@@ -28,7 +28,10 @@ shared/       Pure TypeScript shared between frontend/ and app/
     correlations.ts       Correlation engine (Pearson lag, detectTrend)
     healthMetrics.ts      Weight health status thresholds
     measurementPresets.ts Behavioral preset labels (0-3 scale)
-    dates.ts              Timezone-safe date parsing (parseLocalDate, catAge)
+    dates.ts              Timezone-safe date parsing (parseLocalDate, catAge, localToUTC, utcToLocal)
+    preferences.ts        Localization prefs (weight/date/time format, locale derivation)
+    formatting.ts         Display formatters (formatHour, formatNextDue, formatDueAt, groupByDay)
+    constants.ts          Validation constants (VALID_FREQUENCIES, LIMITS, ROLE_LEVEL, hasRole)
 worker/       Cloudflare Worker — Hono REST API
 frontend/     React + Vite SPA + Pages Functions proxy
 app/          Expo/React Native iOS app (Whisker Health)

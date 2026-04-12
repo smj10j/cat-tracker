@@ -10,7 +10,7 @@ which forwards to the Worker. Direct Worker calls are only used for local develo
 
 ## Authentication
 
-All endpoints except auth routes, `/api/health`, and `/api/config` require a valid session.
+All endpoints except auth routes, `/api/health`, `/api/config`, and `/api/household/invites/preview` require a valid session.
 
 **Two auth mechanisms** (Bearer token checked first, cookie fallback):
 
@@ -19,9 +19,9 @@ All endpoints except auth routes, `/api/health`, and `/api/config` require a val
 | Bearer token | `Authorization: Bearer <token>` | iOS native app |
 | Session cookie | `session=<token>` (httpOnly, Secure, SameSite=Lax) | Web frontend |
 
-Sessions have a 7-day rolling TTL (refreshed on each authenticated request), stored in D1 `sessions` table.
+Sessions have a 7-day rolling TTL (refreshed on each authenticated request), stored in D1 `sessions` table. Each user is capped at 20 concurrent sessions (oldest pruned on creation).
 
-**API Version Header:** All clients should send `X-API-Version: <semver>` on every request. The Worker stores this on the request context for version-gated responses and deprecation logging. If absent, the Worker assumes the latest version.
+**API Version Header:** All clients should send `X-API-Version: <semver>` on every request. The Worker stores this on the request context for version-gated responses and deprecation logging. If absent, the Worker assumes the latest version. If the version is below `minSupportedVersion` (from KV config), the Worker returns `426 Upgrade Required`.
 
 If the session is missing or expired, all protected routes return:
 
@@ -30,22 +30,24 @@ HTTP 401 Unauthorized
 { "error": "Unauthorized" }
 ```
 
-The `requireAuth` middleware in `worker/src/middleware/auth.ts` validates auth on every request to `/api/cats/*`, `/api/measurements/*`, `/api/import`, and other protected routes.
+The `requireAuth` middleware in `worker/src/middleware/auth.ts` validates auth on every request to `/api/cats/*`, `/api/measurements/*`, `/api/medications/*`, `/api/doses/*`, `/api/notifications`, `/api/household/*`, and `/api/import`.
 
 ---
 
 ## Authorization Model
 
-**Strict ownership:** every mutable operation verifies that the resource belongs to the authenticated user.
+### Household-based access
 
-| Operation | Condition |
-|-----------|-----------|
-| Read a cat / its measurements | `user_id = ? OR user_id IS NULL` — owned cats plus unclaimed (orphaned) cats |
-| Create a cat | Always allowed; cat is assigned `user_id` of the requester |
-| Update a cat | `user_id = ?` — **owner only** |
-| Delete a cat | `user_id = ?` — **owner only** |
-| Add a measurement | `cat.user_id = ?` — cat must be owned (not orphaned) |
-| Delete a measurement | `cat.user_id = ?` via JOIN — cat must be owned |
+Cats belong to households. Access to a cat (and its measurements, medications, doses) is determined by the user's membership role in the cat's household.
+
+| Role | Level | Capabilities |
+|------|-------|--------------|
+| `viewer` | 1 | Read cats, measurements, medications, doses |
+| `contributor` | 2 | All viewer permissions + add measurements, administer/skip doses |
+| `editor` | 3 | All contributor permissions + create/edit/delete cats, medications, photos |
+| `admin` | 4 | All editor permissions + manage household members, invite/remove users, rename household |
+
+Role checks use `getCatRole()` which resolves the user's role for a given cat via household membership, then `hasRole(role, required)` to verify the minimum required level.
 
 ### Orphaned cats
 
@@ -55,9 +57,9 @@ claimed. `POST /api/auth/claim-cats` assigns all orphaned cats to the requesting
 
 ### No cross-user access
 
-There is no admin role or cross-user data access. A user can only see cats they own (or orphaned
-cats). Attempting to read, update, or delete another user's cat returns `404 Not Found` (not `403`)
-to avoid leaking information about resource existence.
+There is no cross-user data access outside of households. Attempting to read, update, or delete
+another user's cat (outside of a shared household) returns `404 Not Found` (not `403`) to avoid
+leaking information about resource existence.
 
 ---
 
@@ -76,36 +78,115 @@ No authentication required. Returns server status.
 
 ---
 
-### Auth
+### Config
 
-#### `GET /api/auth/login?provider=google`
+#### `GET /api/config`
 
-No authentication required. Generates a random OAuth state token, stores it in the `oauth_states`
-D1 table (5-minute TTL), and redirects to Google's OAuth consent screen.
+**No auth required.** Returns server-driven runtime configuration. Cached for 5 minutes.
 
-**Why state is in D1, not a cookie:** The Pages proxy performs an opaque redirect when the Worker
-returns a `302`. Setting a cookie on that redirect response was being silently dropped by the proxy.
-Storing state server-side in D1 avoids this entirely.
+**Response 200**
+```json
+{
+  "minSupportedVersion": "1.0.0",
+  "latestVersion": "1.0.0",
+  "updateMessage": null,
+  "features": {
+    "pushNotificationsEnabled": false,
+    "appleSignInEnabled": true,
+    "streaksEnabled": false,
+    "aiNarrativeEnabled": false
+  },
+  "thresholds": null,
+  "maintenanceMode": false,
+  "maintenanceMessage": null,
+  "deprecations": null
+}
+```
 
-**Response 302** → `accounts.google.com/o/oauth2/v2/auth?...`
+**Headers:** `Cache-Control: public, max-age=300, stale-while-revalidate=600`
+
+If `deprecations` is non-null, response includes `Deprecation: true` and `Sunset: <earliest date>` headers.
+
+Config is stored in Cloudflare KV (`CONFIG_KV` namespace). If KV is empty or contains malformed data, hardcoded defaults are returned. The `thresholds` field is reserved for future server-driven health threshold overrides.
+
+**Additive-only policy:** This endpoint's response may gain new fields at any time. Clients must ignore unknown fields. Existing fields are never removed or change type without a major API version bump.
 
 ---
 
-#### `GET /api/auth/callback?code=...&state=...`
+### Auth
 
-No authentication required. Exchanges the authorization code for a Google access token, fetches
-the user's profile, upserts the user in `users`, creates a session in `sessions`, and redirects to
-`/` with a `Set-Cookie` header.
+#### `GET /api/auth/login`
 
-**Response 302** → `/` with `Set-Cookie: session=<token>; HttpOnly; Secure; SameSite=Lax`
+No authentication required. Initiates OAuth flow for Google or Apple.
 
-**Response 400** if state is missing, expired, or invalid.
+**Query params:**
+- `provider` — `google` (default) or `apple`
+- `next` — optional post-login redirect path (e.g. `/invite?token=xxx`)
+- `mode` — optional, passed through to callback (e.g. `native`)
+- `redirect_uri` — optional, app custom URL scheme for native OAuth (e.g. `whiskerhealth://auth`)
+
+Generates a random state token, stores it in D1 `oauth_states` table (5-minute TTL), and redirects to the provider's consent screen.
+
+**Response 302** → Google or Apple OAuth consent URL
+
+---
+
+#### `GET /api/auth/callback`
+
+No authentication required. **Google OAuth callback.** Exchanges the authorization code for a Google access token, fetches the user's profile, upserts the user in `users`, creates a session, and redirects.
+
+**Query params:** `code`, `state`, `mode` (optional)
+
+**Web response:** `302` → redirect path with `Set-Cookie: session=<token>`
+**Native response:** `302` → `<redirect_uri>?session=<token>` (if `native_redirect_uri` was stored with the state)
+
+**Error responses:** `302` → `/login?error=<reason>` for missing params, invalid state, token exchange failure, or profile failure.
+
+---
+
+#### `POST /api/auth/callback`
+
+No authentication required. **Apple OAuth callback** (form-encoded POST, `response_mode=form_post`).
+
+**Form body:** `id_token`, `state`, `user` (optional JSON with `name.firstName`, `name.lastName`)
+
+Verifies the Apple `id_token` JWT, upserts the user, creates a session. Apple sends the user's name only on the first authorization.
+
+**Web response:** `302` → redirect path with `Set-Cookie: session=<token>`
+**Native response:** `302` → `<redirect_uri>?session=<token>`
+
+---
+
+#### `POST /api/auth/apple-native`
+
+No authentication required. Native iOS Apple Sign In flow — receives the identity token directly from the device (no redirect dance).
+
+**Request body**
+```ts
+{
+  identityToken: string                // Apple identity JWT
+  fullName?: {                         // Only available on first auth
+    givenName?: string
+    familyName?: string
+  } | null
+}
+```
+
+Verifies the token against Apple's public keys (audience: bundle ID `me.01j.whisker`, fallback to `APPLE_SERVICE_ID`). Includes replay prevention via `apple_token_cache` table.
+
+**Response 200**
+```json
+{ "sessionId": "abc123...", "userId": "user456..." }
+```
+
+**Response 401** — invalid identity token
+**Response 409** — token already consumed (replay)
 
 ---
 
 #### `POST /api/auth/logout`
 
-**Auth required.** Deletes the current session from `sessions` and clears the session cookie.
+**Auth required.** Deletes the current session and clears the session cookie.
 
 **Response 200**
 ```json
@@ -125,74 +206,45 @@ the user's profile, upserts the user in `users`, creates a session in `sessions`
   "email": "user@example.com",
   "display_name": "Jane Smith",
   "avatar_url": "https://...",
+  "oauth_provider": "google",
+  "timezone": "America/New_York",
   "hasOrphanedCats": false,
   "session_age_seconds": 142
 }
 ```
 
-`hasOrphanedCats` is `true` when there are cats with `user_id IS NULL` in the database.
-The frontend shows a claim prompt to the user in this case.
-
-`session_age_seconds` is the age of the current session in seconds (computed from `sessions.created_at`). Used by clients to pre-flight the re-authentication check required for account deletion (SEC-11).
-
----
-
-#### `DELETE /api/auth/account`
-
-**Auth required. Re-authentication required (SEC-11).**
-
-Permanently deletes the user's account and all associated data. The requesting session must have been created within the last 5 minutes. If the session is older, returns 403 with a re-sign-in prompt.
-
-**Response 403** (session too old)
-```json
-{ "error": "Re-authentication required", "action": "re-sign-in" }
-```
-
-**Response 409** (user is sole Admin of a household)
-```json
-{ "error": "You are the only admin of household \"Johnson Family Cats\". Transfer ownership or remove other members first." }
-```
-
-**Response 200** (deletion successful)
-```json
-{ "success": true }
-```
+- `oauth_provider` — `"google"` or `"apple"`
+- `timezone` — IANA timezone string or `null` if not yet set
+- `hasOrphanedCats` — `true` when cats with `user_id IS NULL` exist in the database
+- `session_age_seconds` — age of the current session in seconds (for re-auth gate checks)
 
 ---
 
-#### `GET /api/config`
+#### `PUT /api/auth/me`
 
-**No auth required.** Returns server-driven runtime configuration. Cached for 5 minutes.
+**Auth required.** Updates the current user's profile.
 
-**Response 200**
-```json
+**Request body**
+```ts
 {
-  "minSupportedVersion": "1.0.0",
-  "latestVersion": "1.0.0",
-  "features": {
-    "pushNotificationsEnabled": false,
-    "appleSignInEnabled": true,
-    "streaksEnabled": false,
-    "aiNarrativeEnabled": false
-  },
-  "thresholds": null,
-  "maintenanceMode": false,
-  "maintenanceMessage": null
+  timezone?: string   // IANA timezone (e.g. "America/New_York")
 }
 ```
 
-**Headers:** `Cache-Control: public, max-age=300, stale-while-revalidate=600`
+Validates the timezone via `Intl.DateTimeFormat`. On first timezone set, triggers a lazy migration that regenerates all future medication doses in UTC.
 
-Config is stored in Cloudflare KV (`cat-tracker-config` namespace). If KV is empty or contains malformed data, hardcoded defaults are returned. The `thresholds` field is reserved for future server-driven health threshold overrides (PRD-api-versioning Phase B).
+**Response 200**
+```json
+{ "ok": true }
+```
 
-**Additive-only policy:** This endpoint's response may gain new fields at any time. Clients must ignore unknown fields. Existing fields are never removed or change type without a major API version bump.
+**Response 400** — invalid timezone
 
 ---
 
 #### `POST /api/auth/claim-cats`
 
-**Auth required.** Sets `user_id` on all cats where `user_id IS NULL` to the authenticated user's
-ID. Intended as a one-time migration for users who tracked cats before auth was enabled.
+**Auth required.** Sets `user_id` on all orphaned cats (`user_id IS NULL`) to the authenticated user and migrates them into the user's household.
 
 **Response 200**
 ```json
@@ -201,13 +253,110 @@ ID. Intended as a one-time migration for users who tracked cats before auth was 
 
 ---
 
+#### `DELETE /api/auth/account`
+
+**Auth required. Re-authentication required (session must be < 5 minutes old).**
+
+Permanently deletes the user's account and all associated data (cats, measurements, medications, doses, photos, sessions, device tokens, household memberships). Transfers household ownership to another admin if possible; deletes the household if no other admin exists.
+
+**Response 200**
+```json
+{ "success": true, "deleted": true }
+```
+
+**Response 403** (session too old)
+```json
+{ "error": "Re-authentication required", "action": "re-sign-in" }
+```
+
+**Response 409** (sole admin of a household)
+```json
+{
+  "error": "Cannot delete account: you are the sole admin of one or more households",
+  "households": [{ "id": "...", "name": "..." }],
+  "hint": "Transfer ownership or delete the household first"
+}
+```
+
+---
+
+#### `GET /api/auth/export`
+
+**Auth required. Rate limited to 5 per hour per user.**
+
+Full data export (GDPR Article 20, Apple requirement). Returns all user data as a JSON file download.
+
+**Response 200** — `Content-Type: application/json`, `Content-Disposition: attachment; filename="whisker-health-export-YYYY-MM-DD.json"`
+
+```ts
+{
+  exported_at: string
+  user: { id, email, display_name, avatar_url, oauth_provider, created_at }
+  cats: Cat[]
+  measurements: Measurement[]
+  medications: Medication[]
+  household_memberships: HouseholdMember[]
+}
+```
+
+**Response 429** (rate limited)
+```json
+{ "error": "You've exported your data recently. You can export again in N minutes." }
+```
+
+---
+
+#### `POST /api/auth/device-token`
+
+**Auth required.** Registers a push notification device token. Capped at 10 tokens per user (oldest pruned).
+
+**Request body**
+```ts
+{
+  token: string      // Expo push token or APNs token
+  platform: string   // "ios" | "android" | "web"
+}
+```
+
+Token format is validated: iOS accepts `ExponentPushToken[...]` or 64-char hex APNs tokens.
+
+**Response 200**
+```json
+{ "success": true }
+```
+
+**Response 400** — missing fields, invalid platform, or invalid token format
+
+---
+
+#### `DELETE /api/auth/device-token`
+
+**Auth required.** Unregisters a push notification device token.
+
+**Request body**
+```ts
+{
+  token: string
+}
+```
+
+**Response 200**
+```json
+{ "success": true }
+```
+
+---
+
 ### Cats
 
 #### `GET /api/cats`
 
-**Auth required.** Returns all cats owned by the authenticated user, ordered by name.
+**Auth required.** Returns cats accessible to the user via household membership, ordered by name.
 
-**Response 200** — array of Cat objects
+**Query params:**
+- `status` — `active` (default, excludes deceased), `memorial` (deceased only), `all`
+
+**Response 200** — array of Cat objects (includes `household_name` from JOIN)
 
 ```json
 [
@@ -220,7 +369,13 @@ ID. Intended as a one-time migration for users who tracked cats before auth was 
     "notes": null,
     "photo_url": null,
     "sex": "Female",
+    "microchip_id": "982000123456789",
+    "is_neutered": 1,
+    "deceased_at": null,
+    "memorial_note": null,
     "user_id": "user123",
+    "household_id": "hh456",
+    "household_name": "Smith Family",
     "created_at": "2024-01-01T00:00:00",
     "updated_at": "2024-01-01T00:00:00"
   }
@@ -231,71 +386,115 @@ ID. Intended as a one-time migration for users who tracked cats before auth was 
 
 #### `POST /api/cats`
 
-**Auth required.** Creates a new cat owned by the authenticated user.
+**Auth required.** Creates a new cat in the user's household.
 
 **Request body**
-```json
+```ts
 {
-  "name": "Luna",
-  "birthdate": "2020-03-15",
-  "breed": "Domestic Shorthair",
-  "coloring": "Orange tabby",
-  "notes": "Very fluffy",
-  "photo_url": null,
-  "sex": "Female"
+  name: string           // required, max 100 chars
+  birthdate: string      // required, YYYY-MM-DD
+  breed?: string | null  // max 100 chars
+  coloring?: string | null  // max 100 chars
+  notes?: string | null  // max 2000 chars
+  photo_url?: string | null
+  sex?: string | null    // "Male" | "Female" | "Unknown"
+  microchip_id?: string | null  // max 50 chars; auto-generated temp ID if omitted
+  is_neutered?: number | null   // 0 or 1
 }
 ```
 
-Required: `name`, `birthdate`. All others optional, default to `null`.
-
 **Response 201** — Cat object
-**Response 400** if `name` or `birthdate` is missing.
+**Response 400** — missing `name` or `birthdate`, or field length exceeded
+**Response 409** — microchip ID conflict with another cat
 
 ---
 
 #### `GET /api/cats/:id`
 
-**Auth required.** Returns a single cat. Accessible if the cat is owned by the user OR orphaned.
+**Auth required.** Returns a single cat. Accessible if the user has any household role for this cat.
 
-**Response 200** — Cat object
-**Response 404** if not found or belongs to another user.
+**Response 200** — Cat object (includes `household_name`)
+**Response 404** — not found or no access
 
 ---
 
 #### `PUT /api/cats/:id`
 
-**Auth required. Owner only.** Updates a cat's fields. All fields are optional; omitted fields
-retain their current values (PATCH semantics on a PUT endpoint).
+**Auth required. Editor role required.** Updates a cat's fields. All fields are optional; omitted fields retain their current values (PATCH semantics).
 
-**Request body** — same shape as POST, all fields optional
+**Request body** — same shape as POST, plus:
+```ts
+{
+  deceased_at?: string | null   // ISO date; setting marks the cat as deceased
+  memorial_note?: string | null // max 5000 chars
+}
+```
+
+When `deceased_at` is set for the first time, all medications for this cat are deactivated and pending future doses are deleted.
 
 **Response 200** — updated Cat object
-**Response 404** if not found, orphaned, or belongs to another user.
+**Response 403** — insufficient role
+**Response 404** — not found or no access
+**Response 409** — microchip ID conflict
 
 ---
 
 #### `DELETE /api/cats/:id`
 
-**Auth required. Owner only.** Deletes the cat and all its measurements. The deletion is performed
-as two explicit statements (measurements first, then cat) in addition to the FK `ON DELETE CASCADE`
-defined in the schema.
+**Auth required. Editor role required.** Deletes the cat and all its measurements. Logged to audit trail.
 
 **Response 200**
 ```json
 { "success": true }
 ```
 
-**Response 404** if not found, orphaned, or belongs to another user.
+**Response 403** — insufficient role
+**Response 404** — not found or no access
+
+---
+
+#### `POST /api/cats/:id/photo`
+
+**Auth required. Editor role required.** Uploads a cat photo to R2. Accepts multipart form data.
+
+**Request:** `Content-Type: multipart/form-data`
+- `photo` — JPEG file, max 5 MB
+
+The photo is stored at `cats/{id}/photo.jpg` in R2 (overwrites any existing photo). The cat's `photo_url` is updated with a cache-busting `?v=` timestamp.
+
+**Response 200**
+```json
+{ "photo_url": "https://pub-40305f88ebb54339b47a48224f195f92.r2.dev/cats/abc123/photo.jpg?v=1700000000000" }
+```
+
+**Response 400** — missing photo field, non-JPEG, or exceeds 5 MB
+**Response 403** — insufficient role
+**Response 404** — cat not found or no access
+
+---
+
+#### `DELETE /api/cats/:id/photo`
+
+**Auth required. Editor role required.** Deletes the cat's photo from R2 and sets `photo_url` to NULL.
+
+**Response 200**
+```json
+{ "ok": true }
+```
+
+**Response 403** — insufficient role
+**Response 404** — cat not found or no access
 
 ---
 
 ### Measurements
 
-#### `GET /api/cats/:id/measurements?type=weight`
+#### `GET /api/cats/:id/measurements`
 
-**Auth required.** Returns measurements for a cat. The `type` query param is optional; if omitted,
-all measurement types are returned. Returns only measurements for cats the user owns or that are
-orphaned.
+**Auth required.** Returns measurements for a cat. Accessible if the user has any household role for this cat.
+
+**Query params:**
+- `type` — optional filter (e.g. `weight`, `food`, `water`, `litter`, `grooming`, `activity`, `vomiting`)
 
 Measurements are ordered by `measured_at ASC`.
 
@@ -316,57 +515,42 @@ Measurements are ordered by `measured_at ASC`.
 ]
 ```
 
-**Response 404** if cat not found or belongs to another user.
+**Response 404** — cat not found or no access
 
 ---
 
 #### `POST /api/cats/:id/measurements`
 
-**Auth required. Owner only.** Adds a measurement to a cat. The cat must be owned by the
-authenticated user (not orphaned).
+**Auth required. Contributor role required.** Adds a measurement to a cat.
 
 **Request body**
-```json
+```ts
 {
-  "type": "weight",
-  "value": 9.2,
-  "unit": "lbs",
-  "measured_at": "2024-01-15T10:30:00Z",
-  "notes": "Morning before breakfast"
+  type: string         // required; one of: weight, food, water, litter, grooming, activity, vomiting
+  value: number        // required; for scale: integer 0-3; for weight: positive number <= 200
+  unit: string         // required; one of: lbs, kg, scale
+  measured_at: string  // required; ISO datetime
+  notes?: string       // max 2000 chars
 }
 ```
-
-For behavioral types, `value` is an integer 0–3 and `unit` is `"scale"`:
-```json
-{
-  "type": "litter",
-  "value": 2,
-  "unit": "scale",
-  "measured_at": "2024-01-15T08:00:00Z",
-  "notes": null
-}
-```
-
-Valid `type` values: `weight`, `food`, `water`, `litter`, `grooming`, `activity`, `vomiting`
-Required: `type`, `value`, `unit`, `measured_at`.
 
 **Response 201** — Measurement object
-**Response 400** if required fields are missing.
-**Response 404** if cat not found or is orphaned (not owned by this user).
+**Response 400** — missing fields, invalid type/unit, or value out of range
+**Response 403** — insufficient role
+**Response 404** — cat not found or no access
 
 ---
 
 #### `DELETE /api/measurements/:id`
 
-**Auth required. Owner only.** Deletes a single measurement. Verified via JOIN to ensure the
-measurement's cat is owned by the authenticated user.
+**Auth required. Contributor role required.** Deletes a single measurement. Verified via the measurement's cat to ensure household access.
 
 **Response 200**
 ```json
 { "success": true }
 ```
 
-**Response 404** if not found or measurement belongs to another user's cat.
+**Response 404** — not found or no access
 
 ---
 
@@ -375,19 +559,18 @@ measurement's cat is owned by the authenticated user.
 #### `POST /api/import`
 
 **Auth required.** Bulk-imports measurements from CSV text. Cat names are matched
-case-insensitively against the user's existing cats; new cats are created for names that don't
-match. All created/matched cats are assigned to the authenticated user.
+case-insensitively against the user's existing cats (also by microchip ID if provided); new cats are created for names that don't match.
 
-**Request body** — plain text (`text/plain`), CSV format:
+**Request body** — plain text (`text/plain`), CSV format, max 1 MB:
 
 ```
-date,cat_name,type,value,unit
+date,cat_name,type,value,unit[,microchip_id]
 1/15/2024,Luna,weight,9.2,lbs
 1/16/2024,Luna,weight,9.1,lbs
-1/15/2024,Mochi,litter,2,scale
+1/15/2024,Mochi,litter,2,scale,982000123456789
 ```
 
-Date format: `M/D/YYYY`. Header row is skipped. All five columns are required per row.
+Date format: `M/D/YYYY`. Header row is skipped. First 5 columns are required; 6th column (microchip_id) is optional.
 
 **Response 200**
 ```json
@@ -398,7 +581,438 @@ Date format: `M/D/YYYY`. Header row is skipped. All five columns are required pe
 }
 ```
 
-**Response 422** if all rows failed to parse (no valid rows, only errors).
+**Response 413** — body exceeds 1 MB
+**Response 422** — all rows failed to parse (no valid rows)
+
+---
+
+### Medications
+
+#### `GET /api/medications`
+
+**Auth required.** Returns all active medications accessible to the user via household membership.
+
+**Query params:**
+- `cat_id` — optional; filter by cat
+
+Each medication includes computed fields `next_due_at` (next pending dose) and `overdue_count` (doses past due).
+
+**Response 200** — array of Medication objects
+
+```json
+[
+  {
+    "id": "med123",
+    "cat_id": "a1b2c3d4",
+    "user_id": "user123",
+    "name": "Methimazole",
+    "type": "medication",
+    "dose": "2.5mg",
+    "frequency": "twice_daily",
+    "frequency_days": null,
+    "reminder_time": "09:00",
+    "start_date": "2024-01-01",
+    "end_date": null,
+    "doses_total": null,
+    "notes": null,
+    "is_active": 1,
+    "doses_remaining": 45,
+    "refill_alert_threshold": 10,
+    "created_at": "2024-01-01T00:00:00",
+    "updated_at": "2024-01-01T00:00:00",
+    "next_due_at": "2024-06-15 09:00:00",
+    "overdue_count": 0
+  }
+]
+```
+
+---
+
+#### `POST /api/medications`
+
+**Auth required. Editor role required (for the cat).** Creates a new medication and generates 90 days of dose records.
+
+**Request body**
+```ts
+{
+  cat_id: string          // required
+  name: string            // required, max 200 chars
+  frequency: string       // required; one of: daily, twice_daily, weekly, monthly, custom
+  start_date: string      // required; YYYY-MM-DD
+  type?: string           // default "other", max 50 chars (e.g. medication, vaccine, dental, exam, bloodwork, surgery)
+  dose?: string | null    // max 100 chars (e.g. "2.5mg")
+  frequency_days?: number | null  // required when frequency = "custom"
+  reminder_time?: string  // default "09:00"; HH:MM (user's local time)
+  end_date?: string | null
+  doses_total?: number | null
+  notes?: string | null   // max 1000 chars
+  doses_remaining?: number | null
+  refill_alert_threshold?: number | null
+}
+```
+
+Doses are generated using the user's timezone (from `users.timezone`) for UTC conversion. If no timezone is set, naive local time is used.
+
+**Response 201** — Medication object
+**Response 400** — missing required fields or invalid frequency
+**Response 403** — insufficient role
+**Response 404** — cat not found or no access
+
+---
+
+#### `GET /api/medications/:id`
+
+**Auth required.** Returns a single medication with its last 60 doses (last 30 + next 30, ordered by `due_at DESC`).
+
+**Response 200**
+```ts
+{
+  ...Medication,
+  doses: MedicationDose[]
+}
+```
+
+**Response 404** — not found or no access
+
+---
+
+#### `PUT /api/medications/:id`
+
+**Auth required. Editor role required.** Updates a medication. All fields are optional (PATCH semantics). After update, future unadministered/unskipped doses are deleted and regenerated.
+
+**Request body** — same fields as POST (all optional), plus:
+```ts
+{
+  is_active?: number  // 0 to deactivate, 1 to reactivate
+}
+```
+
+**Response 200** — updated Medication object
+**Response 403** — insufficient role
+**Response 404** — not found or no access
+
+---
+
+#### `DELETE /api/medications/:id`
+
+**Auth required. Editor role required.** Soft-deletes (archives) a medication by setting `is_active = 0`.
+
+**Response 200**
+```json
+{ "success": true }
+```
+
+**Response 403** — insufficient role
+**Response 404** — not found or no access
+
+---
+
+### Doses
+
+#### `POST /api/doses/:id/administer`
+
+**Auth required. Contributor role required.** Marks a dose as administered.
+
+**Request body**
+```ts
+{
+  administered_at?: string  // ISO datetime; defaults to now
+  notes?: string            // max 1000 chars
+}
+```
+
+**Response 200** — updated MedicationDose object
+
+```json
+{
+  "id": "dose456",
+  "medication_id": "med123",
+  "due_at": "2024-06-15 09:00:00",
+  "administered_at": "2024-06-15 09:05:00",
+  "skipped": 0,
+  "skip_reason": null,
+  "notes": "Given with food",
+  "notification_sent_at": null
+}
+```
+
+**Response 404** — dose not found or no access
+
+---
+
+#### `POST /api/doses/:id/skip`
+
+**Auth required. Contributor role required.** Marks a dose as skipped.
+
+**Request body**
+```ts
+{
+  skip_reason?: string  // max 500 chars
+}
+```
+
+**Response 200** — updated MedicationDose object (with `skipped: 1`, `administered_at: null`)
+
+**Response 404** — dose not found or no access
+
+---
+
+### Notifications
+
+#### `GET /api/notifications`
+
+**Auth required.** Returns categorized medication dose notifications for the current user across all household cats. Uses the user's timezone for date boundary calculations.
+
+**Response 200**
+```ts
+{
+  overdue: DoseNotification[]     // due_at < now, not administered, not skipped (limit 50)
+  due_today: DoseNotification[]   // due_at >= now and within today in user's timezone (limit 50)
+  upcoming: DoseNotification[]    // due tomorrow through 7 days out (limit 50)
+  refill_alerts: RefillAlert[]    // medications where doses_remaining <= refill_alert_threshold
+}
+```
+
+Each `DoseNotification` includes:
+```ts
+{
+  // medication_doses fields
+  id: string
+  medication_id: string
+  due_at: string
+  administered_at: string | null
+  skipped: number
+  // joined fields
+  med_name: string
+  dose: string | null
+  med_type: string
+  cat_name: string
+  cat_id: string
+}
+```
+
+Each `RefillAlert` includes full medication fields plus `cat_name` and `cat_id`.
+
+---
+
+### Household
+
+#### `GET /api/household/invites/preview`
+
+**No auth required.** Returns invite preview information for a pending invite token.
+
+**Query params:**
+- `token` — the invite token (required)
+
+**Response 200**
+```json
+{
+  "household_name": "Smith Family",
+  "invited_by_name": "Jane Smith",
+  "invite_email": "bob@example.com",
+  "role": "editor"
+}
+```
+
+**Response 404** — invite not found or already consumed
+**Response 410** — invite expired
+
+---
+
+#### `GET /api/household`
+
+**Auth required.** Returns the user's household details, active members, and pending invites.
+
+**Response 200**
+```ts
+{
+  household: {
+    id: string
+    name: string
+    owner_user_id: string
+    created_at: string
+  }
+  members: Array<{
+    id: string
+    user_id: string
+    role: string
+    invited_at: string
+    joined_at: string | null
+    display_name: string | null
+    email: string | null
+    avatar_url: string | null
+  }>
+  pendingInvites: Array<{
+    id: string
+    invite_email: string
+    role: string
+    invited_at: string
+    invite_expires_at: string | null
+    invited_by_name: string | null
+  }>
+  myRole: string    // viewer | contributor | editor | admin
+  isOwner: boolean
+}
+```
+
+---
+
+#### `GET /api/household/list`
+
+**Auth required.** Returns all households the user belongs to (for multi-household support).
+
+**Response 200**
+```json
+[
+  {
+    "id": "hh123",
+    "name": "Smith Family",
+    "role": "admin",
+    "is_owner": 1
+  }
+]
+```
+
+---
+
+#### `PUT /api/household`
+
+**Auth required. Admin role required.** Renames the household.
+
+**Request body**
+```ts
+{
+  name: string  // 1-100 characters
+}
+```
+
+**Response 200** — updated household object
+```json
+{ "id": "hh123", "name": "New Name", "owner_user_id": "...", "created_at": "..." }
+```
+
+**Response 400** — name empty or > 100 chars
+**Response 403** — not admin
+
+---
+
+#### `PUT /api/household/members/:userId/role`
+
+**Auth required. Admin role required.** Changes a member's role. Cannot change the owner's role, your own role, or grant a role higher than your own.
+
+**Request body**
+```ts
+{
+  role: string  // viewer | contributor | editor | admin
+}
+```
+
+**Response 200**
+```json
+{ "success": true }
+```
+
+**Response 400** — invalid role, target is owner, or targeting self
+**Response 403** — not admin, or trying to escalate above own role
+**Response 404** — member not found
+
+---
+
+#### `DELETE /api/household/members/:userId`
+
+**Auth required. Admin role required.** Removes a member from the household. Cannot remove the owner.
+
+**Response 200**
+```json
+{ "success": true }
+```
+
+**Response 400** — target is the owner
+**Response 403** — not admin
+**Response 404** — member not found (implicit)
+
+---
+
+#### `POST /api/household/invites`
+
+**Auth required. Admin role required.** Sends a household invite via email. Max 10 pending invites at a time. Cannot invite someone at a role higher than your own.
+
+**Request body**
+```ts
+{
+  email: string  // required; normalized to lowercase
+  role: string   // required; viewer | contributor | editor | admin
+}
+```
+
+Sends an invite email via Resend (non-fatal if email fails). Invite token expires in 7 days.
+
+**Response 201**
+```json
+{ "success": true, "inviteUrl": "https://cat-tracker.pages.dev/invite?token=..." }
+```
+
+**Response 400** — missing fields or invalid role
+**Response 403** — not admin, or role escalation
+**Response 409** — `already_member` or `invite_pending`
+**Response 429** — max pending invites reached
+
+---
+
+#### `DELETE /api/household/invites/:id`
+
+**Auth required. Admin role required.** Revokes a pending invite.
+
+**Response 200**
+```json
+{ "success": true }
+```
+
+**Response 403** — not admin
+**Response 404** — invite not found
+
+---
+
+#### `POST /api/household/invites/accept`
+
+**Auth required.** Accepts a household invite. The authenticated user's email must match the invite email.
+
+**Request body**
+```ts
+{
+  token: string  // the invite token
+}
+```
+
+**Response 200**
+```json
+{ "success": true, "household_id": "hh123" }
+```
+
+**Response 403** — `email_mismatch` (includes `invite_email` in response)
+**Response 404** — `invite_not_found`
+**Response 409** — `already_member`
+**Response 410** — `invite_expired`
+
+---
+
+#### `POST /api/household/invites/decline`
+
+**Auth required.** Declines a household invite.
+
+**Request body**
+```ts
+{
+  token: string
+}
+```
+
+**Response 200**
+```json
+{ "success": true }
+```
+
+**Response 404** — `invite_not_found`
 
 ---
 
@@ -413,24 +1027,47 @@ All error responses follow the same shape:
 | Status | Meaning |
 |--------|---------|
 | 400 | Bad request — missing or invalid fields |
-| 401 | Unauthenticated — no valid session cookie |
-| 404 | Not found — resource does not exist, belongs to another user, or is orphaned (for mutations) |
+| 401 | Unauthenticated — no valid session |
+| 403 | Forbidden — insufficient role or re-auth required |
+| 404 | Not found — resource does not exist or user has no access |
+| 409 | Conflict — duplicate resource (microchip ID, already member, token replay) |
+| 410 | Gone — invite expired |
+| 413 | Payload too large — import exceeds 1 MB |
 | 422 | Unprocessable — import with zero valid rows |
+| 426 | Upgrade Required — client version below `minSupportedVersion` |
+| 429 | Too Many Requests — rate limited (data export, invites) |
 | 500 | Server error |
 
 **404 vs 403:** The API returns 404 (not 403) when a resource exists but belongs to another user.
-This avoids leaking information about whether a resource exists at all.
+This avoids leaking information about whether a resource exists at all. 403 is used only for
+role-based denials within a household where the user already has some access.
 
 ---
 
 ## CORS
 
-The Worker includes a CORS middleware with `origin: '*'`. In production, this is irrelevant because
-the frontend calls `/api/*` on the same origin via the Pages proxy, so no cross-origin preflight is
-ever issued. The CORS middleware exists for local development where the Vite dev server on
-`localhost:5173` calls the Worker on `localhost:8787`. Cookie-based auth (`credentials: 'include'`)
-would require a specific origin header in production CORS, but this is moot since prod is
-same-origin.
+The Worker restricts CORS origins to:
+- `https://cat-tracker.pages.dev` (production)
+- `*.cat-tracker.pages.dev` (preview deployments)
+- `http://localhost:*` (local development)
+
+All other origins are blocked. In production, this is largely moot because the frontend calls
+`/api/*` on the same origin via the Pages proxy. The CORS middleware exists for local development
+and direct Worker URL access.
+
+---
+
+## Scheduled Tasks (Cron Trigger)
+
+The Worker runs a scheduled handler that performs:
+
+1. **Session cleanup** — deletes expired sessions
+2. **Apple token cache cleanup** — purges expired replay cache entries
+3. **Audit log pruning** — removes entries older than 90 days
+4. **Rate limit cleanup** — purges stale rate limit entries (> 2 hours)
+5. **Invite expiry** — marks expired pending invites as `removed`
+6. **Dose generation** — extends the 90-day rolling dose window for all active medications
+7. **Push notifications** — sends Expo push notifications for doses due in the current hour window; groups by (user, cat) for a single notification per cat; cleans up stale device tokens
 
 ---
 
@@ -441,8 +1078,15 @@ Defined in `worker/src/types.ts`:
 | Binding | Type | Description |
 |---------|------|-------------|
 | `DB` | D1Database | The cat-tracker-db D1 database |
+| `PHOTOS` | R2Bucket | R2 bucket for cat photos (public URL: `https://pub-40305f88ebb54339b47a48224f195f92.r2.dev`) |
+| `CONFIG_KV` | KVNamespace | KV namespace for app configuration (feature flags, thresholds, maintenance mode) |
 | `GOOGLE_CLIENT_ID` | string | Google OAuth app client ID |
 | `GOOGLE_CLIENT_SECRET` | string | Google OAuth app client secret |
 | `OAUTH_REDIRECT_BASE` | string | Base URL for OAuth redirect (e.g. `https://cat-tracker.pages.dev`) |
+| `RESEND_API_KEY` | string | Resend API key for transactional email |
+| `APPLE_SERVICE_ID` | string | Apple Sign In — Service ID registered in Apple Developer portal |
+| `APPLE_PRIVATE_KEY` | string | Apple Sign In — ES256 private key (PEM format) for generating client secrets |
+| `APPLE_TEAM_ID` | string | Apple Sign In — Team ID from Apple Developer portal |
+| `APPLE_KEY_ID` | string | Apple Sign In — Key ID for the private key |
 
 These are set as Worker secrets/env vars in the Cloudflare dashboard (not in `wrangler.toml`).

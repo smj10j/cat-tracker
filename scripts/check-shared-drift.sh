@@ -9,7 +9,7 @@ DRIFT=0
 
 echo "Checking for shared lib drift..."
 
-for f in correlations.ts healthMetrics.ts measurementPresets.ts dates.ts; do
+for f in correlations.ts healthMetrics.ts measurementPresets.ts dates.ts formatting.ts preferences.ts; do
   for dir in frontend/src/lib app/lib; do
     FILE="$dir/$f"
     if [ -f "$FILE" ]; then
@@ -22,7 +22,7 @@ for f in correlations.ts healthMetrics.ts measurementPresets.ts dates.ts; do
 done
 
 # Check that shared/lib/ files don't import from ./api (should use ./types)
-for f in shared/lib/correlations.ts shared/lib/healthMetrics.ts; do
+for f in shared/lib/correlations.ts shared/lib/healthMetrics.ts shared/lib/formatting.ts shared/lib/constants.ts; do
   if grep -q "from './api'" "$f" 2>/dev/null; then
     echo "  DRIFT: $f imports from ./api instead of ./types"
     DRIFT=1

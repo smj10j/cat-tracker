@@ -192,7 +192,7 @@ The app speaks in short, warm sentences. It knows these are cats, not patients.
 
 ## What We Will NOT Do
 
-- ❌ Light mode (the app is dark-first; a light mode can come later if truly needed)
+- ~~Light mode~~ — **Implemented.** Dark, Light, and System themes via Settings. CSS variables adapt all colors; dark remains the default.
 - ❌ Carousels or horizontal scroll lists (disorienting, adds no value here)
 - ❌ Modal dialogs that block the full screen (use bottom sheets instead)
 - ❌ Color more than 2 distinct hues on a single card

@@ -37,7 +37,7 @@ iOS App ──HTTPS──▶ Cloudflare Worker (cat-tracker-api) ←── Beare
 ## Principles
 
 ### 1. Authentication by default
-Every API route except `/api/health`, `/api/auth/login`, `/api/auth/callback`, and `/api/auth/apple-native` requires a valid session. The `requireAuth` middleware validates the session token (Bearer header or cookie) before any business logic runs. There is no "opt-in" to auth — routes are protected unless explicitly excluded.
+Every API route except `/api/health`, `/api/auth/login`, `/api/auth/callback`, `/api/auth/apple-native`, `/api/config`, and `/api/household/invites/preview` requires a valid session. The `requireAuth` middleware validates the session token (Bearer header or cookie) before any business logic runs. There is no "opt-in" to auth — routes are protected unless explicitly excluded.
 
 ### 2. Fail closed
 When in doubt, return 401 or 404. Do not expose whether a resource exists if the requester lacks access. The API returns 404 (not 403) for ownership failures to avoid leaking resource existence.

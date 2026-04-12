@@ -2,8 +2,8 @@
 
 ## Status Key
 - [ ] Not started
+- [-] In progress
 - [x] Complete
-- [x] In progress
 
 ---
 

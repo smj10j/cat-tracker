@@ -107,7 +107,9 @@ cat-tracker/
 │       ├── healthMetrics.ts      # Weight health status thresholds
 │       ├── measurementPresets.ts  # Behavioral preset labels (0-3 scale)
 │       ├── dates.ts              # Timezone-safe date parsing + UTC↔local conversion
-│       └── preferences.ts        # User preferences (date/time/weight format helpers)
+│       ├── preferences.ts        # User preferences (date/time/weight format helpers)
+│       ├── formatting.ts         # Display formatters (formatHour, formatNextDue, groupByDay)
+│       └── constants.ts          # Validation constants (VALID_FREQUENCIES, LIMITS, hasRole)
 ├── scripts/                # Deployment and utility scripts
 │   └── deploy-testflight.sh      # One-command TestFlight pipeline
 ├── keys/                   # Apple API keys (.gitignored)

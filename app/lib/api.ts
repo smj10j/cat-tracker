@@ -6,7 +6,7 @@ import * as Device from 'expo-device';
 export type {
   Cat, Measurement, User, Medication, MedicationDose, DoseWithContext,
   NotificationInbox, HouseholdMember, PendingInvite, HouseholdInfo,
-  InvitePreview, HouseholdResponse,
+  InvitePreview, HouseholdResponse, MedicationInput, HouseholdListItem, DayGroup,
 } from '@shared/lib/types';
 export { CARE_TYPE_ICONS } from '@shared/lib/types';
 
@@ -300,7 +300,7 @@ export const api = {
     } else {
       await apiFetch(`/api/doses/${doseId}/skip`, {
         method: 'POST',
-        body: JSON.stringify({ reason: skipReason ?? null }),
+        body: JSON.stringify({ skip_reason: skipReason ?? null }),
       });
     }
   },

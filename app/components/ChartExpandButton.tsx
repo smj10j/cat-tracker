@@ -87,7 +87,7 @@ export function ChartExpandButton({ onPress, visible }: ChartExpandButtonProps) 
         ]}
       >
         {/* Expand/fullscreen icon using Unicode arrows */}
-        <Text style={[styles.icon, { color: colors.inkMid }]}>&#x26F6;</Text>
+        <Text style={[styles.icon, { color: colors.inkMid }]}>{'\u26F6'}</Text>
       </Pressable>
     </View>
   );

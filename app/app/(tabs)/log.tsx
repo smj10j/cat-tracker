@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, Pressable, TextInput, ScrollView,
   KeyboardAvoidingView, Platform,
@@ -67,6 +67,7 @@ export default function LogScreen() {
     if (dateStr === today) return 'Today';
     return formatDateWithWeekday(dateStr, prefs);
   }
+  const hourScrollRef = useRef<ScrollView>(null);
   const [cats, setCats] = useState<Cat[]>([]);
   const [selectedCatId, setSelectedCatId] = useState('');
   const [date, setDate] = useState(todayLocalDate);
@@ -264,8 +265,19 @@ export default function LogScreen() {
                 />
               )}
 
-              {/* Hour selector */}
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 4 }}>
+              {/* Hour selector — auto-scrolls to current hour */}
+              <ScrollView
+                ref={hourScrollRef}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 4 }}
+                onLayout={() => {
+                  // Each pill is ~54px wide (paddingHorizontal 10 + text + gap 4)
+                  const pillWidth = 54;
+                  const offset = Math.max(0, hour * pillWidth - 100);
+                  hourScrollRef.current?.scrollTo({ x: offset, animated: false });
+                }}
+              >
                 {Array.from({ length: 24 }, (_, i) => i).map((h) => (
                   <Pressable
                     key={h}

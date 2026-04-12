@@ -58,7 +58,7 @@ export function FullScreenChartModal({
             ]}
           >
             <Text style={[styles.closeIcon, { color: colors.inkMid }]}>
-              &#x2715;
+              {'\u2715'}
             </Text>
           </Pressable>
         </View>

@@ -8,21 +8,14 @@ import type { Cat } from '../lib/api';
 import { PRESETS, PRESET_TYPES } from '../lib/measurementPresets';
 import { useThemeColors } from '../hooks/useThemeColors';
 import { usePreferences } from '../contexts/PreferencesContext';
+import { VALID_MEASUREMENT_TYPES, MEASUREMENT_TYPE_LABELS } from '@shared/lib/constants';
 
 interface Props {
   open: boolean;
   onClose: () => void;
 }
 
-const TYPE_OPTIONS = [
-  { value: 'weight',   label: 'Weight' },
-  { value: 'food',     label: 'Food' },
-  { value: 'water',    label: 'Water' },
-  { value: 'litter',   label: 'Litter Box' },
-  { value: 'grooming', label: 'Grooming' },
-  { value: 'activity', label: 'Activity' },
-  { value: 'vomiting', label: 'Vomiting' },
-];
+const TYPE_OPTIONS = VALID_MEASUREMENT_TYPES.map(value => ({ value, label: MEASUREMENT_TYPE_LABELS[value] ?? value }));
 
 export default function QuickAdd({ open, onClose }: Props) {
   const colors = useThemeColors();

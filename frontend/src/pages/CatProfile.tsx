@@ -17,14 +17,7 @@ import { catAge } from '../lib/dates'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { formatTime as fmtTime, formatWeight as fmtWeight } from '@shared/lib/preferences'
 import { groupByDay, formatFreqShort, formatNextDue } from '../lib/formatting'
-
-const BEHAVIORAL_TYPES = new Set(['grooming', 'play', 'activity', 'vomiting', 'litter'])
-
-const MEAS_TYPE_LABELS: Record<string, string> = {
-  weight: 'Weight', food: 'Food', water: 'Water',
-  grooming: 'Grooming', play: 'Play', activity: 'Activity',
-  vomiting: 'Vomiting', litter: 'Litter Box',
-}
+import { MEASUREMENT_TYPE_LABELS as MEAS_TYPE_LABELS, BEHAVIOR_CHART_TYPES as BEHAVIORAL_TYPES } from '@shared/lib/constants'
 
 type ChartTab = 'weight' | 'food' | 'water' | 'behavior' | 'all'
 type ProfileTab = 'health' | 'care' | 'about'

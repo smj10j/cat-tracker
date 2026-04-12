@@ -22,17 +22,9 @@ import { useAutoLandscape } from '../../hooks/useAutoLandscape';
 import { usePreferences } from '../../contexts/PreferencesContext';
 import { formatDateShort, formatWeight } from '../../../shared/lib/preferences';
 
-const LINE_COLORS = ['#c084fc', '#4ade80', '#f97316', '#fbbf24', '#fb923c', '#f87171'];
+import { VALID_MEASUREMENT_TYPES, MEASUREMENT_TYPE_LABELS, CHART_LINE_COLORS as LINE_COLORS } from '@shared/lib/constants';
 
-const TYPE_OPTIONS = [
-  { value: 'weight', label: 'Weight' },
-  { value: 'food', label: 'Food' },
-  { value: 'water', label: 'Water' },
-  { value: 'litter', label: 'Litter Box' },
-  { value: 'grooming', label: 'Grooming' },
-  { value: 'activity', label: 'Activity' },
-  { value: 'vomiting', label: 'Vomiting' },
-];
+const TYPE_OPTIONS = VALID_MEASUREMENT_TYPES.map(value => ({ value, label: MEASUREMENT_TYPE_LABELS[value] ?? value }));
 
 type TimeRange = '1W' | '1M' | '3M' | '6M' | '1Y' | 'All';
 

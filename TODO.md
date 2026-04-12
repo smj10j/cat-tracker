@@ -7,6 +7,40 @@
 
 ---
 
+## Phase 56: Cross-Platform Constant & Helper Deduplication (2026-04-12)
+
+### Group 1 — Measurement type constants → shared/lib/constants.ts
+- [x] Add MEASUREMENT_TYPE_LABELS, MEASUREMENT_TYPE_LABELS_LONG, BEHAVIORAL_TYPES, BEHAVIORAL_TYPE_SET, BEHAVIOR_CHART_TYPES to shared
+- [x] Replace TYPE_OPTIONS in 6 files (MeasurementForm, QuickAdd, CompareChart × 2 platforms)
+- [x] Replace MEAS_TYPE_LABELS in CatProfile + app index
+- [x] Replace BEHAVIORAL_TYPES in DailyCheckin, log.tsx, CatProfile, app index
+
+### Group 2 — Medication form label maps → shared/lib/medicationPresets.ts
+- [x] Add MEDICATION_FREQ_LABELS, MEDICATION_TYPE_LABELS to shared
+- [x] Replace local copies in MedicationFormPage + care-item
+
+### Group 3 — roundToHour → shared/lib/formatting.ts
+- [x] Add roundToHour to shared, replace in care-item + MedicationFormPage + features.test
+
+### Group 4 — toLocalDatetimeString → shared/lib/formatting.ts
+- [x] Move to shared, import in QuickAdd
+
+### Group 5 — Chart LINE_COLORS → shared/lib/constants.ts
+- [x] Add CHART_LINE_COLORS to shared, replace in 3 files
+
+### Group 6 — WeightUnit type consistency
+- [x] Use WeightUnit type in app log.tsx
+
+### Group 7 — Dead import cleanup
+- [x] No unused imports found (formatDateShort is still used)
+
+### Verification
+- [x] All 4 test suites pass (shared 244, frontend 62, worker 151, app 115)
+- [x] tsc --noEmit clean
+- [x] Grep confirms zero orphaned copies
+
+---
+
 ## Phase 55: Deduplicate Remaining Cross-Platform Code (2026-04-12)
 
 ### Step 1 — Extract medication presets to shared

@@ -14,17 +14,9 @@ import ChartRangeSelector from '../components/ChartRangeSelector'
 import SwipeableChart from '../components/SwipeableChart'
 import FullScreenReady from '../components/FullScreenReady'
 
-const LINE_COLORS = ['#c084fc', '#fb923c', '#60a5fa', '#f472b6', '#34d399', '#fbbf24']
+import { VALID_MEASUREMENT_TYPES, MEASUREMENT_TYPE_LABELS, CHART_LINE_COLORS as LINE_COLORS } from '@shared/lib/constants'
 
-const TYPE_OPTIONS = [
-  { value: 'weight',   label: 'Weight' },
-  { value: 'food',     label: 'Food' },
-  { value: 'water',    label: 'Water' },
-  { value: 'litter',   label: 'Litter Box' },
-  { value: 'grooming', label: 'Grooming' },
-  { value: 'activity', label: 'Activity' },
-  { value: 'vomiting', label: 'Vomiting' },
-]
+const TYPE_OPTIONS = VALID_MEASUREMENT_TYPES.map(value => ({ value, label: MEASUREMENT_TYPE_LABELS[value] ?? value }))
 
 type ChartRow = { date: string; rawDate: string; [catName: string]: string | number | null }
 

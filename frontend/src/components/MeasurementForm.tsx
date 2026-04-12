@@ -3,21 +3,14 @@ import { createMeasurement, type Measurement } from '../lib/api'
 import { PRESETS, PRESET_TYPES } from '../lib/measurementPresets'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { todayLocalDate, formatHour, buildMeasuredAt, currentHour } from '../lib/formatting'
+import { VALID_MEASUREMENT_TYPES, MEASUREMENT_TYPE_LABELS_LONG } from '@shared/lib/constants'
 
 interface Props {
   catId: string
   onAdded: (m: Measurement) => void
 }
 
-const TYPE_OPTIONS = [
-  { value: 'weight',   label: 'Weight' },
-  { value: 'food',     label: 'Food Intake' },
-  { value: 'water',    label: 'Water Intake' },
-  { value: 'litter',   label: 'Litter Box' },
-  { value: 'grooming', label: 'Grooming' },
-  { value: 'activity', label: 'Activity' },
-  { value: 'vomiting', label: 'Vomiting' },
-]
+const TYPE_OPTIONS = VALID_MEASUREMENT_TYPES.map(value => ({ value, label: MEASUREMENT_TYPE_LABELS_LONG[value] ?? value }))
 
 export default function MeasurementForm({ catId, onAdded }: Props) {
   const { prefs } = usePreferences()

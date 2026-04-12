@@ -36,7 +36,7 @@ import Svg, {
   Rect,
 } from 'react-native-svg';
 
-const LINE_COLORS = ['#c084fc', '#4ade80', '#f97316', '#fbbf24', '#fb923c', '#f87171'];
+import { CHART_LINE_COLORS as LINE_COLORS } from '@shared/lib/constants';
 
 export interface ChartDataPoint {
   date: number; // timestamp ms
@@ -550,4 +550,4 @@ export default function LineChart({
   );
 }
 
-export { LINE_COLORS };
+export { CHART_LINE_COLORS as LINE_COLORS } from '@shared/lib/constants';

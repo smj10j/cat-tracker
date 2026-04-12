@@ -21,41 +21,17 @@ import { formatHour } from '../../../lib/formatting';
 import {
   MEDICATION_PRESETS as PRESETS,
   MEDICATION_PRESET_CATEGORIES as PRESET_CATEGORIES,
+  MEDICATION_FREQ_LABELS,
+  MEDICATION_TYPE_LABELS,
   formatFrequencyLabel,
   type MedicationPreset as Preset,
 } from '../../../lib/medicationPresets';
 import { parseDate, formatDateStr as formatDate } from '../../../lib/dateHelpers';
 
-const FREQ_OPTIONS: { value: string; label: string }[] = [
-  { value: 'daily', label: 'Daily' },
-  { value: 'twice_daily', label: 'Twice daily' },
-  { value: 'weekly', label: 'Weekly' },
-  { value: 'monthly', label: 'Monthly' },
-  { value: 'custom', label: 'Custom interval' },
-];
+const FREQ_OPTIONS = Object.entries(MEDICATION_FREQ_LABELS).map(([value, label]) => ({ value, label }));
+const TYPE_OPTIONS = Object.entries(MEDICATION_TYPE_LABELS).map(([value, label]) => ({ value, label }));
 
-const TYPE_OPTIONS: { value: string; label: string }[] = [
-  { value: 'flea', label: 'Flea/Tick' },
-  { value: 'heartworm', label: 'Heartworm' },
-  { value: 'pill', label: 'Oral med' },
-  { value: 'vaccine', label: 'Vaccine' },
-  { value: 'supplement', label: 'Supplement' },
-  { value: 'dental', label: 'Dental' },
-  { value: 'exam', label: 'Vet exam' },
-  { value: 'bloodwork', label: 'Bloodwork' },
-  { value: 'surgery', label: 'Surgery' },
-  { value: 'other', label: 'Other' },
-];
-
-import { todayLocalDate } from '../../../lib/formatting';
-
-function roundToHour(time: string): string {
-  const parts = time.split(':');
-  const hour = parseInt(parts[0] ?? '9', 10);
-  const min = parseInt(parts[1] ?? '0', 10);
-  const rounded = min >= 30 ? (hour + 1) % 24 : hour;
-  return `${String(rounded).padStart(2, '0')}:00`;
-}
+import { todayLocalDate, roundToHour } from '../../../lib/formatting';
 
 export default function CareItemScreen() {
   const colors = useThemeColors();

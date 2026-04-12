@@ -12,17 +12,10 @@ import { useThemeColors } from '../../hooks/useThemeColors';
 import { usePreferences } from '../../contexts/PreferencesContext';
 import { todayLocalDate, buildMeasuredAt, formatHour, formatDayLabel, currentHour } from '../../lib/formatting';
 import { parseDate, formatDateStr } from '../../lib/dateHelpers';
+import { BEHAVIORAL_TYPES } from '@shared/lib/constants';
+import type { WeightUnit } from '@shared/lib/preferences';
 
 type Selections = Partial<Record<string, number>>;
-
-const BEHAVIORAL_TYPES = [
-  { key: 'food',     label: 'Food' },
-  { key: 'water',    label: 'Water' },
-  { key: 'litter',   label: 'Litter' },
-  { key: 'grooming', label: 'Grooming' },
-  { key: 'activity', label: 'Activity' },
-  { key: 'vomiting', label: 'Vomiting' },
-] as const;
 
 export default function LogScreen() {
   const colors = useThemeColors();
@@ -35,7 +28,7 @@ export default function LogScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [hour, setHour] = useState(currentHour);
   const [weightValue, setWeightValue] = useState('');
-  const [weightUnit, setWeightUnit] = useState<'lbs' | 'kg'>(prefs.weightUnit);
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>(prefs.weightUnit);
   const [selections, setSelections] = useState<Selections>({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);

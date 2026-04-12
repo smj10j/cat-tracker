@@ -11,6 +11,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { localToUTC, utcToLocal } from '../../shared/lib/dates';
+import { roundToHour } from '../../shared/lib/formatting';
 
 // ---------------------------------------------------------------------------
 // Push notification registration
@@ -89,14 +90,6 @@ describe('Hour-only reminder time formatting', () => {
     if (hour < 12) return `${hour}:00 AM`;
     if (hour === 12) return '12:00 PM';
     return `${hour - 12}:00 PM`;
-  }
-
-  function roundToHour(time: string): string {
-    const parts = time.split(':');
-    const hour = parseInt(parts[0] ?? '9', 10);
-    const min = parseInt(parts[1] ?? '0', 10);
-    const rounded = min >= 30 ? (hour + 1) % 24 : hour;
-    return `${String(rounded).padStart(2, '0')}:00`;
   }
 
   it('formats midnight as 12:00 AM', () => {

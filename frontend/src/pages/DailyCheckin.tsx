@@ -5,17 +5,9 @@ import { PRESETS } from '../lib/measurementPresets'
 import { usePreferences } from '../contexts/PreferencesContext'
 import type { WeightUnit } from '@shared/lib/preferences'
 import { todayLocalDate, buildMeasuredAt, formatHour, currentHour } from '../lib/formatting'
+import { BEHAVIORAL_TYPES } from '@shared/lib/constants'
 
 type Selections = Partial<Record<string, number>>
-
-const BEHAVIORAL_TYPES = [
-  { key: 'food',     label: 'Food' },
-  { key: 'water',    label: 'Water' },
-  { key: 'litter',   label: 'Litter' },
-  { key: 'grooming', label: 'Grooming' },
-  { key: 'activity', label: 'Activity' },
-  { key: 'vomiting', label: 'Vomiting' },
-] as const
 
 export default function DailyCheckin() {
   const goBack = useGoBack('/')

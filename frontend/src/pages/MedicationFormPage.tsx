@@ -9,30 +9,28 @@ import { usePreferences } from '../contexts/PreferencesContext'
 import {
   MEDICATION_PRESETS as PRESETS,
   MEDICATION_PRESET_CATEGORIES as PRESET_CATEGORIES,
+  MEDICATION_FREQ_LABELS,
+  MEDICATION_TYPE_LABELS,
   formatFrequencyLabel,
   type MedicationPreset as Preset,
 } from '../lib/medicationPresets'
-import { todayLocalDate } from '../lib/formatting'
+import { todayLocalDate, roundToHour } from '../lib/formatting'
 
+// Extended labels for web where there's room for longer text
 const FREQ_LABELS: Record<string, string> = {
-  daily: 'Daily',
+  ...MEDICATION_FREQ_LABELS,
   twice_daily: 'Twice daily (every 12h)',
-  weekly: 'Weekly',
-  monthly: 'Monthly',
-  custom: 'Custom interval',
 }
 
 const TYPE_LABELS: Record<string, string> = {
+  ...MEDICATION_TYPE_LABELS,
   flea: 'Flea/Tick prevention',
   heartworm: 'Heartworm prevention',
   pill: 'Pill / Oral medication',
-  vaccine: 'Vaccine',
-  supplement: 'Supplement',
   dental: 'Dental cleaning',
   exam: 'Vet exam / Checkup',
   bloodwork: 'Bloodwork / Lab work',
   surgery: 'Surgery / Procedure',
-  other: 'Other',
 }
 
 // ---------------------------------------------------------------------------
@@ -81,11 +79,7 @@ export default function MedicationFormPage() {
           setDose(med.dose ?? '')
           setFrequency(med.frequency)
           setFrequencyDays(String(med.frequency_days ?? 30))
-          const rt = med.reminder_time
-          const h = parseInt(rt.split(':')[0] ?? '9', 10)
-          const m = parseInt(rt.split(':')[1] ?? '0', 10)
-          const rounded = m >= 30 ? (h + 1) % 24 : h
-          setReminderTime(`${String(rounded).padStart(2, '0')}:00`)
+          setReminderTime(roundToHour(med.reminder_time))
           setStartDate(med.start_date)
           setEndDate(med.end_date ?? '')
           setDosesTotal(med.doses_total != null ? String(med.doses_total) : '')

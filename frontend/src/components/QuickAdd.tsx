@@ -2,26 +2,15 @@ import { useEffect, useRef, useState } from 'react'
 import { createMeasurement, getCats, type Cat } from '../lib/api'
 import { PRESETS, PRESET_TYPES } from '../lib/measurementPresets'
 import { usePreferences } from '../contexts/PreferencesContext'
+import { toLocalDatetimeString } from '../lib/formatting'
+import { VALID_MEASUREMENT_TYPES, MEASUREMENT_TYPE_LABELS } from '@shared/lib/constants'
 
 interface Props {
   open: boolean
   onClose: () => void
 }
 
-function toLocalDatetimeString(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
-const TYPE_OPTIONS = [
-  { value: 'weight',   label: 'Weight' },
-  { value: 'food',     label: 'Food' },
-  { value: 'water',    label: 'Water' },
-  { value: 'litter',   label: 'Litter Box' },
-  { value: 'grooming', label: 'Grooming' },
-  { value: 'activity', label: 'Activity' },
-  { value: 'vomiting', label: 'Vomiting' },
-]
+const TYPE_OPTIONS = VALID_MEASUREMENT_TYPES.map(value => ({ value, label: MEASUREMENT_TYPE_LABELS[value] ?? value }))
 
 export default function QuickAdd({ open, onClose }: Props) {
   const { prefs } = usePreferences()

@@ -45,6 +45,29 @@ export const MEDICATION_PRESETS: MedicationPreset[] = [
 
 export const MEDICATION_PRESET_CATEGORIES = ['Prevention', 'Medication', 'Supplement', 'Vet']
 
+/** Display labels for medication frequencies (used in form selectors) */
+export const MEDICATION_FREQ_LABELS: Record<string, string> = {
+  daily: 'Daily',
+  twice_daily: 'Twice daily',
+  weekly: 'Weekly',
+  monthly: 'Monthly',
+  custom: 'Custom interval',
+}
+
+/** Display labels for medication/care types (used in form selectors) */
+export const MEDICATION_TYPE_LABELS: Record<string, string> = {
+  flea: 'Flea/Tick',
+  heartworm: 'Heartworm',
+  pill: 'Oral med',
+  vaccine: 'Vaccine',
+  supplement: 'Supplement',
+  dental: 'Dental',
+  exam: 'Vet exam',
+  bloodwork: 'Bloodwork',
+  surgery: 'Surgery',
+  other: 'Other',
+}
+
 /**
  * Format a medication frequency for long/human-readable display.
  * e.g. "Daily", "Twice daily", "Yearly", "Every 3 years", "Every 12 weeks"

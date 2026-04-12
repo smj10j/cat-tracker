@@ -38,6 +38,25 @@ export function currentHour(): number {
 }
 
 /**
+ * Round a time string "HH:MM" to the nearest hour (rounds up at 30+ minutes).
+ */
+export function roundToHour(time: string): string {
+  const parts = time.split(':')
+  const hour = parseInt(parts[0] ?? '9', 10)
+  const min = parseInt(parts[1] ?? '0', 10)
+  const rounded = min >= 30 ? (hour + 1) % 24 : hour
+  return `${String(rounded).padStart(2, '0')}:00`
+}
+
+/**
+ * Format a Date as a local datetime string for datetime-local inputs ("YYYY-MM-DDTHH:MM").
+ */
+export function toLocalDatetimeString(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+/**
  * Build an ISO timestamp from a local date string and hour number.
  */
 export function buildMeasuredAt(localDate: string, hour: number): string {

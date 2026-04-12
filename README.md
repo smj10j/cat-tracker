@@ -12,20 +12,26 @@ A cat health tracking app built on Cloudflare's free tier. Log weight, food, wat
 
 - Add and manage multiple cats with profiles (name, birthdate, breed, sex, neuter status, microchip ID, photos)
 - Log multiple measurement types: weight, food, water, litter box, grooming, activity, vomiting
-- **Daily Check-In** — log all measurement types for a cat in one screen
+- **Daily Check-In** — log all measurement types for a cat in one screen, with date picker for past days
 - **QuickAdd bottom sheet** — tap the center nav button to log any measurement in 2 taps
 - **One-tap behavioral presets** — litter, grooming, activity, and vomiting use simple preset buttons
 - **Correlation engine** — detects patterns across measurement types (e.g., food drop → weight loss)
 - **Health status indicators** (✅👀⚠️🚨) on chart dots and cat cards, based on feline veterinary thresholds
-- **Vet Export** — print-ready PDF with weight history, behavioral trends, and clinical observations
-- **Medication & care schedule** with notification inbox
+- **Weight alert tuning** — noise floor calibrated for home scale accuracy (1.5% relative or 0.2 lbs absolute) to reduce false positives
+- **Chart time ranges** — 1W / 1M / 3M / 6M / 1Y / All presets with swipe navigation on all charts
+- **Vet Export** — print-ready summary with weight history, behavioral trends, and clinical observations
+- **Medication & care schedule** with in-app notification inbox and hourly reminder time granularity
+- **Push notifications** — iOS medication reminders via Expo Push API, delivered by an hourly Cloudflare Worker cron
+- **Timezone-aware reminders** — medication doses stored in UTC, displayed in the user's local time; DST transitions handled automatically
 - **Household sharing** — invite family members with role-based access (Viewer/Contributor/Editor/Admin)
 - **In Memoriam** — gentle way to mark a cat as deceased while preserving their health records
 - **Wellness Guide** with AAFP/WSAVA/ISFM-sourced health reference
+- **Localization** — date format (MM/DD, DD/MM, YYYY-MM), time format (12h/24h), and weight unit (lbs/kg) preferences
 - CSV import for bulk data entry
 - PWA — installable on home screen
 - **Google + Apple sign-in** — session-based auth with httpOnly cookies (web) or Bearer tokens (native)
 - **Account deletion** and **full data export** (GDPR/CCPA compliance)
+- **Persistent bottom navigation** on iOS — visible on every authenticated screen
 
 ---
 
@@ -62,8 +68,10 @@ cat-tracker/
 │   │   │   └── import.ts         # POST /api/import (CSV bulk insert)
 │   │   ├── lib/
 │   │   │   ├── apple-auth.ts     # Apple Sign In JWT verification + client secret generation
+│   │   │   ├── audit.ts          # Audit log helper
 │   │   │   ├── email.ts          # Transactional email via Resend
-│   │   │   └── household.ts      # Household creation helper
+│   │   │   ├── household.ts      # Household creation helper
+│   │   │   └── push.ts           # Expo Push API helper (batch send, stale token cleanup)
 │   │   └── db/schema.sql         # D1 schema
 │   ├── wrangler.toml
 │   └── package.json
@@ -82,12 +90,25 @@ cat-tracker/
 │   │   ├── settings.tsx          # Account settings, deletion, data export
 │   │   ├── privacy.tsx           # Privacy policy
 │   │   └── ...                   # All other screens
-│   ├── components/               # React Native UI components
-│   ├── contexts/AuthContext.tsx   # Dual-path auth (SecureStore + cookies)
+│   ├── components/               # React Native UI components (BottomNav, LineChart, etc.)
+│   ├── contexts/
+│   │   ├── AuthContext.tsx       # Dual-path auth + push token registration + timezone sync
+│   │   ├── ThemeContext.tsx      # Dark/light/system theme
+│   │   └── PreferencesContext.tsx # Regional preferences (date, time, weight unit)
 │   ├── lib/                      # Shared TS: api, correlations, healthMetrics
 │   ├── assets/store/             # App Store metadata (description, keywords, screenshots)
 │   ├── app.json                  # Expo config (bundle ID, permissions, plugins)
 │   └── eas.json                  # EAS Build/Submit profiles
+├── shared/                 # Pure TypeScript shared between frontend/ and app/
+│   └── lib/
+│       ├── types.ts              # Shared interfaces (Cat, Measurement, User, etc.)
+│       ├── correlations.ts       # Correlation engine (Pearson lag, detectTrend)
+│       ├── healthMetrics.ts      # Weight health status thresholds
+│       ├── measurementPresets.ts  # Behavioral preset labels (0-3 scale)
+│       ├── dates.ts              # Timezone-safe date parsing + UTC↔local conversion
+│       └── preferences.ts        # User preferences (date/time/weight format helpers)
+├── scripts/                # Deployment and utility scripts
+│   └── deploy-testflight.sh      # One-command TestFlight pipeline
 ├── keys/                   # Apple API keys (.gitignored)
 ├── TODO.md
 ├── CLAUDE.md
@@ -106,10 +127,11 @@ cat-tracker/
 | Database | Cloudflare D1 (SQLite-compatible) |
 | Object Storage | Cloudflare R2 (cat photos) |
 | Email | Resend (transactional email for household invites) |
+| Push notifications | Expo Push API (iOS) — hourly cron delivery via Cloudflare Workers |
 | Auth | Google OAuth + Apple Sign In |
 | Hosting | Cloudflare Pages (web) + Workers (API) + EAS Build (iOS) |
 
-Everything runs on Cloudflare's **free tier** + Apple Developer Program ($99/year for iOS).
+Everything runs on Cloudflare's **free tier** (including hourly cron) + Apple Developer Program ($99/year for iOS).
 
 ---
 
@@ -278,11 +300,11 @@ cd worker && npm run db:migrate:remote
 ## Testing
 
 ```bash
-# Worker tests (82 tests)
-cd worker && npm test
-
-# Frontend tests (85 tests)
-cd frontend && npm test
+# All test suites
+cd shared && npm test     # 129 tests (correlations, health metrics, dates, preferences)
+cd worker && npm test     # 138 tests (routes, push, household, security)
+cd app && npm test        # 106 tests (screen smoke, features, bottomNav, line charts)
+cd frontend && npm test   #  62 tests (components, pages, contexts, health metrics)
 ```
 
 See [`docs/TESTING.md`](docs/TESTING.md) for strategy and infrastructure details.
@@ -325,12 +347,14 @@ Native apps store session tokens in iOS Keychain via `expo-secure-store` and sen
 
 | Status | Emoji | Trigger |
 |--------|-------|---------|
-| Stable | ✅ | < 0.5%/week change |
-| Watch | 👀 | 0.5–1%/week loss, or rapid gain > 1.5%/week |
-| Concerning | ⚠️ | 1–2%/week loss, or > 7% total loss from peak |
+| Stable | ✅ | Change below noise floor (1.5% relative or 0.2 lbs absolute) |
+| Watch | 👀 | 0.75–1.5%/week loss, or rapid gain > 2%/week, or 4–7% total loss from peak |
+| Concerning | ⚠️ | 1.5–2%/week loss, or gain > 3%/week, or 7–10% total loss from peak |
 | Urgent | 🚨 | > 2%/week loss, or > 10% total loss from peak |
 
-Thresholds follow [AAFP](https://aafponline.org) and [WSAVA](https://wsava.org) feline nutritional guidelines. Full citations in [`docs/research/`](docs/research/).
+Thresholds are calibrated for **home scale accuracy** — consumer pet scales have ~0.1–0.2 lbs precision, and normal daily fluctuation is 1–3% of body weight. The noise floor prevents false alerts from scale jitter and normal biological variation. Escalation to Watch/Concerning/Urgent requires consecutive periods of sustained change (not single data points).
+
+Thresholds follow [AAFP](https://aafponline.org) and [WSAVA](https://wsava.org) feline nutritional guidelines. Full citations and sourcing standards in [`docs/research/`](docs/research/).
 
 ---
 

@@ -1,13 +1,76 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import {
+  ComposedChart, Line, XAxis, YAxis, ResponsiveContainer,
+} from 'recharts'
 import type { Cat, Measurement } from '../lib/api'
 import { STATUS_COLORS } from '../lib/healthMetrics'
 import type { HealthAssessment } from '../lib/healthMetrics'
-import { detectCorrelations, describeCorrelation, detectConfluence } from '../lib/correlations'
+import { detectCorrelations, describeCorrelation, detectConfluence, bucketByWeek, normalize } from '../lib/correlations'
+import type { CorrelationResult } from '../lib/correlations'
 import CorrelationChart from './CorrelationChart'
 
 const STATUS_ICON: Record<string, string> = {
   watch: '👀', concerning: '⚠️', urgent: '🚨',
+}
+
+const MEAS_LABELS: Record<string, string> = {
+  weight: 'Weight', food: 'Food', water: 'Water',
+  grooming: 'Grooming', play: 'Play', activity: 'Activity',
+  vomiting: 'Vomiting', litter: 'Litter Box',
+}
+
+function buildSparklineData(
+  measA: Measurement[], measB: Measurement[], typeA: string, typeB: string,
+): { week: string; a: number | null; b: number | null }[] {
+  const bucketsA = bucketByWeek(measA)
+  const bucketsB = bucketByWeek(measB)
+  const normA = normalize(bucketsA.map(b => b.value))
+  const normB = normalize(bucketsB.map(b => b.value))
+  const mapA = new Map(bucketsA.map((b, i) => [b.weekKey, normA[i] ?? 0.5]))
+  const mapB = new Map(bucketsB.map((b, i) => [b.weekKey, normB[i] ?? 0.5]))
+  const allWeeks = [...new Set([...bucketsA.map(b => b.weekKey), ...bucketsB.map(b => b.weekKey)])].sort()
+  return allWeeks.map(week => ({
+    week,
+    a: mapA.has(week) ? mapA.get(week)! : null,
+    b: mapB.has(week) ? mapB.get(week)! : null,
+  }))
+}
+
+function MiniSparkline({ correlation, measurementsByType }: {
+  correlation: CorrelationResult
+  measurementsByType: Record<string, Measurement[]>
+}) {
+  const { typeA, typeB } = correlation
+  const data = useMemo(
+    () => buildSparklineData(measurementsByType[typeA] ?? [], measurementsByType[typeB] ?? [], typeA, typeB),
+    [measurementsByType, typeA, typeB],
+  )
+  if (data.length < 2) return null
+  const labelA = MEAS_LABELS[typeA] ?? typeA
+  const labelB = MEAS_LABELS[typeB] ?? typeB
+  return (
+    <div className="mt-2 rounded-xl p-3" style={{ background: 'var(--color-card)', border: '1px solid var(--color-rim)' }}>
+      <div className="flex items-center gap-3 mb-1">
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block w-2 h-2 rounded-full" style={{ background: '#c084fc' }} />
+          <span className="text-xs text-ink-dim">{labelA}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block w-2 h-2 rounded-full" style={{ background: '#34d399' }} />
+          <span className="text-xs text-ink-dim">{labelB}</span>
+        </div>
+      </div>
+      <ResponsiveContainer width="100%" height={80}>
+        <ComposedChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+          <XAxis dataKey="week" hide />
+          <YAxis domain={[0, 1]} hide />
+          <Line type="monotone" dataKey="a" stroke="#c084fc" strokeWidth={1.5} dot={false} connectNulls />
+          <Line type="monotone" dataKey="b" stroke="#34d399" strokeWidth={1.5} dot={false} connectNulls />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  )
 }
 
 interface Props {
@@ -122,7 +185,7 @@ export default function InsightsPanel({
           {/* Wellness Guide link */}
           <Link
             to="/wellness"
-            className="mt-2 flex items-center justify-between w-full px-4 py-2.5 rounded-xl transition-all"
+            className="mt-2 flex items-center justify-between w-full px-4 py-3 min-h-[44px] rounded-xl transition-all"
             style={{
               background: 'rgba(192,132,252,0.06)',
               border: '1px solid rgba(192,132,252,0.15)',
@@ -145,7 +208,7 @@ export default function InsightsPanel({
             onClick={() => setPatternsOpen((o) => !o)}
             aria-expanded={patternsOpen}
             aria-controls="insights-patterns-panel"
-            className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-3 min-h-[44px] text-left transition-colors"
           >
             <span className="text-sm shrink-0">&#128200;</span>
             <span className="text-xs font-semibold text-ink-mid flex-1">Patterns</span>
@@ -211,13 +274,16 @@ export default function InsightsPanel({
                   No patterns detected yet — keep logging to see trends emerge.
                 </p>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {correlations.map((r) => (
-                    <div key={`${r.typeA}-${r.typeB}`} className="flex items-start gap-2">
-                      {strengthDot(r.strength)}
-                      <p className="text-sm text-ink-mid leading-snug">
-                        {describeCorrelation(r, cat.name, cat.sex)}
-                      </p>
+                    <div key={`${r.typeA}-${r.typeB}`}>
+                      <div className="flex items-start gap-2">
+                        {strengthDot(r.strength)}
+                        <p className="text-sm text-ink-mid leading-snug">
+                          {describeCorrelation(r, cat.name, cat.sex)}
+                        </p>
+                      </div>
+                      <MiniSparkline correlation={r} measurementsByType={measurementsByType} />
                     </div>
                   ))}
                 </div>
@@ -229,7 +295,7 @@ export default function InsightsPanel({
                   onClick={() => setExploreOpen((o) => !o)}
                   aria-expanded={exploreOpen}
                   aria-controls="insights-explore-panel"
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left"
+                  className="w-full flex items-center gap-3 px-4 py-3 min-h-[44px] rounded-xl transition-all text-left"
                   style={{
                     background: exploreOpen ? 'rgba(192,132,252,0.12)' : 'rgba(192,132,252,0.07)',
                     border: '1px solid rgba(192,132,252,0.2)',

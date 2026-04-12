@@ -57,7 +57,7 @@ export default function WellnessGuide() {
   return (
     <div className="min-h-screen px-4 pt-6 pb-8">
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={goBack} className="text-ink-dim hover:text-ink-mid transition-colors text-xl leading-none">←</button>
+        <button onClick={goBack} className="text-ink-dim hover:text-ink-mid transition-colors text-xl leading-none flex items-center justify-center w-9 h-9">←</button>
         <div>
           <h1 className="font-display text-xl font-bold text-ink">Cat Wellness Guide</h1>
           <p className="text-ink-dim text-xs mt-0.5">Reference for healthy cat care</p>
@@ -134,7 +134,7 @@ export default function WellnessGuide() {
             href="https://github.com/smj10j/cat-tracker/tree/main/docs/research"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: '#c084fc', textDecoration: 'underline' }}
+            style={{ color: 'var(--color-lavender, #c084fc)', textDecoration: 'underline' }}
           >
             Full citations and sources
           </a>.{' '}

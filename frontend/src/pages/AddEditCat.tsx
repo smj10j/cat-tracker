@@ -273,7 +273,7 @@ export default function AddEditCat() {
       <div className="flex items-center gap-3 mb-8">
         <button
           onClick={goBack}
-          className="text-ink-dim hover:text-ink-mid transition-colors text-xl"
+          className="text-ink-dim hover:text-ink-mid transition-colors text-xl flex items-center justify-center w-9 h-9"
         >←</button>
         <h1 className="font-display font-bold text-2xl text-ink">{isEdit ? 'Edit Cat' : 'New Cat'}</h1>
         <div className="flex-1" />
@@ -348,20 +348,18 @@ export default function AddEditCat() {
 
         {field('Name', 'name', 'text', true, 'e.g. Luna', 200)}
         {field('Birthdate', 'birthdate', 'date', true)}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label htmlFor="cat-field-breed" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Breed</label>
-            <input id="cat-field-breed" name="breed" value={form.breed} onChange={handleChange} placeholder="Domestic Shorthair"
-              maxLength={200} className="input-dark w-full px-4 py-3 text-sm" />
-          </div>
-          <div>
-            <label htmlFor="cat-field-sex" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Sex</label>
-            <select id="cat-field-sex" name="sex" value={form.sex} onChange={handleChange} className="input-dark w-full px-4 py-3 text-sm">
-              <option value="">Unknown</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </select>
-          </div>
+        <div>
+          <label htmlFor="cat-field-breed" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Breed</label>
+          <input id="cat-field-breed" name="breed" value={form.breed} onChange={handleChange} placeholder="Domestic Shorthair"
+            maxLength={200} className="input-dark w-full px-4 py-3 text-sm" />
+        </div>
+        <div>
+          <label htmlFor="cat-field-sex" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Sex</label>
+          <select id="cat-field-sex" name="sex" value={form.sex} onChange={handleChange} className="input-dark w-full px-4 py-3 text-sm">
+            <option value="">Unknown</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
         </div>
         <div>
           <label htmlFor="cat-field-is_neutered" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Neuter status</label>

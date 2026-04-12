@@ -16,23 +16,49 @@ interface Preset {
   frequency: string
   frequency_days?: number
   notes?: string
+  category: string
 }
 
 const PRESETS: Preset[] = [
-  { name: 'Revolution Plus', type: 'flea', frequency: 'custom', frequency_days: 30, notes: 'Topical — part fur between shoulder blades' },
-  { name: 'Advantage Multi', type: 'flea', frequency: 'custom', frequency_days: 30, notes: 'Topical' },
-  { name: 'Frontline Plus', type: 'flea', frequency: 'custom', frequency_days: 30, notes: 'Topical' },
-  { name: 'Heartgard Plus', type: 'heartworm', frequency: 'monthly', notes: 'Oral chew — give with food' },
-  { name: 'Interceptor Plus', type: 'heartworm', frequency: 'monthly', notes: 'Oral' },
-  { name: 'Methimazole', type: 'pill', frequency: 'twice_daily', notes: 'Hyperthyroid — give with food' },
-  { name: 'Prednisolone', type: 'pill', frequency: 'daily', notes: 'Steroid — give with food' },
-  { name: 'Gabapentin', type: 'pill', frequency: 'daily', notes: 'Pain/anxiety' },
-  { name: 'Dewormer', type: 'other', frequency: 'custom', frequency_days: 90 },
-  { name: 'FVRCP vaccine', type: 'vaccine', frequency: 'custom', frequency_days: 1095 },
-  { name: 'Rabies vaccine', type: 'vaccine', frequency: 'custom', frequency_days: 1095 },
-  { name: 'Annual exam', type: 'exam', frequency: 'custom', frequency_days: 365 },
-  { name: 'Dental cleaning', type: 'dental', frequency: 'custom', frequency_days: 365 },
+  // Prevention
+  { name: 'Revolution', type: 'flea', frequency: 'custom', frequency_days: 30, notes: 'Topical — part fur between shoulder blades', category: 'Prevention' },
+  { name: 'Revolution Plus', type: 'flea', frequency: 'custom', frequency_days: 30, notes: 'Topical — part fur between shoulder blades', category: 'Prevention' },
+  { name: 'Bravecto', type: 'flea', frequency: 'custom', frequency_days: 84, notes: 'Topical — lasts 12 weeks', category: 'Prevention' },
+  { name: 'Advantage Multi', type: 'flea', frequency: 'custom', frequency_days: 30, notes: 'Topical', category: 'Prevention' },
+  { name: 'Frontline Plus', type: 'flea', frequency: 'custom', frequency_days: 30, notes: 'Topical', category: 'Prevention' },
+  { name: 'Heartgard Plus', type: 'heartworm', frequency: 'monthly', notes: 'Oral chew — give with food', category: 'Prevention' },
+  { name: 'Interceptor Plus', type: 'heartworm', frequency: 'monthly', notes: 'Oral', category: 'Prevention' },
+  // Medication
+  { name: 'Methimazole', type: 'pill', frequency: 'twice_daily', notes: 'Hyperthyroid — give with food', category: 'Medication' },
+  { name: 'Prednisolone', type: 'pill', frequency: 'daily', notes: 'Steroid — give with food', category: 'Medication' },
+  { name: 'Gabapentin', type: 'pill', frequency: 'daily', notes: 'Pain/anxiety', category: 'Medication' },
+  { name: 'Cerenia', type: 'pill', frequency: 'daily', notes: 'Anti-nausea', category: 'Medication' },
+  { name: 'Onsior', type: 'pill', frequency: 'daily', notes: 'NSAID pain relief — max 6 days', category: 'Medication' },
+  { name: 'Mirataz', type: 'other', frequency: 'daily', notes: 'Transdermal — inner ear — appetite stimulant', category: 'Medication' },
+  { name: 'Dewormer', type: 'other', frequency: 'custom', frequency_days: 90, category: 'Medication' },
+  // Supplement
+  { name: 'Lysine', type: 'supplement', frequency: 'daily', notes: 'Immune support', category: 'Supplement' },
+  { name: 'Cobalamin (B12)', type: 'supplement', frequency: 'weekly', notes: 'GI support', category: 'Supplement' },
+  { name: 'Fortiflora', type: 'supplement', frequency: 'daily', notes: 'Probiotic — sprinkle on food', category: 'Supplement' },
+  // Vet
+  { name: 'FVRCP vaccine', type: 'vaccine', frequency: 'custom', frequency_days: 1095, category: 'Vet' },
+  { name: 'Rabies vaccine', type: 'vaccine', frequency: 'custom', frequency_days: 1095, category: 'Vet' },
+  { name: 'Annual exam', type: 'exam', frequency: 'custom', frequency_days: 365, category: 'Vet' },
+  { name: 'Dental cleaning', type: 'dental', frequency: 'custom', frequency_days: 365, category: 'Vet' },
+  { name: 'Bloodwork', type: 'bloodwork', frequency: 'custom', frequency_days: 365, notes: 'Annual screening', category: 'Vet' },
 ]
+
+const PRESET_CATEGORIES = ['Prevention', 'Medication', 'Supplement', 'Vet']
+
+function formatFrequencyLabel(frequency: string, frequencyDays?: number): string {
+  if (frequency === 'custom' && frequencyDays) {
+    if (frequencyDays === 365) return 'Yearly'
+    if (frequencyDays === 1095) return 'Every 3 years'
+    if (frequencyDays >= 7 && frequencyDays % 7 === 0) return `Every ${frequencyDays / 7} weeks`
+    return `Every ${frequencyDays} days`
+  }
+  return FREQ_LABELS[frequency] ?? frequency
+}
 
 const FREQ_LABELS: Record<string, string> = {
   daily: 'Daily',
@@ -210,7 +236,7 @@ export default function MedicationFormPage() {
     <div className="min-h-screen px-4 pt-6 pb-4">
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
-        <Link to={backPath} className="text-ink-dim hover:text-ink text-lg leading-none">←</Link>
+        <Link to={backPath} className="text-ink-dim hover:text-ink text-lg leading-none flex items-center justify-center w-9 h-9">←</Link>
         <div>
           <h1 className="font-display text-2xl font-bold text-ink">
             {isEdit ? 'Edit Care Item' : 'Add Care Item'}
@@ -230,32 +256,35 @@ export default function MedicationFormPage() {
         <button
           type="button"
           onClick={() => setShowPresets(v => !v)}
-          className="w-full py-2.5 rounded-xl text-sm font-semibold text-lavender transition-all"
-          style={{ border: '1.5px dashed rgba(192,132,252,0.3)', background: 'transparent' }}
+          className="w-full py-3.5 rounded-xl text-sm font-semibold text-lavender transition-all"
+          style={{ border: '1.5px solid rgba(192,132,252,0.4)', background: 'rgba(192,132,252,0.08)' }}
         >
-          {showPresets ? 'Hide presets ↑' : 'Choose a preset medication ↓'}
+          📋 {showPresets ? 'Hide presets' : 'Choose a preset medication'}
         </button>
         {showPresets && (
           <div
-            className="mt-2 rounded-2xl p-3 space-y-1"
+            className="mt-2 rounded-2xl p-3 space-y-3"
             style={{ background: 'rgba(192,132,252,0.06)', border: '1px solid rgba(192,132,252,0.15)' }}
           >
-            {PRESETS.map(p => (
-              <button
-                key={p.name}
-                type="button"
-                onClick={() => applyPreset(p)}
-                className="w-full text-left px-3 py-2.5 rounded-xl text-sm text-ink transition-all hover:bg-lavender-glow"
-              >
-                <span className="font-semibold">{p.name}</span>
-                <span className="text-ink-dim ml-2">
-                  {p.notes ?? (TYPE_LABELS[p.type] ?? p.type)}
-                  {' · '}
-                  {p.frequency === 'custom' && p.frequency_days
-                    ? `every ${p.frequency_days} days`
-                    : (FREQ_LABELS[p.frequency] ?? p.frequency)}
-                </span>
-              </button>
+            {PRESET_CATEGORIES.map(cat => (
+              <div key={cat}>
+                <p className="text-xs font-bold uppercase tracking-widest text-ink-dim px-3 mb-1">{cat}</p>
+                {PRESETS.filter(p => p.category === cat).map(p => (
+                  <button
+                    key={p.name}
+                    type="button"
+                    onClick={() => applyPreset(p)}
+                    className="w-full text-left px-3 py-2.5 rounded-xl text-sm text-ink transition-all hover:bg-lavender-glow min-h-[44px]"
+                  >
+                    <span className="font-semibold">{p.name}</span>
+                    <span className="text-ink-dim ml-2">
+                      {p.notes ?? (TYPE_LABELS[p.type] ?? p.type)}
+                      {' · '}
+                      {formatFrequencyLabel(p.frequency, p.frequency_days)}
+                    </span>
+                  </button>
+                ))}
+              </div>
             ))}
           </div>
         )}
@@ -322,7 +351,7 @@ export default function MedicationFormPage() {
 
           {frequency === 'custom' && (
             <div>
-              <label htmlFor="med-freq-days" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Every N days</label>
+              <label htmlFor="med-freq-days" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Interval (every {frequencyDays || '?'} days)</label>
               <input
                 id="med-freq-days" type="number" min="1" max="3650"
                 value={frequencyDays} onChange={e => setFrequencyDays(e.target.value)}

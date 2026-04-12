@@ -10,6 +10,8 @@ import { assessHealth, STATUS_COLORS, STATUS_LABEL } from '../../../lib/healthMe
 import type { HealthStatus } from '../../../lib/healthMetrics';
 import { parseLocalDate, formatLocalDate } from '../../../lib/dates';
 import { useThemeColors } from '../../../hooks/useThemeColors';
+import { usePreferences } from '../../../contexts/PreferencesContext';
+import { formatWeight } from '../../../../shared/lib/preferences';
 
 function catLifespan(birthdate: string, deceasedAt: string): string {
   const birth = parseLocalDate(birthdate);
@@ -29,6 +31,7 @@ export default function MemorialScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const colors = useThemeColors();
+  const { prefs } = usePreferences();
   const [cat, setCat] = useState<Cat | null>(null);
   const [weightMs, setWeightMs] = useState<Measurement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -179,7 +182,7 @@ export default function MemorialScreen() {
               {weightMs.length > 0 && peakWeight !== null ? (
                 <View style={{ minWidth: '40%' }}>
                   <Text style={{ fontSize: 12, color: colors.inkDim }}>Peak weight</Text>
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: colors.ink }}>{peakWeight} {peakUnit}</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: colors.ink }}>{formatWeight(peakWeight, peakUnit, prefs)}</Text>
                 </View>
               ) : null}
               <View style={{ minWidth: '40%' }}>

@@ -15,18 +15,16 @@ import { catAge, formatLocalDate } from '../../../lib/dates';
 import LineChart from '../../../components/LineChart';
 import { ErrorBoundary } from '../../../components/ErrorBoundary';
 import { useThemeColors } from '../../../hooks/useThemeColors';
+import { usePreferences } from '../../../contexts/PreferencesContext';
+import {
+  formatTime as formatTimePref,
+  formatDateWithWeekday,
+  formatDateShort,
+} from '../../../../shared/lib/preferences';
 
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-}
+// formatTime removed — use formatTimePref from shared preferences
 
-function formatDayLabel(dateStr: string): string {
-  const today = new Date().toLocaleDateString('en-CA');
-  const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA');
-  if (dateStr === today) return 'Today';
-  if (dateStr === yesterday) return 'Yesterday';
-  return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-}
+// formatDayLabel is defined inside the component to access prefs
 
 interface DayGroup {
   dateStr: string;
@@ -34,7 +32,7 @@ interface DayGroup {
   items: Measurement[];
 }
 
-function groupByDay(measurements: Measurement[]): DayGroup[] {
+function groupByDay(measurements: Measurement[], dayLabelFn: (dateStr: string) => string): DayGroup[] {
   const map = new Map<string, Measurement[]>();
   for (const m of measurements) {
     const dateStr = new Date(m.measured_at).toLocaleDateString('en-CA');
@@ -46,7 +44,7 @@ function groupByDay(measurements: Measurement[]): DayGroup[] {
     .sort(([a], [b]) => b.localeCompare(a))
     .map(([dateStr, items]) => ({
       dateStr,
-      label: formatDayLabel(dateStr),
+      label: dayLabelFn(dateStr),
       items: items.sort((a, b) => b.measured_at.localeCompare(a.measured_at)),
     }));
 }
@@ -73,7 +71,7 @@ function formatFreqShort(frequency: string, frequencyDays?: number | null): stri
   return labels[frequency] ?? frequency;
 }
 
-function formatNextDue(nextDueAt: string | null | undefined): string {
+function formatNextDue(nextDueAt: string | null | undefined, _prefs: import('../../../../shared/lib/preferences').UserPreferences): string {
   if (!nextDueAt) return 'No upcoming dose';
   const [datePart, timePart] = nextDueAt.split(' ');
   if (!datePart) return 'Upcoming';
@@ -86,8 +84,7 @@ function formatNextDue(nextDueAt: string | null | undefined): string {
   const timeStr = `${hour % 12 || 12}:${minute} ${ampm}`;
   if (datePart === today) return `Today at ${timeStr}`;
   if (datePart === tomorrow) return `Tomorrow at ${timeStr}`;
-  const d = new Date(datePart + 'T12:00:00');
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ` at ${timeStr}`;
+  return formatDateShort(datePart, _prefs) + ` at ${timeStr}`;
 }
 
 function formatSexNeuter(sex: string | null, isNeutered: number | null): string {
@@ -103,7 +100,16 @@ function formatSexNeuter(sex: string | null, isNeutered: number | null): string 
 
 export default function CatProfileScreen() {
   const colors = useThemeColors();
+  const { prefs } = usePreferences();
   const insets = useSafeAreaInsets();
+
+  function formatDayLabel(dateStr: string): string {
+    const today = new Date().toLocaleDateString('en-CA');
+    const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA');
+    if (dateStr === today) return 'Today';
+    if (dateStr === yesterday) return 'Yesterday';
+    return formatDateWithWeekday(dateStr, prefs);
+  }
   const { id, tab: initialTab } = useLocalSearchParams<{ id: string; tab?: string }>();
   const router = useRouter();
   const [cat, setCat] = useState<Cat | null>(null);
@@ -196,7 +202,7 @@ export default function CatProfileScreen() {
   }
   const availableTypes = Object.keys(measurementsByType);
 
-  const allDayGroups = groupByDay(measurements);
+  const allDayGroups = groupByDay(measurements, formatDayLabel);
   const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toLocaleDateString('en-CA');
   const recentGroups = allDayGroups.filter((g) => g.dateStr >= cutoff);
   const olderGroups = allDayGroups.filter((g) => g.dateStr < cutoff);
@@ -448,7 +454,7 @@ export default function CatProfileScreen() {
                     seriesLabels={{ value: cat.name }}
                     seriesColors={{ value: statusColor }}
                     height={180}
-                    yLabel="lbs"
+                    yLabel={prefs.weightUnit}
                   />
                 </ErrorBoundary>
               </View>
@@ -558,7 +564,7 @@ export default function CatProfileScreen() {
               const filteredMeasurements = chartTab === 'behavior'
                 ? measurements.filter(m => behaviorTypeSet.has(m.type))
                 : measurements.filter(m => m.type === chartTab);
-              const filteredDayGroups = groupByDay(filteredMeasurements);
+              const filteredDayGroups = groupByDay(filteredMeasurements, formatDayLabel);
               const filteredRecentGroups = filteredDayGroups.filter(g => g.dateStr >= cutoff);
               const filteredOlderGroups = filteredDayGroups.filter(g => g.dateStr < cutoff);
               const filteredDefaultGroups = filteredRecentGroups.length > 0 ? filteredRecentGroups : filteredDayGroups.slice(0, 3);
@@ -600,7 +606,7 @@ export default function CatProfileScreen() {
                       >
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
                           <Text style={{ color: colors.inkDim, fontSize: 12, width: 64, flexShrink: 0 }}>
-                            {formatTime(m.measured_at)}
+                            {formatTimePref(m.measured_at, prefs)}
                           </Text>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', flex: 1 }}>
                             <Text style={{ fontWeight: '600', fontSize: 14, color: colors.ink }}>
@@ -715,7 +721,7 @@ export default function CatProfileScreen() {
                           )}
                         </View>
                         <Text style={{ fontSize: 12, color: colors.inkDim, marginTop: 2 }}>
-                          {formatFreqShort(med.frequency, med.frequency_days)} {'\u00B7'} {formatNextDue(med.next_due_at)}
+                          {formatFreqShort(med.frequency, med.frequency_days)} {'\u00B7'} {formatNextDue(med.next_due_at, prefs)}
                         </Text>
                       </View>
                       <Text style={{ color: colors.inkDim, fontSize: 14 }}>{'\u203A'}</Text>

@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import type { Measurement } from '../lib/api';
 import { PRESETS, PRESET_TYPES } from '../lib/measurementPresets';
 import { useThemeColors } from '../hooks/useThemeColors';
+import { usePreferences } from '../contexts/PreferencesContext';
 
 interface Props {
   catId: string;
@@ -22,10 +23,11 @@ const TYPE_OPTIONS = [
 
 export default function MeasurementForm({ catId, onAdded }: Props) {
   const colors = useThemeColors();
+  const { prefs } = usePreferences();
   const [open, setOpen] = useState(false);
   const [type, setType] = useState('weight');
   const [weightValue, setWeightValue] = useState('');
-  const [weightUnit, setWeightUnit] = useState('lbs');
+  const [weightUnit, setWeightUnit] = useState(prefs.weightUnit);
   const [selectedPreset, setSelectedPreset] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -257,7 +259,7 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
                 Unit
               </Text>
               <View style={{ flexDirection: 'row', gap: 4 }}>
-                {['lbs', 'kg'].map((u) => (
+                {(['lbs', 'kg'] as const).map((u) => (
                   <Pressable
                     key={u}
                     onPress={() => setWeightUnit(u)}

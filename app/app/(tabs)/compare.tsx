@@ -42,9 +42,7 @@ const RANGE_OPTIONS: { value: TimeRange; label: string; days: number | null }[] 
   { value: 'All', label: 'All', days: null },
 ];
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
+// formatDate removed — use formatDateShort from shared preferences
 
 interface TableRow {
   date: string;
@@ -55,13 +53,14 @@ interface TableRow {
 function buildTableData(
   cats: Cat[],
   measurementsByCat: Map<string, Measurement[]>,
+  prefs: import('../../../shared/lib/preferences').UserPreferences,
 ): TableRow[] {
   const dateMap = new Map<string, TableRow>();
   for (const cat of cats) {
     for (const m of measurementsByCat.get(cat.id) ?? []) {
       const key = m.measured_at.slice(0, 10);
       if (!dateMap.has(key)) {
-        dateMap.set(key, { date: formatDate(m.measured_at), rawDate: key, values: {} });
+        dateMap.set(key, { date: formatDateShort(m.measured_at, prefs), rawDate: key, values: {} });
       }
       dateMap.get(key)!.values[cat.id] = m.value;
     }
@@ -79,6 +78,7 @@ function filterByRange(measurements: Measurement[], range: TimeRange): Measureme
 
 export default function CompareScreen() {
   const colors = useThemeColors();
+  const { prefs } = usePreferences();
   const [cats, setCats] = useState<Cat[]>([]);
   const [allMeasurementsByCat, setAllMeasurementsByCat] = useState<Map<string, Measurement[]>>(
     new Map(),
@@ -152,7 +152,7 @@ export default function CompareScreen() {
   const isWeightType = selectedType === 'weight';
   const isScaleType = PRESET_TYPES.has(selectedType);
   const enabledCats = cats.filter((c) => enabled.has(c.id));
-  const tableData = buildTableData(enabledCats, measurementsByCat);
+  const tableData = buildTableData(enabledCats, measurementsByCat, prefs);
 
   // Build chart data: one point per date, one series per enabled cat
   const chartData: ChartDataPoint[] = [];
@@ -221,7 +221,7 @@ export default function CompareScreen() {
 
   function formatValue(catId: string, val: number | null | undefined): string {
     if (val == null) return '--';
-    if (isWeightType) return `${val} lbs`;
+    if (isWeightType) return formatWeight(val, 'lbs', prefs);
     if (isScaleType) return getPresetLabel(selectedType, val);
     return String(val);
   }
@@ -417,7 +417,7 @@ export default function CompareScreen() {
                   seriesColors={chartSeriesColors}
                   dotEmojis={chartDotEmojis}
                   height={240}
-                  yLabel={isWeightType ? 'lbs' : undefined}
+                  yLabel={isWeightType ? prefs.weightUnit : undefined}
                   formatY={isScaleType
                     ? (v) => getPresetLabel(selectedType, Math.round(v))
                     : (v) => String(Math.round(v * 10) / 10)

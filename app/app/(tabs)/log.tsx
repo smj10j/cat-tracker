@@ -9,6 +9,8 @@ import { api } from '../../lib/api';
 import type { Cat } from '../../lib/api';
 import { PRESETS } from '../../lib/measurementPresets';
 import { useThemeColors } from '../../hooks/useThemeColors';
+import { usePreferences } from '../../contexts/PreferencesContext';
+import { formatDateWithWeekday } from '../../../shared/lib/preferences';
 
 type Selections = Partial<Record<string, number>>;
 
@@ -38,12 +40,7 @@ function formatDateStr(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-function formatDateLabel(dateStr: string): string {
-  const today = todayLocalDate();
-  if (dateStr === today) return 'Today';
-  const d = parseDate(dateStr);
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-}
+// formatDateLabel is defined inside the component to access prefs
 
 function currentHour(): number {
   return new Date().getHours();
@@ -63,13 +60,20 @@ function formatHour(hour: number): string {
 
 export default function LogScreen() {
   const colors = useThemeColors();
+  const { prefs } = usePreferences();
+
+  function formatDateLabel(dateStr: string): string {
+    const today = todayLocalDate();
+    if (dateStr === today) return 'Today';
+    return formatDateWithWeekday(dateStr, prefs);
+  }
   const [cats, setCats] = useState<Cat[]>([]);
   const [selectedCatId, setSelectedCatId] = useState('');
   const [date, setDate] = useState(todayLocalDate);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [hour, setHour] = useState(currentHour);
   const [weightValue, setWeightValue] = useState('');
-  const [weightUnit, setWeightUnit] = useState<'lbs' | 'kg'>('lbs');
+  const [weightUnit, setWeightUnit] = useState<'lbs' | 'kg'>(prefs.weightUnit);
   const [selections, setSelections] = useState<Selections>({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);

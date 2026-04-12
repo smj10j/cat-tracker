@@ -7,6 +7,7 @@ import { api } from '../lib/api';
 import type { Cat } from '../lib/api';
 import { PRESETS, PRESET_TYPES } from '../lib/measurementPresets';
 import { useThemeColors } from '../hooks/useThemeColors';
+import { usePreferences } from '../contexts/PreferencesContext';
 
 interface Props {
   open: boolean;
@@ -25,11 +26,12 @@ const TYPE_OPTIONS = [
 
 export default function QuickAdd({ open, onClose }: Props) {
   const colors = useThemeColors();
+  const { prefs } = usePreferences();
   const [cats, setCats] = useState<Cat[]>([]);
   const [selectedCatId, setSelectedCatId] = useState('');
   const [type, setType] = useState('weight');
   const [weightValue, setWeightValue] = useState('');
-  const [weightUnit, setWeightUnit] = useState('lbs');
+  const [weightUnit, setWeightUnit] = useState(prefs.weightUnit);
   const [selectedPreset, setSelectedPreset] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -297,7 +299,7 @@ export default function QuickAdd({ open, onClose }: Props) {
                             Unit
                           </Text>
                           <View style={{ flexDirection: 'row', gap: 4 }}>
-                            {['lbs', 'kg'].map((u) => (
+                            {(['lbs', 'kg'] as const).map((u) => (
                               <Pressable
                                 key={u}
                                 onPress={() => setWeightUnit(u)}

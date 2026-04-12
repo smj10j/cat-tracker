@@ -11,6 +11,8 @@ import type { HealthStatus } from '../../lib/healthMetrics';
 import { detectCorrelations, getHomeBadge } from '../../lib/correlations';
 import { catAge, formatLocalDate } from '../../lib/dates';
 import { useThemeColors } from '../../hooks/useThemeColors';
+import { usePreferences } from '../../contexts/PreferencesContext';
+import { formatWeightValue } from '../../../shared/lib/preferences';
 
 const STATUS_RANK: Record<string, number> = { urgent: 3, concerning: 2, watch: 1, ok: 0 };
 
@@ -26,6 +28,7 @@ export default function HomeScreen() {
   const { user, signOut } = useAuth();
   const router = useRouter();
   const colors = useThemeColors();
+  const { prefs } = usePreferences();
   const [catData, setCatData] = useState<CatCardData[]>([]);
   const [memorialCats, setMemorialCats] = useState<Cat[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -226,9 +229,9 @@ export default function HomeScreen() {
         {latestWeight !== null && (
           <View style={{ alignItems: 'flex-end', flexShrink: 0 }}>
             <Text style={{ fontWeight: '700', fontSize: 18, color: isOk ? '#fb923c' : statusColor }}>
-              {latestWeight}
+              {formatWeightValue(latestWeight, latestUnit, prefs)}
             </Text>
-            <Text style={{ color: colors.inkDim, fontSize: 12 }}>{latestUnit}</Text>
+            <Text style={{ color: colors.inkDim, fontSize: 12 }}>{prefs.weightUnit}</Text>
           </View>
         )}
       </Pressable>

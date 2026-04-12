@@ -240,7 +240,7 @@ export default {
           }
         }
 
-        // Mark all doses as notified (even if user had no tokens — prevents re-checking)
+        // Mark doses as notified for users who had tokens (users without tokens are skipped)
         if (allDoseIds.length > 0) {
           // Batch in chunks of 50 to stay within D1 limits
           for (let i = 0; i < allDoseIds.length; i += 50) {

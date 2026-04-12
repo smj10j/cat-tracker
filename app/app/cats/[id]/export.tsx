@@ -14,6 +14,12 @@ import {
 import { getPresetLabel, PRESET_TYPES } from '../../../lib/measurementPresets';
 import { catAge } from '../../../lib/dates';
 import { useThemeColors } from '../../../hooks/useThemeColors';
+import { usePreferences } from '../../../contexts/PreferencesContext';
+import {
+  formatDate as formatDatePref,
+  formatDateTime as formatDateTimePref,
+  formatWeight,
+} from '../../../../shared/lib/preferences';
 
 const TYPE_LABELS: Record<string, string> = {
   weight: 'Weight',
@@ -45,23 +51,7 @@ const statusExplained: Record<string, string> = {
 
 // catAge imported from lib/dates
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-}
+// formatDate and formatDateTime replaced by shared preferences helpers
 
 function buildShareText(
   cat: Cat,
@@ -70,6 +60,7 @@ function buildShareText(
   byType: Record<string, Measurement[]>,
   correlations: ReturnType<typeof detectCorrelations>,
   generatedAt: string,
+  prefs: import('../../../../shared/lib/preferences').UserPreferences,
 ): string {
   const lines: string[] = [];
   lines.push('WHISKER HEALTH — VET VISIT SUMMARY');
@@ -84,7 +75,7 @@ function buildShareText(
   if (weightMs.length > 0) {
     lines.push('');
     lines.push('WEIGHT');
-    lines.push(`Current: ${weightMs[0]?.value} lbs`);
+    lines.push(`Current: ${formatWeight(weightMs[0]?.value ?? 0, weightMs[0]?.unit ?? 'lbs', prefs)}`);
     if (weightMs.length >= 2) {
       lines.push(`Status: ${statusExplained[health.overallStatus] ?? health.overallStatus}`);
       if (health.peakLossPct > 0) {
@@ -100,7 +91,7 @@ function buildShareText(
       const change = prev ? m.value - prev.value : null;
       const changeStr =
         change == null ? '--' : change > 0 ? `+${change.toFixed(1)}` : change.toFixed(1);
-      lines.push(`${formatDate(m.measured_at)} | ${m.value} lbs | ${changeStr}`);
+      lines.push(`${formatDatePref(m.measured_at, prefs)} | ${formatWeight(m.value, m.unit ?? 'lbs', prefs)} | ${changeStr}`);
     }
   }
 
@@ -118,7 +109,7 @@ function buildShareText(
     lines.push('');
     lines.push((TYPE_LABELS[type] ?? type).toUpperCase());
     for (const m of shown) {
-      lines.push(`${formatDateTime(m.measured_at)} | ${getPresetLabel(m.type, m.value)}`);
+      lines.push(`${formatDateTimePref(m.measured_at, prefs)} | ${getPresetLabel(m.type, m.value)}`);
     }
   }
 
@@ -137,6 +128,7 @@ function buildShareText(
 
 export default function CatExportScreen() {
   const colors = useThemeColors();
+  const { prefs } = usePreferences();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
@@ -196,17 +188,11 @@ export default function CatExportScreen() {
   const confluence =
     correlations.length >= 2 ? detectConfluence(correlations, cat.name) : null;
 
-  const generatedAt = new Date().toLocaleString('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+  const generatedAt = formatDateTimePref(new Date().toISOString(), prefs);
 
   function handleShare() {
     if (!cat) return;
-    const text = buildShareText(cat, weightMs, health, byType, correlations, generatedAt);
+    const text = buildShareText(cat, weightMs, health, byType, correlations, generatedAt, prefs);
     if (Platform.OS === 'web') {
       window.print();
     } else {
@@ -298,7 +284,7 @@ export default function CatExportScreen() {
           <>
             <SectionHeader title="Weight" />
             <View style={{ marginBottom: 8 }}>
-              <InfoRow label="Current" value={`${weightMs[0]?.value} lbs`} />
+              <InfoRow label="Current" value={formatWeight(weightMs[0]?.value ?? 0, weightMs[0]?.unit ?? 'lbs', prefs)} />
               {weightMs.length >= 2 && (
                 <>
                   <InfoRow
@@ -401,7 +387,7 @@ export default function CatExportScreen() {
                     }}
                   >
                     <Text style={{ flex: 2, fontSize: 13, color: colors.inkMid }}>
-                      {formatDate(m.measured_at)}
+                      {formatDatePref(m.measured_at, prefs)}
                     </Text>
                     <Text
                       style={{
@@ -513,7 +499,7 @@ export default function CatExportScreen() {
                       }}
                     >
                       <Text style={{ flex: 2, fontSize: 13, color: colors.inkMid }}>
-                        {formatDateTime(m.measured_at)}
+                        {formatDateTimePref(m.measured_at, prefs)}
                       </Text>
                       <Text
                         style={{

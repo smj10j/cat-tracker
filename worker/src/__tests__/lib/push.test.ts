@@ -45,9 +45,15 @@ describe('sendExpoPushNotifications', () => {
   })
 
   it('batches messages in chunks of 100', async () => {
-    mockFetch.mockResolvedValue({
+    // First batch: 100 messages → 100 tickets
+    mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ data: Array(100).fill({ status: 'ok' }) }),
+    })
+    // Second batch: 50 messages → 50 tickets
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: Array(50).fill({ status: 'ok' }) }),
     })
 
     const messages: ExpoPushMessage[] = Array.from({ length: 150 }, (_, i) => ({
@@ -57,9 +63,8 @@ describe('sendExpoPushNotifications', () => {
     }))
 
     const tickets = await sendExpoPushNotifications(messages)
-    // 2 batches: 100 + 50
     expect(mockFetch).toHaveBeenCalledTimes(2)
-    expect(tickets).toHaveLength(200) // mock returns 100 per batch
+    expect(tickets).toHaveLength(150)
   })
 
   it('handles HTTP error gracefully', async () => {

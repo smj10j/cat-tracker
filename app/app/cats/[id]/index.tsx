@@ -23,6 +23,7 @@ import {
   formatDateWithWeekday,
   formatDateShort,
 } from '../../../../shared/lib/preferences';
+import { utcToLocal } from '../../../../shared/lib/dates';
 
 // formatTime removed — use formatTimePref from shared preferences
 
@@ -73,20 +74,22 @@ function formatFreqShort(frequency: string, frequencyDays?: number | null): stri
   return labels[frequency] ?? frequency;
 }
 
-function formatNextDue(nextDueAt: string | null | undefined, _prefs: import('../../../../shared/lib/preferences').UserPreferences): string {
+function formatNextDue(nextDueAt: string | null | undefined, prefs: import('../../../../shared/lib/preferences').UserPreferences): string {
   if (!nextDueAt) return 'No upcoming dose';
-  const [datePart, timePart] = nextDueAt.split(' ');
+  // Convert UTC due_at to local time for display
+  const { date: datePart, time: timePart } = utcToLocal(nextDueAt);
   if (!datePart) return 'Upcoming';
-  const today = new Date().toISOString().slice(0, 10);
-  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-  const [h, m] = (timePart ?? '09:00').split(':');
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const tom = new Date(Date.now() + 86400000);
+  const tomorrow = `${tom.getFullYear()}-${String(tom.getMonth() + 1).padStart(2, '0')}-${String(tom.getDate()).padStart(2, '0')}`;
+  const [h] = (timePart ?? '09:00').split(':');
   const hour = parseInt(h ?? '9', 10);
-  const minute = m ?? '00';
   const ampm = hour >= 12 ? 'PM' : 'AM';
-  const timeStr = `${hour % 12 || 12}:${minute} ${ampm}`;
+  const timeStr = `${hour % 12 || 12}:00 ${ampm}`;
   if (datePart === today) return `Today at ${timeStr}`;
   if (datePart === tomorrow) return `Tomorrow at ${timeStr}`;
-  return formatDateShort(datePart, _prefs) + ` at ${timeStr}`;
+  return formatDateShort(datePart, prefs) + ` at ${timeStr}`;
 }
 
 function formatSexNeuter(sex: string | null, isNeutered: number | null): string {

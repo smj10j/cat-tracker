@@ -16,6 +16,7 @@ interface User {
   display_name: string | null;
   avatar_url: string | null;
   oauth_provider: string;
+  timezone: string | null;
   hasOrphanedCats: boolean;
 }
 
@@ -88,6 +89,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const me = await api.getMe();
       setUser(me);
+
+      // Sync device timezone to backend (fire-and-forget)
+      const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (detectedTz && detectedTz !== me.timezone) {
+        api.updateMe({ timezone: detectedTz }).catch(() => { /* non-fatal */ });
+      }
     } catch {
       setUser(null);
       await clearSession();

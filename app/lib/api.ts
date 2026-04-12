@@ -114,6 +114,13 @@ export const api = {
     });
   },
 
+  async updateMe(data: { timezone?: string }): Promise<void> {
+    await apiFetch('/api/auth/me', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
   async claimCats(): Promise<{ claimed: number }> {
     const res = await apiFetch('/api/auth/claim-cats', { method: 'POST' });
     return res.json() as Promise<{ claimed: number }>;

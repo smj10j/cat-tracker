@@ -52,6 +52,7 @@ export interface User {
   email: string
   display_name: string | null
   avatar_url: string | null
+  timezone: string | null
   hasOrphanedCats: boolean
 }
 
@@ -198,6 +199,8 @@ export const deleteMeasurement = (id: string) =>
 
 // Auth
 export const getMe = () => request<User>('/auth/me')
+export const updateMe = (data: { timezone?: string }) =>
+  request<{ ok: boolean }>('/auth/me', { method: 'PUT', body: JSON.stringify(data) })
 export const logout = () => request<{ success: boolean }>('/auth/logout', { method: 'POST' })
 export const claimCats = () => request<{ claimed: number }>('/auth/claim-cats', { method: 'POST' })
 

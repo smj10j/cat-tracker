@@ -7,6 +7,26 @@
 
 ---
 
+## Phase 52: Timezone-Aware Medication Reminders (2026-04-12)
+
+### Shared Library
+- [x] Add localToUTC and utcToLocal to shared/lib/dates.ts (DST-correct via Intl)
+- [x] 14 new timezone tests (EST/EDT, UTC, Tokyo, Pacific, date rollover, roundtrip)
+
+### Schema & Backend
+- [x] Add timezone TEXT column to users table + D1 migration
+- [x] PUT /api/auth/me — accept timezone, validate IANA, lazy-migrate future doses to UTC
+- [x] generateDoses() produces UTC due_at when user has timezone set
+- [x] Update POST/PUT medication handlers and cron to pass user timezone
+
+### Client
+- [x] iOS + web: detect timezone, send to backend on login
+- [x] iOS + web: convert UTC due_at to local time for all notification displays
+
+### Verification
+- [x] All tests pass (112 shared + 115 worker + 70 app + 59 frontend = 356)
+- [x] Deployed: worker + D1 migration + frontend
+
 ## Phase 51: Localization Preferences + Landscape Charts (2026-04-12)
 
 ### Localization & Regional Preferences (PRD-localization-preferences Phase A1+A2)

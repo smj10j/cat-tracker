@@ -138,11 +138,15 @@ export default {
 
       // Extend 90-day rolling dose window for all active medications
       const activeMeds = await env.DB.prepare(
-        `SELECT id, start_date, reminder_time, frequency, frequency_days, end_date
-         FROM medications WHERE is_active = 1`
+        `SELECT m.id, m.start_date, m.reminder_time, m.frequency, m.frequency_days, m.end_date,
+                u.timezone
+         FROM medications m
+         JOIN users u ON u.id = m.user_id
+         WHERE m.is_active = 1`
       ).all<{
         id: string; start_date: string; reminder_time: string
         frequency: string; frequency_days: number | null; end_date: string | null
+        timezone: string | null
       }>()
 
       const window = windowEnd90()
@@ -150,6 +154,7 @@ export default {
         const doses = generateDoses(
           med.id, med.start_date, med.reminder_time,
           med.frequency, med.frequency_days, med.end_date, window,
+          med.timezone,
         )
         await insertDoses(env.DB, doses)
       }

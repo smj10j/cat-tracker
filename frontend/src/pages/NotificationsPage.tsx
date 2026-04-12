@@ -4,6 +4,7 @@ import { useGoBack } from '../hooks/useGoBack'
 import { getNotifications, administerDose, skipDose, CARE_TYPE_ICONS, type NotificationInbox, type DoseWithContext, type Medication } from '../lib/api'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { formatDateShort, formatDateWithWeekday, type UserPreferences } from '@shared/lib/preferences'
+import { utcToLocal } from '@shared/lib/dates'
 
 function formatTimeStr(timePart: string, prefs: UserPreferences): string {
   const [h, m] = timePart.split(':')
@@ -18,11 +19,13 @@ function formatTimeStr(timePart: string, prefs: UserPreferences): string {
 }
 
 function formatDueAt(dueAt: string, prefs: UserPreferences): string {
-  // dueAt is 'YYYY-MM-DD HH:MM:00'
-  const [datePart, timePart] = dueAt.split(' ')
+  // dueAt is UTC 'YYYY-MM-DD HH:MM:00' — convert to local for display
+  const { date: datePart, time: timePart } = utcToLocal(dueAt)
   if (!datePart || !timePart) return dueAt
-  const today = new Date().toISOString().slice(0, 10)
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const yest = new Date(Date.now() - 86400000)
+  const yesterday = `${yest.getFullYear()}-${String(yest.getMonth() + 1).padStart(2, '0')}-${String(yest.getDate()).padStart(2, '0')}`
   const timeStr = formatTimeStr(timePart, prefs)
 
   if (datePart === today) return `Today at ${timeStr}`
@@ -31,10 +34,12 @@ function formatDueAt(dueAt: string, prefs: UserPreferences): string {
 }
 
 function formatFutureDueAt(dueAt: string, prefs: UserPreferences): string {
-  const [datePart, timePart] = dueAt.split(' ')
+  const { date: datePart, time: timePart } = utcToLocal(dueAt)
   if (!datePart || !timePart) return dueAt
-  const today = new Date().toISOString().slice(0, 10)
-  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const tom = new Date(Date.now() + 86400000)
+  const tomorrow = `${tom.getFullYear()}-${String(tom.getMonth() + 1).padStart(2, '0')}-${String(tom.getDate()).padStart(2, '0')}`
   const timeStr = formatTimeStr(timePart, prefs)
 
   if (datePart === today) return `Today at ${timeStr}`

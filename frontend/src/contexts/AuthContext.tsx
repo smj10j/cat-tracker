@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { getMe, logout as apiLogout, type User } from '../lib/api'
+import { getMe, updateMe, logout as apiLogout, type User } from '../lib/api'
 
 interface AuthContextValue {
   user: User | null
@@ -18,6 +18,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const me = await getMe()
       setUser(me)
+
+      // Sync device timezone to backend
+      const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone
+      if (detectedTz && detectedTz !== me.timezone) {
+        updateMe({ timezone: detectedTz }).catch(() => { /* non-fatal */ })
+      }
     } catch {
       setUser(null)
     } finally {

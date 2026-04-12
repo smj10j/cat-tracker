@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { api, CARE_TYPE_ICONS } from '../lib/api';
 import type { DoseWithContext, Medication, NotificationInbox } from '../lib/api';
+import { utcToLocal } from '../../shared/lib/dates';
 import { useThemeColors } from '../hooks/useThemeColors';
 
 type SectionItem =
@@ -268,7 +269,7 @@ export default function NotificationsScreen() {
                   )}
                 </View>
                 <Text style={{ color: colors.inkDim, fontSize: 12 }}>
-                  {dose.due_at.slice(11, 16)}
+                  {utcToLocal(dose.due_at).time}
                 </Text>
               </Pressable>
 

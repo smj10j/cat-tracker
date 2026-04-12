@@ -31,6 +31,13 @@ export function todayLocalDate(): string {
 }
 
 /**
+ * Get the current hour (0-23) in local time.
+ */
+export function currentHour(): number {
+  return new Date().getHours()
+}
+
+/**
  * Build an ISO timestamp from a local date string and hour number.
  */
 export function buildMeasuredAt(localDate: string, hour: number): string {

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { createMeasurement, type Measurement } from '../lib/api'
 import { PRESETS, PRESET_TYPES } from '../lib/measurementPresets'
 import { usePreferences } from '../contexts/PreferencesContext'
-import { todayLocalDate, formatHour } from '../lib/formatting'
+import { todayLocalDate, formatHour, buildMeasuredAt, currentHour } from '../lib/formatting'
 
 interface Props {
   catId: string
@@ -26,7 +26,7 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
   const [weightValue, setWeightValue] = useState('')
   const [weightUnit, setWeightUnit] = useState(prefs.weightUnit)
   const [date, setDate] = useState(todayLocalDate)
-  const [hour, setHour] = useState(() => new Date().getHours())
+  const [hour, setHour] = useState(currentHour)
   const [selectedPreset, setSelectedPreset] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -43,14 +43,13 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
     setSaving(true)
     setError(null)
     try {
-      const [y, mo, d] = date.split('-').map(Number)
-      const measured_at = new Date(y!, mo! - 1, d!, hour, 0, 0).toISOString()
+      const measured_at = buildMeasuredAt(date, hour)
       const m = await createMeasurement(catId, { type, value, unit, measured_at, notes: null })
       onAdded(m)
       setWeightValue('')
       setSelectedPreset(null)
       setDate(todayLocalDate())
-      setHour(new Date().getHours())
+      setHour(currentHour())
       // Show "Saved!" for 1 second then close
       setSavedFlash(true)
       setTimeout(() => {

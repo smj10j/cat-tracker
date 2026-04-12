@@ -10,18 +10,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { api } from '../../lib/api';
 import CatAvatar from '../../components/CatAvatar';
 import { useThemeColors } from '../../hooks/useThemeColors';
-
-function parseDate(str: string): Date {
-  const [y, m, d] = str.split('-').map(Number);
-  return new Date(y!, (m ?? 1) - 1, d ?? 1);
-}
-
-function formatDateStr(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
+import { parseDate, formatDateStr } from '../../lib/dateHelpers';
 
 export default function NewCatScreen() {
   const colors = useThemeColors();

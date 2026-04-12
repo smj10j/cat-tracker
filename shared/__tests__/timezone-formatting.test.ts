@@ -4,21 +4,12 @@
  */
 import { describe, it, expect } from 'vitest'
 import { localToUTC, utcToLocal } from '../lib/dates'
-import { formatDateShort, formatTime, type UserPreferences } from '../lib/preferences'
+import { formatDateShort, type UserPreferences } from '../lib/preferences'
+import { formatTimeFromParts } from '../lib/formatting'
 
 const PREFS_12H: UserPreferences = { weightUnit: 'lbs', dateFormat: 'MDY', timeFormat: '12h' }
 const PREFS_24H: UserPreferences = { weightUnit: 'kg', dateFormat: 'DMY', timeFormat: '24h' }
 const PREFS_YMD: UserPreferences = { weightUnit: 'lbs', dateFormat: 'YMD', timeFormat: '24h' }
-
-// Helper: format a time string "HH:MM" according to prefs (same logic as formatTimeFromParts)
-function formatTimeFromParts(timePart: string, prefs: UserPreferences): string {
-  const [h, m] = timePart.split(':')
-  const hour = parseInt(h ?? '0', 10)
-  const minute = m ?? '00'
-  if (prefs.timeFormat === '24h') return `${String(hour).padStart(2, '0')}:${minute}`
-  const ampm = hour >= 12 ? 'PM' : 'AM'
-  return `${hour % 12 || 12}:${minute} ${ampm}`
-}
 
 describe('formatTimeFromParts respects time format preference', () => {
   it('formats 9:00 AM correctly in 12h mode', () => {

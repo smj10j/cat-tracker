@@ -7,6 +7,35 @@
 
 ---
 
+## Phase 55: Deduplicate Remaining Cross-Platform Code (2026-04-12)
+
+### Step 1 — Extract medication presets to shared
+- [x] Create shared/lib/medicationPresets.ts (MEDICATION_PRESETS, MEDICATION_PRESET_CATEGORIES, MedicationPreset type, formatFrequencyLabel)
+- [x] Create re-export files: frontend/src/lib/medicationPresets.ts, app/lib/medicationPresets.ts
+
+### Step 2 — Add missing helpers to shared/lib/formatting.ts
+- [x] Add currentHour() export
+
+### Step 3 — Extract native date picker helpers
+- [x] Create app/lib/dateHelpers.ts (parseDate, formatDateStr)
+
+### Step 4 — Fix test importing production code
+- [x] shared/__tests__/timezone-formatting.test.ts: import formatTimeFromParts from shared instead of reimplementing
+
+### Step 5 — Replace all inline duplicates in consumers
+- [x] app/app/cats/[id]/care-item.tsx: remove PRESETS, PRESET_CATEGORIES, formatFrequencyLabel, parseDate, formatDate, todayStr; import from shared
+- [x] frontend/src/pages/MedicationFormPage.tsx: remove PRESETS, PRESET_CATEGORIES, formatFrequencyLabel, todayStr; import from shared
+- [x] app/app/cats/new.tsx: remove parseDate, formatDateStr; import from app/lib/dateHelpers
+- [x] app/app/cats/[id]/edit.tsx: remove parseDate, formatDateStr; import from app/lib/dateHelpers
+- [x] app/app/(tabs)/log.tsx: remove parseDate, formatDateStr, currentHour; import from shared
+- [x] frontend/src/pages/DailyCheckin.tsx: remove currentHour; import from shared
+- [x] frontend/src/components/MeasurementForm.tsx: use buildMeasuredAt and currentHour from shared instead of inline
+
+### Step 6 — Verify
+- [x] All 4 test suites pass (shared 244, frontend 62, worker 151, app TS pre-existing only)
+
+---
+
 ## Phase 54: Shared Library Consolidation (2026-04-12)
 
 ### Step 1 — Reconcile User type

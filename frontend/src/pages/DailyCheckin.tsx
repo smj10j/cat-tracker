@@ -4,7 +4,7 @@ import { createMeasurement, getCats, type Cat } from '../lib/api'
 import { PRESETS } from '../lib/measurementPresets'
 import { usePreferences } from '../contexts/PreferencesContext'
 import type { WeightUnit } from '@shared/lib/preferences'
-import { todayLocalDate, buildMeasuredAt, formatHour } from '../lib/formatting'
+import { todayLocalDate, buildMeasuredAt, formatHour, currentHour } from '../lib/formatting'
 
 type Selections = Partial<Record<string, number>>
 
@@ -16,10 +16,6 @@ const BEHAVIORAL_TYPES = [
   { key: 'activity', label: 'Activity' },
   { key: 'vomiting', label: 'Vomiting' },
 ] as const
-
-function currentHour(): number {
-  return new Date().getHours()
-}
 
 export default function DailyCheckin() {
   const goBack = useGoBack('/')

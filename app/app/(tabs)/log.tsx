@@ -10,7 +10,8 @@ import type { Cat } from '../../lib/api';
 import { PRESETS } from '../../lib/measurementPresets';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { usePreferences } from '../../contexts/PreferencesContext';
-import { todayLocalDate, buildMeasuredAt, formatHour, formatDayLabel } from '../../lib/formatting';
+import { todayLocalDate, buildMeasuredAt, formatHour, formatDayLabel, currentHour } from '../../lib/formatting';
+import { parseDate, formatDateStr } from '../../lib/dateHelpers';
 
 type Selections = Partial<Record<string, number>>;
 
@@ -22,22 +23,6 @@ const BEHAVIORAL_TYPES = [
   { key: 'activity', label: 'Activity' },
   { key: 'vomiting', label: 'Vomiting' },
 ] as const;
-
-function parseDate(str: string): Date {
-  const [y, m, d] = str.split('-').map(Number);
-  return new Date(y!, (m ?? 1) - 1, d ?? 1);
-}
-
-function formatDateStr(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function currentHour(): number {
-  return new Date().getHours();
-}
 
 export default function LogScreen() {
   const colors = useThemeColors();

@@ -79,6 +79,11 @@ One-command pipeline: runs all tests (shared + app + frontend + worker), verifie
 
 Both build paths produce an IPA that is submitted to TestFlight via `eas submit`. The only difference is where the build runs — the resulting binary and TestFlight submission are identical.
 
+#### `docs/app-store-submissions.log`
+Tracks every TestFlight build and App Store review submission:
+- **TestFlight entries** are appended automatically by `deploy-testflight.sh` (commit hash, version, date)
+- **App Store review entries** are added manually when the user says they submitted a build for review — append a `- **App Store Review**: <date>` line and any review notes to the matching build entry
+
 ### Database changes
 
 Schema lives in `worker/src/db/schema.sql`. After changes:

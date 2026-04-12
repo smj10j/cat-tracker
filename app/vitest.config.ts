@@ -18,6 +18,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@shared': path.resolve(__dirname, '../shared'),
+      // Stub native-only packages that Vite can't resolve in tests
+      '@react-native-community/datetimepicker': path.resolve(__dirname, '__tests__/screens/__mocks__/datetimepicker.ts'),
     },
   },
 });

@@ -274,6 +274,14 @@ vi.mock('expo-notifications', () => ({
 }));
 
 // ---------------------------------------------------------------------------
+// Mock: @react-native-community/datetimepicker
+// ---------------------------------------------------------------------------
+vi.mock('@react-native-community/datetimepicker', () => ({
+  __esModule: true,
+  default: mockComponent('DateTimePicker'),
+}));
+
+// ---------------------------------------------------------------------------
 // Mock: NativeWind global CSS (no-op)
 // ---------------------------------------------------------------------------
 vi.mock('../../global.css', () => ({}));

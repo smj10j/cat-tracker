@@ -1,6 +1,7 @@
 import { View, Text, ScrollView, Pressable, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useThemeColors } from '../hooks/useThemeColors';
 
 const GUIDE_SECTIONS = [
   {
@@ -37,47 +38,77 @@ const GUIDE_SECTIONS = [
 
 export default function WellnessGuideScreen() {
   const router = useRouter();
+  const colors = useThemeColors();
 
   return (
-    <SafeAreaView className="flex-1 bg-night">
-      <View className="px-4 py-3 flex-row items-center gap-3 border-b border-rim">
-        <Pressable onPress={() => router.back()}>
-          <Text className="text-lavender text-base">← Back</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }}>
+      <View style={{
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.rim,
+      }}>
+        <Pressable
+          onPress={() => router.back()}
+          style={{ paddingVertical: 8, paddingRight: 8 }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={{ color: colors.lavender, fontSize: 15, fontWeight: '600' }}>{'\u2190'} Back</Text>
         </Pressable>
-        <Text className="text-ink text-xl font-bold">Wellness Guide</Text>
+        <Text style={{ color: colors.ink, fontSize: 20, fontWeight: '700' }}>Wellness Guide</Text>
       </View>
 
-      <ScrollView className="flex-1 px-4 py-4" contentContainerStyle={{ gap: 16 }}>
-        <Text className="text-ink-mid text-sm leading-relaxed">
+      <ScrollView
+        style={{ flex: 1, paddingHorizontal: 16, paddingTop: 16 }}
+        contentContainerStyle={{ gap: 16, paddingBottom: 32 }}
+      >
+        <Text style={{ color: colors.inkMid, fontSize: 14, lineHeight: 20 }}>
           This guide summarizes key indicators for monitoring your cat's health.
           All thresholds are sourced from AAFP, WSAVA, and ISFM veterinary guidelines.
         </Text>
 
         {GUIDE_SECTIONS.map((section) => (
-          <View key={section.title} className="bg-surface rounded-card p-4 border border-rim">
-            <View className="flex-row items-center gap-2 mb-2">
-              <Text className="text-xl">{section.emoji}</Text>
-              <Text className="text-ink font-semibold text-base">{section.title}</Text>
+          <View
+            key={section.title}
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 16,
+              padding: 16,
+              borderWidth: 1,
+              borderColor: colors.rim,
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <Text style={{ fontSize: 20 }}>{section.emoji}</Text>
+              <Text style={{ color: colors.ink, fontWeight: '600', fontSize: 16 }}>{section.title}</Text>
             </View>
-            <Text className="text-ink-mid text-sm leading-relaxed">{section.content}</Text>
+            <Text style={{ color: colors.inkMid, fontSize: 14, lineHeight: 20 }}>{section.content}</Text>
           </View>
         ))}
 
-        <View className="bg-surface-hi rounded-card p-4 border border-rim mt-4">
-          <Text className="text-ink-dim text-xs leading-relaxed text-center">
+        <View style={{
+          backgroundColor: colors.surfaceHi,
+          borderRadius: 16,
+          padding: 16,
+          borderWidth: 1,
+          borderColor: colors.rim,
+          marginTop: 8,
+        }}>
+          <Text style={{ color: colors.inkDim, fontSize: 12, lineHeight: 18, textAlign: 'center' }}>
             Health thresholds sourced from AAFP (American Association of Feline Practitioners),
             WSAVA (World Small Animal Veterinary Association), and ISFM (International Society
             of Feline Medicine).{' '}
             <Text
-              style={{ color: '#c084fc', textDecorationLine: 'underline' }}
+              style={{ color: colors.lavender, textDecorationLine: 'underline' }}
               onPress={() => Linking.openURL('https://github.com/smj10j/cat-tracker/tree/main/docs/research')}
             >
               Full citations and sources
             </Text>.
           </Text>
         </View>
-
-        <View className="h-8" />
       </ScrollView>
     </SafeAreaView>
   );

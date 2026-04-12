@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { createMeasurement, type Measurement } from '../lib/api'
 import { PRESETS, PRESET_TYPES } from '../lib/measurementPresets'
+import { usePreferences } from '../contexts/PreferencesContext'
 
 interface Props {
   catId: string
@@ -30,10 +31,11 @@ function formatHour(hour: number): string {
 }
 
 export default function MeasurementForm({ catId, onAdded }: Props) {
+  const { prefs } = usePreferences()
   const [open, setOpen] = useState(false)
   const [type, setType] = useState('weight')
   const [weightValue, setWeightValue] = useState('')
-  const [weightUnit, setWeightUnit] = useState('lbs')
+  const [weightUnit, setWeightUnit] = useState(prefs.weightUnit)
   const [date, setDate] = useState(todayLocalDate)
   const [hour, setHour] = useState(() => new Date().getHours())
   const [selectedPreset, setSelectedPreset] = useState<number | null>(null)
@@ -224,7 +226,7 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
             </div>
             <div>
               <label htmlFor="mform-unit" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Unit</label>
-              <select id="mform-unit" value={weightUnit} onChange={(e) => setWeightUnit(e.target.value)} className="input-dark w-full px-2 py-2.5 text-sm">
+              <select id="mform-unit" value={weightUnit} onChange={(e) => setWeightUnit(e.target.value as 'lbs' | 'kg')} className="input-dark w-full px-2 py-2.5 text-sm">
                 <option value="lbs">lbs</option>
                 <option value="kg">kg</option>
               </select>

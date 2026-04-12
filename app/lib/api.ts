@@ -1,4 +1,6 @@
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
+import * as Device from 'expo-device';
 
 // Types re-exported from shared — single source of truth
 export type {
@@ -18,6 +20,14 @@ import type {
 // On web, use relative URLs (Pages proxy handles /api/* -> Worker).
 // On native, call the Worker directly with Bearer token.
 const BASE_URL = Platform.OS === 'web' ? '' : 'https://cat-tracker.pages.dev';
+const API_VERSION = Constants.expoConfig?.version ?? '1.0.0';
+
+// SEC-10: Device fingerprint for session binding
+function getDeviceFingerprint(): string {
+  const model = Device.modelName ?? 'unknown';
+  const os = `${Platform.OS}/${Platform.Version}`;
+  return `${model}|${os}`;
+}
 
 let authToken: string | null = null;
 
@@ -25,8 +35,25 @@ export function setAuthToken(token: string | null) {
   authToken = token;
 }
 
+/** Error class for 426 Upgrade Required responses */
+export class UpgradeRequiredError extends Error {
+  minSupportedVersion: string;
+  constructor(minVersion: string) {
+    super('App update required');
+    this.minSupportedVersion = minVersion;
+  }
+}
+
 async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
   const headers = new Headers(init?.headers);
+
+  // API versioning: send version on every request
+  headers.set('X-API-Version', API_VERSION);
+
+  // SEC-10: Send device fingerprint for session binding
+  if (Platform.OS !== 'web') {
+    headers.set('X-Device-Id', getDeviceFingerprint());
+  }
 
   if (authToken && Platform.OS !== 'web') {
     headers.set('Authorization', `Bearer ${authToken}`);
@@ -41,6 +68,12 @@ async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
     headers,
     credentials: Platform.OS === 'web' ? 'same-origin' : undefined,
   });
+
+  // 426 Upgrade Required — app is below minSupportedVersion
+  if (res.status === 426) {
+    const body = await res.json().catch(() => ({})) as { minSupportedVersion?: string };
+    throw new UpgradeRequiredError(body.minSupportedVersion ?? 'unknown');
+  }
 
   if (!res.ok && res.status === 401) {
     throw new Error('Unauthorized');

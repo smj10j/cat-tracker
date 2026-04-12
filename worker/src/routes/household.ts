@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import type { AppEnv } from '../types'
 import { ensureHousehold, hasRole, ROLE_LEVEL } from '../lib/household'
 import { sendEmail } from '../lib/email'
+import { logAudit } from '../lib/audit'
 
 // ── Public routes (no auth required) ─────────────────────────────────────────
 export const householdPublic = new Hono<AppEnv>()
@@ -157,6 +158,7 @@ household.put('/members/:targetUserId/role', async (c) => {
     `UPDATE household_members SET role = ? WHERE household_id = ? AND user_id = ? AND status = 'active'`,
   ).bind(newRole, householdId, targetUserId).run()
 
+  logAudit(c, 'role_changed', { householdId, targetUserId, newRole })
   return c.json({ success: true })
 })
 
@@ -173,6 +175,7 @@ household.delete('/members/:targetUserId', async (c) => {
     `UPDATE household_members SET status = 'removed' WHERE household_id = ? AND user_id = ? AND status = 'active'`,
   ).bind(householdId, targetUserId).run()
 
+  logAudit(c, 'member_removed', { householdId, targetUserId })
   return c.json({ success: true })
 })
 
@@ -323,6 +326,7 @@ household.post('/invites/accept', async (c) => {
     WHERE id = ?
   `).bind(userId, invite.id).run()
 
+  logAudit(c, 'member_added', { householdId: invite.household_id, role: invite.role })
   return c.json({ success: true, household_id: invite.household_id })
 })
 

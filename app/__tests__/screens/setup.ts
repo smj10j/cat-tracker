@@ -267,13 +267,24 @@ vi.mock('expo-status-bar', () => ({
 }));
 
 // ---------------------------------------------------------------------------
+// Mock: expo-constants
+// ---------------------------------------------------------------------------
+vi.mock('expo-constants', () => ({
+  __esModule: true,
+  default: {
+    expoConfig: { extra: { eas: { projectId: 'test-project-id' } } },
+  },
+}));
+
+// ---------------------------------------------------------------------------
 // Mock: expo-notifications
 // ---------------------------------------------------------------------------
 vi.mock('expo-notifications', () => ({
   getPermissionsAsync: vi.fn().mockResolvedValue({ status: 'undetermined' }),
   requestPermissionsAsync: vi.fn().mockResolvedValue({ status: 'granted' }),
-  getExpoPushTokenAsync: vi.fn().mockResolvedValue({ data: 'test-token' }),
+  getExpoPushTokenAsync: vi.fn().mockResolvedValue({ data: 'ExponentPushToken[test]' }),
   setNotificationHandler: vi.fn(),
+  addNotificationResponseReceivedListener: vi.fn(() => ({ remove: vi.fn() })),
 }));
 
 // ---------------------------------------------------------------------------
@@ -357,6 +368,29 @@ vi.mock('../../../contexts/ThemeContext', () => ({
     setTheme: vi.fn(),
   }),
   ThemeProvider: ({ children }: any) => React.createElement('div', null, children),
+}));
+
+const mockPrefs = { dateFormat: 'MDY', timeFormat: '12h', weightUnit: 'lbs' };
+vi.mock('../../contexts/PreferencesContext', () => ({
+  usePreferences: () => ({
+    prefs: mockPrefs,
+    overrides: {},
+    setPref: vi.fn(),
+    resetToLocale: vi.fn(),
+    isOverridden: () => false,
+  }),
+  PreferencesProvider: ({ children }: any) => React.createElement('div', null, children),
+}));
+
+vi.mock('../../../contexts/PreferencesContext', () => ({
+  usePreferences: () => ({
+    prefs: mockPrefs,
+    overrides: {},
+    setPref: vi.fn(),
+    resetToLocale: vi.fn(),
+    isOverridden: () => false,
+  }),
+  PreferencesProvider: ({ children }: any) => React.createElement('div', null, children),
 }));
 
 // Also mock the relative path used by deeper screens

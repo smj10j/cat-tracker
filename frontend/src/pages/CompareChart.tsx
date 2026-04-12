@@ -8,8 +8,10 @@ import { getCats, getMeasurements, type Cat, type Measurement } from '../lib/api
 import { assessHealth, STATUS_COLORS, STATUS_EMOJI, STATUS_LABEL, type HealthStatus, type PeriodHealth } from '../lib/healthMetrics'
 import { getPresetLabel, getPresetTicks, PRESET_TYPES } from '../lib/measurementPresets'
 import { useChartWindow, getTickFormatter, type TimeRange } from '../lib/useChartWindow'
+import { usePreferences } from '../contexts/PreferencesContext'
 import ChartRangeSelector from '../components/ChartRangeSelector'
 import SwipeableChart from '../components/SwipeableChart'
+import FullScreenReady from '../components/FullScreenReady'
 
 const LINE_COLORS = ['#c084fc', '#fb923c', '#60a5fa', '#f472b6', '#34d399', '#fbbf24']
 
@@ -24,8 +26,10 @@ const TYPE_OPTIONS = [
 ]
 
 function formatDate(iso: string) {
+  // Internal date key for chart data — used as display label
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
+// Note: formatDate above is used for chart data keys — migrated to locale in tick formatter
 
 type ChartRow = { date: string; rawDate: string; [catName: string]: string | number | null }
 
@@ -54,10 +58,11 @@ function buildHealthIndex(cats: Cat[], measurementsByCat: Map<string, Measuremen
   return result
 }
 
-function WeightTooltip({ active, payload, label }: {
+function WeightTooltip({ active, payload, label, unit }: {
   active?: boolean
   payload?: Array<{ value: number; name: string; color: string }>
   label?: string
+  unit?: string
 }) {
   if (!active || !payload?.length) return null
   return (
@@ -73,7 +78,7 @@ function WeightTooltip({ active, payload, label }: {
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
             <span style={{ color: 'var(--color-ink-mid)', fontSize: 11 }}>{p.name}</span>
           </div>
-          <span style={{ color: 'var(--color-ink)', fontWeight: 600 }}>{p.value} lbs</span>
+          <span style={{ color: 'var(--color-ink)', fontWeight: 600 }}>{p.value} {unit ?? 'lbs'}</span>
         </div>
       ))}
     </div>
@@ -108,6 +113,7 @@ function ScaleTooltip({ active, payload, label, type }: {
 }
 
 export default function CompareChart() {
+  const { prefs } = usePreferences()
   const [cats, setCats] = useState<Cat[]>([])
   const [measurementsByCat, setMeasurementsByCat] = useState<Map<string, Measurement[]>>(new Map())
   const [enabled, setEnabled] = useState<Set<string>>(new Set())
@@ -157,7 +163,7 @@ export default function CompareChart() {
   }, [measurementsByCat])
 
   const { range, setRange, windowStart, windowEnd, navigate, hasOlderData, hasNewerData } = useChartWindow(combinedMeasurements)
-  const tickFormatter = getTickFormatter(range)
+  const tickFormatter = getTickFormatter(range, prefs)
 
   const isWeightType = selectedType === 'weight'
   const isScaleType = PRESET_TYPES.has(selectedType)
@@ -263,6 +269,8 @@ export default function CompareChart() {
                 <div className="text-center py-16 text-ink-dim text-sm">No {selectedType} measurements yet</div>
               ) : (
                 <>
+                  <FullScreenReady title="Compare" subtitle={isWeightType ? prefs.weightUnit : selectedType} hasData={chartData.length > 0}>
+                    {(fs) => (<>
                   <ChartRangeSelector
                     range={range}
                     onRangeChange={(r: TimeRange) => setRange(r)}
@@ -275,7 +283,7 @@ export default function CompareChart() {
                     onSwipeRight={() => navigate('back')}
                     enabled={range !== 'All'}
                   >
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={fs ? '100%' : 300}>
                     <LineChart data={chartData} margin={{ top: 14, right: 8, left: 0, bottom: 4 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--color-grid)" vertical={false} />
                       <XAxis dataKey="rawDate" tick={{ fontSize: 10, fill: 'var(--color-ink-dim)' }} tickLine={false} axisLine={false} tickFormatter={(v: string) => tickFormatter(v + 'T12:00:00Z')} />
@@ -289,7 +297,7 @@ export default function CompareChart() {
                         width={isScaleType ? 60 : 28}
                       />
                       <Tooltip content={isWeightType
-                        ? <WeightTooltip />
+                        ? <WeightTooltip unit={prefs.weightUnit} />
                         : <ScaleTooltip type={selectedType} />}
                       />
                       {cats.map((cat, i) => {
@@ -347,6 +355,8 @@ export default function CompareChart() {
                       ))}
                     </div>
                   )}
+                    </>)}
+                  </FullScreenReady>
                 </>
               )}
             </>

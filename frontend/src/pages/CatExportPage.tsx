@@ -6,6 +6,8 @@ import { assessHealth } from '../lib/healthMetrics'
 import { detectCorrelations, describeCorrelation, detectConfluence } from '../lib/correlations'
 import { getPresetLabel, PRESET_TYPES } from '../lib/measurementPresets'
 import { catAge } from '../lib/dates'
+import { usePreferences } from '../contexts/PreferencesContext'
+import { formatDate as fmtDate, formatDateTime as fmtDateTime } from '@shared/lib/preferences'
 
 const TYPE_LABELS: Record<string, string> = {
   weight: 'Weight', food: 'Food intake', water: 'Water intake',
@@ -23,18 +25,9 @@ const TYPE_UNIT_LABEL: Record<string, string> = {
   litter: '(scale: Not used / Straining / Loose / Normal)',
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
-
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
-  })
-}
-
 export default function CatExportPage() {
   const { id } = useParams<{ id: string }>()
+  const { prefs } = usePreferences()
   const goBack = useGoBack(id ? `/cats/${id}` : '/')
 
   const [cat, setCat] = useState<Cat | null>(null)
@@ -73,9 +66,7 @@ export default function CatExportPage() {
     : []
   const confluence = correlations.length >= 2 ? detectConfluence(correlations, cat.name) : null
 
-  const generatedAt = new Date().toLocaleString('en-US', {
-    month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
-  })
+  const generatedAt = fmtDateTime(new Date().toISOString(), prefs)
 
   const statusExplained: Record<string, string> = {
     ok: 'Stable — weight trend within normal range',
@@ -195,7 +186,7 @@ export default function CatExportPage() {
                         const change = prev ? m.value - prev.value : null
                         return (
                           <tr key={m.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                            <td className="py-1.5">{formatDate(m.measured_at)}</td>
+                            <td className="py-1.5">{fmtDate(m.measured_at, prefs)}</td>
                             <td className="py-1.5 text-right font-medium tabular-nums">{m.value}</td>
                             <td className="py-1.5 text-right tabular-nums" style={{ color: change == null ? '#9ca3af' : change < 0 ? '#dc2626' : change > 0 ? '#16a34a' : '#9ca3af' }}>
                               {change == null ? '—' : change > 0 ? `+${change.toFixed(1)}` : change.toFixed(1)}
@@ -238,7 +229,7 @@ export default function CatExportPage() {
                   <tbody>
                     {shown.map((m) => (
                       <tr key={m.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                        <td className="py-1.5">{formatDateTime(m.measured_at)}</td>
+                        <td className="py-1.5">{fmtDateTime(m.measured_at, prefs)}</td>
                         <td className="py-1.5 text-right font-medium">
                           {getPresetLabel(m.type, m.value)}
                           {m.notes && <span className="font-normal" style={{ color: '#6b7280' }}> — {m.notes}</span>}

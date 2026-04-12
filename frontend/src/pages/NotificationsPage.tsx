@@ -2,42 +2,44 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useGoBack } from '../hooks/useGoBack'
 import { getNotifications, administerDose, skipDose, CARE_TYPE_ICONS, type NotificationInbox, type DoseWithContext, type Medication } from '../lib/api'
+import { usePreferences } from '../contexts/PreferencesContext'
+import { formatDateShort, formatDateWithWeekday, type UserPreferences } from '@shared/lib/preferences'
 
-function formatDueAt(dueAt: string): string {
+function formatTimeStr(timePart: string, prefs: UserPreferences): string {
+  const [h, m] = timePart.split(':')
+  const hour = parseInt(h ?? '0', 10)
+  const minute = m ?? '00'
+  if (prefs.timeFormat === '24h') {
+    return `${String(hour).padStart(2, '0')}:${minute}`
+  }
+  const ampm = hour >= 12 ? 'PM' : 'AM'
+  const h12 = hour % 12 || 12
+  return `${h12}:${minute} ${ampm}`
+}
+
+function formatDueAt(dueAt: string, prefs: UserPreferences): string {
   // dueAt is 'YYYY-MM-DD HH:MM:00'
   const [datePart, timePart] = dueAt.split(' ')
   if (!datePart || !timePart) return dueAt
   const today = new Date().toISOString().slice(0, 10)
   const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
-  const [h, m] = timePart.split(':')
-  const hour = parseInt(h ?? '0', 10)
-  const minute = m ?? '00'
-  const ampm = hour >= 12 ? 'PM' : 'AM'
-  const h12 = hour % 12 || 12
-  const timeStr = `${h12}:${minute} ${ampm}`
+  const timeStr = formatTimeStr(timePart, prefs)
 
   if (datePart === today) return `Today at ${timeStr}`
   if (datePart === yesterday) return `Yesterday at ${timeStr}`
-  const d = new Date(datePart + 'T12:00:00')
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ` at ${timeStr}`
+  return formatDateShort(datePart, prefs) + ` at ${timeStr}`
 }
 
-function formatFutureDueAt(dueAt: string): string {
+function formatFutureDueAt(dueAt: string, prefs: UserPreferences): string {
   const [datePart, timePart] = dueAt.split(' ')
   if (!datePart || !timePart) return dueAt
   const today = new Date().toISOString().slice(0, 10)
   const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
-  const [h, m] = timePart.split(':')
-  const hour = parseInt(h ?? '0', 10)
-  const minute = m ?? '00'
-  const ampm = hour >= 12 ? 'PM' : 'AM'
-  const h12 = hour % 12 || 12
-  const timeStr = `${h12}:${minute} ${ampm}`
+  const timeStr = formatTimeStr(timePart, prefs)
 
   if (datePart === today) return `Today at ${timeStr}`
   if (datePart === tomorrow) return `Tomorrow at ${timeStr}`
-  const d = new Date(datePart + 'T12:00:00')
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + ` at ${timeStr}`
+  return formatDateWithWeekday(datePart, prefs) + ` at ${timeStr}`
 }
 
 interface DoseCardProps {
@@ -46,9 +48,10 @@ interface DoseCardProps {
   onAdminister: (id: string) => void
   onSkip: (id: string) => void
   acting: string | null
+  prefs: UserPreferences
 }
 
-function DoseCard({ dose, variant, onAdminister, onSkip, acting }: DoseCardProps) {
+function DoseCard({ dose, variant, onAdminister, onSkip, acting, prefs }: DoseCardProps) {
   const isActing = acting === dose.id
 
   const borderColor = variant === 'overdue'
@@ -83,7 +86,7 @@ function DoseCard({ dose, variant, onAdminister, onSkip, acting }: DoseCardProps
             color: variant === 'overdue' ? 'var(--color-overdue-muted)' : variant === 'today' ? 'var(--color-due-today-muted)' : 'var(--color-ink-dim)',
           }}>
             {variant === 'overdue' ? 'Was due: ' : 'Due: '}
-            {variant === 'upcoming' ? formatFutureDueAt(dose.due_at) : formatDueAt(dose.due_at)}
+            {variant === 'upcoming' ? formatFutureDueAt(dose.due_at, prefs) : formatDueAt(dose.due_at, prefs)}
           </p>
         </div>
         <Link
@@ -167,6 +170,7 @@ function SectionHeader({ label, count, color }: { label: string; count: number; 
 
 export default function NotificationsPage() {
   const goBack = useGoBack('/')
+  const { prefs } = usePreferences()
   const [inbox, setInbox] = useState<NotificationInbox | null>(null)
   const [loading, setLoading] = useState(true)
   const [acting, setActing] = useState<string | null>(null)
@@ -235,7 +239,7 @@ export default function NotificationsPage() {
               <div className="space-y-3">
                 {inbox.overdue.map(d => (
                   <DoseCard key={d.id} dose={d} variant="overdue"
-                    onAdminister={handleAdminister} onSkip={handleSkip} acting={acting} />
+                    onAdminister={handleAdminister} onSkip={handleSkip} acting={acting} prefs={prefs} />
                 ))}
               </div>
             </section>
@@ -247,7 +251,7 @@ export default function NotificationsPage() {
               <div className="space-y-3">
                 {inbox.due_today.map(d => (
                   <DoseCard key={d.id} dose={d} variant="today"
-                    onAdminister={handleAdminister} onSkip={handleSkip} acting={acting} />
+                    onAdminister={handleAdminister} onSkip={handleSkip} acting={acting} prefs={prefs} />
                 ))}
               </div>
             </section>
@@ -270,7 +274,7 @@ export default function NotificationsPage() {
               <div className="space-y-2">
                 {inbox.upcoming.map(d => (
                   <DoseCard key={d.id} dose={d} variant="upcoming"
-                    onAdminister={handleAdminister} onSkip={handleSkip} acting={acting} />
+                    onAdminister={handleAdminister} onSkip={handleSkip} acting={acting} prefs={prefs} />
                 ))}
               </div>
             </section>

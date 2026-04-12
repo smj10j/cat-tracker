@@ -7,15 +7,36 @@ const config = new Hono<AppEnv>()
 const DEFAULT_CONFIG = {
   minSupportedVersion: '1.0.0',
   latestVersion: '1.0.0',
+  updateMessage: null as string | null,
   features: {
     pushNotificationsEnabled: false,
     appleSignInEnabled: true,
     streaksEnabled: false,
     aiNarrativeEnabled: false,
   },
-  thresholds: null,
+  thresholds: null as {
+    weightLoss?: {
+      watchPctPerWeek: number
+      concerningPctPerWeek: number
+      urgentPctPerWeek: number
+    }
+    weightGain?: {
+      watchPctPerWeek: number
+      concerningPctPerWeek: number
+    }
+    noiseFloorPct?: number
+    minIntervalDays?: number
+    referencePeakWindowDays?: number
+    referencePeakMinMeasurements?: number
+    totalLoss?: {
+      watchPct: number
+      concerningPct: number
+      urgentPct: number
+    }
+  } | null,
   maintenanceMode: false,
-  maintenanceMessage: null,
+  maintenanceMessage: null as string | null,
+  deprecations: null as Record<string, string> | null,  // field -> sunset date ISO string
 }
 
 config.get('/config', async (c) => {
@@ -52,9 +73,23 @@ config.get('/config', async (c) => {
         }
       }
     }
-    return c.json(raw, 200, {
+    // Add Deprecation/Sunset headers if any deprecations are configured
+    const headers: Record<string, string> = {
       'Cache-Control': 'public, max-age=300, stale-while-revalidate=600',
-    })
+    }
+    const cfgTyped = cfg as Record<string, unknown>
+    if (cfgTyped.deprecations && typeof cfgTyped.deprecations === 'object') {
+      const deps = cfgTyped.deprecations as Record<string, string>
+      const dates = Object.values(deps).filter(Boolean)
+      if (dates.length > 0) {
+        headers['Deprecation'] = 'true'
+        // Sunset = earliest deprecation date
+        const earliest = dates.sort()[0]
+        if (earliest) headers['Sunset'] = new Date(earliest).toUTCString()
+      }
+    }
+
+    return c.json(raw, 200, headers)
   } catch (e) {
     console.error('Failed to read config from KV:', e)
     return c.json(DEFAULT_CONFIG, 200, {

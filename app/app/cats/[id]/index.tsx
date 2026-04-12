@@ -104,12 +104,14 @@ function formatSexNeuter(sex: string | null, isNeutered: number | null): string 
 export default function CatProfileScreen() {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, tab: initialTab } = useLocalSearchParams<{ id: string; tab?: string }>();
   const router = useRouter();
   const [cat, setCat] = useState<Cat | null>(null);
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [meds, setMeds] = useState<Medication[]>([]);
-  const [profileTab, setProfileTab] = useState<ProfileTab>('health');
+  const [profileTab, setProfileTab] = useState<ProfileTab>(
+    initialTab === 'care' || initialTab === 'about' ? initialTab : 'health'
+  );
   const [chartTab, setChartTab] = useState<string>('weight');
   const [showOlderHistory, setShowOlderHistory] = useState(false);
   const [loading, setLoading] = useState(true);

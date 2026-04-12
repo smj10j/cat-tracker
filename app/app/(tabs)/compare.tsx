@@ -16,6 +16,8 @@ import type { HealthStatus } from '../../lib/healthMetrics';
 import LineChart, { type ChartDataPoint } from '../../components/LineChart';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { useThemeColors } from '../../hooks/useThemeColors';
+import { usePreferences } from '../../contexts/PreferencesContext';
+import { formatDateShort, formatWeight } from '../../../shared/lib/preferences';
 
 const LINE_COLORS = ['#c084fc', '#4ade80', '#f97316', '#fbbf24', '#fb923c', '#f87171'];
 

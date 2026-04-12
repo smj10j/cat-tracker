@@ -1,12 +1,24 @@
 import '../global.css';
+import { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
-import { Stack, usePathname } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
+import * as Notifications from 'expo-notifications';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
+import { PreferencesProvider } from '../contexts/PreferencesContext';
 import { useThemeColors } from '../hooks/useThemeColors';
 import BottomNav from '../components/BottomNav';
+
+// Configure foreground notification display
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 function ThemedStatusBar() {
   const { colorScheme } = useColorScheme();
@@ -15,6 +27,23 @@ function ThemedStatusBar() {
 
 // Screens that should NOT show the bottom nav
 const HIDE_NAV_ROUTES = ['/(auth)/login', '/login'];
+
+/** Listens for notification taps and deep-links to the cat's Care tab. */
+function NotificationHandler() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data as { catId?: string } | undefined;
+      if (data?.catId) {
+        router.push(`/cats/${data.catId}?tab=care` as never);
+      }
+    });
+    return () => subscription.remove();
+  }, [router]);
+
+  return null;
+}
 
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -34,6 +63,7 @@ function AppContent() {
 
   return (
     <View style={{ flex: 1 }}>
+      {isAuthenticated && <NotificationHandler />}
       <View style={{ flex: 1 }}>
         <Stack screenOptions={{ headerShown: false, animation: 'none' }}>
           <Stack.Screen name="(tabs)" />
@@ -62,10 +92,12 @@ function AppContent() {
 export default function RootLayout() {
   return (
     <ThemeProvider>
+      <PreferencesProvider>
       <AuthProvider>
         <ThemedStatusBar />
         <AppContent />
       </AuthProvider>
+      </PreferencesProvider>
     </ThemeProvider>
   );
 }

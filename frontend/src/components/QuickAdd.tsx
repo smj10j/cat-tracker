@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createMeasurement, getCats, type Cat } from '../lib/api'
 import { PRESETS, PRESET_TYPES } from '../lib/measurementPresets'
+import { usePreferences } from '../contexts/PreferencesContext'
 
 interface Props {
   open: boolean
@@ -23,8 +24,9 @@ const TYPE_OPTIONS = [
 ]
 
 export default function QuickAdd({ open, onClose }: Props) {
+  const { prefs } = usePreferences()
   const [cats, setCats] = useState<Cat[]>([])
-  const [form, setForm] = useState({ catId: '', type: 'weight', value: '', unit: 'lbs', measured_at: toLocalDatetimeString(new Date()) })
+  const [form, setForm] = useState({ catId: '', type: 'weight', value: '', unit: prefs.weightUnit, measured_at: toLocalDatetimeString(new Date()) })
   const [selectedPreset, setSelectedPreset] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -55,7 +57,7 @@ export default function QuickAdd({ open, onClose }: Props) {
 
   function handleTypeChange(type: string) {
     setSelectedPreset(null)
-    setForm((f) => ({ ...f, type, value: '', unit: PRESET_TYPES.has(type) ? 'scale' : 'lbs' }))
+    setForm((f) => ({ ...f, type, value: '', unit: (PRESET_TYPES.has(type) ? 'scale' : prefs.weightUnit) as typeof f.unit }))
   }
 
   function handleCatChange(catId: string) {
@@ -215,7 +217,7 @@ export default function QuickAdd({ open, onClose }: Props) {
                     <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Unit</label>
                     <select
                       value={form.unit}
-                      onChange={(e) => setForm((f) => ({ ...f, unit: e.target.value }))}
+                      onChange={(e) => setForm((f) => ({ ...f, unit: e.target.value as typeof f.unit }))}
                       className="input-dark w-full px-2 py-3 text-sm"
                     >
                       <option value="lbs">lbs</option>

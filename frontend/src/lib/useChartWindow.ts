@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react'
 import type { Measurement } from './api'
+import { getLocaleTickFormatter, type UserPreferences } from '@shared/lib/preferences'
 
 export type TimeRange = '1W' | '1M' | '3M' | '6M' | '1Y' | 'All'
 
@@ -59,7 +60,10 @@ export function useChartWindow(measurements: Measurement[]) {
   return { range, setRange, windowEnd, windowStart, filteredData, navigate, hasOlderData, hasNewerData }
 }
 
-export function getTickFormatter(range: TimeRange): (iso: string) => string {
+/** @deprecated Use getLocaleTickFormatter from shared/lib/preferences instead */
+export function getTickFormatter(range: TimeRange, prefs?: UserPreferences): (iso: string) => string {
+  if (prefs) return getLocaleTickFormatter(range, prefs)
+  // Fallback for callers that haven't migrated yet
   return (iso: string) => {
     const d = new Date(iso)
     switch (range) {

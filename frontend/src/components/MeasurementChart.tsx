@@ -5,6 +5,7 @@ import {
 import type { Measurement } from '../lib/api'
 import { getPresetLabel, getPresetTicks } from '../lib/measurementPresets'
 import { useChartWindow, getTickFormatter, type TimeRange } from '../lib/useChartWindow'
+import { usePreferences } from '../contexts/PreferencesContext'
 import ChartRangeSelector from './ChartRangeSelector'
 import SwipeableChart from './SwipeableChart'
 
@@ -12,6 +13,7 @@ interface Props {
   measurements: Measurement[]
   type: string
   showRangeSelector?: boolean
+  fullScreen?: boolean
 }
 
 function CustomTooltip({ active, payload, label, type }: {
@@ -37,9 +39,10 @@ function CustomTooltip({ active, payload, label, type }: {
   )
 }
 
-export default function MeasurementChart({ measurements, type, showRangeSelector = true }: Props) {
+export default function MeasurementChart({ measurements, type, showRangeSelector = true, fullScreen = false }: Props) {
+  const { prefs } = usePreferences()
   const { range, setRange, filteredData, navigate, hasOlderData, hasNewerData } = useChartWindow(measurements)
-  const tickFormatter = getTickFormatter(range)
+  const tickFormatter = getTickFormatter(range, prefs)
 
   if (measurements.length === 0) {
     return (
@@ -72,7 +75,7 @@ export default function MeasurementChart({ measurements, type, showRangeSelector
         onSwipeRight={() => navigate('back')}
         enabled={range !== 'All'}
       >
-        <ResponsiveContainer width="100%" height={200}>
+        <ResponsiveContainer width="100%" height={fullScreen ? '100%' : 200}>
           <AreaChart data={data} margin={{ top: 10, right: 8, left: 0, bottom: 4 }}>
             <defs>
               <linearGradient id="scaleLineGrad" x1="0" y1="0" x2="1" y2="0">

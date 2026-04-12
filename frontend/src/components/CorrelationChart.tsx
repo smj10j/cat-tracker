@@ -6,6 +6,8 @@ import {
 import type { Measurement } from '../lib/api'
 import { bucketByWeek, lagCorrelation, normalize, describeCorrelation, detectTrend, INPUT_TYPES, OUTCOME_TYPES } from '../lib/correlations'
 import type { CorrelationResult } from '../lib/correlations'
+import { usePreferences } from '../contexts/PreferencesContext'
+import { formatDateShort } from '@shared/lib/preferences'
 
 const TYPE_LABELS: Record<string, string> = {
   weight: 'Weight', food: 'Food', water: 'Water',
@@ -20,14 +22,14 @@ interface Props {
   availableTypes: string[]
 }
 
-function formatWeekKey(weekKey: string): string {
+function formatWeekKey(weekKey: string, prefs: import('@shared/lib/preferences').UserPreferences): string {
   const [yearStr, weekStr] = weekKey.split('-W')
   const year = parseInt(yearStr)
   const week = parseInt(weekStr)
   const jan4 = new Date(Date.UTC(year, 0, 4))
   const weekStart = new Date(jan4)
   weekStart.setUTCDate(jan4.getUTCDate() - (jan4.getUTCDay() || 7) + 1 + (week - 1) * 7)
-  return weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return formatDateShort(weekStart.toISOString(), prefs)
 }
 
 type ChartPoint = {
@@ -37,6 +39,7 @@ type ChartPoint = {
 }
 
 export default function CorrelationChart({ catName, catSex, allMeasurements, availableTypes }: Props) {
+  const { prefs } = usePreferences()
   const typesWithData = availableTypes.filter((t) => (allMeasurements[t]?.length ?? 0) >= 2)
 
   const inputOptions = typesWithData.filter((t) => INPUT_TYPES.has(t))
@@ -72,7 +75,7 @@ export default function CorrelationChart({ catName, catSex, allMeasurements, ava
 
     const chartData: ChartPoint[] = allWeeks.map((week) => ({
       week,
-      label: formatWeekKey(week),
+      label: formatWeekKey(week, prefs),
       [typeA]: normMapA.has(week) ? parseFloat(((normMapA.get(week) ?? 0) * 100).toFixed(1)) : null,
       [typeB]: normMapB.has(week) ? parseFloat(((normMapB.get(week) ?? 0) * 100).toFixed(1)) : null,
       [`${typeA}_raw`]: mapA.get(week) ?? null,
@@ -122,7 +125,7 @@ export default function CorrelationChart({ catName, catSex, allMeasurements, ava
       description: describeCorrelation(result, catName, catSex),
       needsMoreData: false,
     }
-  }, [typeA, typeB, allMeasurements, catName, catSex])
+  }, [typeA, typeB, allMeasurements, catName, catSex, prefs])
 
   const strengthColor =
     result?.strength === 'notable' ? '#c084fc'

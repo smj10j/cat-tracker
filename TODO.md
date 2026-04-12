@@ -7,6 +7,74 @@
 
 ---
 
+## Phase 50: Push Notifications — iOS Native (2026-04-11)
+
+### PRD & Documentation
+- [x] Create PRD-push-notifications.md (Approved)
+- [x] Update REGISTRY.md with new entry
+
+### Worker Infrastructure
+- [x] Add notification_sent_at column to medication_doses (schema + test helpers)
+- [x] Create worker/src/lib/push.ts — Expo Push API helper (batch sending, stale token detection)
+- [x] Change cron from daily (0 3 * * *) to hourly (0 * * * *)
+- [x] Add push notification logic to cron: query due doses, group by user+cat, send via Expo, mark notified
+- [x] Stale token cleanup on DeviceNotRegistered errors
+
+### iOS App
+- [x] Push token registration in AuthContext after login (getExpoPushTokenAsync + registerDeviceToken)
+- [x] Token unregistration on sign out
+- [x] NotificationHandler component in root layout (foreground display + tap deep linking)
+- [x] Cat profile deep link support (tab=care query param)
+
+### Hour-Only Reminder Time
+- [x] iOS care-item form: replace text input with hour-only ScrollView picker
+- [x] Web MedicationFormPage: replace type=time input with hour-only select dropdown
+- [x] Round existing reminder_time values on load (both platforms)
+
+### Tests
+- [x] Push helper tests (batching, error handling, stale tokens) — 7 tests
+- [x] Update smoke test mocks (expo-notifications, expo-constants, PreferencesContext)
+- [x] All tests pass (74 shared + 65 app + 52 frontend + 115 worker = 306)
+
+### Deployment
+- [x] Deploy worker (hourly cron + push logic)
+- [x] Run D1 migration (notification_sent_at column)
+- [x] Round existing reminder_time values in production
+- [x] Deploy frontend (hour-only picker)
+
+## Phase 49: API Versioning B/C + Security Hardening Phase 2 B/C (2026-04-11)
+
+### Security Phase 2 — Phase B
+- [x] SEC-12: Data export rate limiting (5 req/hr per user, rate_limits D1 table, 429 + Retry-After)
+- [x] SEC-14: Device token validation (regex for Expo/APNs) + per-user cap (10 tokens, prune oldest)
+- [x] SEC-15: Audit logging (audit_log D1 table, log key actions, 90-day cron cleanup)
+
+### Security Phase 2 — Phase C
+- [x] SEC-10: Device fingerprint binding (device_fingerprint column on sessions, soft enforcement = log only)
+- [x] SEC-16: Accepted risk documentation (Authorization header in CORS noted in SECURITY.md)
+
+### API Versioning — Phase B
+- [x] Configurable health thresholds: assessHealth accepts optional overrides from /api/config
+- [x] Frontend ConfigContext: fetch + cache /api/config, provide thresholds to components
+- [x] update-config.sh: script for safe KV config updates with validation and diff preview
+
+### API Versioning — Phase C
+- [x] Feature flag checks in UI (gate components on config.features.*)
+- [x] 426 Upgrade Required enforcement (server rejects requests below minSupportedVersion)
+- [x] Deprecation/Sunset response headers middleware
+- [x] Client-version aggregate logging to KV (daily counts by version)
+
+### Cross-Platform
+- [x] iOS app: X-API-Version header, 426 handling, ConfigContext for native
+
+### Tests & Deploy
+- [x] Worker tests for rate limiting, audit log, device token validation, version enforcement (15 tests)
+- [x] Frontend tests for ConfigContext (2 tests) + healthMetrics threshold overrides (4 tests)
+- [x] All test suites pass: 108 worker + 74 shared + 42 frontend (3 pre-existing failures from localization)
+- [x] Update REGISTRY.md statuses
+
+---
+
 ## Phase 48: iOS Bug Fixes & Persistent Bottom Nav (2026-04-11)
 
 ### Architecture

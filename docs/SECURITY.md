@@ -176,8 +176,8 @@ The Worker has no rate limiting. Cloudflare's free tier imposes global limits (1
 ### claim-cats is a global migration endpoint
 `POST /api/auth/claim-cats` assigns ALL orphaned cats (user_id IS NULL) to the requesting user. This was designed for the one-time migration when auth was added. In production there should be no orphaned cats (all cats now get user_id on creation). The endpoint is kept for backward compatibility but should eventually be deprecated.
 
-### No server-side audit logs
-The Worker does not log authentication events, failed auth attempts, or authorization failures. Cloudflare Workers provide basic request logs but not structured application logs. Accepted given the personal-use scale. See SEC-15 in PRD-security-phase2.md for the audit log proposal (Phase B, not yet implemented).
+### Audit logging (SEC-15, implemented)
+The `audit_log` D1 table records security-relevant events: `sign_in`, `sign_out`, `account_deleted`, `data_exported`, `cat_deleted`, `member_added`, `member_removed`, `role_changed`. Each entry captures `user_id`, `ip_address` (from `cf-connecting-ip`), `user_agent`, and a JSON `metadata` blob. Writes are best-effort via `waitUntil` (never block the response). Entries are retained for 90 days; the daily cron purges older rows. No API endpoint exposes the log — it is queried via `wrangler d1 execute` during incident investigation.
 
 ### OAuth providers
 The app supports Google OAuth and Apple Sign In. No password-based auth means no brute force concern. MFA is handled by each provider's own account security.
@@ -189,11 +189,17 @@ The app supports Google OAuth and Apple Sign In. No password-based auth means no
 
 `GET /api/auth/me` includes `session_age_seconds` so clients can pre-flight this check and prompt re-auth before showing the deletion UI.
 
-### Data export
-`GET /api/auth/export` returns a full JSON dump of user data. Currently no rate limiting — see SEC-12 in PRD-security-phase2.md (Phase B, not yet implemented).
+### Data export — rate limited (SEC-12, implemented)
+`GET /api/auth/export` returns a full JSON dump of user data. Rate limited to 5 requests per hour per user via the `rate_limits` D1 table. Exceeding the limit returns `429 Too Many Requests` with a `Retry-After` header. Stale rate limit windows are cleaned up by the daily cron.
 
-### Bearer tokens (iOS native)
-Bearer tokens sent in `Authorization` headers are not bound to a specific device. A stolen token works from any client. Mitigation: tokens expire after 7 days of inactivity. See SEC-10 in PRD-security-phase2.md for device fingerprint binding proposal.
+### Bearer tokens — device fingerprint binding (SEC-10, soft enforcement)
+Bearer tokens sent in `Authorization` headers are now associated with a device fingerprint (`sessions.device_fingerprint` column, stored at session creation from the `X-Device-Id` header). **Current enforcement: logging only** — the auth middleware logs mismatches (`console.warn`) but does not reject requests. This allows monitoring the false-positive rate before enabling hard enforcement. Hard blocking is planned for a future phase.
+
+### Authorization header in CORS (SEC-16, accepted risk)
+The CORS configuration allows the `Authorization` header from known origins. This is an accepted risk: an XSS vulnerability on `cat-tracker.pages.dev` would already have access to the session cookie (SameSite=Lax), so allowing `Authorization` in CORS does not widen the attack surface. Mitigation: Content-Security-Policy headers are already in place on the frontend.
+
+### Device token validation (SEC-14, implemented)
+`POST /api/auth/device-token` validates token format: Expo push tokens (`ExponentPushToken[...]`), APNs hex tokens (64 hex chars), and web tokens (20-500 chars). Invalid tokens are rejected with `400`. Each user is capped at 10 device tokens; registering a new token prunes the oldest beyond the cap.
 
 ### No "logout all devices" for users
 `POST /api/auth/logout` clears only the current session. Users cannot remotely revoke other sessions (e.g., if a device is lost). Mitigated by the 7-day rolling expiry — a session on a lost device expires within 7 days of last use.

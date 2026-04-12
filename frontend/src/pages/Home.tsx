@@ -5,7 +5,9 @@ import CatAvatar from '../components/CatAvatar'
 import { assessHealth, STATUS_COLORS, STATUS_LABEL } from '../lib/healthMetrics'
 import { detectCorrelations, getHomeBadge } from '../lib/correlations'
 import { useAuth } from '../contexts/AuthContext'
+import { usePreferences } from '../contexts/PreferencesContext'
 import { catAge, formatLocalDate } from '../lib/dates'
+import { formatWeight as fmtWeight } from '@shared/lib/preferences'
 
 function SkeletonCard() {
   return (
@@ -65,6 +67,7 @@ const AVATAR_STYLE: Record<string, React.CSSProperties> = {
 
 export default function Home() {
   const { user, logout, refresh: refreshUser } = useAuth()
+  const { prefs } = usePreferences()
   const navigate = useNavigate()
   const [catData, setCatData] = useState<{ cat: Cat; latestWeight: number | null; latestUnit: string; healthStatus: string; correlationBadge: string | null }[]>([])
   const [memorialCats, setMemorialCats] = useState<Cat[]>([])
@@ -323,9 +326,8 @@ export default function Home() {
                   {latestWeight !== null && (
                     <div className="text-right shrink-0">
                       <div className="font-display font-bold text-lg tabular-nums" style={{ color: isOk ? '#fb923c' : statusColor }}>
-                        {latestWeight}
+                        {fmtWeight(latestWeight, latestUnit, prefs)}
                       </div>
-                      <div className="text-ink-dim text-xs">{latestUnit}</div>
                     </div>
                   )}
                 </Link>

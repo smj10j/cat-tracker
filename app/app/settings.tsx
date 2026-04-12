@@ -5,8 +5,26 @@ import { File, Paths } from 'expo-file-system/next';
 import * as Sharing from 'expo-sharing';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme, ThemePreference } from '../contexts/ThemeContext';
+import { usePreferences } from '../contexts/PreferencesContext';
 import { useThemeColors } from '../hooks/useThemeColors';
 import { api } from '../lib/api';
+import type { DateFormat, TimeFormat, WeightUnit } from '../../shared/lib/preferences';
+
+const DATE_OPTIONS: { value: DateFormat; label: string }[] = [
+  { value: 'MDY', label: 'MM/DD' },
+  { value: 'DMY', label: 'DD/MM' },
+  { value: 'YMD', label: 'YYYY-MM' },
+];
+
+const TIME_OPTIONS: { value: TimeFormat; label: string }[] = [
+  { value: '12h', label: '12h' },
+  { value: '24h', label: '24h' },
+];
+
+const WEIGHT_OPTIONS: { value: WeightUnit; label: string }[] = [
+  { value: 'lbs', label: 'lbs' },
+  { value: 'kg', label: 'kg' },
+];
 
 const THEME_OPTIONS: { value: ThemePreference; label: string; icon: string }[] = [
   { value: 'dark', label: 'Dark', icon: '\uD83C\uDF19' },
@@ -18,7 +36,9 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { prefs, setPref, resetToLocale, isOverridden } = usePreferences();
   const colors = useThemeColors();
+  const hasAnyOverride = isOverridden('dateFormat') || isOverridden('timeFormat') || isOverridden('weightUnit');
 
   const handleDeleteAccount = () => {
     if (Platform.OS === 'web') {
@@ -130,6 +150,64 @@ export default function SettingsScreen() {
               ? 'Always uses the light theme.'
               : 'Always uses the dark theme.'}
           </Text>
+        </View>
+
+        {/* Regional */}
+        <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.rim }}>
+          <Text style={{ color: colors.inkMid, fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>
+            Regional
+          </Text>
+
+          <Text style={{ color: colors.ink, fontSize: 14, fontWeight: '500', marginBottom: 8 }}>Date format</Text>
+          <View style={{ flexDirection: 'row', borderRadius: 12, padding: 4, gap: 4, backgroundColor: colors.surfaceHi, marginBottom: 4 }}>
+            {DATE_OPTIONS.map(({ value, label }) => {
+              const isActive = prefs.dateFormat === value;
+              return (
+                <Pressable key={value} onPress={() => setPref('dateFormat', value)}
+                  style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 8,
+                    backgroundColor: isActive ? colors.lavender : undefined }}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: isActive ? '#ffffff' : colors.inkDim }}>{label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          {!isOverridden('dateFormat') && <Text style={{ color: colors.inkDim, fontSize: 11, marginBottom: 12 }}>(auto-detected)</Text>}
+
+          <Text style={{ color: colors.ink, fontSize: 14, fontWeight: '500', marginBottom: 8, marginTop: 8 }}>Time format</Text>
+          <View style={{ flexDirection: 'row', borderRadius: 12, padding: 4, gap: 4, backgroundColor: colors.surfaceHi, marginBottom: 4 }}>
+            {TIME_OPTIONS.map(({ value, label }) => {
+              const isActive = prefs.timeFormat === value;
+              return (
+                <Pressable key={value} onPress={() => setPref('timeFormat', value)}
+                  style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 8,
+                    backgroundColor: isActive ? colors.lavender : undefined }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: isActive ? '#ffffff' : colors.inkDim }}>{label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          {!isOverridden('timeFormat') && <Text style={{ color: colors.inkDim, fontSize: 11, marginBottom: 12 }}>(auto-detected)</Text>}
+
+          <Text style={{ color: colors.ink, fontSize: 14, fontWeight: '500', marginBottom: 8, marginTop: 8 }}>Weight unit</Text>
+          <View style={{ flexDirection: 'row', borderRadius: 12, padding: 4, gap: 4, backgroundColor: colors.surfaceHi, marginBottom: 4 }}>
+            {WEIGHT_OPTIONS.map(({ value, label }) => {
+              const isActive = prefs.weightUnit === value;
+              return (
+                <Pressable key={value} onPress={() => setPref('weightUnit', value)}
+                  style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 8,
+                    backgroundColor: isActive ? colors.lavender : undefined }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: isActive ? '#ffffff' : colors.inkDim }}>{label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          {!isOverridden('weightUnit') && <Text style={{ color: colors.inkDim, fontSize: 11, marginBottom: 4 }}>(auto-detected)</Text>}
+
+          {hasAnyOverride && (
+            <Pressable onPress={resetToLocale} style={{ marginTop: 12 }}>
+              <Text style={{ color: colors.inkDim, fontSize: 14 }}>Reset to locale defaults</Text>
+            </Pressable>
+          )}
         </View>
 
         {/* Household settings */}

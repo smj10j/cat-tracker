@@ -64,8 +64,12 @@ CREATE TABLE IF NOT EXISTS sessions (
   id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
   user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   expires_at  TEXT NOT NULL,
+  device_fingerprint TEXT,  -- SEC-10: hash of device model + OS version
   created_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- Production migration (already applied; do not re-run):
+-- ALTER TABLE sessions ADD COLUMN device_fingerprint TEXT;
 
 -- (user_id and idx_cats_user are now in the CREATE TABLE above)
 
@@ -109,8 +113,9 @@ CREATE TABLE IF NOT EXISTS medication_doses (
   administered_at TEXT,
   skipped         INTEGER NOT NULL DEFAULT 0,
   skip_reason     TEXT,
-  notes           TEXT,
-  created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+  notes                TEXT,
+  notification_sent_at TEXT,           -- set when push notification sent for this dose
+  created_at           TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(medication_id, due_at)       -- idempotent cron insertion via INSERT OR IGNORE
 );
 
@@ -168,3 +173,29 @@ CREATE TABLE IF NOT EXISTS apple_token_cache (
   token_key   TEXT PRIMARY KEY,
   expires_at  TEXT NOT NULL
 );
+
+-- SEC-12: Rate limiting (added 2026-04-11)
+CREATE TABLE IF NOT EXISTS rate_limits (
+  id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  action      TEXT NOT NULL,        -- 'data_export' etc.
+  window_start TEXT NOT NULL,       -- ISO datetime of window start
+  count       INTEGER NOT NULL DEFAULT 1,
+  UNIQUE(user_id, action, window_start)
+);
+
+CREATE INDEX IF NOT EXISTS idx_rate_limits_user ON rate_limits(user_id, action);
+
+-- SEC-15: Audit logging (added 2026-04-11)
+-- user_id is not a FK — audit entries must survive user deletion (forensic log)
+CREATE TABLE IF NOT EXISTS audit_log (
+  id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  user_id     TEXT,
+  action      TEXT NOT NULL,        -- 'sign_in','sign_out','account_deleted','data_exported','cat_deleted','member_added','member_removed','role_changed'
+  ip_address  TEXT,
+  user_agent  TEXT,
+  metadata    TEXT,                  -- JSON blob for action-specific context
+  created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_log(user_id, created_at DESC);

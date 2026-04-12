@@ -98,6 +98,22 @@ function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+function formatHourLabel(time: string): string {
+  const hour = parseInt(time.split(':')[0] ?? '9', 10);
+  if (hour === 0) return '12:00 AM';
+  if (hour < 12) return `${hour}:00 AM`;
+  if (hour === 12) return '12:00 PM';
+  return `${hour - 12}:00 PM`;
+}
+
+function roundToHour(time: string): string {
+  const parts = time.split(':');
+  const hour = parseInt(parts[0] ?? '9', 10);
+  const min = parseInt(parts[1] ?? '0', 10);
+  const rounded = min >= 30 ? (hour + 1) % 24 : hour;
+  return `${String(rounded).padStart(2, '0')}:00`;
+}
+
 function parseDate(str: string): Date {
   const [y, m, d] = str.split('-').map(Number);
   return new Date(y!, (m ?? 1) - 1, d ?? 1);
@@ -124,9 +140,10 @@ export default function CareItemScreen() {
   const [error, setError] = useState<string | null>(null);
   const [showPresets, setShowPresets] = useState(false);
 
-  // Date picker state
+  // Date/time picker state
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   // Form fields
   const [name, setName] = useState('');
@@ -161,7 +178,7 @@ export default function CareItemScreen() {
           setDose(med.dose ?? '');
           setFrequency(med.frequency);
           setFrequencyDays(String(med.frequency_days ?? 30));
-          setReminderTime(med.reminder_time);
+          setReminderTime(roundToHour(med.reminder_time));
           setStartDate(med.start_date);
           setEndDate(med.end_date ?? '');
           setDosesTotal(med.doses_total != null ? String(med.doses_total) : '');
@@ -490,13 +507,49 @@ export default function CareItemScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <FieldLabel label="Reminder time" />
-              <StyledInput
-                value={reminderTime}
-                onChangeText={setReminderTime}
-                placeholder="09:00"
-              />
+              <Pressable
+                onPress={() => setShowTimePicker((v) => !v)}
+                style={{
+                  backgroundColor: colors.card,
+                  borderWidth: 1,
+                  borderColor: showTimePicker ? colors.lavender : colors.rim,
+                  borderRadius: 12,
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  minHeight: 44,
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ color: colors.ink, fontSize: 14 }}>
+                  {formatHourLabel(reminderTime)}
+                </Text>
+              </Pressable>
             </View>
           </View>
+          {showTimePicker && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 4, paddingVertical: 8 }}>
+              {Array.from({ length: 24 }, (_, i) => {
+                const val = `${String(i).padStart(2, '0')}:00`;
+                const active = reminderTime === val;
+                return (
+                  <Pressable
+                    key={i}
+                    onPress={() => { setReminderTime(val); setShowTimePicker(false); }}
+                    style={{
+                      paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10,
+                      minHeight: 36, alignItems: 'center', justifyContent: 'center',
+                      backgroundColor: active ? 'rgba(192,132,252,0.15)' : colors.surface,
+                      borderWidth: active ? 1 : 0, borderColor: 'rgba(192,132,252,0.25)',
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: active ? colors.lavender : colors.inkDim }}>
+                      {formatHourLabel(val)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          )}
 
           <FieldLabel label="Stop date (blank = ongoing)" />
           <DatePickerField

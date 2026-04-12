@@ -1,10 +1,12 @@
 import type { Measurement } from './types'
+import { convertWeight, type WeightUnit } from './preferences'
 
 export type HealthStatus = 'ok' | 'watch' | 'concerning' | 'urgent'
 
 export interface PeriodHealth {
   status: HealthStatus
-  lbsChange: number       // absolute change from previous measurement
+  /** Absolute change from previous measurement. Always in lbs (internal canonical unit). */
+  absoluteChange: number
   changePercent: number   // % of previous weight
   changePerWeek: number   // % change per week (annualized to weekly rate)
   days: number
@@ -40,15 +42,50 @@ export interface HealthAssessment {
 // Consecutive-period requirement: a single non-ok period does not escalate overallStatus;
 //   two consecutive non-ok periods in the same direction are required.
 
-function classifyRate(changePerWeek: number): HealthStatus {
+/** Threshold overrides that can be provided by the server config. */
+export interface ThresholdOverrides {
+  weightLoss?: {
+    watchPctPerWeek: number
+    concerningPctPerWeek: number
+    urgentPctPerWeek: number
+  }
+  weightGain?: {
+    watchPctPerWeek: number
+    concerningPctPerWeek: number
+  }
+  noiseFloorPct?: number
+  minIntervalDays?: number
+  referencePeakWindowDays?: number
+  referencePeakMinMeasurements?: number
+  totalLoss?: {
+    watchPct: number
+    concerningPct: number
+    urgentPct: number
+  }
+}
+
+// Defaults matching the hardcoded values documented above
+const DEFAULT_THRESHOLDS: Required<ThresholdOverrides> = {
+  weightLoss: { watchPctPerWeek: 0.75, concerningPctPerWeek: 1.5, urgentPctPerWeek: 2 },
+  weightGain: { watchPctPerWeek: 2, concerningPctPerWeek: 3 },
+  noiseFloorPct: 0.015,
+  minIntervalDays: 5,
+  referencePeakWindowDays: 180,
+  referencePeakMinMeasurements: 8,
+  totalLoss: { watchPct: 4, concerningPct: 7, urgentPct: 10 },
+}
+
+function classifyRate(changePerWeek: number, thresholds?: ThresholdOverrides): HealthStatus {
+  const wl = thresholds?.weightLoss ?? DEFAULT_THRESHOLDS.weightLoss
+  const wg = thresholds?.weightGain ?? DEFAULT_THRESHOLDS.weightGain
   const loss = -changePerWeek // positive = losing weight
-  if (loss >= 2) return 'urgent'
-  if (loss >= 1.5) return 'concerning'
-  if (loss >= 0.75) return 'watch'
+  if (loss >= wl.urgentPctPerWeek) return 'urgent'
+  if (loss >= wl.concerningPctPerWeek) return 'concerning'
+  if (loss >= wl.watchPctPerWeek) return 'watch'
   // gain side
   const gain = changePerWeek
-  if (gain >= 3) return 'concerning'
-  if (gain >= 2) return 'watch'
+  if (gain >= wg.concerningPctPerWeek) return 'concerning'
+  if (gain >= wg.watchPctPerWeek) return 'watch'
   return 'ok'
 }
 
@@ -65,8 +102,18 @@ function percentile90(values: number[]): number {
   return sorted[Math.max(0, idx)]!
 }
 
-export function assessHealth(measurements: Measurement[]): HealthAssessment {
-  const sorted = [...measurements].sort((a, b) => a.measured_at.localeCompare(b.measured_at))
+/**
+ * Assess health from weight measurements.
+ * displayUnit controls the unit used in human-readable summary text (defaults to 'lbs').
+ * Internally, all values are normalized to lbs for deterministic computation.
+ */
+export function assessHealth(measurements: Measurement[], thresholds?: ThresholdOverrides, displayUnit: WeightUnit = 'lbs'): HealthAssessment {
+  // Normalize all measurements to lbs (internal canonical unit) to handle mixed-unit sequences
+  const normalized = measurements.map(m => {
+    const unit = (m.unit === 'kg' ? 'kg' : 'lbs') as WeightUnit
+    return { ...m, value: convertWeight(m.value, unit, 'lbs'), unit: 'lbs' }
+  })
+  const sorted = [...normalized].sort((a, b) => a.measured_at.localeCompare(b.measured_at))
 
   if (sorted.length < 2) {
     return {
@@ -82,13 +129,16 @@ export function assessHealth(measurements: Measurement[]): HealthAssessment {
   const peakWeight = Math.max(...values)
   const latestWeight = values[values.length - 1] ?? 0
 
-  // Robust peak reference: 90th-pct of measurements in last 180 days.
-  // Falls back to all-time max when fewer than 8 measurements exist in that window.
+  const peakWindowDays = thresholds?.referencePeakWindowDays ?? DEFAULT_THRESHOLDS.referencePeakWindowDays
+  const peakMinMeasurements = thresholds?.referencePeakMinMeasurements ?? DEFAULT_THRESHOLDS.referencePeakMinMeasurements
+
+  // Robust peak reference: 90th-pct of measurements in last N days.
+  // Falls back to all-time max when fewer than M measurements exist in that window.
   const lastDate = new Date(sorted[sorted.length - 1]!.measured_at)
   const cutoff = new Date(lastDate)
-  cutoff.setDate(cutoff.getDate() - 180)
+  cutoff.setDate(cutoff.getDate() - peakWindowDays)
   const recentValues = sorted.filter(m => new Date(m.measured_at) >= cutoff).map(m => m.value)
-  const referencePeak = recentValues.length >= 8 ? percentile90(recentValues) : peakWeight
+  const referencePeak = recentValues.length >= peakMinMeasurements ? percentile90(recentValues) : peakWeight
 
   const peakLossPct = referencePeak > 0 ? ((referencePeak - latestWeight) / referencePeak) * 100 : 0
 
@@ -103,34 +153,36 @@ export function assessHealth(measurements: Measurement[]): HealthAssessment {
       (new Date(curr.measured_at).getTime() - new Date(prev.measured_at).getTime()) /
         (1000 * 60 * 60 * 24)
     )
-    const lbsChange = curr.value - prev.value
-    const changePercent = prev.value > 0 ? (lbsChange / prev.value) * 100 : 0
+    const absChange = curr.value - prev.value
+    const changePercent = prev.value > 0 ? (absChange / prev.value) * 100 : 0
     const changePerWeek = (changePercent / days) * 7
 
     const periodBase = {
-      lbsChange: Math.round(lbsChange * 100) / 100,
+      absoluteChange: Math.round(absChange * 100) / 100,
       changePercent: Math.round(changePercent * 10) / 10,
       changePerWeek: Math.round(changePerWeek * 10) / 10,
       days: Math.round(days),
-      direction: (lbsChange < -0.05 ? 'loss' : lbsChange > 0.05 ? 'gain' : 'stable') as PeriodHealth['direction'],
+      direction: (absChange < -0.05 ? 'loss' : absChange > 0.05 ? 'gain' : 'stable') as PeriodHealth['direction'],
     }
 
-    // Interval gate: < 5 days between measurements → mark skipped, do not classify
-    if (days < 5) {
+    // Interval gate: < N days between measurements → mark skipped, do not classify
+    const minInterval = thresholds?.minIntervalDays ?? DEFAULT_THRESHOLDS.minIntervalDays
+    if (days < minInterval) {
       periods.push({ ...periodBase, status: 'ok', skipped: true })
       continue
     }
 
-    // Noise floor: change < 1.5% of previous weight OR < 0.2 lbs absolute
+    // Noise floor: change < N% of previous weight OR < 0.2 lbs absolute
     // is within home-scale accuracy / biological variation.
     // See docs/research/weight-thresholds.md "Home scale measurement accuracy".
-    const absChangePct = Math.abs(lbsChange) / prev.value
-    if (absChangePct < 0.015 || Math.abs(lbsChange) < 0.2) {
+    const noiseFloor = thresholds?.noiseFloorPct ?? DEFAULT_THRESHOLDS.noiseFloorPct
+    const absChangePct = Math.abs(absChange) / prev.value
+    if (absChangePct < noiseFloor || Math.abs(absChange) < 0.2) {
       periods.push({ ...periodBase, status: 'ok', skipped: false })
       continue
     }
 
-    const status = classifyRate(changePerWeek)
+    const status = classifyRate(changePerWeek, thresholds)
     periods.push({ ...periodBase, status, skipped: false })
   }
 
@@ -150,12 +202,13 @@ export function assessHealth(measurements: Measurement[]): HealthAssessment {
   }
 
   // Factor in total loss from recent baseline (unconditional — cumulative loss IS a trend)
+  const tl = thresholds?.totalLoss ?? DEFAULT_THRESHOLDS.totalLoss
   const roundedPeakLossPct = Math.round(peakLossPct * 10) / 10
-  if (roundedPeakLossPct >= 10) overallStatus = worstStatus(overallStatus, 'urgent')
-  else if (roundedPeakLossPct >= 7) overallStatus = worstStatus(overallStatus, 'concerning')
-  else if (roundedPeakLossPct >= 4) overallStatus = worstStatus(overallStatus, 'watch')
+  if (roundedPeakLossPct >= tl.urgentPct) overallStatus = worstStatus(overallStatus, 'urgent')
+  else if (roundedPeakLossPct >= tl.concerningPct) overallStatus = worstStatus(overallStatus, 'concerning')
+  else if (roundedPeakLossPct >= tl.watchPct) overallStatus = worstStatus(overallStatus, 'watch')
 
-  const summary = buildSummary(overallStatus, periods, roundedPeakLossPct, latestWeight, referencePeak)
+  const summary = buildSummary(overallStatus, periods, roundedPeakLossPct, latestWeight, referencePeak, displayUnit)
 
   return { overallStatus, periods, peakLossPct: roundedPeakLossPct, referencePeak, summary }
 }
@@ -165,9 +218,12 @@ function buildSummary(
   periods: (PeriodHealth | null)[],
   peakLossPct: number,
   latestWeight: number,
-  referencePeak: number
+  referencePeak: number,
+  displayUnit: WeightUnit = 'lbs'
 ): string {
-  const unit = 'lbs'
+  // Convert internal lbs values to display unit for summary text
+  const displayLoss = convertWeight(referencePeak - latestWeight, 'lbs', displayUnit)
+  const unit = displayUnit
   // Exclude skipped (interval-gated) periods from worst-period selection
   const worstPeriod = periods
     .filter((p): p is PeriodHealth => p !== null && !p.skipped)
@@ -177,7 +233,7 @@ function buildSummary(
 
   if (status === 'urgent') {
     if (peakLossPct >= 10)
-      return `Lost ${peakLossPct}% from recent weight (${(referencePeak - latestWeight).toFixed(1)} ${unit}). Veterinary evaluation is strongly recommended.`
+      return `Lost ${peakLossPct}% from recent weight (${displayLoss.toFixed(1)} ${unit}). Veterinary evaluation is strongly recommended.`
     return `Fastest recorded rate: ${Math.abs(worstPeriod?.changePerWeek ?? 0).toFixed(1)}%/week loss. This exceeds 2%/week — the AAFP/WSAVA clinical threshold associated with hepatic lipidosis risk. Vet visit recommended.`
   }
 

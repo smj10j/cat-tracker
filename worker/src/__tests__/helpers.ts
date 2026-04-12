@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
   user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   expires_at  TEXT NOT NULL,
+  device_fingerprint TEXT,
   created_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -125,14 +126,34 @@ CREATE TABLE IF NOT EXISTS medication_doses (
   administered_at TEXT,
   skipped         INTEGER NOT NULL DEFAULT 0,
   skip_reason     TEXT,
-  notes           TEXT,
-  created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+  notes                TEXT,
+  notification_sent_at TEXT,
+  created_at           TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(medication_id, due_at)
 );
 
 CREATE TABLE IF NOT EXISTS apple_token_cache (
   token_key   TEXT PRIMARY KEY,
   expires_at  TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS rate_limits (
+  id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  action      TEXT NOT NULL,
+  window_start TEXT NOT NULL,
+  count       INTEGER NOT NULL DEFAULT 1,
+  UNIQUE(user_id, action, window_start)
+);
+
+CREATE TABLE IF NOT EXISTS audit_log (
+  id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  user_id     TEXT,
+  action      TEXT NOT NULL,
+  ip_address  TEXT,
+  user_agent  TEXT,
+  metadata    TEXT,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 `
 
@@ -149,6 +170,8 @@ export async function applySchema(): Promise<void> {
 
 export async function clearDb(): Promise<void> {
   await env.DB.exec(`
+    DELETE FROM audit_log;
+    DELETE FROM rate_limits;
     DELETE FROM apple_token_cache;
     DELETE FROM device_tokens;
     DELETE FROM medication_doses;

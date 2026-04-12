@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { PreferencesProvider } from './contexts/PreferencesContext'
+import { ConfigProvider } from './contexts/ConfigContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Home from './pages/Home'
 import CatProfile from './pages/CatProfile'
@@ -28,7 +30,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <ConfigProvider>
       <ThemeProvider>
+      <PreferencesProvider>
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
@@ -60,7 +64,9 @@ export default function App() {
           } />
         </Routes>
       </AuthProvider>
+      </PreferencesProvider>
       </ThemeProvider>
+      </ConfigProvider>
     </BrowserRouter>
   )
 }

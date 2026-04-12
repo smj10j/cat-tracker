@@ -5,12 +5,15 @@ import {
 import type { Measurement } from '../lib/api'
 import { assessHealth, STATUS_COLORS, STATUS_EMOJI, type PeriodHealth } from '../lib/healthMetrics'
 import { useChartWindow, getTickFormatter, type TimeRange } from '../lib/useChartWindow'
+import { usePreferences } from '../contexts/PreferencesContext'
+import { formatWeightValue, convertWeight } from '@shared/lib/preferences'
 import ChartRangeSelector from './ChartRangeSelector'
 import SwipeableChart from './SwipeableChart'
 
 interface Props {
   measurements: Measurement[]
   showRangeSelector?: boolean
+  fullScreen?: boolean
 }
 
 interface DotProps {
@@ -60,7 +63,7 @@ function CustomTooltip({ active, payload, label }: {
       <div style={{ color: 'var(--color-ink)', fontWeight: 700, fontSize: 16 }}>{value} {unit}</div>
       {period && period.direction !== 'stable' && (
         <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--color-rim)', color: STATUS_COLORS[period.status] }}>
-          {STATUS_EMOJI[period.status]} {period.direction === 'loss' ? '▼' : '▲'} {Math.abs(period.lbsChange)} {unit} in {period.days}d
+          {STATUS_EMOJI[period.status]} {period.direction === 'loss' ? '▼' : '▲'} {convertWeight(Math.abs(period.absoluteChange), 'lbs', unit === 'kg' ? 'kg' : 'lbs')} {unit} in {period.days}d
           <span style={{ color: 'var(--color-ink-dim)', marginLeft: 6 }}>{Math.abs(period.changePerWeek)}%/wk</span>
         </div>
       )}
@@ -68,9 +71,10 @@ function CustomTooltip({ active, payload, label }: {
   )
 }
 
-export default function WeightChart({ measurements, showRangeSelector = true }: Props) {
+export default function WeightChart({ measurements, showRangeSelector = true, fullScreen = false }: Props) {
+  const { prefs } = usePreferences()
   const { range, setRange, filteredData, navigate, hasOlderData, hasNewerData } = useChartWindow(measurements)
-  const tickFormatter = getTickFormatter(range)
+  const tickFormatter = getTickFormatter(range, prefs)
 
   if (measurements.length === 0) {
     return (
@@ -81,7 +85,7 @@ export default function WeightChart({ measurements, showRangeSelector = true }: 
   }
 
   // Health assessment uses FULL measurements array (global context)
-  const { periods: allPeriods } = assessHealth(measurements)
+  const { periods: allPeriods } = assessHealth(measurements, undefined, prefs.weightUnit)
 
   // Build a map from measurement id to its period for lookup
   const periodByIndex = new Map<string, PeriodHealth | null>()
@@ -92,8 +96,13 @@ export default function WeightChart({ measurements, showRangeSelector = true }: 
   // Build periods array aligned to filteredData
   const filteredPeriods = filteredData.map(m => periodByIndex.get(m.id) ?? null)
 
-  const unit = measurements[0]?.unit ?? 'lbs'
-  const values = filteredData.map((m) => m.value)
+  const displayUnit = prefs.weightUnit
+  // Convert values to display unit for chart
+  const convertedData = filteredData.map(m => ({
+    ...m,
+    displayValue: formatWeightValue(m.value, m.unit, prefs),
+  }))
+  const values = convertedData.map((m) => m.displayValue)
   const minVal = values.length ? Math.min(...values) : 0
   const maxVal = values.length ? Math.max(...values) : 10
   const padding = Math.max((maxVal - minVal) * 0.5, 0.5)
@@ -102,11 +111,11 @@ export default function WeightChart({ measurements, showRangeSelector = true }: 
     parseFloat((maxVal + padding).toFixed(1)),
   ]
 
-  const data = filteredData.map((m) => ({
+  const data = convertedData.map((m) => ({
     date: tickFormatter(m.measured_at),
     isoDate: m.measured_at,
-    value: m.value,
-    unit,
+    value: m.displayValue,
+    unit: displayUnit,
     period: periodByIndex.get(m.id) ?? null,
   }))
 
@@ -126,7 +135,7 @@ export default function WeightChart({ measurements, showRangeSelector = true }: 
         onSwipeRight={() => navigate('back')}
         enabled={range !== 'All'}
       >
-        <ResponsiveContainer width="100%" height={240}>
+        <ResponsiveContainer width="100%" height={fullScreen ? '100%' : 240}>
           <AreaChart data={data} margin={{ top: 14, right: 8, left: 0, bottom: 4 }}>
             <defs>
               <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">

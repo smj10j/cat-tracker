@@ -129,7 +129,11 @@ export default function MedicationFormPage() {
           setDose(med.dose ?? '')
           setFrequency(med.frequency)
           setFrequencyDays(String(med.frequency_days ?? 30))
-          setReminderTime(med.reminder_time)
+          const rt = med.reminder_time
+          const h = parseInt(rt.split(':')[0] ?? '9', 10)
+          const m = parseInt(rt.split(':')[1] ?? '0', 10)
+          const rounded = m >= 30 ? (h + 1) % 24 : h
+          setReminderTime(`${String(rounded).padStart(2, '0')}:00`)
           setStartDate(med.start_date)
           setEndDate(med.end_date ?? '')
           setDosesTotal(med.doses_total != null ? String(med.doses_total) : '')
@@ -370,10 +374,17 @@ export default function MedicationFormPage() {
             </div>
             <div>
               <label htmlFor="med-reminder-time" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Reminder time</label>
-              <input
-                id="med-reminder-time" type="time" value={reminderTime} onChange={e => setReminderTime(e.target.value)}
+              <select
+                id="med-reminder-time" value={reminderTime} onChange={e => setReminderTime(e.target.value)}
                 className="input-dark w-full px-3 py-2.5 text-sm"
-              />
+              >
+                {Array.from({ length: 24 }, (_, i) => {
+                  const v = `${String(i).padStart(2, '0')}:00`
+                  const h = i === 0 ? 12 : i > 12 ? i - 12 : i
+                  const ap = i < 12 ? 'AM' : 'PM'
+                  return <option key={v} value={v}>{h}:00 {ap}</option>
+                })}
+              </select>
             </div>
           </div>
 

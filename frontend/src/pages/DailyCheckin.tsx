@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useGoBack } from '../hooks/useGoBack'
 import { createMeasurement, getCats, type Cat } from '../lib/api'
 import { PRESETS } from '../lib/measurementPresets'
+import { usePreferences } from '../contexts/PreferencesContext'
+import type { WeightUnit } from '@shared/lib/preferences'
 
 type Selections = Partial<Record<string, number>>
 
@@ -37,12 +39,13 @@ function formatHour(hour: number): string {
 
 export default function DailyCheckin() {
   const goBack = useGoBack('/')
+  const { prefs } = usePreferences()
   const [cats, setCats] = useState<Cat[]>([])
   const [selectedCatId, setSelectedCatId] = useState('')
   const [date, setDate] = useState(todayLocalDate)
   const [hour, setHour] = useState(currentHour)
   const [weightValue, setWeightValue] = useState('')
-  const [weightUnit, setWeightUnit] = useState<'lbs' | 'kg'>('lbs')
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>(prefs.weightUnit)
   const [selections, setSelections] = useState<Selections>({})
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)

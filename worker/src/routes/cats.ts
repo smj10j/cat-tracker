@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../types'
 import { ensureHousehold, getCatRole, hasRole } from '../lib/household'
+import { logAudit } from '../lib/audit'
 
 const cats = new Hono<AppEnv>()
 
@@ -250,6 +251,7 @@ cats.delete('/:id', async (c) => {
 
   await c.env.DB.prepare('DELETE FROM measurements WHERE cat_id = ?').bind(id).run()
   await c.env.DB.prepare('DELETE FROM cats WHERE id = ?').bind(id).run()
+  logAudit(c, 'cat_deleted', { catId: id })
   return c.json({ success: true })
 })
 

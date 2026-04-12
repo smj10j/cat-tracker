@@ -4,6 +4,7 @@ import type { AppEnv } from '../types'
 import { requireAuth } from '../middleware/auth'
 import { ensureHousehold } from '../lib/household'
 import { generateAppleClientSecret, verifyAppleIdToken } from '../lib/apple-auth'
+import { logAudit, checkRateLimit } from '../lib/audit'
 
 const auth = new Hono<AppEnv>()
 
@@ -12,11 +13,12 @@ function sessionCookie(value: string, maxAge: number) {
 }
 
 /** Create a session and return session ID + user ID. */
-async function createSession(db: D1Database, userId: string): Promise<string> {
+async function createSession(db: D1Database, userId: string, deviceFingerprint?: string | null): Promise<string> {
   const sessionId = crypto.randomUUID().replace(/-/g, '')
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-  await db.prepare('INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)')
-    .bind(sessionId, userId, expiresAt).run()
+  // SEC-10: Store device fingerprint if provided (from X-Device-Id header)
+  await db.prepare('INSERT INTO sessions (id, user_id, expires_at, device_fingerprint) VALUES (?, ?, ?, ?)')
+    .bind(sessionId, userId, expiresAt, deviceFingerprint ?? null).run()
 
   // SEC-07: Cap sessions per user at 20 (delete oldest beyond that)
   await db.prepare(`
@@ -182,7 +184,9 @@ auth.get('/auth/callback', async (c) => {
     return new Response(null, { status: 302, headers: { Location: `${redirectBase}/login?error=user_creation_failed` } })
   }
 
-  const sessionId = await createSession(c.env.DB, user.id)
+  const deviceFingerprint = c.req.header('X-Device-Id') ?? null
+  const sessionId = await createSession(c.env.DB, user.id, deviceFingerprint)
+  logAudit(c, 'sign_in', { provider: 'google', userId: user.id })
 
   return authResponse(redirectBase, sessionId, postLoginRedirect, consumed.native_redirect_uri)
 })
@@ -252,7 +256,9 @@ auth.post('/auth/callback', async (c) => {
     return new Response(null, { status: 302, headers: { Location: `${redirectBase}/login?error=user_creation_failed` } })
   }
 
-  const sessionId = await createSession(c.env.DB, user.id)
+  const deviceFingerprint = c.req.header('X-Device-Id') ?? null
+  const sessionId = await createSession(c.env.DB, user.id, deviceFingerprint)
+  logAudit(c, 'sign_in', { provider: 'apple', userId: user.id })
 
   return authResponse(redirectBase, sessionId, postLoginRedirect, consumed.native_redirect_uri)
 })
@@ -330,13 +336,16 @@ auth.post('/auth/apple-native', async (c) => {
     return c.json({ error: 'User creation failed' }, 500)
   }
 
-  const sessionId = await createSession(c.env.DB, user.id)
+  const deviceFingerprint = c.req.header('X-Device-Id') ?? null
+  const sessionId = await createSession(c.env.DB, user.id, deviceFingerprint)
+  logAudit(c, 'sign_in', { provider: 'apple-native', userId: user.id })
 
   return c.json({ sessionId, userId: user.id })
 })
 
 // POST /api/auth/logout
 auth.post('/auth/logout', requireAuth, async (c) => {
+  logAudit(c, 'sign_out')
   const authHeader = c.req.header('Authorization')
   const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined
   const sessionId = bearerToken ?? getCookie(c, 'session')
@@ -512,7 +521,8 @@ auth.delete('/auth/account', requireAuth, async (c) => {
   // 9. sessions
   await c.env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId).run()
 
-  // 10. user
+  // 10. user — audit before delete since the user row is about to be removed
+  logAudit(c, 'account_deleted', { userId })
   await c.env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId).run()
 
   return new Response(JSON.stringify({ success: true, deleted: true }), {
@@ -526,6 +536,18 @@ auth.delete('/auth/account', requireAuth, async (c) => {
 // GET /api/auth/export — Full data export (GDPR Article 20, Apple recommendation)
 auth.get('/auth/export', requireAuth, async (c) => {
   const userId = c.get('userId')
+
+  // SEC-12: Rate limit data exports to 5 per hour per user
+  const { allowed, retryAfterSeconds } = await checkRateLimit(c.env.DB, userId, 'data_export', 5)
+  if (!allowed) {
+    return c.json(
+      { error: `You've exported your data recently. You can export again in ${Math.ceil(retryAfterSeconds / 60)} minutes.` },
+      429,
+      { 'Retry-After': String(retryAfterSeconds) },
+    )
+  }
+
+  logAudit(c, 'data_exported')
 
   const user = await c.env.DB.prepare(
     'SELECT id, email, display_name, avatar_url, oauth_provider, created_at FROM users WHERE id = ?'
@@ -573,6 +595,18 @@ auth.get('/auth/export', requireAuth, async (c) => {
   })
 })
 
+// SEC-14: Device token format validation
+const EXPO_TOKEN_RE = /^ExponentPushToken\[.{20,50}\]$/
+const APNS_TOKEN_RE = /^[a-f0-9]{64}$/i
+const MAX_DEVICE_TOKENS_PER_USER = 10
+
+function isValidDeviceToken(token: string, platform: string): boolean {
+  if (platform === 'ios') return EXPO_TOKEN_RE.test(token) || APNS_TOKEN_RE.test(token)
+  if (platform === 'android') return EXPO_TOKEN_RE.test(token) || token.length >= 20
+  if (platform === 'web') return token.length >= 20 && token.length <= 500
+  return false
+}
+
 // POST /api/auth/device-token — Register push notification device token
 auth.post('/auth/device-token', requireAuth, async (c) => {
   const userId = c.get('userId')
@@ -585,9 +619,21 @@ auth.post('/auth/device-token', requireAuth, async (c) => {
     return c.json({ error: 'platform must be ios, android, or web' }, 400)
   }
 
+  // SEC-14: Validate token format
+  if (!isValidDeviceToken(body.token, body.platform)) {
+    return c.json({ error: 'Invalid device token format' }, 400)
+  }
+
   await c.env.DB.prepare(
     'INSERT INTO device_tokens (user_id, token, platform) VALUES (?, ?, ?) ON CONFLICT(user_id, token) DO NOTHING'
   ).bind(userId, body.token, body.platform).run()
+
+  // SEC-14: Cap at MAX_DEVICE_TOKENS_PER_USER per user (prune oldest)
+  await c.env.DB.prepare(`
+    DELETE FROM device_tokens WHERE id IN (
+      SELECT id FROM device_tokens WHERE user_id = ? ORDER BY created_at DESC LIMIT -1 OFFSET ?
+    )
+  `).bind(userId, MAX_DEVICE_TOKENS_PER_USER).run()
 
   return c.json({ success: true })
 })

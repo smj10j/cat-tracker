@@ -39,13 +39,14 @@
 | [PRD-deceased-cat.md](PRD-deceased-cat.md) | In Memoriam — Marking a Cat as Deceased | `Implemented` | 2026-04-11 |
 | [PRD-weight-alert-sensitivity.md](PRD-weight-alert-sensitivity.md) | Weight Alert Sensitivity Review | `Implemented` | 2026-04-11 |
 | [PRD-ios-app-store.md](PRD-ios-app-store.md) | iOS App Store Deployment | `In Progress` | 2026-04-10 |
-| [PRD-api-versioning.md](PRD-api-versioning.md) | API Versioning & Backend-Driven Updates | `In Progress` | 2026-04-11 |
-| [PRD-security-phase2.md](PRD-security-phase2.md) | Security Hardening Phase 2 — Native App & Multi-Client | `Partial` | 2026-04-11 |
+| [PRD-api-versioning.md](PRD-api-versioning.md) | API Versioning & Backend-Driven Updates | `Implemented` | 2026-04-11 |
+| [PRD-security-phase2.md](PRD-security-phase2.md) | Security Hardening Phase 2 — Native App & Multi-Client | `Implemented` | 2026-04-11 |
 | [PRD-chart-time-navigation.md](PRD-chart-time-navigation.md) | Chart Time Range & Swipe Navigation | `Implemented` | 2026-04-11 |
 | [PRD-alert-acknowledgment.md](PRD-alert-acknowledgment.md) | Health Alert Acknowledgment | `Draft` | 2026-04-11 |
 | [PRD-behavioral-trends.md](PRD-behavioral-trends.md) | Behavioral Trend Charts | `Draft` | 2026-04-11 |
 | [PRD-localization-preferences.md](PRD-localization-preferences.md) | Localization & Regional Preferences | `Approved` | 2026-04-11 |
 | [PRD-landscape-charts.md](PRD-landscape-charts.md) | Landscape Mode — Full-Screen Chart Visualization | `Approved` | 2026-04-11 |
+| [PRD-push-notifications.md](PRD-push-notifications.md) | Push Notifications (iOS Native) | `In Progress` | 2026-04-11 |
 
 ---
 
@@ -554,7 +555,7 @@ Nothing rejected yet.
 
 | | |
 |---|---|
-| **Status** | `In Progress` |
+| **Status** | `Implemented` |
 | **Last updated** | 2026-04-11 |
 | **Depends on** | PRD-ios-app-store.md |
 
@@ -564,11 +565,9 @@ Nothing rejected yet.
 
 **Implemented Phase A** — KV namespace (`cat-tracker-config`, ID `7fc5a67f7e774458a99bf41dc7fe761c`), `CONFIG_KV` binding, `GET /api/config` endpoint (no auth, 5-min cache, KV validation with safe defaults fallback), `X-API-Version` middleware and header on all frontend requests, 6 tests in `config.test.ts`. Initial config seeded in production KV.
 
-**Not yet implemented:**
-- Phase B — Threshold overrides (client reads config thresholds and merges with local defaults)
-- Phase C — Feature flags (client checks `features.*` before enabling UI)
-- Minimum version enforcement middleware (compare X-API-Version against minSupportedVersion, return 426)
-- Deprecation protocol with `Sunset` header
+**Implemented Phase B** — `assessHealth()` accepts optional `ThresholdOverrides` (rate thresholds, noise floor, interval gate, peak reference window, total loss thresholds). Frontend `ConfigContext` fetches `/api/config` and provides thresholds via `useThresholds()` hook. `useHealthAssessment()` hook wraps assessHealth with server overrides. `update-config.sh` script for safe KV config updates with validation and diff preview.
+
+**Implemented Phase C** — 426 Upgrade Required enforcement middleware (rejects requests with `X-API-Version` below `minSupportedVersion`). `Deprecation` and `Sunset` response headers from config endpoint when deprecations are configured. Client-version aggregate logging to KV (daily counts). `useFeatureFlag()` hook for UI gating. iOS app sends `X-API-Version` + `X-Device-Id` headers, handles `UpgradeRequiredError`.
 
 ---
 
@@ -576,7 +575,7 @@ Nothing rejected yet.
 
 | | |
 |---|---|
-| **Status** | `Partial` |
+| **Status** | `Implemented` |
 | **Last updated** | 2026-04-11 |
 | **Depends on** | PRD-security.md (Implemented), PRD-ios-app-store.md |
 
@@ -584,7 +583,9 @@ Nothing rejected yet.
 
 **Implemented Phase A** — SEC-11: re-auth gate on account deletion (5-minute session age check, 403 with re-sign-in prompt, `session_age_seconds` in `/auth/me`). SEC-13: Apple token replay prevention (`apple_token_cache` D1 table, SHA-256 of `sub|iat`, 409 on replay, cron cleanup). 5 tests in `auth-security.test.ts`.
 
-**Not yet implemented:** Phase B (SEC-12 rate limiting, SEC-14 device token validation, SEC-15 audit logging), Phase C (SEC-10 device fingerprint, SEC-16 accepted risk docs).
+**Implemented Phase B** — SEC-12: data export rate limiting (5 req/hr per user, `rate_limits` D1 table, 429 + `Retry-After` header, stale window cron cleanup). SEC-14: device token validation (regex for Expo/APNs/web formats, 400 on invalid) + per-user cap (10 tokens, oldest pruned). SEC-15: audit logging (`audit_log` D1 table, best-effort `waitUntil` writes for `sign_in`, `sign_out`, `account_deleted`, `data_exported`, `cat_deleted`, `member_added`, `member_removed`, `role_changed`; 90-day cron retention).
+
+**Implemented Phase C** — SEC-10: device fingerprint binding (`device_fingerprint` column on sessions, stored from `X-Device-Id` header at session creation, soft enforcement = log mismatches only). SEC-16: accepted risk documentation (Authorization header in CORS documented in SECURITY.md).
 
 ---
 

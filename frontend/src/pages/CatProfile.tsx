@@ -10,21 +10,12 @@ import {
 import WeightChart from '../components/WeightChart'
 import MeasurementForm from '../components/MeasurementForm'
 import MeasurementChart from '../components/MeasurementChart'
+import FullScreenReady from '../components/FullScreenReady'
 import InsightsPanel from '../components/InsightsPanel'
 import { getPresetLabel } from '../lib/measurementPresets'
 import { catAge } from '../lib/dates'
-
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-}
-
-function formatDayLabel(dateStr: string): string {
-  const today = new Date().toLocaleDateString('en-CA')
-  const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA')
-  if (dateStr === today) return 'Today'
-  if (dateStr === yesterday) return 'Yesterday'
-  return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-}
+import { usePreferences } from '../contexts/PreferencesContext'
+import { formatTime as fmtTime, formatDateWithWeekday, formatWeight as fmtWeight } from '@shared/lib/preferences'
 
 interface DayGroup {
   dateStr: string
@@ -32,7 +23,15 @@ interface DayGroup {
   items: Measurement[]
 }
 
-function groupByDay(measurements: Measurement[]): DayGroup[] {
+function formatDayLabel(dateStr: string, prefs: import('@shared/lib/preferences').UserPreferences): string {
+  const today = new Date().toLocaleDateString('en-CA')
+  const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA')
+  if (dateStr === today) return 'Today'
+  if (dateStr === yesterday) return 'Yesterday'
+  return formatDateWithWeekday(dateStr, prefs)
+}
+
+function groupByDay(measurements: Measurement[], prefs: import('@shared/lib/preferences').UserPreferences): DayGroup[] {
   const map = new Map<string, Measurement[]>()
   for (const m of measurements) {
     const dateStr = new Date(m.measured_at).toLocaleDateString('en-CA')
@@ -44,7 +43,7 @@ function groupByDay(measurements: Measurement[]): DayGroup[] {
     .sort(([a], [b]) => b.localeCompare(a))
     .map(([dateStr, items]) => ({
       dateStr,
-      label: formatDayLabel(dateStr),
+      label: formatDayLabel(dateStr, prefs),
       items: items.sort((a, b) => b.measured_at.localeCompare(a.measured_at)),
     }))
 }
@@ -172,6 +171,7 @@ function formatSexNeuter(sex: string | null, isNeutered: number | null): string 
 export default function CatProfile() {
   const { id } = useParams<{ id: string }>()
   const goBack = useGoBack('/')
+  const { prefs } = usePreferences()
 
   const [cat, setCat] = useState<Cat | null>(null)
   const [measurements, setMeasurements] = useState<Measurement[]>([])
@@ -267,7 +267,7 @@ export default function CatProfile() {
     return measurements.filter((m) => m.type === chartTab)
   })()
 
-  const allDayGroups = groupByDay(chartTabMeasurements)
+  const allDayGroups = groupByDay(chartTabMeasurements, prefs)
   const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toLocaleDateString('en-CA')
   const recentGroups = allDayGroups.filter((g) => g.dateStr >= cutoff)
   const olderGroups = allDayGroups.filter((g) => g.dateStr < cutoff)
@@ -478,17 +478,24 @@ export default function CatProfile() {
                       ))}
                     </div>
                   </div>
-                  <WeightChart measurements={weightMeasurements} />
+                  <FullScreenReady title={cat?.name ?? 'Weight'} subtitle={prefs.weightUnit} hasData={weightMeasurements.length > 0}>
+                    {(fs) => <WeightChart measurements={weightMeasurements} fullScreen={fs} />}
+                  </FullScreenReady>
                 </>
               ) : (
                 <>
                   <h3 className="font-display font-semibold text-ink mb-4">
                     {chartTab === 'food' ? 'Food Intake' : 'Water Intake'} Over Time
                   </h3>
-                  <MeasurementChart
-                    measurements={measurements.filter((m) => m.type === chartTab).sort((a, b) => a.measured_at.localeCompare(b.measured_at))}
-                    type={chartTab}
-                  />
+                  <FullScreenReady title={cat?.name ?? ''} subtitle={chartTab === 'food' ? 'Food' : 'Water'} hasData={measurements.filter((m) => m.type === chartTab).length > 0}>
+                    {(fs) => (
+                      <MeasurementChart
+                        measurements={measurements.filter((m) => m.type === chartTab).sort((a, b) => a.measured_at.localeCompare(b.measured_at))}
+                        type={chartTab}
+                        fullScreen={fs}
+                      />
+                    )}
+                  </FullScreenReady>
                 </>
               )}
             </div>
@@ -543,10 +550,10 @@ export default function CatProfile() {
                             style={{ borderColor: 'var(--color-tab-bar)' }}
                           >
                             <div className="flex items-center gap-3 flex-1 min-w-0">
-                              <span className="text-ink-dim text-xs w-16 shrink-0 tabular-nums">{formatTime(m.measured_at)}</span>
+                              <span className="text-ink-dim text-xs w-16 shrink-0 tabular-nums">{fmtTime(m.measured_at, prefs)}</span>
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-semibold text-sm text-ink tabular-nums">
-                                  {m.unit === 'scale' ? getPresetLabel(m.type, m.value) : `${m.value} ${m.unit}`}
+                                  {m.unit === 'scale' ? getPresetLabel(m.type, m.value) : fmtWeight(m.value, m.unit, prefs)}
                                 </span>
                                 {(chartTab === 'all' || chartTab === 'behavior') && (
                                   <span className="text-xs px-1.5 py-0.5 rounded-full text-ink-dim"

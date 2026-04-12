@@ -6,6 +6,8 @@ import CatAvatar from '../components/CatAvatar'
 import WeightChart from '../components/WeightChart'
 import { assessHealth, STATUS_LABEL, STATUS_COLORS } from '../lib/healthMetrics'
 import { parseLocalDate, formatLocalDate } from '../lib/dates'
+import { usePreferences } from '../contexts/PreferencesContext'
+import { formatWeight as fmtWeight } from '@shared/lib/preferences'
 
 function catLifespan(birthdate: string, deceasedAt: string): string {
   const birth = parseLocalDate(birthdate)
@@ -21,6 +23,7 @@ function catLifespan(birthdate: string, deceasedAt: string): string {
 
 export default function MemorialPage() {
   const { id } = useParams<{ id: string }>()
+  const { prefs } = usePreferences()
   const goBack = useGoBack('/')
   const [cat, setCat] = useState<Cat | null>(null)
   const [weightMs, setWeightMs] = useState<Measurement[]>([])
@@ -127,7 +130,7 @@ export default function MemorialPage() {
             {weightMs.length > 0 && peakWeight !== null && (
               <div>
                 <p className="text-xs text-ink-dim">Peak weight</p>
-                <p className="text-sm font-semibold text-ink">{peakWeight} {peakUnit}</p>
+                <p className="text-sm font-semibold text-ink">{fmtWeight(peakWeight, peakUnit, prefs)}</p>
               </div>
             )}
             <div>

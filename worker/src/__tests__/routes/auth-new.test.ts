@@ -274,7 +274,7 @@ describe('POST /api/auth/device-token', () => {
     const res = await SELF.fetch('https://test.local/api/auth/device-token', {
       method: 'POST',
       headers: { ...authedHeaders(sessionId), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: 'expo-push-token-123', platform: 'ios' }),
+      body: JSON.stringify({ token: 'ExponentPushToken[test-abcdef12345678901]', platform: 'ios' }),
     })
     expect(res.status).toBe(200)
 
@@ -287,7 +287,7 @@ describe('POST /api/auth/device-token', () => {
     const user = await seedUser()
     const sessionId = await seedSession(user.id)
 
-    const body = JSON.stringify({ token: 'tok-abc', platform: 'ios' })
+    const body = JSON.stringify({ token: 'ExponentPushToken[test-idempotent1234567]', platform: 'ios' })
     await SELF.fetch('https://test.local/api/auth/device-token', {
       method: 'POST',
       headers: { ...authedHeaders(sessionId), 'Content-Type': 'application/json' },
@@ -334,13 +334,13 @@ describe('DELETE /api/auth/device-token', () => {
     const sessionId = await seedSession(user.id)
 
     await env.DB.prepare(
-      "INSERT INTO device_tokens (id, user_id, token, platform) VALUES ('dt1', ?, 'tok-xyz', 'ios')"
+      "INSERT INTO device_tokens (id, user_id, token, platform) VALUES ('dt1', ?, 'ExponentPushToken[test-delete-token12345]', 'ios')"
     ).bind(user.id).run()
 
     const res = await SELF.fetch('https://test.local/api/auth/device-token', {
       method: 'DELETE',
       headers: { ...authedHeaders(sessionId), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: 'tok-xyz' }),
+      body: JSON.stringify({ token: 'ExponentPushToken[test-delete-token12345]' }),
     })
     expect(res.status).toBe(200)
 

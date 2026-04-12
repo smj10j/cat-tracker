@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../types'
+import { getCatRole, hasRole } from '../lib/household'
 
 const medications = new Hono<AppEnv>()
 
@@ -111,6 +112,12 @@ medications.get('/medications', async (c) => {
   const userId = c.get('userId')
   const catId = c.req.query('cat_id')
 
+  const householdFilter = `(
+      c.household_id IN (
+        SELECT household_id FROM household_members WHERE user_id = ? AND status = 'active'
+      ) OR (c.user_id = ? AND c.household_id IS NULL)
+    )`
+
   const rows = catId
     ? await c.env.DB.prepare(
         `SELECT m.*,
@@ -122,9 +129,10 @@ medications.get('/medications', async (c) => {
             WHERE d.medication_id = m.id AND d.administered_at IS NULL AND d.skipped = 0
               AND d.due_at < datetime('now')) AS overdue_count
          FROM medications m
-         WHERE m.user_id = ? AND m.cat_id = ? AND m.is_active = 1
+         JOIN cats c ON c.id = m.cat_id
+         WHERE ${householdFilter} AND m.cat_id = ? AND m.is_active = 1
          ORDER BY m.name ASC`
-      ).bind(userId, catId).all()
+      ).bind(userId, userId, catId).all()
     : await c.env.DB.prepare(
         `SELECT m.*,
            (SELECT due_at FROM medication_doses d
@@ -135,9 +143,10 @@ medications.get('/medications', async (c) => {
             WHERE d.medication_id = m.id AND d.administered_at IS NULL AND d.skipped = 0
               AND d.due_at < datetime('now')) AS overdue_count
          FROM medications m
-         WHERE m.user_id = ? AND m.is_active = 1
+         JOIN cats c ON c.id = m.cat_id
+         WHERE ${householdFilter} AND m.is_active = 1
          ORDER BY m.name ASC`
-      ).bind(userId).all()
+      ).bind(userId, userId).all()
 
   return c.json(rows.results)
 })
@@ -172,10 +181,10 @@ medications.post('/medications', async (c) => {
     return c.json({ error: 'frequency_days required for custom frequency' }, 400)
   }
 
-  // Verify cat ownership
-  const cat = await c.env.DB.prepare('SELECT id FROM cats WHERE id = ? AND user_id = ?')
-    .bind(body.cat_id, userId).first()
-  if (!cat) return c.json({ error: 'Cat not found' }, 404)
+  // Verify cat access (supports household sharing)
+  const catRole = await getCatRole(c.env.DB, body.cat_id, userId)
+  if (!catRole) return c.json({ error: 'Cat not found' }, 404)
+  if (!hasRole(catRole, 'editor')) return c.json({ error: 'Editor access required' }, 403)
 
   const reminderTime = body.reminder_time ?? '09:00'
   const id = crypto.randomUUID().replace(/-/g, '').slice(0, 16)
@@ -216,10 +225,10 @@ medications.get('/medications/:id', async (c) => {
   const userId = c.get('userId')
   const id = c.req.param('id')
 
-  const med = await c.env.DB.prepare(
-    'SELECT * FROM medications WHERE id = ? AND user_id = ?'
-  ).bind(id, userId).first()
+  const med = await c.env.DB.prepare('SELECT * FROM medications WHERE id = ?').bind(id).first<{ cat_id: string }>()
   if (!med) return c.json({ error: 'Not found' }, 404)
+  const medRole = await getCatRole(c.env.DB, med.cat_id, userId)
+  if (!medRole) return c.json({ error: 'Not found' }, 404)
 
   // Last 30 + next 30 doses
   const doses = await c.env.DB.prepare(
@@ -236,15 +245,16 @@ medications.put('/medications/:id', async (c) => {
   const id = c.req.param('id')
 
   type MedRow = {
-    name: string; type: string; dose: string | null; frequency: string
+    cat_id: string; name: string; type: string; dose: string | null; frequency: string
     frequency_days: number | null; reminder_time: string; start_date: string
     end_date: string | null; doses_total: number | null; notes: string | null
     is_active: number; doses_remaining: number | null; refill_alert_threshold: number | null
   }
-  const med = await c.env.DB.prepare(
-    'SELECT * FROM medications WHERE id = ? AND user_id = ?'
-  ).bind(id, userId).first<MedRow>()
+  const med = await c.env.DB.prepare('SELECT * FROM medications WHERE id = ?').bind(id).first<MedRow>()
   if (!med) return c.json({ error: 'Not found' }, 404)
+  const putRole = await getCatRole(c.env.DB, med.cat_id, userId)
+  if (!putRole) return c.json({ error: 'Not found' }, 404)
+  if (!hasRole(putRole, 'editor')) return c.json({ error: 'Editor access required' }, 403)
 
   const body = await c.req.json<Partial<MedRow>>()
 
@@ -298,10 +308,11 @@ medications.delete('/medications/:id', async (c) => {
   const userId = c.get('userId')
   const id = c.req.param('id')
 
-  const med = await c.env.DB.prepare(
-    'SELECT id FROM medications WHERE id = ? AND user_id = ?'
-  ).bind(id, userId).first()
-  if (!med) return c.json({ error: 'Not found' }, 404)
+  const delMed = await c.env.DB.prepare('SELECT cat_id FROM medications WHERE id = ?').bind(id).first<{ cat_id: string }>()
+  if (!delMed) return c.json({ error: 'Not found' }, 404)
+  const delRole = await getCatRole(c.env.DB, delMed.cat_id, userId)
+  if (!delRole) return c.json({ error: 'Not found' }, 404)
+  if (!hasRole(delRole, 'editor')) return c.json({ error: 'Editor access required' }, 403)
 
   await c.env.DB.prepare(
     `UPDATE medications SET is_active = 0, updated_at = datetime('now') WHERE id = ?`
@@ -318,6 +329,12 @@ medications.delete('/medications/:id', async (c) => {
 medications.get('/notifications', async (c) => {
   const userId = c.get('userId')
 
+  const hhFilter = `(
+      c.household_id IN (
+        SELECT household_id FROM household_members WHERE user_id = ? AND status = 'active'
+      ) OR (c.user_id = ? AND c.household_id IS NULL)
+    )`
+
   const [overdueR, todayR, upcomingR, refillR] = await Promise.all([
     // Overdue: due_at < now and not administered and not skipped
     c.env.DB.prepare(
@@ -326,11 +343,11 @@ medications.get('/notifications', async (c) => {
        FROM medication_doses d
        JOIN medications m ON m.id = d.medication_id
        JOIN cats c ON c.id = m.cat_id
-       WHERE m.user_id = ? AND m.is_active = 1
+       WHERE ${hhFilter} AND m.is_active = 1
          AND d.due_at < datetime('now')
          AND d.administered_at IS NULL AND d.skipped = 0
        ORDER BY d.due_at ASC LIMIT 50`
-    ).bind(userId).all(),
+    ).bind(userId, userId).all(),
 
     // Due today: due_at >= now AND date(due_at) = date('now')
     c.env.DB.prepare(
@@ -339,12 +356,12 @@ medications.get('/notifications', async (c) => {
        FROM medication_doses d
        JOIN medications m ON m.id = d.medication_id
        JOIN cats c ON c.id = m.cat_id
-       WHERE m.user_id = ? AND m.is_active = 1
+       WHERE ${hhFilter} AND m.is_active = 1
          AND d.due_at >= datetime('now')
          AND date(d.due_at) = date('now')
          AND d.administered_at IS NULL AND d.skipped = 0
        ORDER BY d.due_at ASC LIMIT 50`
-    ).bind(userId).all(),
+    ).bind(userId, userId).all(),
 
     // Upcoming 7 days (excluding today)
     c.env.DB.prepare(
@@ -353,24 +370,24 @@ medications.get('/notifications', async (c) => {
        FROM medication_doses d
        JOIN medications m ON m.id = d.medication_id
        JOIN cats c ON c.id = m.cat_id
-       WHERE m.user_id = ? AND m.is_active = 1
+       WHERE ${hhFilter} AND m.is_active = 1
          AND date(d.due_at) > date('now')
          AND date(d.due_at) <= date('now', '+7 days')
          AND d.administered_at IS NULL AND d.skipped = 0
        ORDER BY d.due_at ASC LIMIT 50`
-    ).bind(userId).all(),
+    ).bind(userId, userId).all(),
 
     // Refill alerts: doses_remaining <= threshold
     c.env.DB.prepare(
       `SELECT m.*, c.name AS cat_name, c.id AS cat_id
        FROM medications m
        JOIN cats c ON c.id = m.cat_id
-       WHERE m.user_id = ? AND m.is_active = 1
+       WHERE ${hhFilter} AND m.is_active = 1
          AND m.doses_remaining IS NOT NULL
          AND m.refill_alert_threshold IS NOT NULL
          AND m.doses_remaining <= m.refill_alert_threshold
          AND m.doses_remaining > 0`
-    ).bind(userId).all(),
+    ).bind(userId, userId).all(),
   ])
 
   return c.json({
@@ -392,11 +409,13 @@ medications.post('/doses/:id/administer', async (c) => {
   const body = await c.req.json<{ administered_at?: string; notes?: string }>().catch(() => ({} as { administered_at?: string; notes?: string }))
 
   const dose = await c.env.DB.prepare(
-    `SELECT d.id FROM medication_doses d
+    `SELECT d.id, m.cat_id FROM medication_doses d
      JOIN medications m ON m.id = d.medication_id
-     WHERE d.id = ? AND m.user_id = ?`
-  ).bind(doseId, userId).first()
+     WHERE d.id = ?`
+  ).bind(doseId).first<{ id: string; cat_id: string }>()
   if (!dose) return c.json({ error: 'Not found' }, 404)
+  const adminRole = await getCatRole(c.env.DB, dose.cat_id, userId)
+  if (!adminRole || !hasRole(adminRole, 'contributor')) return c.json({ error: 'Not found' }, 404)
 
   const administeredAt = body.administered_at ?? new Date().toISOString().replace('T', ' ').slice(0, 19)
   await c.env.DB.prepare(
@@ -417,12 +436,14 @@ medications.post('/doses/:id/skip', async (c) => {
   const doseId = c.req.param('id')
   const body = await c.req.json<{ skip_reason?: string }>().catch(() => ({} as { skip_reason?: string }))
 
-  const dose = await c.env.DB.prepare(
-    `SELECT d.id FROM medication_doses d
+  const skipDose = await c.env.DB.prepare(
+    `SELECT d.id, m.cat_id FROM medication_doses d
      JOIN medications m ON m.id = d.medication_id
-     WHERE d.id = ? AND m.user_id = ?`
-  ).bind(doseId, userId).first()
-  if (!dose) return c.json({ error: 'Not found' }, 404)
+     WHERE d.id = ?`
+  ).bind(doseId).first<{ id: string; cat_id: string }>()
+  if (!skipDose) return c.json({ error: 'Not found' }, 404)
+  const skipRole = await getCatRole(c.env.DB, skipDose.cat_id, userId)
+  if (!skipRole || !hasRole(skipRole, 'contributor')) return c.json({ error: 'Not found' }, 404)
 
   await c.env.DB.prepare(
     `UPDATE medication_doses

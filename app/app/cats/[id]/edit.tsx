@@ -6,9 +6,22 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { api } from '../../../lib/api';
 import CatAvatar from '../../../components/CatAvatar';
 import { useThemeColors } from '../../../hooks/useThemeColors';
+
+function parseDate(str: string): Date {
+  const [y, m, d] = str.split('-').map(Number);
+  return new Date(y!, (m ?? 1) - 1, d ?? 1);
+}
+
+function formatDateStr(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
 
 function isTempMicrochip(id: string | null | undefined): boolean {
   return !id || id.startsWith('temp-microchip-id-');
@@ -35,6 +48,9 @@ export default function EditCatScreen() {
   const [deceasedModalOpen, setDeceasedModalOpen] = useState(false);
   const [deceasedDate, setDeceasedDate] = useState(new Date().toISOString().slice(0, 10));
   const [memorialNote, setMemorialNote] = useState('');
+  const [showBirthdatePicker, setShowBirthdatePicker] = useState(false);
+  const [showDeceasedDatePicker, setShowDeceasedDatePicker] = useState(false);
+  const [showDeceasedDatePickerModal, setShowDeceasedDatePickerModal] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -189,7 +205,11 @@ export default function EditCatScreen() {
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
           {/* Header */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-            <Pressable onPress={() => router.back()}>
+            <Pressable
+              onPress={() => router.back()}
+              style={{ padding: 8, margin: -8 }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
               <Text style={{ color: colors.inkDim, fontSize: 22 }}>{'\u2190'}</Text>
             </Pressable>
             <Text style={{ fontWeight: '700', fontSize: 22, color: colors.ink }}>Edit Cat</Text>
@@ -223,37 +243,79 @@ export default function EditCatScreen() {
                 </View>
               </Pressable>
               {displayPhotoUrl ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                  <Pressable onPress={pickPhoto}>
-                    <Text style={{ fontSize: 12, color: colors.inkDim }}>Change photo</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Pressable
+                    onPress={pickPhoto}
+                    style={{ paddingHorizontal: 12, paddingVertical: 8, minHeight: 36 }}
+                    hitSlop={{ top: 4, bottom: 4 }}
+                  >
+                    <Text style={{ fontSize: 13, color: colors.inkDim }}>Change photo</Text>
                   </Pressable>
                   <Text style={{ fontSize: 12, color: colors.inkDim }}>{'\u00B7'}</Text>
-                  <Pressable onPress={() => { setPhotoUri(null); setPhotoRemoved(true); }}>
-                    <Text style={{ fontSize: 12, color: 'rgba(248,113,113,0.7)' }}>Remove</Text>
+                  <Pressable
+                    onPress={() => { setPhotoUri(null); setPhotoRemoved(true); }}
+                    style={{ paddingHorizontal: 12, paddingVertical: 8, minHeight: 36 }}
+                    hitSlop={{ top: 4, bottom: 4 }}
+                  >
+                    <Text style={{ fontSize: 13, color: 'rgba(248,113,113,0.7)' }}>Remove</Text>
                   </Pressable>
                 </View>
               ) : (
-                <Pressable onPress={pickPhoto}>
-                  <Text style={{ fontSize: 12, color: colors.inkDim }}>Add photo</Text>
+                <Pressable
+                  onPress={pickPhoto}
+                  style={{ paddingHorizontal: 16, paddingVertical: 8, minHeight: 36 }}
+                  hitSlop={{ top: 4, bottom: 4 }}
+                >
+                  <Text style={{ fontSize: 13, color: colors.inkDim }}>Add photo</Text>
                 </Pressable>
               )}
             </View>
 
             <FormField label="Name" required value={form.name} onChangeText={(v) => setField('name', v)} placeholder="e.g. Luna" maxLength={200} />
-            <FormField label="Birthdate" required value={form.birthdate} onChangeText={(v) => setField('birthdate', v)} placeholder="YYYY-MM-DD" maxLength={10} />
-
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              <View style={{ flex: 1 }}>
-                <FormField label="Breed" value={form.breed} onChangeText={(v) => setField('breed', v)} placeholder="Domestic Shorthair" maxLength={200} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <FieldLabel label="Sex" />
-                <SegmentedControl
-                  options={[{ label: 'Unknown', value: '' }, { label: 'Male', value: 'Male' }, { label: 'Female', value: 'Female' }]}
-                  value={form.sex}
-                  onChange={(v) => setField('sex', v)}
+            <View>
+              <FieldLabel label="Birthdate" required />
+              <Pressable
+                onPress={() => setShowBirthdatePicker((v) => !v)}
+                style={{
+                  backgroundColor: colors.card,
+                  borderWidth: 1,
+                  borderColor: showBirthdatePicker ? colors.lavender : colors.rim,
+                  borderRadius: 12,
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  minHeight: 44,
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ color: form.birthdate ? colors.ink : colors.inkDim, fontSize: 14 }}>
+                  {form.birthdate || 'Select birthdate'}
+                </Text>
+              </Pressable>
+              {showBirthdatePicker && (
+                <DateTimePicker
+                  value={form.birthdate ? parseDate(form.birthdate) : new Date()}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  themeVariant="dark"
+                  maximumDate={new Date()}
+                  onChange={(_event, selected) => {
+                    if (Platform.OS === 'android') setShowBirthdatePicker(false);
+                    if (selected) setField('birthdate', formatDateStr(selected));
+                  }}
+                  style={{ marginTop: 4 }}
                 />
-              </View>
+              )}
+            </View>
+
+            <FormField label="Breed" value={form.breed} onChangeText={(v) => setField('breed', v)} placeholder="Domestic Shorthair" maxLength={200} />
+
+            <View>
+              <FieldLabel label="Sex" />
+              <SegmentedControl
+                options={[{ label: 'Unknown', value: '' }, { label: 'Male', value: 'Male' }, { label: 'Female', value: 'Female' }]}
+                value={form.sex}
+                onChange={(v) => setField('sex', v)}
+              />
             </View>
 
             <View>
@@ -298,21 +360,36 @@ export default function EditCatScreen() {
                 </Text>
                 <View>
                   <Text style={{ color: colors.inkMid, fontSize: 13, marginBottom: 6 }}>Date of passing</Text>
-                  <TextInput
-                    value={deceasedDate}
-                    onChangeText={setDeceasedDate}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor={colors.inkDim}
+                  <Pressable
+                    onPress={() => setShowDeceasedDatePicker((v) => !v)}
                     style={{
                       backgroundColor: colors.night,
                       borderRadius: 12,
                       padding: 14,
-                      color: colors.ink,
-                      fontSize: 14,
                       borderWidth: 1,
-                      borderColor: colors.rim,
+                      borderColor: showDeceasedDatePicker ? colors.lavender : colors.rim,
+                      minHeight: 44,
+                      justifyContent: 'center',
                     }}
-                  />
+                  >
+                    <Text style={{ color: deceasedDate ? colors.ink : colors.inkDim, fontSize: 14 }}>
+                      {deceasedDate || 'Select date'}
+                    </Text>
+                  </Pressable>
+                  {showDeceasedDatePicker && (
+                    <DateTimePicker
+                      value={deceasedDate ? parseDate(deceasedDate) : new Date()}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      themeVariant="dark"
+                      maximumDate={new Date()}
+                      onChange={(_event, selected) => {
+                        if (Platform.OS === 'android') setShowDeceasedDatePicker(false);
+                        if (selected) setDeceasedDate(formatDateStr(selected));
+                      }}
+                      style={{ marginTop: 4 }}
+                    />
+                  )}
                 </View>
                 <View>
                   <Text style={{ color: colors.inkMid, fontSize: 13, marginBottom: 6 }}>Memorial note</Text>
@@ -449,22 +526,37 @@ export default function EditCatScreen() {
             <Text style={{ color: colors.inkMid, fontSize: 13, marginBottom: 6 }}>
               When did {catName} pass away?
             </Text>
-            <TextInput
-              value={deceasedDate}
-              onChangeText={setDeceasedDate}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={colors.inkDim}
+            <Pressable
+              onPress={() => setShowDeceasedDatePickerModal((v) => !v)}
               style={{
                 backgroundColor: colors.night,
                 borderRadius: 12,
                 padding: 14,
-                color: colors.ink,
-                fontSize: 16,
                 borderWidth: 1,
-                borderColor: colors.rim,
-                marginBottom: 16,
+                borderColor: showDeceasedDatePickerModal ? colors.lavender : colors.rim,
+                marginBottom: showDeceasedDatePickerModal ? 4 : 16,
+                minHeight: 44,
+                justifyContent: 'center',
               }}
-            />
+            >
+              <Text style={{ color: deceasedDate ? colors.ink : colors.inkDim, fontSize: 16 }}>
+                {deceasedDate || 'Select date'}
+              </Text>
+            </Pressable>
+            {showDeceasedDatePickerModal && (
+              <DateTimePicker
+                value={deceasedDate ? parseDate(deceasedDate) : new Date()}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                themeVariant="dark"
+                maximumDate={new Date()}
+                onChange={(_event, selected) => {
+                  if (Platform.OS === 'android') setShowDeceasedDatePickerModal(false);
+                  if (selected) setDeceasedDate(formatDateStr(selected));
+                }}
+                style={{ marginBottom: 16 }}
+              />
+            )}
 
             <Text style={{ color: colors.inkMid, fontSize: 13, marginBottom: 6 }}>
               A few words (optional)

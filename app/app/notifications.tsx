@@ -13,10 +13,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { api, CARE_TYPE_ICONS } from '../lib/api';
 import type { DoseWithContext, Medication, NotificationInbox } from '../lib/api';
-import { utcToLocal } from '../../shared/lib/dates';
 import { useThemeColors } from '../hooks/useThemeColors';
 import { usePreferences } from '../contexts/PreferencesContext';
-import { formatTimeFromParts } from '../lib/formatting';
+import { formatDueAt, formatFutureDueAt } from '../lib/formatting';
 
 type SectionItem =
   | { kind: 'dose'; data: DoseWithContext }
@@ -199,7 +198,7 @@ export default function NotificationsScreen() {
             {section.title}
           </Text>
         )}
-        renderItem={({ item }) => {
+        renderItem={({ item, section }) => {
           if (item.kind === 'refill') {
             const med = item.data;
             return (
@@ -271,8 +270,10 @@ export default function NotificationsScreen() {
                     </Text>
                   )}
                 </View>
-                <Text style={{ color: colors.inkDim, fontSize: 12 }}>
-                  {formatTimeFromParts(utcToLocal(dose.due_at).time, prefs)}
+                <Text style={{ color: colors.inkDim, fontSize: 12, textAlign: 'right', maxWidth: 120 }}>
+                  {section.title === 'Upcoming'
+                    ? formatFutureDueAt(dose.due_at, prefs)
+                    : formatDueAt(dose.due_at, prefs)}
                 </Text>
               </Pressable>
 

@@ -285,7 +285,7 @@ describe('formatFreqShort', () => {
   })
 })
 
-describe('formatDueAt', () => {
+describe('formatDueAt (overdue / due today notifications)', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-04-12T12:00:00'))
@@ -295,20 +295,39 @@ describe('formatDueAt', () => {
     vi.useRealTimers()
   })
 
-  it('formats a due time with "at"', () => {
+  it('shows "Today at <time>" for today\'s doses', () => {
     const result = formatDueAt('2026-04-12 15:00:00', prefs12h)
+    expect(result).toMatch(/^Today at /)
+  })
+
+  it('shows "Yesterday at <time>" for yesterday\'s doses', () => {
+    const result = formatDueAt('2026-04-11 09:00:00', prefs12h)
+    expect(result).toMatch(/^Yesterday at /)
+  })
+
+  it('includes date for overdue doses older than yesterday', () => {
+    const result = formatDueAt('2026-04-05 09:00:00', prefs12h)
+    // Must NOT say "Today" or "Yesterday" — must include a date
+    expect(result).not.toContain('Today')
+    expect(result).not.toContain('Yesterday')
+    expect(result).toContain('Apr')
     expect(result).toContain('at')
   })
 
-  it('formats a past date due time', () => {
-    const result = formatDueAt('2026-04-05 09:00:00', prefs12h)
-    expect(result).toContain('at')
-    // Should be a date (not "Today" or "Yesterday")
-    expect(result).toContain('Apr')
+  it('respects 24h format (no AM/PM)', () => {
+    const result = formatDueAt('2026-04-12 15:00:00', prefs24h)
+    expect(result).not.toContain('AM')
+    expect(result).not.toContain('PM')
+    expect(result).toMatch(/\d{2}:\d{2}/)
+  })
+
+  it('respects 12h format (includes AM or PM)', () => {
+    const result = formatDueAt('2026-04-12 15:00:00', prefs12h)
+    expect(result).toMatch(/AM|PM/)
   })
 })
 
-describe('formatFutureDueAt', () => {
+describe('formatFutureDueAt (upcoming notifications)', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-04-12T12:00:00'))
@@ -318,14 +337,29 @@ describe('formatFutureDueAt', () => {
     vi.useRealTimers()
   })
 
-  it('formats a future due time with "at"', () => {
+  it('shows "Today at <time>" for today\'s doses', () => {
+    const result = formatFutureDueAt('2026-04-12 18:00:00', prefs12h)
+    expect(result).toMatch(/^Today at /)
+  })
+
+  it('shows "Tomorrow at <time>" for tomorrow\'s doses', () => {
     const result = formatFutureDueAt('2026-04-13 09:00:00', prefs12h)
+    expect(result).toMatch(/^Tomorrow at /)
+  })
+
+  it('includes weekday and date for doses further than tomorrow', () => {
+    const result = formatFutureDueAt('2026-04-20 09:00:00', prefs12h)
+    // Must NOT say "Today" or "Tomorrow" — must include weekday + date
+    expect(result).not.toContain('Today')
+    expect(result).not.toContain('Tomorrow')
+    expect(result).toMatch(/(Mon|Tue|Wed|Thu|Fri|Sat|Sun)/)
     expect(result).toContain('at')
   })
 
-  it('formats a distant future due time with weekday', () => {
-    const result = formatFutureDueAt('2026-04-20 09:00:00', prefs12h)
-    expect(result).toContain('at')
-    expect(result).toMatch(/(Mon|Tue|Wed|Thu|Fri|Sat|Sun)/)
+  it('respects 24h format for upcoming (no AM/PM)', () => {
+    const result = formatFutureDueAt('2026-04-20 14:30:00', prefs24h)
+    expect(result).not.toContain('AM')
+    expect(result).not.toContain('PM')
+    expect(result).toMatch(/\d{2}:\d{2}/)
   })
 })

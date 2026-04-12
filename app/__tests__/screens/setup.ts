@@ -52,6 +52,10 @@ function filterDomProps(props: Record<string, any>) {
       domSafe[k.toLowerCase()] = v;
     } else if (k === 'style') {
       domSafe[k] = sanitizeStyle(v);
+    } else if (k === 'accessibilityLabel') {
+      domSafe['aria-label'] = v;
+    } else if (k === 'accessibilityRole') {
+      domSafe['role'] = v;
     } else if (['className', 'id', 'role', 'title'].includes(k)) {
       domSafe[k] = v;
     }
@@ -80,8 +84,11 @@ vi.mock('react-native', () => {
         footer,
       );
     }),
-    Pressable: React.forwardRef(({ children, testID, onPress, ...props }: any, ref: any) => {
-      return React.createElement('button', { 'data-testid': testID, 'data-component': 'Pressable', onClick: onPress, ref },
+    Pressable: React.forwardRef(({ children, testID, onPress, accessibilityLabel, accessibilityRole, ...props }: any, ref: any) => {
+      return React.createElement('button', {
+        'data-testid': testID, 'data-component': 'Pressable', onClick: onPress, ref,
+        'aria-label': accessibilityLabel, role: accessibilityRole,
+      },
         typeof children === 'function' ? children({ pressed: false }) : children,
       );
     }),
@@ -498,6 +505,16 @@ vi.mock('../../lib/api', () => ({
     changeMemberRole: vi.fn().mockResolvedValue(undefined),
     removeMember: vi.fn().mockResolvedValue(undefined),
     exportData: vi.fn().mockResolvedValue('csv-data'),
+    getMedication: vi.fn().mockResolvedValue(fixtures.medications[0]),
+    createMedication: vi.fn().mockResolvedValue(fixtures.medications[0]),
+    updateMedication: vi.fn().mockResolvedValue(fixtures.medications[0]),
+    archiveMedication: vi.fn().mockResolvedValue(undefined),
+    getInvitePreview: vi.fn().mockResolvedValue({ household_name: 'Test Household', invited_by_name: 'Test User', role: 'editor' }),
+    acceptInvite: vi.fn().mockResolvedValue(undefined),
+    declineInvite: vi.fn().mockResolvedValue(undefined),
+    registerDeviceToken: vi.fn().mockResolvedValue(undefined),
+    updateMe: vi.fn().mockResolvedValue(undefined),
+    uploadCatPhoto: vi.fn().mockResolvedValue(undefined),
     setAuthToken: vi.fn(),
   },
   CARE_TYPE_ICONS: {
@@ -531,6 +548,16 @@ vi.mock('../../../lib/api', () => ({
     changeMemberRole: vi.fn().mockResolvedValue(undefined),
     removeMember: vi.fn().mockResolvedValue(undefined),
     exportData: vi.fn().mockResolvedValue('csv-data'),
+    getMedication: vi.fn().mockResolvedValue(fixtures.medications[0]),
+    createMedication: vi.fn().mockResolvedValue(fixtures.medications[0]),
+    updateMedication: vi.fn().mockResolvedValue(fixtures.medications[0]),
+    archiveMedication: vi.fn().mockResolvedValue(undefined),
+    getInvitePreview: vi.fn().mockResolvedValue({ household_name: 'Test Household', invited_by_name: 'Test User', role: 'editor' }),
+    acceptInvite: vi.fn().mockResolvedValue(undefined),
+    declineInvite: vi.fn().mockResolvedValue(undefined),
+    registerDeviceToken: vi.fn().mockResolvedValue(undefined),
+    updateMe: vi.fn().mockResolvedValue(undefined),
+    uploadCatPhoto: vi.fn().mockResolvedValue(undefined),
     setAuthToken: vi.fn(),
   },
   CARE_TYPE_ICONS: {

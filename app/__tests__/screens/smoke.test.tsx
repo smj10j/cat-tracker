@@ -381,6 +381,176 @@ describe('Privacy screen', () => {
   });
 });
 
+describe('CareItem screen', () => {
+  let CareItem: React.ComponentType<any>;
+
+  beforeAll(async () => {
+    CareItem = (await import('../../app/cats/[id]/care-item')).default;
+  });
+
+  it('renders without crashing', async () => {
+    const { container } = await renderScreen(CareItem);
+    expect(container).toBeTruthy();
+  });
+
+  it('loads cat data and renders form', async () => {
+    const { container } = await renderScreen(CareItem);
+    // Should have loaded cat data from mock API
+    expect(container.innerHTML).toContain('Luna');
+  });
+});
+
+describe('Import screen', () => {
+  let Import: React.ComponentType<any>;
+
+  beforeAll(async () => {
+    Import = (await import('../../app/import')).default;
+  });
+
+  it('renders without crashing', async () => {
+    const { container } = await renderScreen(Import);
+    expect(container).toBeTruthy();
+  });
+
+  it('renders the Import Data header', async () => {
+    await renderScreen(Import);
+    expect(screen.getByText('Import Data')).toBeTruthy();
+  });
+});
+
+describe('Invite screen', () => {
+  let Invite: React.ComponentType<any>;
+
+  beforeAll(async () => {
+    Invite = (await import('../../app/invite')).default;
+  });
+
+  it('renders without crashing', async () => {
+    const { container } = await renderScreen(Invite);
+    expect(container).toBeTruthy();
+  });
+});
+
+describe('Login screen', () => {
+  let Login: React.ComponentType<any>;
+
+  beforeAll(async () => {
+    Login = (await import('../../app/(auth)/login')).default;
+  });
+
+  it('renders without crashing', async () => {
+    const { container } = await renderScreen(Login);
+    expect(container).toBeTruthy();
+  });
+
+  it('renders sign-in buttons', async () => {
+    await renderScreen(Login);
+    await waitFor(() => {
+      expect(screen.getByText(/sign in with google/i)).toBeTruthy();
+    });
+  });
+});
+
+// ===========================================================================
+// LOCALIZATION & LANDSCAPE FEATURES
+// ===========================================================================
+
+describe('Settings — Regional preferences', () => {
+  let Settings: React.ComponentType<any>;
+
+  beforeAll(async () => {
+    Settings = (await import('../../app/settings')).default;
+  });
+
+  it('renders Regional section with date/time/weight controls', async () => {
+    await renderScreen(Settings);
+    await waitFor(() => {
+      expect(screen.getByText('Regional')).toBeTruthy();
+      expect(screen.getByText('Date format')).toBeTruthy();
+      expect(screen.getByText('Time format')).toBeTruthy();
+      expect(screen.getByText('Weight unit')).toBeTruthy();
+    });
+  });
+
+  it('renders date format options', async () => {
+    await renderScreen(Settings);
+    await waitFor(() => {
+      expect(screen.getByText('MM/DD')).toBeTruthy();
+      expect(screen.getByText('DD/MM')).toBeTruthy();
+      expect(screen.getByText('YYYY-MM')).toBeTruthy();
+    });
+  });
+
+  it('renders weight unit options', async () => {
+    await renderScreen(Settings);
+    await waitFor(() => {
+      expect(screen.getByText('lbs')).toBeTruthy();
+      expect(screen.getByText('kg')).toBeTruthy();
+    });
+  });
+});
+
+describe('CatProfile — chart expand button', () => {
+  let CatProfile: React.ComponentType<any>;
+
+  beforeAll(async () => {
+    CatProfile = (await import('../../app/cats/[id]/index')).default;
+  });
+
+  it('renders expand button on weight chart', async () => {
+    await renderScreen(CatProfile);
+    await waitFor(() => {
+      expect(screen.getAllByLabelText('Expand chart').length).toBeGreaterThanOrEqual(1);
+    });
+  });
+});
+
+describe('Compare — chart expand button', () => {
+  let CompareScreen: React.ComponentType<any>;
+
+  beforeAll(async () => {
+    CompareScreen = (await import('../../app/(tabs)/compare')).default;
+  });
+
+  it('renders expand button on compare chart', async () => {
+    await renderScreen(CompareScreen);
+    await waitFor(() => {
+      expect(screen.getAllByLabelText('Expand chart').length).toBeGreaterThanOrEqual(1);
+    });
+  });
+});
+
+describe('Home — localized weight display', () => {
+  let HomeScreen: React.ComponentType<any>;
+
+  beforeAll(async () => {
+    HomeScreen = (await import('../../app/(tabs)/index')).default;
+  });
+
+  it('renders cat weight with unit from preferences', async () => {
+    await renderScreen(HomeScreen);
+    await waitFor(() => {
+      // Default prefs are US (lbs). Cat fixture has weight 10.2.
+      expect(screen.getByText(/lbs/)).toBeTruthy();
+    });
+  });
+});
+
+describe('Log — default weight unit from preferences', () => {
+  let LogScreen: React.ComponentType<any>;
+
+  beforeAll(async () => {
+    LogScreen = (await import('../../app/(tabs)/log')).default;
+  });
+
+  it('renders weight unit selector defaulting to preferences', async () => {
+    await renderScreen(LogScreen);
+    await waitFor(() => {
+      expect(screen.getByText('lbs')).toBeTruthy();
+    });
+  });
+});
+
 // ===========================================================================
 // EDGE CASES — CatProfile with degenerate data
 // ===========================================================================

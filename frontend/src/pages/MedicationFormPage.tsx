@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import {
   getCat, getMedication, createMedication, updateMedication, archiveMedication,
-  type Cat, type Medication,
+  type Cat,
 } from '../lib/api'
 import { useGoBack } from '../hooks/useGoBack'
 import { usePreferences } from '../contexts/PreferencesContext'
@@ -12,9 +12,16 @@ import {
   MEDICATION_FREQ_LABELS,
   MEDICATION_TYPE_LABELS,
   formatFrequencyLabel,
-  type MedicationPreset as Preset,
+  type MedicationPreset,
 } from '@shared/lib/medicationPresets'
-import { todayLocalDate, roundToHour } from '@shared/lib/formatting'
+import {
+  CARE_ITEM_DEFAULTS,
+  hydrateFromMedication,
+  applyPresetToFields,
+  validateCareItem,
+  buildCareItemPayload,
+  type CareItemFields,
+} from '@shared/lib/useCareItemForm'
 
 // Extended labels for web where there's room for longer text
 const FREQ_LABELS: Record<string, string> = {
@@ -42,30 +49,26 @@ export default function MedicationFormPage() {
   const { catId, medId } = useParams<{ catId?: string; medId?: string }>()
   const goBack = useGoBack('/')
   const { prefs } = usePreferences()
+  const errorRef = useRef<HTMLDivElement>(null)
   const isEdit = Boolean(medId)
 
   const [cat, setCat] = useState<Cat | null>(null)
-  const [existing, setExisting] = useState<Medication | null>(null)
+  const [fields, setFields] = useState<CareItemFields>(CARE_ITEM_DEFAULTS)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const errorRef = useRef<HTMLDivElement>(null)
   const [showPresets, setShowPresets] = useState(false)
 
-  // Form fields
-  const [name, setName] = useState('')
-  const [type, setType] = useState('other')
-  const [dose, setDose] = useState('')
-  const [frequency, setFrequency] = useState('monthly')
-  const [frequencyDays, setFrequencyDays] = useState('30')
-  const [reminderTime, setReminderTime] = useState('09:00')
-  const [startDate, setStartDate] = useState(todayLocalDate())
-  const [endDate, setEndDate] = useState('')
-  const [dosesTotal, setDosesTotal] = useState('')
-  const [notes, setNotes] = useState('')
-  const [dosesRemaining, setDosesRemaining] = useState('')
-  const [refillThreshold, setRefillThreshold] = useState('')
+  const setField = <K extends keyof CareItemFields>(key: K, value: CareItemFields[K]) =>
+    setFields(prev => ({ ...prev, [key]: value }))
+
+  // Destructure for cleaner JSX
+  const {
+    name, type, dose, frequency, frequencyDays,
+    reminderTime, startDate, endDate, dosesTotal,
+    notes, dosesRemaining, refillThreshold,
+  } = fields
 
   useEffect(() => {
     async function load() {
@@ -73,20 +76,7 @@ export default function MedicationFormPage() {
       try {
         if (isEdit && medId) {
           const med = await getMedication(medId)
-          setExisting(med)
-          setName(med.name)
-          setType(med.type)
-          setDose(med.dose ?? '')
-          setFrequency(med.frequency)
-          setFrequencyDays(String(med.frequency_days ?? 30))
-          setReminderTime(roundToHour(med.reminder_time))
-          setStartDate(med.start_date)
-          setEndDate(med.end_date ?? '')
-          setDosesTotal(med.doses_total != null ? String(med.doses_total) : '')
-          setNotes(med.notes ?? '')
-          setDosesRemaining(med.doses_remaining != null ? String(med.doses_remaining) : '')
-          setRefillThreshold(med.refill_alert_threshold != null ? String(med.refill_alert_threshold) : '')
-          // Load cat info for context
+          setFields(hydrateFromMedication(med))
           const c = await getCat(med.cat_id)
           setCat(c)
         } else if (catId) {
@@ -102,12 +92,8 @@ export default function MedicationFormPage() {
     load()
   }, [isEdit, medId, catId])
 
-  function applyPreset(preset: Preset) {
-    setName(preset.name)
-    setType(preset.type)
-    setFrequency(preset.frequency)
-    if (preset.frequency_days) setFrequencyDays(String(preset.frequency_days))
-    if (preset.notes) setNotes(preset.notes)
+  function applyPreset(preset: MedicationPreset) {
+    setFields(prev => applyPresetToFields(prev, preset))
     setShowPresets(false)
   }
 
@@ -118,40 +104,24 @@ export default function MedicationFormPage() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim()) { showError('Name is required'); return }
-    if (!startDate) { showError('Start date is required'); return }
-
-    const resolvedCatId = catId ?? existing?.cat_id
+    const resolvedCatId = catId ?? cat?.id
     if (!resolvedCatId) { showError('Cat is required'); return }
+
+    const validationError = validateCareItem(fields)
+    if (validationError) { showError(validationError); return }
+
+    const payload = buildCareItemPayload(fields, resolvedCatId)
 
     setSaving(true)
     setError(null)
     try {
-      const payload = {
-        cat_id: resolvedCatId,
-        name: name.trim(),
-        type,
-        dose: dose.trim() || null,
-        frequency,
-        frequency_days: frequency === 'custom' ? parseInt(frequencyDays, 10) || null : null,
-        reminder_time: reminderTime,
-        start_date: startDate,
-        end_date: endDate || null,
-        doses_total: dosesTotal ? parseInt(dosesTotal, 10) || null : null,
-        notes: notes.trim() || null,
-        doses_remaining: dosesRemaining ? parseInt(dosesRemaining, 10) || null : null,
-        refill_alert_threshold: refillThreshold ? parseInt(refillThreshold, 10) || null : null,
-      }
-
       if (isEdit && medId) {
         await updateMedication(medId, payload)
-        // Navigate to care tab of the cat profile
-        const targetCatId = catId ?? existing?.cat_id
+        const targetCatId = catId ?? cat?.id
         if (targetCatId) navigate(`/cats/${targetCatId}?tab=care`, { replace: true })
         else goBack()
       } else {
         const med = await createMedication(payload)
-        // Navigate to care tab of the cat profile
         navigate(`/cats/${med.cat_id}?tab=care`, { replace: true })
       }
     } catch (e: unknown) {
@@ -211,7 +181,7 @@ export default function MedicationFormPage() {
       <div className="mb-4">
         <button
           type="button"
-          onClick={() => setShowPresets(v => !v)}
+          onClick={() => setShowPresets((v: boolean) => !v)}
           className="w-full py-3.5 rounded-xl text-sm font-semibold text-lavender transition-all"
           style={{ border: '1.5px solid rgba(192,132,252,0.4)', background: 'rgba(192,132,252,0.08)' }}
         >
@@ -256,7 +226,7 @@ export default function MedicationFormPage() {
           <div>
             <label htmlFor="med-name" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Name</label>
             <input
-              id="med-name" value={name} onChange={e => setName(e.target.value)}
+              id="med-name" value={name} onChange={e => setField("name", e.target.value)}
               placeholder="e.g. Revolution Plus" maxLength={200}
               className="input-dark w-full px-3 py-2.5 text-sm" required
             />
@@ -264,7 +234,7 @@ export default function MedicationFormPage() {
 
           <div>
             <label htmlFor="med-type" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Type</label>
-            <select id="med-type" value={type} onChange={e => setType(e.target.value)} className="input-dark w-full px-3 py-2.5 text-sm">
+            <select id="med-type" value={type} onChange={e => setField("type", e.target.value)} className="input-dark w-full px-3 py-2.5 text-sm">
               {Object.entries(TYPE_LABELS).map(([v, l]) => (
                 <option key={v} value={v}>{l}</option>
               ))}
@@ -274,7 +244,7 @@ export default function MedicationFormPage() {
           <div>
             <label htmlFor="med-dose" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Dose amount</label>
             <input
-              id="med-dose" value={dose} onChange={e => setDose(e.target.value)}
+              id="med-dose" value={dose} onChange={e => setField("dose", e.target.value)}
               placeholder="e.g. 2.5mg or 1 tube" maxLength={100}
               className="input-dark w-full px-3 py-2.5 text-sm"
             />
@@ -283,7 +253,7 @@ export default function MedicationFormPage() {
           <div>
             <label htmlFor="med-notes" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Notes</label>
             <input
-              id="med-notes" value={notes} onChange={e => setNotes(e.target.value)}
+              id="med-notes" value={notes} onChange={e => setField("notes", e.target.value)}
               placeholder="e.g. Give with food" maxLength={1000}
               className="input-dark w-full px-3 py-2.5 text-sm"
             />
@@ -298,7 +268,7 @@ export default function MedicationFormPage() {
 
           <div>
             <label htmlFor="med-frequency" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Frequency</label>
-            <select id="med-frequency" value={frequency} onChange={e => setFrequency(e.target.value)} className="input-dark w-full px-3 py-2.5 text-sm">
+            <select id="med-frequency" value={frequency} onChange={e => setField("frequency", e.target.value)} className="input-dark w-full px-3 py-2.5 text-sm">
               {Object.entries(FREQ_LABELS).map(([v, l]) => (
                 <option key={v} value={v}>{l}</option>
               ))}
@@ -310,7 +280,7 @@ export default function MedicationFormPage() {
               <label htmlFor="med-freq-days" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Interval (every {frequencyDays || '?'} days)</label>
               <input
                 id="med-freq-days" type="number" min="1" max="3650"
-                value={frequencyDays} onChange={e => setFrequencyDays(e.target.value)}
+                value={frequencyDays} onChange={e => setField("frequencyDays", e.target.value)}
                 className="input-dark w-full px-3 py-2.5 text-sm"
               />
             </div>
@@ -320,14 +290,14 @@ export default function MedicationFormPage() {
             <div>
               <label htmlFor="med-start-date" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Start date</label>
               <input
-                id="med-start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+                id="med-start-date" type="date" value={startDate} onChange={e => setField("startDate", e.target.value)}
                 className="input-dark w-full px-3 py-2.5 text-sm" required
               />
             </div>
             <div>
               <label htmlFor="med-reminder-time" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Reminder time</label>
               <select
-                id="med-reminder-time" value={reminderTime} onChange={e => setReminderTime(e.target.value)}
+                id="med-reminder-time" value={reminderTime} onChange={e => setField("reminderTime", e.target.value)}
                 className="input-dark w-full px-3 py-2.5 text-sm"
               >
                 {Array.from({ length: 24 }, (_, i) => {
@@ -348,7 +318,7 @@ export default function MedicationFormPage() {
               Stop date <span className="font-normal normal-case text-ink-dim">(leave blank for ongoing)</span>
             </label>
             <input
-              id="med-end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+              id="med-end-date" type="date" value={endDate} onChange={e => setField("endDate", e.target.value)}
               className="input-dark w-full px-3 py-2.5 text-sm"
             />
           </div>
@@ -358,7 +328,7 @@ export default function MedicationFormPage() {
               Course length <span className="font-normal normal-case text-ink-dim">(total doses, blank = ongoing)</span>
             </label>
             <input
-              id="med-doses-total" type="number" min="1" value={dosesTotal} onChange={e => setDosesTotal(e.target.value)}
+              id="med-doses-total" type="number" min="1" value={dosesTotal} onChange={e => setField("dosesTotal", e.target.value)}
               placeholder="e.g. 14 for a 14-day course"
               className="input-dark w-full px-3 py-2.5 text-sm"
             />
@@ -374,7 +344,7 @@ export default function MedicationFormPage() {
           <div>
             <label htmlFor="med-doses-remaining" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Doses currently in stock</label>
             <input
-              id="med-doses-remaining" type="number" min="0" value={dosesRemaining} onChange={e => setDosesRemaining(e.target.value)}
+              id="med-doses-remaining" type="number" min="0" value={dosesRemaining} onChange={e => setField("dosesRemaining", e.target.value)}
               placeholder="e.g. 3"
               className="input-dark w-full px-3 py-2.5 text-sm"
             />
@@ -385,7 +355,7 @@ export default function MedicationFormPage() {
               Refill alert threshold <span className="font-normal normal-case text-ink-dim">(alert when stock falls to this)</span>
             </label>
             <input
-              id="med-refill-threshold" type="number" min="1" value={refillThreshold} onChange={e => setRefillThreshold(e.target.value)}
+              id="med-refill-threshold" type="number" min="1" value={refillThreshold} onChange={e => setField("refillThreshold", e.target.value)}
               placeholder="e.g. 2"
               className="input-dark w-full px-3 py-2.5 text-sm"
             />

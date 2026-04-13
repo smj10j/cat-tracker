@@ -154,8 +154,9 @@ export const getMeasurements = (catId: string, type?: string) =>
   request<Measurement[]>(`/cats/${catId}/measurements${type ? `?type=${type}` : ''}`)
 export const createMeasurement = (catId: string, data: Omit<Measurement, 'id' | 'cat_id' | 'created_at'>) =>
   request<Measurement>(`/cats/${catId}/measurements`, { method: 'POST', body: JSON.stringify(data) })
-export const deleteMeasurement = (id: string) =>
-  request<{ success: boolean }>(`/measurements/${id}`, { method: 'DELETE' })
+export const deleteMeasurement = async (id: string): Promise<void> => {
+  await request(`/measurements/${id}`, { method: 'DELETE' })
+}
 
 // Auth
 export const getMe = () => request<User>('/auth/me')

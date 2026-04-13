@@ -24,14 +24,20 @@ import {
   MEDICATION_FREQ_LABELS,
   MEDICATION_TYPE_LABELS,
   formatFrequencyLabel,
-  type MedicationPreset as Preset,
+  type MedicationPreset,
 } from '@shared/lib/medicationPresets';
+import {
+  CARE_ITEM_DEFAULTS,
+  hydrateFromMedication,
+  applyPresetToFields,
+  validateCareItem,
+  buildCareItemPayload,
+  type CareItemFields,
+} from '@shared/lib/useCareItemForm';
 import { parseDate, formatDateStr as formatDate } from '../../../lib/dateHelpers';
 
 const FREQ_OPTIONS = Object.entries(MEDICATION_FREQ_LABELS).map(([value, label]) => ({ value, label }));
 const TYPE_OPTIONS = Object.entries(MEDICATION_TYPE_LABELS).map(([value, label]) => ({ value, label }));
-
-import { todayLocalDate, roundToHour } from '@shared/lib/formatting';
 
 export default function CareItemScreen() {
   const colors = useThemeColors();
@@ -42,6 +48,7 @@ export default function CareItemScreen() {
   const isEdit = Boolean(medId);
 
   const [cat, setCat] = useState<Cat | null>(null);
+  const [fields, setFields] = useState<CareItemFields>(CARE_ITEM_DEFAULTS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [archiving, setArchiving] = useState(false);
@@ -54,27 +61,9 @@ export default function CareItemScreen() {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const timePickerRef = useRef<ScrollView>(null);
 
-  // Form fields
-  const [name, setName] = useState('');
-  const [type, setType] = useState('other');
-  const [dose, setDose] = useState('');
-  const [frequency, setFrequency] = useState('monthly');
-  const [frequencyDays, setFrequencyDays] = useState('30');
-  const [reminderTime, setReminderTime] = useState('09:00');
-  const [startDate, setStartDate] = useState(todayLocalDate());
-  const [endDate, setEndDate] = useState('');
-  const [dosesTotal, setDosesTotal] = useState('');
-  const [notes, setNotes] = useState('');
-  const [dosesRemaining, setDosesRemaining] = useState('');
-  const [refillThreshold, setRefillThreshold] = useState('');
-
-  function showError(msg: string) {
-    setError(msg);
-    scrollRef.current?.scrollTo({ y: 0, animated: true });
-    if (Platform.OS !== 'web') {
-      Alert.alert('Error', msg);
-    }
-  }
+  // Convenience field accessors
+  const setField = <K extends keyof CareItemFields>(key: K, value: CareItemFields[K]) =>
+    setFields(prev => ({ ...prev, [key]: value }));
 
   useEffect(() => {
     async function load() {
@@ -82,18 +71,7 @@ export default function CareItemScreen() {
       try {
         if (isEdit && medId) {
           const med = await api.getMedication(medId);
-          setName(med.name);
-          setType(med.type);
-          setDose(med.dose ?? '');
-          setFrequency(med.frequency);
-          setFrequencyDays(String(med.frequency_days ?? 30));
-          setReminderTime(roundToHour(med.reminder_time));
-          setStartDate(med.start_date);
-          setEndDate(med.end_date ?? '');
-          setDosesTotal(med.doses_total != null ? String(med.doses_total) : '');
-          setNotes(med.notes ?? '');
-          setDosesRemaining(med.doses_remaining != null ? String(med.doses_remaining) : '');
-          setRefillThreshold(med.refill_alert_threshold != null ? String(med.refill_alert_threshold) : '');
+          setFields(hydrateFromMedication(med));
           const c = await api.getCat(med.cat_id);
           setCat(c);
         } else if (id) {
@@ -109,55 +87,36 @@ export default function CareItemScreen() {
     load();
   }, [id, medId, isEdit]);
 
-  function applyPreset(preset: Preset) {
-    setName(preset.name);
-    setType(preset.type);
-    setFrequency(preset.frequency);
-    if (preset.frequency_days) setFrequencyDays(String(preset.frequency_days));
-    if (preset.notes) setNotes(preset.notes);
+  function showError(msg: string) {
+    setError(msg);
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+    if (Platform.OS !== 'web') {
+      Alert.alert('Error', msg);
+    }
+  }
+
+  function applyPreset(preset: MedicationPreset) {
+    setFields(prev => applyPresetToFields(prev, preset));
     setShowPresets(false);
   }
 
   async function handleSave() {
-    if (!name.trim()) {
-      showError('Name is required');
-      return;
-    }
-    if (!startDate) {
-      showError('Start date is required');
-      return;
-    }
     const catId = id;
-    if (!catId) {
-      showError('Cat is required');
-      return;
-    }
+    if (!catId) { showError('Cat is required'); return; }
+
+    const validationError = validateCareItem(fields);
+    if (validationError) { showError(validationError); return; }
+
+    const payload = buildCareItemPayload(fields, catId);
 
     setSaving(true);
     setError(null);
     try {
-      const payload = {
-        cat_id: catId,
-        name: name.trim(),
-        type,
-        dose: dose.trim() || null,
-        frequency,
-        frequency_days: frequency === 'custom' ? parseInt(frequencyDays, 10) || null : null,
-        reminder_time: reminderTime,
-        start_date: startDate,
-        end_date: endDate || null,
-        doses_total: dosesTotal ? parseInt(dosesTotal, 10) || null : null,
-        notes: notes.trim() || null,
-        doses_remaining: dosesRemaining ? parseInt(dosesRemaining, 10) || null : null,
-        refill_alert_threshold: refillThreshold ? parseInt(refillThreshold, 10) || null : null,
-      };
-
       if (isEdit && medId) {
         await api.updateMedication(medId, payload);
       } else {
         await api.createMedication(payload);
       }
-      // Navigate back to the cat's Care tab
       router.replace(`/cats/${catId}?tab=care` as never);
     } catch (e: unknown) {
       showError((e as Error).message);
@@ -169,12 +128,12 @@ export default function CareItemScreen() {
   function handleArchive() {
     if (!medId) return;
     if (Platform.OS === 'web') {
-      if (confirm(`Stop tracking ${name}?`)) {
+      if (confirm(`Stop tracking ${fields.name}?`)) {
         doArchive();
       }
       return;
     }
-    Alert.alert('Archive Care Item', `Stop tracking ${name}? This will archive the schedule.`, [
+    Alert.alert('Archive Care Item', `Stop tracking ${fields.name}? This will archive the schedule.`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Archive', style: 'destructive', onPress: doArchive },
     ]);
@@ -225,7 +184,7 @@ export default function CareItemScreen() {
           </Text>
           {cat && (
             <Text style={{ color: colors.inkDim, fontSize: 13, marginTop: 2 }}>
-              for {cat.name}
+              for {cat?.name}
             </Text>
           )}
         </View>
@@ -344,8 +303,8 @@ export default function CareItemScreen() {
         <SectionCard title="Details">
           <FieldLabel label="Name" />
           <StyledInput
-            value={name}
-            onChangeText={setName}
+            value={fields.name}
+            onChangeText={v => setField("name", v)}
             placeholder="e.g. Revolution Plus"
             maxLength={200}
           />
@@ -355,8 +314,8 @@ export default function CareItemScreen() {
               <FieldLabel label="Type" />
               <PillPicker
                 options={TYPE_OPTIONS}
-                value={type}
-                onChange={setType}
+                value={fields.type}
+                onChange={v => setField("type", v)}
               />
             </View>
           </View>
@@ -365,8 +324,8 @@ export default function CareItemScreen() {
             <View style={{ flex: 1 }}>
               <FieldLabel label="Dose" />
               <StyledInput
-                value={dose}
-                onChangeText={setDose}
+                value={fields.dose}
+                onChangeText={v => setField("dose", v)}
                 placeholder="e.g. 2.5mg"
                 maxLength={100}
               />
@@ -375,18 +334,18 @@ export default function CareItemScreen() {
               <FieldLabel label="Frequency" />
               <PillPicker
                 options={FREQ_OPTIONS}
-                value={frequency}
-                onChange={setFrequency}
+                value={fields.frequency}
+                onChange={v => setField("frequency", v)}
               />
             </View>
           </View>
 
-          {frequency === 'custom' && (
+          {fields.frequency === 'custom' && (
             <>
-              <FieldLabel label={`Interval (every ${frequencyDays || '?'} days)`} />
+              <FieldLabel label={`Interval (every ${fields.frequencyDays || '?'} days)`} />
               <StyledInput
-                value={frequencyDays}
-                onChangeText={setFrequencyDays}
+                value={fields.frequencyDays}
+                onChangeText={v => setField("frequencyDays", v)}
                 keyboardType="number-pad"
                 placeholder="30"
               />
@@ -395,8 +354,8 @@ export default function CareItemScreen() {
 
           <FieldLabel label="Notes" />
           <StyledInput
-            value={notes}
-            onChangeText={setNotes}
+            value={fields.notes}
+            onChangeText={v => setField("notes", v)}
             placeholder="e.g. Give with food"
             maxLength={1000}
             multiline
@@ -409,8 +368,8 @@ export default function CareItemScreen() {
             <View style={{ flex: 1 }}>
               <FieldLabel label="Start date" />
               <DatePickerField
-                value={startDate}
-                onChange={setStartDate}
+                value={fields.startDate}
+                onChange={v => setField("startDate", v)}
                 show={showStartPicker}
                 onToggle={() => setShowStartPicker((v) => !v)}
               />
@@ -431,7 +390,7 @@ export default function CareItemScreen() {
                 }}
               >
                 <Text style={{ color: colors.ink, fontSize: 14 }}>
-                  {formatHour(parseInt(reminderTime.split(':')[0] ?? '9', 10), prefs)}
+                  {formatHour(parseInt(fields.reminderTime.split(':')[0] ?? '9', 10), prefs)}
                 </Text>
               </Pressable>
             </View>
@@ -443,7 +402,7 @@ export default function CareItemScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ gap: 4, paddingVertical: 8 }}
               onLayout={() => {
-                const selectedHour = parseInt(reminderTime.split(':')[0] ?? '9', 10);
+                const selectedHour = parseInt(fields.reminderTime.split(':')[0] ?? '9', 10);
                 const pillWidth = 58;
                 const offset = Math.max(0, selectedHour * pillWidth - 100);
                 timePickerRef.current?.scrollTo({ x: offset, animated: false });
@@ -451,11 +410,11 @@ export default function CareItemScreen() {
             >
               {Array.from({ length: 24 }, (_, i) => {
                 const val = `${String(i).padStart(2, '0')}:00`;
-                const active = reminderTime === val;
+                const active = fields.reminderTime === val;
                 return (
                   <Pressable
                     key={i}
-                    onPress={() => { setReminderTime(val); setShowTimePicker(false); }}
+                    onPress={() => { setField("reminderTime", val); setShowTimePicker(false); }}
                     style={{
                       paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10,
                       minHeight: 36, alignItems: 'center', justifyContent: 'center',
@@ -474,8 +433,8 @@ export default function CareItemScreen() {
 
           <FieldLabel label="Stop date (blank = ongoing)" />
           <DatePickerField
-            value={endDate}
-            onChange={setEndDate}
+            value={fields.endDate}
+            onChange={v => setField("endDate", v)}
             show={showEndPicker}
             onToggle={() => setShowEndPicker((v) => !v)}
             placeholder="No end date"
@@ -484,8 +443,8 @@ export default function CareItemScreen() {
 
           <FieldLabel label="Course length (total doses, blank = ongoing)" />
           <StyledInput
-            value={dosesTotal}
-            onChangeText={setDosesTotal}
+            value={fields.dosesTotal}
+            onChangeText={v => setField("dosesTotal", v)}
             keyboardType="number-pad"
             placeholder="e.g. 14 for a 14-day course"
           />
@@ -497,8 +456,8 @@ export default function CareItemScreen() {
             <View style={{ flex: 1 }}>
               <FieldLabel label="In stock" />
               <StyledInput
-                value={dosesRemaining}
-                onChangeText={setDosesRemaining}
+                value={fields.dosesRemaining}
+                onChangeText={v => setField("dosesRemaining", v)}
                 keyboardType="number-pad"
                 placeholder="e.g. 3"
               />
@@ -506,8 +465,8 @@ export default function CareItemScreen() {
             <View style={{ flex: 1 }}>
               <FieldLabel label="Refill alert at" />
               <StyledInput
-                value={refillThreshold}
-                onChangeText={setRefillThreshold}
+                value={fields.refillThreshold}
+                onChangeText={v => setField("refillThreshold", v)}
                 keyboardType="number-pad"
                 placeholder="e.g. 2"
               />

@@ -33,7 +33,7 @@ import {
   validateCareItem,
   buildCareItemPayload,
   type CareItemFields,
-} from '@shared/lib/useCareItemForm';
+} from '@shared/lib/careItemForm';
 import { parseDate, formatDateStr as formatDate } from '../../../lib/dateHelpers';
 
 const FREQ_OPTIONS = Object.entries(MEDICATION_FREQ_LABELS).map(([value, label]) => ({ value, label }));

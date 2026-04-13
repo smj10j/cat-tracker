@@ -6,7 +6,7 @@ import {
   validateCareItem,
   buildCareItemPayload,
   type CareItemFields,
-} from '../lib/useCareItemForm'
+} from '../lib/careItemForm'
 import type { Medication } from '../lib/types'
 import type { MedicationPreset } from '../lib/medicationPresets'
 
@@ -14,7 +14,6 @@ const mockMedication: Medication & { doses: [] } = {
   id: 'med-1',
   cat_id: 'cat-1',
   user_id: 'user-1',
-  household_id: 'hh-1',
   name: 'Revolution Plus',
   type: 'flea',
   dose: '2.5mg',
@@ -30,6 +29,7 @@ const mockMedication: Medication & { doses: [] } = {
   next_due_at: null,
   notes: 'Topical',
   created_at: '2026-01-01T00:00:00Z',
+  updated_at: '2026-01-01T00:00:00Z',
   doses: [],
 }
 

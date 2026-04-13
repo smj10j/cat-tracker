@@ -21,7 +21,7 @@ import {
   validateCareItem,
   buildCareItemPayload,
   type CareItemFields,
-} from '@shared/lib/useCareItemForm'
+} from '@shared/lib/careItemForm'
 
 // Extended labels for web where there's room for longer text
 const FREQ_LABELS: Record<string, string> = {

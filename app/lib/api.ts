@@ -13,7 +13,9 @@ export { CARE_TYPE_ICONS } from '@shared/lib/types';
 import type {
   Cat, Measurement, User, Medication, MedicationDose,
   NotificationInbox, HouseholdResponse, HouseholdInfo, InvitePreview,
+  HouseholdListItem,
 } from '@shared/lib/types';
+import type { CatTrackerNativeApi } from '@shared/lib/apiTypes';
 
 // --- Platform-specific API implementation below ---
 
@@ -87,7 +89,7 @@ async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
   return res;
 }
 
-export const api = {
+export const api: CatTrackerNativeApi = {
   // Auth
   async getMe(): Promise<User> {
     const res = await apiFetch('/api/auth/me');
@@ -212,7 +214,7 @@ export const api = {
     return Array.isArray(data) ? data : data.measurements;
   },
 
-  async addMeasurement(catId: string, measurement: {
+  async createMeasurement(catId: string, measurement: {
     type: string;
     value: number;
     unit: string;
@@ -294,15 +296,18 @@ export const api = {
     await apiFetch(`/api/medications/${id}`, { method: 'DELETE' });
   },
 
-  async logDose(doseId: string, action: 'administer' | 'skip', skipReason?: string): Promise<void> {
-    if (action === 'administer') {
-      await apiFetch(`/api/doses/${doseId}/administer`, { method: 'POST' });
-    } else {
-      await apiFetch(`/api/doses/${doseId}/skip`, {
-        method: 'POST',
-        body: JSON.stringify({ skip_reason: skipReason ?? null }),
-      });
-    }
+  async administerDose(id: string, data?: { administered_at?: string; notes?: string }): Promise<void> {
+    await apiFetch(`/api/doses/${id}/administer`, {
+      method: 'POST',
+      body: JSON.stringify(data ?? {}),
+    });
+  },
+
+  async skipDose(id: string, skipReason?: string): Promise<void> {
+    await apiFetch(`/api/doses/${id}/skip`, {
+      method: 'POST',
+      body: JSON.stringify({ skip_reason: skipReason ?? null }),
+    });
   },
 
   async getNotifications(): Promise<NotificationInbox> {
@@ -311,6 +316,11 @@ export const api = {
   },
 
   // Household
+  async getHouseholdList(): Promise<HouseholdListItem[]> {
+    const res = await apiFetch('/api/household/list');
+    return res.json() as Promise<HouseholdListItem[]>;
+  },
+
   async getHousehold(): Promise<HouseholdResponse> {
     const res = await apiFetch('/api/household');
     return res.json() as Promise<HouseholdResponse>;

@@ -89,7 +89,7 @@ export default function LogScreen() {
     try {
       await Promise.all(
         toCreate.map((m) =>
-          api.addMeasurement(selectedCatId, { ...m, measured_at, notes: null })
+          api.createMeasurement(selectedCatId, { ...m, measured_at, notes: null })
         )
       );
       setSaved(true);

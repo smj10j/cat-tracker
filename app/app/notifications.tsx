@@ -59,7 +59,7 @@ export default function NotificationsScreen() {
   async function handleAdminister(dose: DoseWithContext) {
     setProcessingId(dose.id);
     try {
-      await api.logDose(dose.id, 'administer');
+      await api.administerDose(dose.id);
       await fetchInbox();
     } catch (e) {
       Alert.alert('Error', (e as Error).message);
@@ -87,7 +87,7 @@ export default function NotificationsScreen() {
   async function doSkip(dose: DoseWithContext, reason?: string) {
     setProcessingId(dose.id);
     try {
-      await api.logDose(dose.id, 'skip', reason);
+      await api.skipDose(dose.id, reason);
       await fetchInbox();
     } catch (e) {
       Alert.alert('Error', (e as Error).message);

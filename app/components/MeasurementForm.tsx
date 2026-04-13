@@ -38,7 +38,7 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
     setError(null);
     try {
       const measured_at = new Date().toISOString();
-      const m = await api.addMeasurement(catId, { type, value, unit, measured_at, notes: null });
+      const m = await api.createMeasurement(catId, { type, value, unit, measured_at, notes: null });
       onAdded(m);
       setWeightValue('');
       setSelectedPreset(null);

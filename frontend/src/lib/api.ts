@@ -10,6 +10,7 @@ import type {
   Cat, Measurement, User, Medication, MedicationDose, MedicationInput,
   NotificationInbox, HouseholdResponse, HouseholdInfo, InvitePreview, HouseholdListItem,
 } from '@shared/lib/types'
+import type { CatTrackerWebApi } from '@shared/lib/apiTypes'
 
 const BASE = '/api'
 const API_VERSION = '1.0.0'
@@ -45,12 +46,15 @@ export const createCat = (data: Omit<Cat, 'id' | 'created_at' | 'updated_at' | '
   request<Cat>('/cats', { method: 'POST', body: JSON.stringify(data) })
 export const updateCat = (id: string, data: Partial<Omit<Cat, 'id' | 'created_at' | 'updated_at' | 'household_id' | 'household_name'>>) =>
   request<Cat>(`/cats/${id}`, { method: 'PUT', body: JSON.stringify(data) })
-export const markDeceased = (id: string, deceased_at: string, memorial_note?: string) =>
-  request<Cat>(`/cats/${id}`, { method: 'PUT', body: JSON.stringify({ deceased_at, memorial_note: memorial_note ?? null }) })
-export const markAlive = (id: string) =>
-  request<Cat>(`/cats/${id}`, { method: 'PUT', body: JSON.stringify({ deceased_at: null }) })
-export const deleteCat = (id: string) =>
-  request<{ success: boolean }>(`/cats/${id}`, { method: 'DELETE' })
+export const markDeceased = async (id: string, deceasedAt: string, memorialNote?: string): Promise<void> => {
+  await request(`/cats/${id}`, { method: 'PUT', body: JSON.stringify({ deceased_at: deceasedAt, memorial_note: memorialNote ?? null }) })
+}
+export const markAlive = async (id: string): Promise<void> => {
+  await request(`/cats/${id}`, { method: 'PUT', body: JSON.stringify({ deceased_at: null }) })
+}
+export const deleteCat = async (id: string): Promise<void> => {
+  await request(`/cats/${id}`, { method: 'DELETE' })
+}
 
 import { LIMITS } from '@shared/lib/constants'
 const MAX_PHOTO_BYTES = LIMITS.PHOTO_BYTES
@@ -155,9 +159,12 @@ export const deleteMeasurement = (id: string) =>
 
 // Auth
 export const getMe = () => request<User>('/auth/me')
-export const updateMe = (data: { timezone?: string }) =>
-  request<{ ok: boolean }>('/auth/me', { method: 'PUT', body: JSON.stringify(data) })
-export const logout = () => request<{ success: boolean }>('/auth/logout', { method: 'POST' })
+export const updateMe = async (data: { timezone?: string }): Promise<void> => {
+  await request('/auth/me', { method: 'PUT', body: JSON.stringify(data) })
+}
+export const logout = async (): Promise<void> => {
+  await request('/auth/logout', { method: 'POST' })
+}
 export const claimCats = () => request<{ claimed: number }>('/auth/claim-cats', { method: 'POST' })
 
 // Medications
@@ -169,8 +176,9 @@ export const createMedication = (data: MedicationInput) =>
   request<Medication>('/medications', { method: 'POST', body: JSON.stringify(data) })
 export const updateMedication = (id: string, data: Partial<MedicationInput & { is_active: number }>) =>
   request<Medication>(`/medications/${id}`, { method: 'PUT', body: JSON.stringify(data) })
-export const archiveMedication = (id: string) =>
-  request<{ success: boolean }>(`/medications/${id}`, { method: 'DELETE' })
+export const archiveMedication = async (id: string): Promise<void> => {
+  await request(`/medications/${id}`, { method: 'DELETE' })
+}
 
 export const getNotifications = () => request<NotificationInbox>('/notifications')
 
@@ -183,22 +191,26 @@ export const sendInvite = (email: string, role: string) =>
   request<{ success: boolean; inviteUrl: string }>('/household/invites', {
     method: 'POST', body: JSON.stringify({ email, role }),
   })
-export const revokeInvite = (id: string) =>
-  request<{ success: boolean }>(`/household/invites/${id}`, { method: 'DELETE' })
-export const changeMemberRole = (userId: string, role: string) =>
-  request<{ success: boolean }>(`/household/members/${userId}/role`, {
+export const revokeInvite = async (id: string): Promise<void> => {
+  await request(`/household/invites/${id}`, { method: 'DELETE' })
+}
+export const changeMemberRole = async (userId: string, role: string): Promise<void> => {
+  await request(`/household/members/${userId}/role`, {
     method: 'PUT', body: JSON.stringify({ role }),
   })
-export const removeMember = (userId: string) =>
-  request<{ success: boolean }>(`/household/members/${userId}`, { method: 'DELETE' })
+}
+export const removeMember = async (userId: string): Promise<void> => {
+  await request(`/household/members/${userId}`, { method: 'DELETE' })
+}
 export const acceptInvite = (token: string) =>
   request<{ success: boolean; household_id: string }>('/household/invites/accept', {
     method: 'POST', body: JSON.stringify({ token }),
   })
-export const declineInvite = (token: string) =>
-  request<{ success: boolean }>('/household/invites/decline', {
+export const declineInvite = async (token: string): Promise<void> => {
+  await request('/household/invites/decline', {
     method: 'POST', body: JSON.stringify({ token }),
   })
+}
 export const getInvitePreview = (token: string) =>
   fetch(`/api/household/invites/preview?token=${encodeURIComponent(token)}`)
     .then(async res => {
@@ -206,7 +218,25 @@ export const getInvitePreview = (token: string) =>
       if (!res.ok) throw new ApiError((body as { error: string }).error, res.status)
       return body as InvitePreview
     })
-export const administerDose = (id: string, data?: { administered_at?: string; notes?: string }) =>
-  request<MedicationDose>(`/doses/${id}/administer`, { method: 'POST', body: JSON.stringify(data ?? {}) })
-export const skipDose = (id: string, skip_reason?: string) =>
-  request<MedicationDose>(`/doses/${id}/skip`, { method: 'POST', body: JSON.stringify({ skip_reason }) })
+export const administerDose = async (id: string, data?: { administered_at?: string; notes?: string }): Promise<void> => {
+  await request(`/doses/${id}/administer`, { method: 'POST', body: JSON.stringify(data ?? {}) })
+}
+export const skipDose = async (id: string, skipReason?: string): Promise<void> => {
+  await request(`/doses/${id}/skip`, { method: 'POST', body: JSON.stringify({ skip_reason: skipReason }) })
+}
+
+// Type conformance check — ensures this module implements every method in CatTrackerWebApi.
+// If a method is missing or has the wrong signature, this line will produce a compile error.
+const _typeCheck: CatTrackerWebApi = {
+  getMe, updateMe, logout, claimCats,
+  getCats, getCat, createCat, updateCat, markDeceased, markAlive, deleteCat,
+  uploadCatPhoto, deleteCatPhoto,
+  getMeasurements, createMeasurement, deleteMeasurement,
+  getMedications, getMedication, createMedication, updateMedication, archiveMedication,
+  administerDose, skipDose,
+  getNotifications,
+  getHousehold, getHouseholdList, renameHousehold,
+  sendInvite, revokeInvite, changeMemberRole, removeMember,
+  getInvitePreview, acceptInvite, declineInvite,
+}
+void _typeCheck

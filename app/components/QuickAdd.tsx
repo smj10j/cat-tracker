@@ -72,7 +72,7 @@ export default function QuickAdd({ open, onClose }: Props) {
     setSaving(true);
     setError(null);
     try {
-      await api.addMeasurement(selectedCatId, {
+      await api.createMeasurement(selectedCatId, {
         type,
         value,
         unit,

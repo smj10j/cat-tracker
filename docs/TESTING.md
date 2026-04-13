@@ -26,12 +26,16 @@ Tests exist to prevent regressions, not to achieve arbitrary coverage metrics. E
 shared/
   vitest.config.ts              # environment: 'node', include: __tests__/**/*.test.ts
   __tests__/
+    careItemForm.test.ts        # care item form logic (defaults, hydration, validation, payload)
     constants.test.ts           # VALID_MEASUREMENT_TYPES, VALID_UNITS, ROLE_LEVEL, hasRole
+    constants-extended.test.ts  # MEASUREMENT_TYPE_LABELS, BEHAVIORAL_TYPES, CHART_LINE_COLORS
     correlations.test.ts        # Pearson lag, detectTrend
     dates.test.ts               # parseLocalDate, formatLocalDate, catAge, localToUTC, utcToLocal
     formatting.test.ts          # formatTimeFromParts, todayLocalDate, buildMeasuredAt, groupByDay, formatNextDue
+    formatting-extended.test.ts # roundToHour, toLocalDatetimeString, formatSexNeuter, currentHour
     healthMetrics.test.ts       # weight health status thresholds
     measurementPresets.test.ts  # getPresetLabel, behavioral preset labels
+    medicationPresets.test.ts   # MEDICATION_PRESETS, MEDICATION_FREQ_LABELS, formatFrequencyLabel
     preferences.test.ts         # deriveDefaults, convertWeight, formatWeight, formatDate variants
     timezone-formatting.test.ts # timezone-aware formatting (12h/24h, MDY/DMY, localToUTC/utcToLocal)
 

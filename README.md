@@ -80,7 +80,7 @@ cat-tracker/
 │   ├── src/
 │   │   ├── pages/                # All web app screens
 │   │   ├── components/           # Reusable UI components
-│   │   └── lib/                  # API client, health metrics, measurement presets
+│   │   └── lib/                  # Platform-specific: API client, chart hooks
 │   ├── functions/api/[[path]].ts # Pages Function: proxies /api/* → Worker
 │   └── package.json
 ├── app/                    # Expo/React Native — iOS app (Whisker Health)
@@ -96,20 +96,23 @@ cat-tracker/
 │   │   ├── AuthContext.tsx       # Dual-path auth + push token registration + timezone sync
 │   │   ├── ThemeContext.tsx      # Dark/light/system theme
 │   │   └── PreferencesContext.tsx # Regional preferences (date, time, weight unit)
-│   ├── lib/                      # Shared TS: api, correlations, healthMetrics
+│   ├── lib/                      # Platform-specific: api client, date helpers
 │   ├── assets/store/             # App Store metadata (description, keywords, screenshots)
 │   ├── app.json                  # Expo config (bundle ID, permissions, plugins)
 │   └── eas.json                  # EAS Build/Submit profiles
 ├── shared/                 # Pure TypeScript shared between frontend/ and app/
 │   └── lib/
 │       ├── types.ts              # Shared interfaces (Cat, Measurement, User, etc.)
+│       ├── apiTypes.ts           # API client interface (CatTrackerApi) — compile-time conformance
+│       ├── constants.ts          # Validation constants, measurement labels, chart colors
 │       ├── correlations.ts       # Correlation engine (Pearson lag, detectTrend)
 │       ├── healthMetrics.ts      # Weight health status thresholds
-│       ├── measurementPresets.ts  # Behavioral preset labels (0-3 scale)
+│       ├── measurementPresets.ts # Behavioral preset labels (0-3 scale)
+│       ├── medicationPresets.ts  # Medication presets, frequency/type labels
+│       ├── careItemForm.ts       # Care item form logic (validation, hydration, payload)
 │       ├── dates.ts              # Timezone-safe date parsing + UTC↔local conversion
 │       ├── preferences.ts        # User preferences (date/time/weight format helpers)
-│       ├── formatting.ts         # Display formatters (formatHour, formatNextDue, groupByDay)
-│       └── constants.ts          # Validation constants (VALID_FREQUENCIES, LIMITS, hasRole)
+│       └── formatting.ts         # Display formatters (formatHour, formatNextDue, groupByDay, roundToHour)
 ├── scripts/                # Deployment and utility scripts
 │   └── deploy-testflight.sh      # One-command TestFlight pipeline
 ├── keys/                   # Apple API keys (.gitignored)

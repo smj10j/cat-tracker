@@ -25,13 +25,16 @@ Always read this at the start of a session.
 shared/       Pure TypeScript shared between frontend/ and app/
   lib/
     types.ts              Shared interfaces (Cat, Measurement, User, etc.)
+    apiTypes.ts           API client interface (CatTrackerApi) — compile-time conformance
+    constants.ts          Validation constants, measurement labels, behavioral types, chart colors
     correlations.ts       Correlation engine (Pearson lag, detectTrend)
     healthMetrics.ts      Weight health status thresholds
     measurementPresets.ts Behavioral preset labels (0-3 scale)
+    medicationPresets.ts  Medication presets, frequency/type labels, formatFrequencyLabel
+    careItemForm.ts       Care item form logic (validation, hydration, payload building)
     dates.ts              Timezone-safe date parsing (parseLocalDate, catAge, localToUTC, utcToLocal)
     preferences.ts        Localization prefs (weight/date/time format, locale derivation)
-    formatting.ts         Display formatters (formatHour, formatNextDue, formatDueAt, groupByDay)
-    constants.ts          Validation constants (VALID_FREQUENCIES, LIMITS, ROLE_LEVEL, hasRole)
+    formatting.ts         Display formatters (formatHour, formatNextDue, formatDueAt, groupByDay, roundToHour, formatSexNeuter)
 worker/       Cloudflare Worker — Hono REST API
 frontend/     React + Vite SPA + Pages Functions proxy
 app/          Expo/React Native iOS app (Whisker Health)
@@ -101,26 +104,38 @@ Use `IF NOT EXISTS` and `ADD COLUMN IF NOT EXISTS` to keep migrations idempotent
 ### Adding a new measurement type
 
 The measurements table is generic (`type`, `value`, `unit`). To add a new type:
-1. Add the option to the `<select>` in `frontend/src/components/MeasurementForm.tsx`
-2. Add a chart component in `frontend/src/components/` if the visualization differs
-3. Wire it into `CatProfile.tsx` — fetch with `getMeasurements(id, 'new-type')`
-4. No DB schema changes needed
+1. Add the type to `VALID_MEASUREMENT_TYPES` in `shared/lib/constants.ts`
+2. Add a label in `MEASUREMENT_TYPE_LABELS` (and `MEASUREMENT_TYPE_LABELS_LONG` if a longer form is needed)
+3. If behavioral, add to `BEHAVIORAL_TYPES` array in `shared/lib/constants.ts`
+4. Add presets in `shared/lib/measurementPresets.ts` if it uses a 0-3 scale
+5. Add a chart component in `frontend/src/components/` if the visualization differs
+6. No DB schema changes needed — both platforms pick up the new type automatically via shared constants
 
 ### Cross-platform file mapping
 
 | What | Location | Shared? |
 |------|----------|---------|
 | Types (Cat, Measurement, etc.) | `shared/lib/types.ts` | Single source of truth |
+| API interface | `shared/lib/apiTypes.ts` | Single source of truth — compile-time conformance |
+| Validation constants & labels | `shared/lib/constants.ts` | Single source of truth |
 | Correlations engine | `shared/lib/correlations.ts` | Single source of truth |
 | Health thresholds | `shared/lib/healthMetrics.ts` | Single source of truth |
 | Measurement presets | `shared/lib/measurementPresets.ts` | Single source of truth |
+| Medication presets & labels | `shared/lib/medicationPresets.ts` | Single source of truth |
+| Care item form logic | `shared/lib/careItemForm.ts` | Single source of truth |
 | Date parsing | `shared/lib/dates.ts` | Single source of truth |
-| API client (web) | `frontend/src/lib/api.ts` | Platform-specific (cookies) |
-| API client (native) | `app/lib/api.ts` | Platform-specific (Bearer) |
+| Formatting helpers | `shared/lib/formatting.ts` | Single source of truth |
+| Preferences | `shared/lib/preferences.ts` | Single source of truth |
+| API client (web) | `frontend/src/lib/api.ts` | Platform-specific (cookies) — implements `CatTrackerWebApi` |
+| API client (native) | `app/lib/api.ts` | Platform-specific (Bearer) — implements `CatTrackerNativeApi` |
 | Screens (web) | `frontend/src/pages/*.tsx` | Platform-specific (React DOM) |
 | Screens (native) | `app/app/**/*.tsx` | Platform-specific (React Native) |
 
-**Rule:** If you change a shared file, both platforms get the change automatically. If you change a platform-specific file (screen, API client), check the other platform's equivalent and apply the same change.
+**Rules:**
+- If you change a shared file, both platforms get the change automatically.
+- If you add a new API method, add it to `CatTrackerApi` in `shared/lib/apiTypes.ts` first — both platforms will get compile errors until they implement it.
+- Both platforms import directly from `@shared/lib/*` — no re-export shims.
+- If you change a platform-specific file (screen, API client), check the other platform's equivalent and apply the same change.
 
 ### Health metrics and clinical content
 

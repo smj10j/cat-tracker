@@ -2,7 +2,7 @@
 description: Run the full pre-submission verification before a TestFlight or App Store build
 ---
 
-Before cutting a TestFlight or App Store build, verify the app is ready. This mirrors what `scripts/deploy-testflight.sh` will run — catch issues early.
+Before cutting a TestFlight or App Store build, verify the app is ready. This mirrors what `scripts/build-ios.sh` will run — catch issues early.
 
 ## Steps
 
@@ -41,7 +41,7 @@ Diagnose the root cause, fix it, re-run the full check. Do NOT submit with known
 
 ## Reference
 
-- Deploy script: `scripts/deploy-testflight.sh`
+- Deploy script: `scripts/build-ios.sh`
 - Readiness test: `app/__tests__/appStoreReadiness.test.ts`
 - iPad smoke tests: `app/__tests__/screens/ipad-smoke.test.tsx`
 - Past rejections: `docs/app-store-submissions.md`

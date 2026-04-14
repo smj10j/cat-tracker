@@ -1,7 +1,7 @@
 # App Store Submission Log
 
 Tracks every TestFlight build and App Store review submission.
-- TestFlight entries are added automatically by `scripts/deploy-testflight.sh`
+- TestFlight entries are added automatically by `scripts/submit-testflight.sh`
 - App Store review entries are added manually (tell Claude "I submitted build X for review")
 
 ---
@@ -10,7 +10,7 @@ Tracks every TestFlight build and App Store review submission.
 
 ### Adding a new TestFlight build
 
-Done automatically by `scripts/deploy-testflight.sh`. The format is:
+Done automatically by `scripts/submit-testflight.sh` (invoked after `scripts/build-ios.sh`). The format is:
 
 ```markdown
 ## Version X.Y.Z (Build YYYY-MM-DD)

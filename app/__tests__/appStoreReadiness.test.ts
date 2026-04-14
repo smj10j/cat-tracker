@@ -2,7 +2,7 @@
  * App Store Readiness Test Suite
  *
  * Static analysis tests that verify the app is ready for App Store submission.
- * Blocks TestFlight builds (via deploy-testflight.sh test gate) if any check fails.
+ * Blocks TestFlight builds (via build-ios.sh test gate) if any check fails.
  *
  * Categories:
  *   1. iPad layout readiness — every screen has responsive layout patterns

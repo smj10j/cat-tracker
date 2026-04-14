@@ -171,7 +171,8 @@ cat-tracker/
 │   │   └── api.ts                # API client (Bearer token auth, same method signatures as frontend)
 │   └── ...
 ├── scripts/
-│   ├── deploy-testflight.sh      # Full pipeline: test → build → submit → deploy
+│   ├── build-ios.sh             # Test → deploy web/worker → build iOS IPA
+│   ├── submit-testflight.sh     # Submit built IPA to TestFlight + log
 │   └── check-shared-drift.sh    # Verify shared libs haven't been duplicated
 ├── CLAUDE.md
 ├── TODO.md

@@ -558,7 +558,7 @@ Elements that do NOT scale: touch targets (already ≥44px), border radii, butto
 
 ### Pre-submission test suite
 
-`app/__tests__/appStoreReadiness.test.ts` statically verifies every screen imports `ResponsiveContainer`, `useResponsiveLayout`, or uses a `maxWidth` / `max-w-*` constraint. `app/__tests__/screens/ipad-smoke.test.tsx` renders all screens at 1024x1366. These block TestFlight builds via `deploy-testflight.sh`'s test gate.
+`app/__tests__/appStoreReadiness.test.ts` statically verifies every screen imports `ResponsiveContainer`, `useResponsiveLayout`, or uses a `maxWidth` / `max-w-*` constraint. `app/__tests__/screens/ipad-smoke.test.tsx` renders all screens at 1024x1366. These block TestFlight builds via `build-ios.sh`'s test gate.
 
 **Cat Tracker was rejected by App Store review (Guideline 2.4) for crowded iPad layout before this system was built.** Do not remove the readiness test suite.
 

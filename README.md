@@ -114,7 +114,8 @@ cat-tracker/
 │       ├── preferences.ts        # User preferences (date/time/weight format helpers)
 │       └── formatting.ts         # Display formatters (formatHour, formatNextDue, groupByDay, roundToHour)
 ├── scripts/                # Deployment and utility scripts
-│   └── deploy-testflight.sh      # One-command TestFlight pipeline
+│   ├── build-ios.sh              # Test + deploy web/worker + build iOS IPA
+│   └── submit-testflight.sh      # Submit built IPA to TestFlight + log
 ├── keys/                   # Apple API keys (.gitignored)
 ├── TODO.md
 ├── CLAUDE.md
@@ -235,26 +236,33 @@ npx expo start --ios
 3. Scan the QR code from the EAS build page to install
 4. For `development` builds, start the dev server: `npx expo start`
 
-### Deploy to TestFlight (one command)
+### Deploy to TestFlight (two steps)
 
 ```bash
-./scripts/deploy-testflight.sh            # auto: cloud build, falls back to local if quota exhausted
-./scripts/deploy-testflight.sh --local    # force local build (no EAS credits)
-./scripts/deploy-testflight.sh --cloud    # force cloud build only
+# Step 1 — test + deploy web/worker + build IPA (local by default, no EAS credits)
+./scripts/build-ios.sh
+./scripts/build-ios.sh --cloud            # alternative: use EAS cloud credits
+
+# Step 2 — submit the built IPA to TestFlight and log the submission
+./scripts/submit-testflight.sh
+
+# Retry submit without rebuilding (build info is preserved on submit failure):
+./scripts/submit-testflight.sh --info-file /tmp/whisker-build-info.env
 ```
 
-This single script handles the entire release pipeline:
+`scripts/build-ios.sh` does, in order:
 1. Runs all tests (shared + worker + frontend + app) — aborts if any fail
 2. Verifies the Expo web export compiles
-3. Builds a production iOS binary (cloud or local — see below)
-4. Submits the binary to TestFlight via EAS Submit
-5. Deploys the web frontend to Cloudflare Pages
-6. Deploys the Worker if any `worker/` files changed since last commit
+3. Deploys the web frontend to Cloudflare Pages
+4. Deploys the Worker if any `worker/` or `shared/` files changed since the last deploy tag
+5. Builds a production iOS IPA (local or cloud — see below)
+6. Writes build metadata to `/tmp/whisker-build-info.env`
+
+`scripts/submit-testflight.sh` then runs `eas submit`, verifies the submission actually reached Apple (not just that `eas submit` exited 0), and appends an entry to `docs/app-store-submissions.md`.
 
 **Build modes:**
-- **Default (no flag):** Tries EAS cloud build. If the free plan quota is exhausted, automatically falls back to local build.
-- **`--local`:** Builds on your machine via `eas build --local`. No EAS credits used. Requires Xcode and CocoaPods.
-- **`--cloud`:** Forces cloud build. Fails if quota is exhausted.
+- **Default (`--local`):** Builds on your machine via `eas build --local`. No EAS credits used. Requires Xcode and CocoaPods. First run takes ~10-15 min.
+- **`--cloud`:** Uses EAS cloud credits. Fails if the free-plan quota is exhausted.
 
 Both modes produce the same IPA and submit to TestFlight identically.
 

@@ -63,10 +63,17 @@ See README.md for the full file map.
 Always deploy both pieces after making changes:
 
 ```bash
-# Full TestFlight release (tests → build → submit → deploy web + worker)
-./scripts/deploy-testflight.sh            # default: cloud build, falls back to local if quota exhausted
-./scripts/deploy-testflight.sh --local    # force local build (no EAS credits used)
-./scripts/deploy-testflight.sh --cloud    # force cloud build (fails if no credits)
+# Full TestFlight release — two steps, run in order.
+# Step 1: tests → deploy web + worker → build IPA (local by default)
+./scripts/build-ios.sh                    # default: --local (no EAS credits)
+./scripts/build-ios.sh --cloud            # force cloud build (uses credits)
+
+# Step 2: submit the built IPA to TestFlight and append to submission log.
+# Only run after step 1 succeeds. Picks up /tmp/whisker-build-info.env.
+./scripts/submit-testflight.sh
+
+# Retry submit without rebuilding (IPA + metadata are preserved on failure):
+./scripts/submit-testflight.sh --info-file /tmp/whisker-build-info.env
 
 # Worker only (if API changed)
 cd worker && npx wrangler deploy
@@ -75,19 +82,19 @@ cd worker && npx wrangler deploy
 cd frontend && npm run build && npx wrangler pages deploy dist --project-name cat-tracker --commit-dirty=true
 ```
 
-#### `scripts/deploy-testflight.sh`
-One-command pipeline: runs all tests (shared + app + frontend + worker), verifies Expo web export, builds production iOS, submits to TestFlight, deploys web frontend, and conditionally deploys Worker. Each submission is logged to `docs/app-store-submissions.md` with commit hash, date, and version. Requires EAS login and API key in `keys/`.
+#### `scripts/build-ios.sh`
+Runs all 4 test suites (shared + worker + frontend + app), verifies the Expo web export, deploys the web frontend to Cloudflare Pages, conditionally deploys the Worker, then builds a production iOS IPA. Writes build metadata to `/tmp/whisker-build-info.env` for the submit script. Tests and web/worker deploys happen **before** the IPA build so failures are caught without wasting build time.
 
 **Build modes:**
-- **Default (no flag):** Tries EAS cloud build first. If the free plan quota is exhausted, automatically falls back to a local build (`eas build --local`).
-- **`--local`:** Builds on the local machine. No EAS credits consumed. Requires Xcode and CocoaPods. The first local build takes longer (~10-15 min) but produces the same IPA.
-- **`--cloud`:** Forces EAS cloud build. Fails if quota is exhausted.
+- **Default (`--local`):** Builds on this machine. No EAS credits. Requires Xcode and CocoaPods. First run takes ~10-15 min.
+- **`--cloud`:** EAS cloud build. Uses free-plan credits and fails if the quota is exhausted.
 
-Both build paths produce an IPA that is submitted to TestFlight via `eas submit`. The only difference is where the build runs — the resulting binary and TestFlight submission are identical.
+#### `scripts/submit-testflight.sh`
+Reads `/tmp/whisker-build-info.env`, runs `eas submit`, verifies the submission actually reached Apple (guards against `eas submit` exiting 0 without a success marker in its log), then appends a TestFlight entry to `docs/app-store-submissions.md`. On success the info file is renamed with `.submitted.*` to prevent double-submission; on failure it is preserved so the submit can be retried without rebuilding the IPA.
 
 #### `docs/app-store-submissions.md`
 Tracks every TestFlight build and App Store review submission:
-- **TestFlight entries** are appended automatically by `deploy-testflight.sh` (commit hash, version, date)
+- **TestFlight entries** are appended automatically by `submit-testflight.sh` (commit hash, version, date)
 - **App Store review entries** are added manually when the user says they submitted a build for review — append a `- **App Store Review**: <date>` line and any review notes to the matching build entry
 
 ### Database changes

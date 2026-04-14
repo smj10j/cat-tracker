@@ -286,3 +286,32 @@ For every new feature or bug fix:
 4. Never skip tests to make CI green — fix the code or the test
 
 This requirement is enforced by the CLAUDE.md Execution Loop (step 2.5: "Write tests before committing").
+
+---
+
+## Known Quirks & Gotchas
+
+These are non-obvious issues that have bitten us before. Check here before spending time debugging.
+
+### Worker / Miniflare / D1
+
+- **Miniflare D1 `exec()` fails on multi-line SQL.** Use `prepare(sql).run()` per statement instead. The `applySchema()` helper in `worker/src/__tests__/helpers.ts` handles this correctly.
+- **D1 `.bind()` does not accept `undefined`.** Pass `null` for nullable fields. Binding `undefined` silently fails or throws depending on driver version.
+- **`@cloudflare/vitest-pool-workers` requires vitest `^3.2.4`, NOT v4.** The pool API changed in v4 and is incompatible. Pin to the working major.
+
+### Frontend (Vitest + jsdom)
+
+- **CropModal uses `FileReader.readAsDataURL()`, not `URL.createObjectURL()`.** CF Pages CSP blocks `blob:` URLs (ERR_ACCESS_DENIED). `CropModal.test.tsx` has a regression test that verifies no blob: URLs are created.
+- **`<img alt="">` has `role="presentation"`, not `role="img"`.** To select it in tests, use `container.querySelector('img')` rather than `getByRole('img')`.
+- **Timezone-safe test dates: use noon UTC.** `'2026-01-06T12:00:00Z'` survives any local timezone offset. Date-only strings like `'2026-01-06'` parse to midnight UTC and can shift across day boundaries in tests running in non-UTC timezones.
+- **`frontend/tsconfig.json` excludes `src/__tests__`** to avoid `noUnusedLocals` errors on fixture data.
+
+### App (Vitest + jsdom + React Native mocks)
+
+- **`setup.ts` mocks RN components as DOM elements.** This catches JS-level crashes but not native layout behavior. See `app/__tests__/screens/setup.ts`.
+- **iPad render tests use `setMockScreenDimensions(1024, 1366)`** from `setup.ts` before rendering. Call `resetMockScreenDimensions()` in `afterAll` to restore iPhone defaults (393x852).
+- **The pre-submission readiness suite** (`app/__tests__/appStoreReadiness.test.ts`) statically checks every screen file for responsive layout patterns and App Store compliance. Adding a new screen requires adding it to this file's screen list.
+
+### Constants
+
+- **`VALID_UNITS = ['lbs', 'kg', 'scale']`** in `worker/src/routes/measurements.ts`. `'kg'` IS valid — don't assume lbs-only.

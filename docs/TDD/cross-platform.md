@@ -485,6 +485,85 @@ The existing `brand-*` color scale and dark glass design system in `tailwind.con
 
 ---
 
+## Responsive Layout (iPhone + iPad)
+
+**Status:** Implemented 2026-04-14 (Phase 57). App supports iPad natively (`supportsTablet: true` in `app.json`).
+
+### Breakpoint strategy
+
+Single breakpoint at **768px** screen width (matches Apple's "regular" size class threshold and existing `useAutoLandscape` tablet detection):
+
+- **Phone (< 768px):** native dimensions, edge-to-edge content with 16px horizontal padding.
+- **iPad / wide (≥ 768px):** content constrained to 640px centered, 24px horizontal padding, key visual elements scaled up.
+
+### The responsive primitives
+
+**`app/hooks/useResponsiveLayout.ts`** — single source of truth for responsive values:
+
+```ts
+const { screenWidth, isWide, contentMaxWidth, contentPadding, rv } = useResponsiveLayout();
+```
+
+- `isWide: boolean` — screen width ≥ 768px
+- `contentMaxWidth: number | undefined` — 640 on iPad, `undefined` on phone (so maxWidth has no effect)
+- `contentPadding: number` — 16 on phone, 24 on iPad
+- `rv<T>(phone: T, tablet: T): T` — picks value based on breakpoint
+
+The hook uses `useWindowDimensions()` (reactive), not `Dimensions.get()`, so split-view and orientation changes update layout automatically.
+
+**`app/components/ResponsiveContainer.tsx`** — View wrapper applied to every screen's content:
+
+```tsx
+<ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+  <ResponsiveContainer style={{ gap: 16 }}>
+    {/* screen content */}
+  </ResponsiveContainer>
+</ScrollView>
+```
+
+- `width: '100%'`, `maxWidth: contentMaxWidth`, `alignSelf: 'center'`, `paddingHorizontal: contentPadding`
+- Does NOT set `overflow: 'hidden'` — must not clip scrolling
+- Accepts optional `maxWidth` override for screens that need different widths
+
+### Gotcha: gap belongs on ResponsiveContainer, not ScrollView
+
+If `gap` is on `ScrollView.contentContainerStyle` and all children are inside a single `<ResponsiveContainer>`, the gap has no effect (only one child from ScrollView's view). **Put `gap` on the ResponsiveContainer's `style` prop** so it spaces its direct children.
+
+### Scaling with `rv()`
+
+`rv(phone, tablet)` is applied to dimensions with the biggest visual impact, not every pixel. Typical scaling:
+
+| Element | Phone | iPad |
+|---------|-------|------|
+| Page titles | 22px | 28px |
+| Cat card avatar | 56px | 68px |
+| Cat card weight font | 18px | 22px |
+| Chart heights (profile) | 180px | 260px |
+| Chart heights (compare) | 240px | 340px |
+| Cat profile hero | 280px | 360px |
+| Section card padding | 16px | 20px |
+| Form card padding | 24px | 28px |
+
+Elements that do NOT scale: touch targets (already ≥44px), border radii, button text (14px is readable at both sizes), horizontal pill buttons (self-sizing).
+
+### Component-level iPad handling
+
+- **`BottomNav`** — full-width background/border, inner tab row constrained to `maxWidth: 500` centered. Prevents tabs from spreading across full iPad width.
+- **`LineChart`** — uses `useResponsiveLayout` for initial width (`Math.min(screenWidth, contentMaxWidth ?? screenWidth) - 32`) instead of raw `Dimensions.get('window').width`. `onLayout` corrects to actual parent width.
+- **`CatAvatar`** and photo views use `resizeMode="cover"` — no stretching at any size.
+
+### Orientation
+
+`app/app/_layout.tsx` locks phones to portrait but allows all orientations on iPad. The 768px shortest-dimension check uses `Dimensions.get('screen')` at module load.
+
+### Pre-submission test suite
+
+`app/__tests__/appStoreReadiness.test.ts` statically verifies every screen imports `ResponsiveContainer`, `useResponsiveLayout`, or uses a `maxWidth` / `max-w-*` constraint. `app/__tests__/screens/ipad-smoke.test.tsx` renders all screens at 1024x1366. These block TestFlight builds via `deploy-testflight.sh`'s test gate.
+
+**Cat Tracker was rejected by App Store review (Guideline 2.4) for crowded iPad layout before this system was built.** Do not remove the readiness test suite.
+
+---
+
 ## Charts
 
 Recharts depends on `react-dom` SVG and cannot run on React Native. Replacement: **Victory Native XL** (built on React Native Skia).

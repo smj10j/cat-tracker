@@ -282,9 +282,20 @@ See **`docs/PRDs/REGISTRY.md`** — it is the single source of truth and is alwa
 - `docs/API.md` — full API spec: every endpoint, request/response shapes, auth requirements, authorization rules (who can mutate what)
 - `docs/SECURITY.md` — security guidelines, principles, architecture model, known limitations; **read before adding auth/sessions/new API routes**
 - `docs/TDD/web.md` — current web architecture, design decisions, schema, auth flow, correlation engine
-- `docs/TDD/cross-platform.md` — iOS/Android/web unified app plan (Expo + Expo Router; not yet implemented)
+- `docs/TDD/cross-platform.md` — iOS app architecture, shared libs, auth, **iPad responsive layout system** (`useResponsiveLayout`, `ResponsiveContainer`, `rv()`)
+- `docs/TESTING.md` — test strategy, patterns per package, **§ Known Quirks & Gotchas** (Miniflare, D1, jsdom)
+- `docs/app-store-submissions.md` — submission log + **format spec at top** for logging TestFlight builds and review outcomes
 - `docs/DESIGN.md` — visual design system
 - `docs/research/README.md` — **required reading before adding or changing any clinical content**; sourcing standards, tier definitions, and the process for adding new evidence
+
+## Slash commands (`.claude/commands/`)
+
+Reusable process skills — invoke with `/<name>`:
+
+- `/deploy` — run the full TestFlight deploy pipeline (local build by default — faster, free)
+- `/log-submission` — log an App Store review submission or outcome in the correct format
+- `/add-measurement-type` — add a new measurement type to the generic measurements table
+- `/pre-submit-check` — run the full pre-submission verification before a TestFlight build
 
 ## What NOT to do
 

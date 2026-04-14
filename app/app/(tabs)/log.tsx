@@ -9,6 +9,8 @@ import { api } from '../../lib/api';
 import type { Cat } from '../../lib/api';
 import { PRESETS } from '@shared/lib/measurementPresets';
 import { useThemeColors } from '../../hooks/useThemeColors';
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
+import { ResponsiveContainer } from '../../components/ResponsiveContainer';
 import { usePreferences } from '../../contexts/PreferencesContext';
 import { todayLocalDate, buildMeasuredAt, formatHour, formatDayLabel, currentHour } from '@shared/lib/formatting';
 import { parseDate, formatDateStr } from '../../lib/dateHelpers';
@@ -19,6 +21,7 @@ type Selections = Partial<Record<string, number>>;
 
 export default function LogScreen() {
   const colors = useThemeColors();
+  const { rv } = useResponsiveLayout();
   const { prefs } = usePreferences();
 
   const hourScrollRef = useRef<ScrollView>(null);
@@ -107,14 +110,14 @@ export default function LogScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
           {/* Header */}
-          <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.rim }}>
-            <Text style={{ fontWeight: '700', fontSize: 18, color: colors.ink }}>Daily Check-In</Text>
+          <ResponsiveContainer style={{ paddingTop: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.rim }}>
+            <Text style={{ fontWeight: '700', fontSize: rv(18, 24), color: colors.ink }}>Daily Check-In</Text>
             {selectedCat && (
               <Text style={{ fontSize: 12, color: colors.inkMid, marginTop: 2 }}>{selectedCat.name}</Text>
             )}
-          </View>
+          </ResponsiveContainer>
 
-          <View style={{ paddingHorizontal: 16, paddingTop: 16, gap: 16 }}>
+          <ResponsiveContainer style={{ paddingTop: 16, gap: 16 }}>
             {/* Success banner */}
             {saved && (
               <View style={{
@@ -415,7 +418,7 @@ export default function LogScreen() {
                 </Text>
               )}
             </View>
-          </View>
+          </ResponsiveContainer>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

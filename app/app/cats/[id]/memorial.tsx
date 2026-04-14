@@ -10,6 +10,8 @@ import { assessHealth, STATUS_COLORS, STATUS_LABEL } from '@shared/lib/healthMet
 import type { HealthStatus } from '@shared/lib/healthMetrics';
 import { parseLocalDate, formatLocalDate } from '@shared/lib/dates';
 import { useThemeColors } from '../../../hooks/useThemeColors';
+import { useResponsiveLayout } from '../../../hooks/useResponsiveLayout';
+import { ResponsiveContainer } from '../../../components/ResponsiveContainer';
 import { usePreferences } from '../../../contexts/PreferencesContext';
 import { formatWeight } from '@shared/lib/preferences';
 
@@ -31,6 +33,7 @@ export default function MemorialScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const colors = useThemeColors();
+  const { rv } = useResponsiveLayout();
   const { prefs } = usePreferences();
   const [cat, setCat] = useState<Cat | null>(null);
   const [weightMs, setWeightMs] = useState<Measurement[]>([]);
@@ -121,7 +124,7 @@ export default function MemorialScreen() {
             <CatAvatar photoUrl={cat.photo_url} name={cat.name} size={112} grayscale />
           </View>
 
-          <Text style={{ fontSize: 28, fontWeight: '700', color: colors.ink, marginBottom: 4 }}>
+          <Text style={{ fontSize: rv(28, 34), fontWeight: '700', color: colors.ink, marginBottom: 4 }}>
             {cat.name}
           </Text>
           <Text style={{ fontSize: 14, color: colors.inkDim }}>{'\uD83D\uDD4A\uFE0F'}</Text>
@@ -137,14 +140,14 @@ export default function MemorialScreen() {
           )}
         </View>
 
-        <View style={{ paddingHorizontal: 16, gap: 16 }}>
+        <ResponsiveContainer style={{ gap: 16 }}>
           {/* Memorial note */}
           {cat.memorial_note ? (
             <View
               style={{
                 borderRadius: 16,
-                paddingHorizontal: 20,
-                paddingVertical: 16,
+                paddingHorizontal: rv(20, 24),
+                paddingVertical: rv(16, 20),
                 alignItems: 'center',
                 backgroundColor: 'rgba(192,132,252,0.06)',
                 borderWidth: 1,
@@ -161,8 +164,8 @@ export default function MemorialScreen() {
           <View
             style={{
               borderRadius: 16,
-              paddingHorizontal: 20,
-              paddingVertical: 16,
+              paddingHorizontal: rv(20, 24),
+              paddingVertical: rv(16, 20),
               backgroundColor: colors.card,
               borderWidth: 1,
               borderColor: colors.cardBorder,
@@ -265,7 +268,7 @@ export default function MemorialScreen() {
           >
             <Text style={{ fontSize: 14, color: colors.inkDim }}>Edit memorial</Text>
           </Pressable>
-        </View>
+        </ResponsiveContainer>
       </ScrollView>
     </SafeAreaView>
   );

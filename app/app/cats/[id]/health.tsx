@@ -15,9 +15,12 @@ import {
 } from '@shared/lib/healthMetrics';
 import { catAge } from '@shared/lib/dates';
 import { useThemeColors } from '../../../hooks/useThemeColors';
+import { useResponsiveLayout } from '../../../hooks/useResponsiveLayout';
+import { ResponsiveContainer } from '../../../components/ResponsiveContainer';
 
 export default function HealthGuidanceScreen() {
   const colors = useThemeColors();
+  const { rv } = useResponsiveLayout();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
@@ -100,7 +103,8 @@ export default function HealthGuidanceScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Header */}
-        <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24, backgroundColor: headerBg }}>
+        <View style={{ paddingTop: 16, paddingBottom: 24, backgroundColor: headerBg }}>
+        <ResponsiveContainer>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
             <Pressable
               onPress={() => router.back()}
@@ -142,7 +146,7 @@ export default function HealthGuidanceScreen() {
           </View>
 
           {/* Headline */}
-          <Text style={{ fontWeight: '700', fontSize: 20, color: colors.ink, lineHeight: 26 }}>
+          <Text style={{ fontWeight: '700', fontSize: rv(20, 24), color: colors.ink, lineHeight: rv(26, 30) }}>
             {isUrgent
               ? `${cat.name}'s weight needs immediate attention`
               : isConcerning
@@ -157,15 +161,16 @@ export default function HealthGuidanceScreen() {
           <Text style={{ color: colors.inkMid, fontSize: 14, marginTop: 8, lineHeight: 20 }}>
             {health.summary}
           </Text>
+        </ResponsiveContainer>
         </View>
 
-        <View style={{ paddingHorizontal: 16, gap: 16, marginTop: 16 }}>
+        <ResponsiveContainer style={{ gap: 16, marginTop: 16 }}>
           {/* Urgent vet signs */}
           {showVetNow && (
             <View
               style={{
                 borderRadius: 16,
-                padding: 20,
+                padding: rv(20, 24),
                 backgroundColor: 'rgba(248,113,113,0.07)',
                 borderWidth: isUrgent ? 2 : 1,
                 borderColor: 'rgba(248,113,113,0.4)',
@@ -226,8 +231,8 @@ export default function HealthGuidanceScreen() {
           <View
             style={{
               borderRadius: 16,
-              paddingHorizontal: 20,
-              paddingVertical: 16,
+              paddingHorizontal: rv(20, 24),
+              paddingVertical: rv(16, 20),
               backgroundColor: colors.card,
               borderWidth: 1,
               borderColor: colors.rim,
@@ -258,7 +263,7 @@ export default function HealthGuidanceScreen() {
               {'\u2190'} Back to {cat.name}'s profile
             </Text>
           </Pressable>
-        </View>
+        </ResponsiveContainer>
       </ScrollView>
     </SafeAreaView>
   );

@@ -17,6 +17,8 @@ import { ErrorBoundary } from '../../../components/ErrorBoundary';
 import { ChartExpandButton } from '../../../components/ChartExpandButton';
 import { FullScreenChartModal } from '../../../components/FullScreenChartModal';
 import { useThemeColors } from '../../../hooks/useThemeColors';
+import { useResponsiveLayout } from '../../../hooks/useResponsiveLayout';
+import { ResponsiveContainer } from '../../../components/ResponsiveContainer';
 import { useAutoLandscape } from '../../../hooks/useAutoLandscape';
 import { usePreferences } from '../../../contexts/PreferencesContext';
 import {
@@ -30,6 +32,7 @@ type ProfileTab = 'health' | 'care' | 'about';
 
 export default function CatProfileScreen() {
   const colors = useThemeColors();
+  const { rv } = useResponsiveLayout();
   const { prefs } = usePreferences();
   const insets = useSafeAreaInsets();
 
@@ -157,7 +160,7 @@ export default function CatProfileScreen() {
         {/* Hero — extends behind status bar for edge-to-edge image */}
         <View
           style={{
-            height: 280 + insets.top,
+            height: rv(280, 360) + insets.top,
             backgroundColor: isUrgent
               ? 'rgba(248,113,113,0.15)'
               : 'rgba(192,132,252,0.1)',
@@ -226,7 +229,7 @@ export default function CatProfileScreen() {
           {/* Bottom info */}
           <View style={{ position: 'absolute', bottom: 16, left: 16, right: 16, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={{ fontWeight: '700', fontSize: 28, color: '#fff', lineHeight: 34 }} numberOfLines={1}>
+              <Text style={{ fontWeight: '700', fontSize: rv(28, 34), color: '#fff', lineHeight: rv(34, 40) }} numberOfLines={1}>
                 {cat.name}
               </Text>
               {isDeceased ? (
@@ -264,10 +267,10 @@ export default function CatProfileScreen() {
           </View>
         </View>
 
+        <ResponsiveContainer>
         {/* In Memoriam banner */}
         {isDeceased && cat.memorial_note && (
           <View style={{
-            marginHorizontal: 16,
             marginTop: 16,
             padding: 16,
             borderRadius: 16,
@@ -285,7 +288,6 @@ export default function CatProfileScreen() {
         <View style={{
           flexDirection: 'row',
           gap: 4,
-          marginHorizontal: 16,
           marginTop: 16,
           padding: 4,
           borderRadius: 12,
@@ -319,7 +321,7 @@ export default function CatProfileScreen() {
 
         {/* Health tab */}
         {profileTab === 'health' && (
-          <View style={{ paddingHorizontal: 16, gap: 16, marginTop: 16, paddingBottom: 32 }}>
+          <View style={{ gap: 16, marginTop: 16, paddingBottom: 32 }}>
             {!isDeceased && (
               <InsightsPanel
                 cat={cat}
@@ -393,7 +395,7 @@ export default function CatProfileScreen() {
                       seriesKeys={['value']}
                       seriesLabels={{ value: cat.name }}
                       seriesColors={{ value: statusColor }}
-                      height={180}
+                      height={rv(180, 260)}
                       yLabel={prefs.weightUnit}
                       formatX={formatChartDate}
                     />
@@ -443,7 +445,7 @@ export default function CatProfileScreen() {
                       seriesKeys={['value']}
                       seriesLabels={{ value: 'Food' }}
                       seriesColors={{ value: colors.jade }}
-                      height={180}
+                      height={rv(180, 260)}
                       yLabel="scale"
                       formatY={(v) => getPresetLabel('food', Math.round(v))}
                       formatX={formatChartDate}
@@ -472,7 +474,7 @@ export default function CatProfileScreen() {
                       seriesKeys={['value']}
                       seriesLabels={{ value: 'Water' }}
                       seriesColors={{ value: '#38bdf8' }}
-                      height={180}
+                      height={rv(180, 260)}
                       yLabel="scale"
                       formatY={(v) => getPresetLabel('water', Math.round(v))}
                       formatX={formatChartDate}
@@ -509,7 +511,7 @@ export default function CatProfileScreen() {
                             seriesKeys={['value']}
                             seriesLabels={{ value: MEAS_TYPE_LABELS[type] ?? type }}
                             seriesColors={{ value: typeColors[type] ?? colors.lavender }}
-                            height={150}
+                            height={rv(150, 220)}
                             yLabel="scale"
                             formatY={(v) => getPresetLabel(type, Math.round(v))}
                             formatX={formatChartDate}
@@ -642,7 +644,7 @@ export default function CatProfileScreen() {
 
         {/* Care tab */}
         {profileTab === 'care' && (
-          <View style={{ paddingHorizontal: 16, gap: 16, marginTop: 16, paddingBottom: 32 }}>
+          <View style={{ gap: 16, marginTop: 16, paddingBottom: 32 }}>
             <View style={{
               backgroundColor: colors.surface,
               borderRadius: 16,
@@ -743,7 +745,7 @@ export default function CatProfileScreen() {
 
         {/* About tab */}
         {profileTab === 'about' && (
-          <View style={{ paddingHorizontal: 16, gap: 16, marginTop: 16, paddingBottom: 32 }}>
+          <View style={{ gap: 16, marginTop: 16, paddingBottom: 32 }}>
             <View style={{
               backgroundColor: colors.surface,
               borderRadius: 16,
@@ -811,6 +813,7 @@ export default function CatProfileScreen() {
             </Pressable>
           </View>
         )}
+        </ResponsiveContainer>
       </ScrollView>
     </View>
   );

@@ -14,7 +14,7 @@
       "backgroundColor": "#16111f"
     },
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "me.01j.whisker",
       "usesAppleSignIn": true,
       "associatedDomains": [

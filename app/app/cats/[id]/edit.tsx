@@ -10,6 +10,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { api } from '../../../lib/api';
 import CatAvatar from '../../../components/CatAvatar';
 import { useThemeColors } from '../../../hooks/useThemeColors';
+import { useResponsiveLayout } from '../../../hooks/useResponsiveLayout';
+import { ResponsiveContainer } from '../../../components/ResponsiveContainer';
 import { parseDate, formatDateStr } from '../../../lib/dateHelpers';
 
 function isTempMicrochip(id: string | null | undefined): boolean {
@@ -18,6 +20,7 @@ function isTempMicrochip(id: string | null | undefined): boolean {
 
 export default function EditCatScreen() {
   const colors = useThemeColors();
+  const { rv } = useResponsiveLayout();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
@@ -197,7 +200,8 @@ export default function EditCatScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 16, paddingBottom: 48 }} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
+        <ScrollView ref={scrollRef} contentContainerStyle={{ paddingBottom: 48 }} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
+          <ResponsiveContainer style={{ paddingTop: 16 }}>
           {/* Header */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24 }}>
             <Pressable
@@ -207,7 +211,7 @@ export default function EditCatScreen() {
             >
               <Text style={{ color: colors.inkDim, fontSize: 22 }}>{'\u2190'}</Text>
             </Pressable>
-            <Text style={{ fontWeight: '700', fontSize: 22, color: colors.ink }}>Edit Cat</Text>
+            <Text style={{ fontWeight: '700', fontSize: rv(22, 26), color: colors.ink }}>Edit Cat</Text>
           </View>
 
           {error && (
@@ -219,7 +223,7 @@ export default function EditCatScreen() {
           <View style={{
             backgroundColor: colors.surface,
             borderRadius: 16,
-            padding: 24,
+            padding: rv(24, 28),
             borderWidth: 1,
             borderColor: colors.rim,
             gap: 20,
@@ -497,6 +501,7 @@ export default function EditCatScreen() {
               </Pressable>
             </View>
           </View>
+          </ResponsiveContainer>
         </ScrollView>
       </KeyboardAvoidingView>
       <Modal

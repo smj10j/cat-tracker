@@ -1,13 +1,15 @@
 import { View, Text, Pressable, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function LoginScreen() {
   const { signInWithGoogle, signInWithApple } = useAuth();
+  const router = useRouter();
 
   return (
     <SafeAreaView className="flex-1 bg-night">
-      <View className="flex-1 items-center justify-center px-8">
+      <View className="flex-1 items-center justify-center px-8" style={{ maxWidth: 600, width: '100%', alignSelf: 'center' }}>
         {/* Hero */}
         <Text className="text-5xl mb-4">🐱</Text>
         <Text className="text-ink text-3xl font-bold text-center">
@@ -44,6 +46,9 @@ export default function LoginScreen() {
         <Text className="text-ink-dim text-xs text-center mt-8">
           Free. No ads. No tracking. Your cats' data stays yours.
         </Text>
+        <Pressable onPress={() => router.push('/privacy' as never)} style={{ marginTop: 16 }}>
+          <Text className="text-ink-dim text-xs text-center underline">Privacy Policy</Text>
+        </Pressable>
       </View>
     </SafeAreaView>
   );

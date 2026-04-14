@@ -19,11 +19,11 @@ import { useState, useMemo, useRef } from 'react';
 import {
   View,
   Text,
-  Dimensions,
   PanResponder,
   LayoutChangeEvent,
 } from 'react-native';
 import { useThemeColors } from '../hooks/useThemeColors';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import Svg, {
   Path,
   Circle,
@@ -154,8 +154,9 @@ export default function LineChart({
   formatX = formatShortDateDefault,
 }: LineChartProps) {
   const colors = useThemeColors();
+  const { screenWidth, contentMaxWidth } = useResponsiveLayout();
   const [containerWidth, setContainerWidth] = useState(
-    Dimensions.get('window').width - 32,
+    Math.min(screenWidth, contentMaxWidth ?? screenWidth) - 32,
   );
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
   const svgRef = useRef<View>(null);

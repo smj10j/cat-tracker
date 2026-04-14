@@ -7,6 +7,51 @@
 
 ---
 
+## Phase 57: iPad Support & App Store Readiness (2026-04-14)
+
+### Part 1 — Responsive Layout System
+- [x] Create `useResponsiveLayout` hook with `rv()` helper
+- [x] Create `ResponsiveContainer` component
+- [x] Update app.json: `supportsTablet: true`
+- [x] Update _layout.tsx: conditional orientation lock (portrait on phone, all on iPad)
+- [x] Fix LineChart initial width calculation
+- [x] Fix BottomNav: inner maxWidth for iPad
+- [x] Apply ResponsiveContainer + rv() scaling to Home screen
+- [x] Apply ResponsiveContainer + rv() scaling to Log screen
+- [x] Apply ResponsiveContainer + rv() scaling to Compare screen
+- [x] Apply ResponsiveContainer + rv() scaling to Settings screen
+- [x] Apply ResponsiveContainer + rv() scaling to Cat Profile screen
+- [x] Apply ResponsiveContainer + rv() scaling to New Cat screen
+- [x] Apply ResponsiveContainer + rv() scaling to Edit Cat screen
+- [x] Apply ResponsiveContainer + rv() scaling to Care Item screen
+- [x] Apply ResponsiveContainer + rv() scaling to Export screen
+- [x] Apply ResponsiveContainer + rv() scaling to Memorial screen
+- [x] Apply ResponsiveContainer + rv() scaling to Health screen
+- [x] Apply ResponsiveContainer + rv() scaling to Wellness screen
+- [x] Apply ResponsiveContainer to Notifications screen
+- [x] Apply ResponsiveContainer to Household screen
+- [x] Apply ResponsiveContainer to Privacy screen
+- [x] Apply ResponsiveContainer to Import screen
+- [x] Apply responsive layout to Login screen
+
+### Part 2 — App Store Compliance
+- [x] Add privacy policy link to Settings
+- [x] Add privacy policy link to Login screen
+- [x] Verify veterinary disclaimer on wellness/health screens (already present)
+- [x] Fix orphan cats "Skip" no-op handler
+
+### Part 3 — Pre-Submission Test Suite
+- [x] Update test mocks (setup.ts): add iPad dimension mock helper
+- [x] Write appStoreReadiness.test.ts (static analysis — 14 tests)
+- [x] Write iPad smoke tests (18 screens rendered at 1024x1366)
+
+### Part 4 — Verification
+- [x] All 4 test suites pass (shared: 298, worker: 151, frontend: 62, app: 161)
+- [ ] iPad Simulator verification (portrait + landscape) — requires human testing
+- [ ] iPhone: zero visual regressions — requires human testing
+
+---
+
 ## Phase 56: Cross-Platform Constant & Helper Deduplication (2026-04-12)
 
 ### Group 1 — Measurement type constants → shared/lib/constants.ts

@@ -1,6 +1,6 @@
 import '../global.css';
 import { useEffect } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Dimensions } from 'react-native';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
@@ -12,8 +12,13 @@ import { PreferencesProvider } from '../contexts/PreferencesContext';
 import { useThemeColors } from '../hooks/useThemeColors';
 import BottomNav from '../components/BottomNav';
 
-// Lock to portrait by default; FullScreenChartModal unlocks when open
-ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+// Lock phones to portrait; iPads get all orientations.
+// FullScreenChartModal unlocks phones temporarily when open.
+const { width, height } = Dimensions.get('screen');
+const isTablet = Math.min(width, height) >= 768;
+if (!isTablet) {
+  ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+}
 
 // Configure foreground notification display
 Notifications.setNotificationHandler({

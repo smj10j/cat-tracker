@@ -11,6 +11,7 @@ import type { HealthStatus } from '@shared/lib/healthMetrics';
 import { detectCorrelations, getHomeBadge } from '@shared/lib/correlations';
 import { catAge, formatLocalDate } from '@shared/lib/dates';
 import { useThemeColors } from '../../hooks/useThemeColors';
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
 import { usePreferences } from '../../contexts/PreferencesContext';
 import { formatWeightValue } from '@shared/lib/preferences';
 
@@ -28,6 +29,7 @@ export default function HomeScreen() {
   const { user, signOut } = useAuth();
   const router = useRouter();
   const colors = useThemeColors();
+  const { rv, contentMaxWidth, contentPadding } = useResponsiveLayout();
   const { prefs } = usePreferences();
   const [catData, setCatData] = useState<CatCardData[]>([]);
   const [memorialCats, setMemorialCats] = useState<Cat[]>([]);
@@ -37,6 +39,7 @@ export default function HomeScreen() {
   const [claiming, setClaiming] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
   const [showProfile, setShowProfile] = useState(false);
+  const [dismissedOrphans, setDismissedOrphans] = useState(false);
 
   const fetchCats = useCallback(async () => {
     try {
@@ -162,8 +165,8 @@ export default function HomeScreen() {
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          gap: 16,
-          padding: 20,
+          gap: rv(16, 20),
+          padding: rv(20, 24),
           borderRadius: 20,
           backgroundColor: CARD_BG[healthStatus] ?? CARD_BG.ok,
           borderWidth: healthStatus === 'urgent' ? 2 : healthStatus === 'ok' ? 1 : 1.5,
@@ -172,9 +175,9 @@ export default function HomeScreen() {
       >
         <View
           style={{
-            width: 56,
-            height: 56,
-            borderRadius: 28,
+            width: rv(56, 68),
+            height: rv(56, 68),
+            borderRadius: rv(28, 34),
             alignItems: 'center',
             justifyContent: 'center',
             overflow: 'hidden',
@@ -183,12 +186,12 @@ export default function HomeScreen() {
             borderColor: AVATAR_BORDER[healthStatus] ?? AVATAR_BORDER.ok,
           }}
         >
-          <CatAvatar photoUrl={cat.photo_url} name={cat.name} size={56} />
+          <CatAvatar photoUrl={cat.photo_url} name={cat.name} size={rv(56, 68)} />
         </View>
 
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <Text style={{ fontWeight: '700', color: colors.ink, fontSize: 16 }} numberOfLines={1}>
+            <Text style={{ fontWeight: '700', color: colors.ink, fontSize: rv(16, 18) }} numberOfLines={1}>
               {cat.name}
             </Text>
             {!isOk && (
@@ -210,8 +213,8 @@ export default function HomeScreen() {
             )}
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 }}>
-            <Text style={{ color: colors.inkMid, fontSize: 12 }}>{catAge(cat.birthdate)}</Text>
-            {cat.breed ? <Text style={{ color: colors.inkMid, fontSize: 12 }}>{'\u00B7'} {cat.breed}</Text> : null}
+            <Text style={{ color: colors.inkMid, fontSize: rv(12, 14) }}>{catAge(cat.birthdate)}</Text>
+            {cat.breed ? <Text style={{ color: colors.inkMid, fontSize: rv(12, 14) }}>{'\u00B7'} {cat.breed}</Text> : null}
           </View>
           {!isOk && (
             <Text style={{ fontSize: 12, marginTop: 6, fontWeight: '500', color: statusColor }}>
@@ -228,10 +231,10 @@ export default function HomeScreen() {
 
         {latestWeight !== null && (
           <View style={{ alignItems: 'flex-end', flexShrink: 0 }}>
-            <Text style={{ fontWeight: '700', fontSize: 18, color: isOk ? '#fb923c' : statusColor }}>
+            <Text style={{ fontWeight: '700', fontSize: rv(18, 22), color: isOk ? '#fb923c' : statusColor }}>
               {formatWeightValue(latestWeight, latestUnit, prefs)}
             </Text>
-            <Text style={{ color: colors.inkDim, fontSize: 12 }}>{prefs.weightUnit}</Text>
+            <Text style={{ color: colors.inkDim, fontSize: rv(12, 14) }}>{prefs.weightUnit}</Text>
           </View>
         )}
       </Pressable>
@@ -255,8 +258,8 @@ export default function HomeScreen() {
           opacity: 0.75,
         }}
       >
-        <View style={{ width: 40, height: 40, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: colors.rim }}>
-          <CatAvatar photoUrl={cat.photo_url} name={cat.name} size={40} grayscale />
+        <View style={{ width: rv(40, 52), height: rv(40, 52), borderRadius: rv(20, 26), overflow: 'hidden', borderWidth: 1, borderColor: colors.rim }}>
+          <CatAvatar photoUrl={cat.photo_url} name={cat.name} size={rv(40, 52)} grayscale />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={{ fontSize: 14, fontWeight: '600', color: colors.inkMid }} numberOfLines={1}>{cat.name}</Text>
@@ -279,7 +282,7 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {user?.hasOrphanedCats && (
+      {user?.hasOrphanedCats && !dismissedOrphans && (
         <View style={{
           backgroundColor: colors.surface,
           borderRadius: 16,
@@ -311,7 +314,7 @@ export default function HomeScreen() {
               </Text>
             </Pressable>
             <Pressable
-              onPress={() => {/* dismiss */}}
+              onPress={() => setDismissedOrphans(true)}
               style={{ paddingVertical: 8, paddingHorizontal: 12 }}
             >
               <Text style={{ color: colors.inkDim, fontSize: 12 }}>Skip</Text>
@@ -402,7 +405,7 @@ export default function HomeScreen() {
             style={{
               position: 'absolute',
               top: 72,
-              left: 16,
+              left: contentPadding,
               minWidth: 180,
               borderRadius: 16,
               padding: 16,
@@ -442,7 +445,7 @@ export default function HomeScreen() {
       )}
 
       {/* Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: contentPadding, paddingTop: 8, paddingBottom: 12, maxWidth: contentMaxWidth, width: '100%', alignSelf: 'center' }}>
         <Pressable onPress={() => setShowProfile(prev => !prev)}>
           {user?.avatar_url ? (
             <Image
@@ -464,7 +467,7 @@ export default function HomeScreen() {
           )}
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 22, fontWeight: '700', color: colors.ink }}>My Cats</Text>
+          <Text style={{ fontSize: rv(22, 28), fontWeight: '700', color: colors.ink }}>My Cats</Text>
           <Text style={{ fontSize: 13, color: colors.inkDim, marginTop: 2 }}>
             {catCount > 0 ? `${catCount} cat${catCount !== 1 ? 's' : ''} tracked` : 'Add a cat to get started'}
           </Text>
@@ -497,7 +500,7 @@ export default function HomeScreen() {
       <FlatList
         data={loading ? [] : catData}
         keyExtractor={(item) => item.cat.id}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24, gap: 12 }}
+        contentContainerStyle={{ paddingHorizontal: contentPadding, paddingBottom: 24, gap: 12, maxWidth: contentMaxWidth, width: '100%', alignSelf: 'center' }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.lavender} />
         }

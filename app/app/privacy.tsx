@@ -2,9 +2,12 @@ import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Pressable } from 'react-native';
+import { ResponsiveContainer } from '../components/ResponsiveContainer';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 
 export default function PrivacyPolicyScreen() {
   const router = useRouter();
+  const { rv } = useResponsiveLayout();
 
   return (
     <SafeAreaView className="flex-1 bg-night" edges={['top']}>
@@ -15,7 +18,8 @@ export default function PrivacyPolicyScreen() {
         <Text className="text-ink text-xl font-bold">Privacy Policy</Text>
       </View>
 
-      <ScrollView className="flex-1 px-4 py-6" contentContainerStyle={{ gap: 24 }}>
+      <ScrollView className="flex-1 py-6" contentContainerStyle={{ gap: 24 }}>
+        <ResponsiveContainer>
         <Text className="text-ink text-2xl font-bold">Whisker Health — Privacy Policy</Text>
         <Text className="text-ink-mid text-sm">Last updated: April 10, 2026</Text>
 
@@ -79,6 +83,7 @@ export default function PrivacyPolicyScreen() {
         </Section>
 
         <View className="h-8" />
+        </ResponsiveContainer>
       </ScrollView>
     </SafeAreaView>
   );

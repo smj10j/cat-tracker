@@ -16,6 +16,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { api, CARE_TYPE_ICONS } from '../../../lib/api';
 import type { Cat, Medication } from '../../../lib/api';
 import { useThemeColors } from '../../../hooks/useThemeColors';
+import { useResponsiveLayout } from '../../../hooks/useResponsiveLayout';
+import { ResponsiveContainer } from '../../../components/ResponsiveContainer';
 import { usePreferences } from '../../../contexts/PreferencesContext';
 import { formatHour } from '@shared/lib/formatting';
 import {
@@ -41,6 +43,7 @@ const TYPE_OPTIONS = Object.entries(MEDICATION_TYPE_LABELS).map(([value, label])
 
 export default function CareItemScreen() {
   const colors = useThemeColors();
+  const { rv } = useResponsiveLayout();
   const { prefs } = usePreferences();
   const { id, medId } = useLocalSearchParams<{ id: string; medId?: string }>();
   const router = useRouter();
@@ -194,9 +197,10 @@ export default function CareItemScreen() {
       <ScrollView
         ref={scrollRef}
         style={{ flex: 1 }}
-        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+        contentContainerStyle={{ paddingBottom: 40 }}
         keyboardShouldPersistTaps="handled"
       >
+        <ResponsiveContainer style={{ paddingTop: 16 }}>
         {error && (
           <View style={{
             padding: 12,
@@ -515,6 +519,7 @@ export default function CareItemScreen() {
             </Text>
           </Pressable>
         )}
+        </ResponsiveContainer>
       </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -596,13 +601,14 @@ function DatePickerField({
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   const colors = useThemeColors();
+  const { rv } = useResponsiveLayout();
   return (
     <View style={{
       backgroundColor: 'rgba(192,132,252,0.04)',
       borderWidth: 1,
       borderColor: 'rgba(192,132,252,0.12)',
       borderRadius: 16,
-      padding: 16,
+      padding: rv(16, 20),
       marginBottom: 16,
       gap: 12,
     }}>

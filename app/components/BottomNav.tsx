@@ -26,7 +26,6 @@ export default function BottomNav() {
   return (
     <View
       style={{
-        flexDirection: 'row',
         backgroundColor: colors.night,
         borderTopWidth: 1,
         borderTopColor: colors.rim,
@@ -34,6 +33,7 @@ export default function BottomNav() {
         paddingTop: 8,
       }}
     >
+      <View style={{ flexDirection: 'row', maxWidth: 500, width: '100%', alignSelf: 'center' }}>
       {TABS.map((tab) => {
         const active = isActive(tab.href);
         return (
@@ -62,6 +62,7 @@ export default function BottomNav() {
           </Pressable>
         );
       })}
+      </View>
     </View>
   );
 }

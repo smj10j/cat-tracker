@@ -15,6 +15,8 @@ import { useRouter } from 'expo-router';
 import { api } from '../lib/api';
 import type { HouseholdResponse, HouseholdMember, PendingInvite } from '../lib/api';
 import { useThemeColors } from '../hooks/useThemeColors';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
+import { ResponsiveContainer } from '../components/ResponsiveContainer';
 
 const ROLES = ['viewer', 'contributor', 'editor', 'admin'] as const;
 type Role = (typeof ROLES)[number];
@@ -35,6 +37,7 @@ const ROLE_COLORS: Record<string, string> = {
 
 export default function HouseholdScreen() {
   const colors = useThemeColors();
+  const { rv } = useResponsiveLayout();
   const router = useRouter();
   const [data, setData] = useState<HouseholdResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -215,9 +218,10 @@ export default function HouseholdScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+        contentContainerStyle={{ paddingBottom: 40 }}
         keyboardShouldPersistTaps="handled"
       >
+        <ResponsiveContainer style={{ paddingTop: 16 }}>
         {error && (
           <View
             style={{
@@ -525,6 +529,7 @@ export default function HouseholdScreen() {
             </Pressable>
           </View>
         )}
+        </ResponsiveContainer>
       </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { api, CARE_TYPE_ICONS } from '../lib/api';
 import type { DoseWithContext, Medication, NotificationInbox } from '../lib/api';
 import { useThemeColors } from '../hooks/useThemeColors';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import { usePreferences } from '../contexts/PreferencesContext';
 import { formatDueAt, formatFutureDueAt } from '@shared/lib/formatting';
 
@@ -29,6 +30,7 @@ interface Section {
 
 export default function NotificationsScreen() {
   const colors = useThemeColors();
+  const { contentMaxWidth, contentPadding } = useResponsiveLayout();
   const { prefs } = usePreferences();
   const router = useRouter();
   const [inbox, setInbox] = useState<NotificationInbox | null>(null);
@@ -181,7 +183,7 @@ export default function NotificationsScreen() {
             tintColor={colors.lavender}
           />
         }
-        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+        contentContainerStyle={{ padding: contentPadding, paddingBottom: 40, maxWidth: contentMaxWidth, width: '100%', alignSelf: 'center' as const }}
         stickySectionHeadersEnabled={false}
         renderSectionHeader={({ section }) => (
           <Text

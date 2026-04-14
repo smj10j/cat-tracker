@@ -10,6 +10,24 @@ import { vi } from 'vitest';
 import React from 'react';
 
 // ---------------------------------------------------------------------------
+// Configurable screen dimensions for testing different device sizes
+// ---------------------------------------------------------------------------
+let mockScreenWidth = 393;
+let mockScreenHeight = 852;
+
+/** Set mock screen dimensions. Call before rendering a component. */
+export function setMockScreenDimensions(width: number, height: number) {
+  mockScreenWidth = width;
+  mockScreenHeight = height;
+}
+
+/** Reset to iPhone defaults */
+export function resetMockScreenDimensions() {
+  mockScreenWidth = 393;
+  mockScreenHeight = 852;
+}
+
+// ---------------------------------------------------------------------------
 // Helper: create a mock React component that renders a DOM element
 // ---------------------------------------------------------------------------
 function mockComponent(name: string) {
@@ -104,7 +122,7 @@ vi.mock('react-native', () => {
     Platform: { OS: 'ios', select: (obj: any) => obj.ios ?? obj.default },
     StyleSheet: { create: (s: any) => s, flatten: (s: any) => s },
     Dimensions: {
-      get: () => ({ width: 393, height: 852 }),
+      get: () => ({ width: mockScreenWidth, height: mockScreenHeight }),
       addEventListener: vi.fn(() => ({ remove: vi.fn() })),
     },
     Linking: { openURL: vi.fn() },
@@ -144,7 +162,7 @@ vi.mock('react-native', () => {
     }),
     Share: { share: vi.fn().mockResolvedValue({ action: 'sharedAction' }) },
     PixelRatio: { get: () => 2, getFontScale: () => 1, getPixelSizeForLayoutSize: (n: number) => n * 2, roundToNearestPixel: (n: number) => n },
-    useWindowDimensions: () => ({ width: 393, height: 852 }),
+    useWindowDimensions: () => ({ width: mockScreenWidth, height: mockScreenHeight }),
   };
 });
 

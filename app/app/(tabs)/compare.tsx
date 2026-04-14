@@ -18,6 +18,8 @@ import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { ChartExpandButton } from '../../components/ChartExpandButton';
 import { FullScreenChartModal } from '../../components/FullScreenChartModal';
 import { useThemeColors } from '../../hooks/useThemeColors';
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
+import { ResponsiveContainer } from '../../components/ResponsiveContainer';
 import { useAutoLandscape } from '../../hooks/useAutoLandscape';
 import { usePreferences } from '../../contexts/PreferencesContext';
 import { formatDateShort, formatWeight } from '@shared/lib/preferences';
@@ -73,6 +75,7 @@ function filterByRange(measurements: Measurement[], range: TimeRange): Measureme
 
 export default function CompareScreen() {
   const colors = useThemeColors();
+  const { rv } = useResponsiveLayout();
   const { prefs } = usePreferences();
   const formatChartDate = useCallback((ts: number) => {
     const iso = new Date(ts).toISOString().slice(0, 10);
@@ -237,13 +240,14 @@ export default function CompareScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
+        contentContainerStyle={{ paddingBottom: 24 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.lavender} />
         }
       >
+        <ResponsiveContainer style={{ paddingTop: 16 }}>
         {/* Header */}
-        <Text style={{ fontSize: 24, fontWeight: '700', color: colors.ink, marginBottom: 20 }}>
+        <Text style={{ fontSize: rv(24, 30), fontWeight: '700', color: colors.ink, marginBottom: 20 }}>
           Compare
         </Text>
 
@@ -425,7 +429,7 @@ export default function CompareScreen() {
                       seriesLabels={chartSeriesLabels}
                       seriesColors={chartSeriesColors}
                       dotEmojis={chartDotEmojis}
-                      height={240}
+                      height={rv(240, 340)}
                       yLabel={isWeightType ? prefs.weightUnit : undefined}
                       formatY={isScaleType
                         ? (v) => getPresetLabel(selectedType, Math.round(v))
@@ -591,6 +595,7 @@ export default function CompareScreen() {
             )}
           </>
         )}
+        </ResponsiveContainer>
       </ScrollView>
     </SafeAreaView>
   );

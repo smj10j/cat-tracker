@@ -10,10 +10,13 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { api } from '../../lib/api';
 import CatAvatar from '../../components/CatAvatar';
 import { useThemeColors } from '../../hooks/useThemeColors';
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
+import { ResponsiveContainer } from '../../components/ResponsiveContainer';
 import { parseDate, formatDateStr } from '../../lib/dateHelpers';
 
 export default function NewCatScreen() {
   const colors = useThemeColors();
+  const { rv } = useResponsiveLayout();
   const router = useRouter();
 
   const [form, setForm] = useState({
@@ -79,13 +82,14 @@ export default function NewCatScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }}>
+        <ScrollView contentContainerStyle={{ paddingBottom: 48 }}>
+          <ResponsiveContainer style={{ paddingTop: 16 }}>
           {/* Header */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24 }}>
             <Pressable onPress={() => router.back()}>
               <Text style={{ color: colors.inkDim, fontSize: 22 }}>{'\u2190'}</Text>
             </Pressable>
-            <Text style={{ fontWeight: '700', fontSize: 22, color: colors.ink }}>New Cat</Text>
+            <Text style={{ fontWeight: '700', fontSize: rv(22, 26), color: colors.ink }}>New Cat</Text>
           </View>
 
           {error && (
@@ -97,7 +101,7 @@ export default function NewCatScreen() {
           <View style={{
             backgroundColor: colors.surface,
             borderRadius: 16,
-            padding: 24,
+            padding: rv(24, 28),
             borderWidth: 1,
             borderColor: colors.rim,
             gap: 20,
@@ -202,6 +206,7 @@ export default function NewCatScreen() {
               </Text>
             </Pressable>
           </View>
+          </ResponsiveContainer>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

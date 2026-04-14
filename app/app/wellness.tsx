@@ -2,6 +2,8 @@ import { View, Text, ScrollView, Pressable, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useThemeColors } from '../hooks/useThemeColors';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
+import { ResponsiveContainer } from '../components/ResponsiveContainer';
 
 const GUIDE_SECTIONS = [
   {
@@ -39,6 +41,7 @@ const GUIDE_SECTIONS = [
 export default function WellnessGuideScreen() {
   const router = useRouter();
   const colors = useThemeColors();
+  const { rv } = useResponsiveLayout();
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
@@ -62,9 +65,10 @@ export default function WellnessGuideScreen() {
       </View>
 
       <ScrollView
-        style={{ flex: 1, paddingHorizontal: 16, paddingTop: 16 }}
+        style={{ flex: 1 }}
         contentContainerStyle={{ gap: 16, paddingBottom: 32 }}
       >
+        <ResponsiveContainer style={{ paddingTop: 16, gap: 16 }}>
         <Text style={{ color: colors.inkMid, fontSize: 14, lineHeight: 20 }}>
           This guide summarizes key indicators for monitoring your cat's health.
           All thresholds are sourced from AAFP, WSAVA, and ISFM veterinary guidelines.
@@ -76,7 +80,7 @@ export default function WellnessGuideScreen() {
             style={{
               backgroundColor: colors.surface,
               borderRadius: 16,
-              padding: 16,
+              padding: rv(16, 20),
               borderWidth: 1,
               borderColor: colors.rim,
             }}
@@ -109,6 +113,7 @@ export default function WellnessGuideScreen() {
             </Text>.
           </Text>
         </View>
+        </ResponsiveContainer>
       </ScrollView>
     </SafeAreaView>
   );

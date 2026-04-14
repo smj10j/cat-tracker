@@ -7,6 +7,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme, ThemePreference } from '../contexts/ThemeContext';
 import { usePreferences } from '../contexts/PreferencesContext';
 import { useThemeColors } from '../hooks/useThemeColors';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
+import { ResponsiveContainer } from '../components/ResponsiveContainer';
 import { api } from '../lib/api';
 import type { DateFormat, TimeFormat, WeightUnit } from '@shared/lib/preferences';
 
@@ -38,6 +40,7 @@ export default function SettingsScreen() {
   const { theme, setTheme } = useTheme();
   const { prefs, setPref, resetToLocale, isOverridden } = usePreferences();
   const colors = useThemeColors();
+  const { rv } = useResponsiveLayout();
   const hasAnyOverride = isOverridden('dateFormat') || isOverridden('timeFormat') || isOverridden('weightUnit');
 
   const handleDeleteAccount = () => {
@@ -92,16 +95,19 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.night }} edges={['top']}>
-      <View style={{ paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <Pressable onPress={() => router.back()}>
-          <Text style={{ color: colors.lavender, fontSize: 16 }}>← Back</Text>
-        </Pressable>
-        <Text style={{ color: colors.ink, fontSize: 20, fontWeight: '700' }}>Settings</Text>
-      </View>
+      <ResponsiveContainer>
+        <View style={{ paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Pressable onPress={() => router.back()}>
+            <Text style={{ color: colors.lavender, fontSize: 16 }}>← Back</Text>
+          </Pressable>
+          <Text style={{ color: colors.ink, fontSize: rv(20, 26), fontWeight: '700' }}>Settings</Text>
+        </View>
+      </ResponsiveContainer>
 
-      <ScrollView style={{ paddingHorizontal: 16, marginTop: 16 }} contentContainerStyle={{ gap: 16, paddingBottom: 40 }}>
+      <ScrollView style={{ marginTop: 16 }} contentContainerStyle={{ gap: 16, paddingBottom: 40 }}>
+        <ResponsiveContainer>
         {/* User info */}
-        <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.rim }}>
+        <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: rv(16, 20), borderWidth: 1, borderColor: colors.rim }}>
           <Text style={{ color: colors.ink, fontWeight: '600' }}>{user?.display_name ?? 'User'}</Text>
           <Text style={{ color: colors.inkMid, fontSize: 14 }}>{user?.email}</Text>
           <Text style={{ color: colors.inkDim, fontSize: 12, marginTop: 4 }}>
@@ -110,8 +116,8 @@ export default function SettingsScreen() {
         </View>
 
         {/* Appearance */}
-        <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.rim }}>
-          <Text style={{ color: colors.inkMid, fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>
+        <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: rv(16, 20), borderWidth: 1, borderColor: colors.rim }}>
+          <Text style={{ color: colors.inkMid, fontSize: rv(10, 12), fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>
             Appearance
           </Text>
           <Text style={{ color: colors.ink, fontSize: 14, fontWeight: '500', marginBottom: 8 }}>Theme</Text>
@@ -153,8 +159,8 @@ export default function SettingsScreen() {
         </View>
 
         {/* Regional */}
-        <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.rim }}>
-          <Text style={{ color: colors.inkMid, fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>
+        <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: rv(16, 20), borderWidth: 1, borderColor: colors.rim }}>
+          <Text style={{ color: colors.inkMid, fontSize: rv(10, 12), fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>
             Regional
           </Text>
 
@@ -213,7 +219,7 @@ export default function SettingsScreen() {
         {/* Household settings */}
         <Pressable
           onPress={() => router.push('/household')}
-          style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.rim }}
+          style={{ backgroundColor: colors.surface, borderRadius: 16, padding: rv(16, 20), borderWidth: 1, borderColor: colors.rim }}
         >
           <Text style={{ color: colors.ink, fontWeight: '600' }}>Household Settings</Text>
           <Text style={{ color: colors.inkDim, fontSize: 14, marginTop: 4 }}>
@@ -224,7 +230,7 @@ export default function SettingsScreen() {
         {/* Data export */}
         <Pressable
           onPress={handleExportData}
-          style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.rim }}
+          style={{ backgroundColor: colors.surface, borderRadius: 16, padding: rv(16, 20), borderWidth: 1, borderColor: colors.rim }}
         >
           <Text style={{ color: colors.ink, fontWeight: '600' }}>Download My Data</Text>
           <Text style={{ color: colors.inkDim, fontSize: 14, marginTop: 4 }}>
@@ -235,21 +241,30 @@ export default function SettingsScreen() {
         {/* Sign out */}
         <Pressable
           onPress={signOut}
-          style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.rim }}
+          style={{ backgroundColor: colors.surface, borderRadius: 16, padding: rv(16, 20), borderWidth: 1, borderColor: colors.rim }}
         >
           <Text style={{ color: colors.ink, fontWeight: '600' }}>Sign Out</Text>
+        </Pressable>
+
+        {/* Privacy policy */}
+        <Pressable
+          onPress={() => router.push('/privacy' as never)}
+          style={{ backgroundColor: colors.surface, borderRadius: 16, padding: rv(16, 20), borderWidth: 1, borderColor: colors.rim }}
+        >
+          <Text style={{ color: colors.ink, fontWeight: '600' }}>Privacy Policy</Text>
         </Pressable>
 
         {/* Delete account */}
         <Pressable
           onPress={handleDeleteAccount}
-          style={{ backgroundColor: 'rgba(248,113,113,0.1)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(248,113,113,0.2)', marginTop: 32 }}
+          style={{ backgroundColor: 'rgba(248,113,113,0.1)', borderRadius: 16, padding: rv(16, 20), borderWidth: 1, borderColor: 'rgba(248,113,113,0.2)', marginTop: 32 }}
         >
           <Text style={{ color: '#f87171', fontWeight: '600' }}>Delete Account</Text>
           <Text style={{ color: 'rgba(248,113,113,0.6)', fontSize: 14, marginTop: 4 }}>
             Permanently delete your account and all associated data
           </Text>
         </Pressable>
+        </ResponsiveContainer>
       </ScrollView>
     </SafeAreaView>
   );

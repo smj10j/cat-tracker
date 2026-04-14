@@ -64,3 +64,10 @@ iPhone 6.7" / 6.9" App Store screenshots: **1284×2778** or **1242×2688**. Resi
   - **Root cause**: App had `supportsTablet: false` and zero responsive layout patterns — all screens used hardcoded `paddingHorizontal: 16` with no `maxWidth` constraints, causing content to stretch edge-to-edge on iPad.
   - **Fix**: Commit 99c775e — enabled `supportsTablet: true`, added `useResponsiveLayout` hook and `ResponsiveContainer` wrapper to all 17 screens, scaled key visual elements for iPad via `rv()` helper, added pre-submission test suite to prevent regression.
 
+
+## Version 1.0.0 (Build 2026-04-14)
+- **Submitted**: 2026-04-14 10:49:44 (via local)
+- **Commit**: 764f9a6 (764f9a69172cf804c7cf92bfd4b694bc87b306b3)
+- **Commit message**: Split TestFlight deploy into build + submit scripts with better error handling
+- **App Store Connect**: https://appstoreconnect.apple.com/apps/6762031793/testflight/ios
+- **Status**: Submitted to TestFlight

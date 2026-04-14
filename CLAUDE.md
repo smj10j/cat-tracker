@@ -90,7 +90,11 @@ Runs all 4 test suites (shared + worker + frontend + app), verifies the Expo web
 - **`--cloud`:** EAS cloud build. Uses free-plan credits and fails if the quota is exhausted.
 
 #### `scripts/submit-testflight.sh`
-Reads `/tmp/whisker-build-info.env`, runs `eas submit`, verifies the submission actually reached Apple (guards against `eas submit` exiting 0 without a success marker in its log), then appends a TestFlight entry to `docs/app-store-submissions.md`. On success the info file is renamed with `.submitted.*` to prevent double-submission; on failure it is preserved so the submit can be retried without rebuilding the IPA.
+Reads `/tmp/whisker-build-info.env`, uploads the IPA to App Store Connect, verifies the upload (guards against exit 0 without a success marker in the log), then appends a TestFlight entry to `docs/app-store-submissions.md`. On success the info file is renamed with `.submitted.*` to prevent double-submission; on failure it is preserved so the submit can be retried without rebuilding the IPA.
+
+**Submit modes:**
+- **Default (`--local`):** Uploads directly via `xcrun altool` using the ASC API key from `app/eas.json`. No Expo queue, no EAS credits. Typically completes in <1 min.
+- **`--cloud`:** Routes through `eas submit`. Slower when the Expo free-tier queue is backed up; only useful on machines without Xcode.
 
 #### `docs/app-store-submissions.md`
 Tracks every TestFlight build and App Store review submission:

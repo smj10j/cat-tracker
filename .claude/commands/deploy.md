@@ -20,7 +20,7 @@ Only if step 1 succeeds, proceed to step 2.
 ./scripts/submit-testflight.sh
 ```
 
-Picks up the metadata from `/tmp/whisker-build-info.env`, runs `eas submit`, verifies the submission actually reached Apple (not just that `eas submit` exited 0), and appends a TestFlight entry to `docs/app-store-submissions.md`. The info file is renamed with a `.submitted.*` suffix to prevent accidental re-submission.
+Picks up the metadata from `/tmp/whisker-build-info.env`. Default is `--local`, which uploads the IPA directly to App Store Connect via `xcrun altool` — no Expo queue, no EAS credits. Typically completes in under a minute. Verifies the upload succeeded (not just that the tool exited 0) and appends a TestFlight entry to `docs/app-store-submissions.md`. The info file is renamed with a `.submitted.*` suffix to prevent accidental re-submission.
 
 If the submit fails, the info file is preserved. Retry with:
 
@@ -30,10 +30,15 @@ If the submit fails, the info file is preserved. Retry with:
 
 — no need to rebuild the IPA.
 
-## Alternative build modes
+## Alternative modes
 
+Build:
 - `./scripts/build-ios.sh --local` — explicit local build (same as default)
 - `./scripts/build-ios.sh --cloud` — EAS cloud build (uses free-plan credits; fails if quota exhausted)
+
+Submit:
+- `./scripts/submit-testflight.sh --local` — upload via `xcrun altool` (default; fast, no Expo queue)
+- `./scripts/submit-testflight.sh --cloud` — route through `eas submit` (slow when Expo free-tier queue is backed up; only use from machines without Xcode)
 
 Only use `--cloud` if the user explicitly asks for it.
 

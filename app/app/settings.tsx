@@ -104,8 +104,8 @@ export default function SettingsScreen() {
         </View>
       </ResponsiveContainer>
 
-      <ScrollView style={{ marginTop: 16 }} contentContainerStyle={{ gap: 16, paddingBottom: 40 }}>
-        <ResponsiveContainer>
+      <ScrollView style={{ marginTop: 16 }} contentContainerStyle={{ paddingBottom: 40 }}>
+        <ResponsiveContainer style={{ gap: 16 }}>
         {/* User info */}
         <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: rv(16, 20), borderWidth: 1, borderColor: colors.rim }}>
           <Text style={{ color: colors.ink, fontWeight: '600' }}>{user?.display_name ?? 'User'}</Text>

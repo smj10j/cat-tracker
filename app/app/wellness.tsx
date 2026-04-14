@@ -66,7 +66,7 @@ export default function WellnessGuideScreen() {
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ gap: 16, paddingBottom: 32 }}
+        contentContainerStyle={{ paddingBottom: 32 }}
       >
         <ResponsiveContainer style={{ paddingTop: 16, gap: 16 }}>
         <Text style={{ color: colors.inkMid, fontSize: 14, lineHeight: 20 }}>

@@ -18,8 +18,8 @@ export default function PrivacyPolicyScreen() {
         <Text className="text-ink text-xl font-bold">Privacy Policy</Text>
       </View>
 
-      <ScrollView className="flex-1 py-6" contentContainerStyle={{ gap: 24 }}>
-        <ResponsiveContainer>
+      <ScrollView className="flex-1 py-6" contentContainerStyle={{ paddingBottom: 24 }}>
+        <ResponsiveContainer style={{ gap: 24 }}>
         <Text className="text-ink text-2xl font-bold">Whisker Health — Privacy Policy</Text>
         <Text className="text-ink-mid text-sm">Last updated: April 10, 2026</Text>
 

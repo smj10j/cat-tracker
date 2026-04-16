@@ -72,3 +72,10 @@ iPhone 6.7" / 6.9" App Store screenshots: **1284×2778** or **1242×2688**. Resi
 - **App Store Connect**: https://appstoreconnect.apple.com/apps/6762031793/testflight/ios
 - **App Store Review**: 2026-04-14 (submitted)
   - **App Store Status**: In Review since 2026-04-14
+
+## Version 1.0.0 (Build 2026-04-15)
+- **Submitted**: 2026-04-15 21:05:25 (via local)
+- **Commit**: 38f0e97 (38f0e976c209943ecd1e0ca7b14bf4115880e3ac)
+- **Commit message**: Visual Identity v2 Phase 4 + docs: icon options, DESIGN.md, REGISTRY, deploy
+- **App Store Connect**: https://appstoreconnect.apple.com/apps/6762031793/testflight/ios
+- **Status**: Submitted to TestFlight

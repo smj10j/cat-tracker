@@ -79,15 +79,15 @@ export default function MemorialPage() {
 
         <div
           className="w-28 h-28 rounded-full overflow-hidden mb-5"
-          style={{ border: '3px solid rgba(192,132,252,0.3)', filter: 'grayscale(0.4)' }}
+          style={{ border: '3px solid var(--color-brand-glow)', filter: 'grayscale(0.4)' }}
         >
           <CatAvatar photoUrl={cat.photo_url} name={cat.name} size={112} />
         </div>
 
-        <p className="text-3xl font-display font-bold text-ink mb-1">{cat.name}</p>
+        <p className="text-3xl font-bold text-ink mb-1" style={{ fontFamily: "'Fraunces', serif" }}>{cat.name}</p>
         <p className="text-sm text-ink-dim">🕊️</p>
         {cat.deceased_at && (
-          <p className="text-sm text-ink-dim mt-1">
+          <p className="text-sm text-ink-dim mt-1" style={{ fontFamily: "'Fraunces', serif" }}>
             {formatLocalDate(cat.birthdate)}
             {' — '}
             {formatLocalDate(cat.deceased_at)}
@@ -106,8 +106,8 @@ export default function MemorialPage() {
           <div
             className="rounded-2xl px-5 py-4 text-center"
             style={{
-              background: 'rgba(192,132,252,0.06)',
-              border: '1px solid rgba(192,132,252,0.2)',
+              background: 'var(--color-brand-glow)',
+              border: '1px solid var(--color-brand-glow)',
             }}
           >
             <p className="text-sm text-ink-mid leading-relaxed italic">"{cat.memorial_note}"</p>

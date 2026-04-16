@@ -3,6 +3,7 @@ import { useParams, useSearchParams, Link } from 'react-router-dom'
 import { useGoBack } from '../hooks/useGoBack'
 import { getCat, getMeasurements, deleteMeasurement, getMedications, uploadCatPhoto, deleteCatPhoto, CARE_TYPE_ICONS, type Cat, type Measurement, type Medication } from '../lib/api'
 import CatAvatar from '../components/CatAvatar'
+import HeroStat from '../components/HeroStat'
 
 import {
   assessHealth, STATUS_COLORS, STATUS_EMOJI, STATUS_LABEL,
@@ -345,9 +346,12 @@ export default function CatProfile() {
             </div>
             {latestWeight && (
               <div className="text-right shrink-0">
-                <div className="font-display font-bold text-2xl tabular-nums" style={{ color: status !== 'ok' ? statusColor : 'var(--color-accent)' }}>
-                  {latestWeight.value} <span className="text-sm font-normal" style={{ color: 'rgba(255,255,255,0.4)' }}>{latestWeight.unit}</span>
-                </div>
+                <HeroStat
+                  value={String(latestWeight.value)}
+                  unit={latestWeight.unit}
+                  size={28}
+                  color={status !== 'ok' ? statusColor : undefined}
+                />
                 {weightMeasurements.length >= 2 && (
                   <div
                     className={`text-xs font-bold px-2 py-0.5 rounded-full inline-block mt-0.5 ${isUrgent ? 'animate-pulse' : ''}`}

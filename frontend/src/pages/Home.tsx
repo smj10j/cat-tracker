@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { getCats, getMeasurements, claimCats, getNotifications, type Cat, type Measurement } from '../lib/api'
 import CatAvatar from '../components/CatAvatar'
+import HeroStat from '../components/HeroStat'
 import { assessHealth, STATUS_COLORS, STATUS_LABEL } from '@shared/lib/healthMetrics'
 import { detectCorrelations, getHomeBadge } from '@shared/lib/correlations'
 import { useAuth } from '../contexts/AuthContext'
@@ -325,9 +326,12 @@ export default function Home() {
 
                   {latestWeight !== null && (
                     <div className="text-right shrink-0">
-                      <div className="font-display font-bold text-lg tabular-nums" style={{ color: isOk ? 'var(--color-accent)' : statusColor }}>
-                        {fmtWeight(latestWeight, latestUnit, prefs)}
-                      </div>
+                      <HeroStat
+                        value={fmtWeight(latestWeight, latestUnit, prefs).split(' ')[0]}
+                        unit={prefs.weightUnit}
+                        size={20}
+                        color={isOk ? undefined : statusColor}
+                      />
                     </div>
                   )}
                 </Link>

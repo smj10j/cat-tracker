@@ -550,7 +550,7 @@
 
 @layer base {
   html {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -679,5 +679,26 @@
   /* Display font helper */
   .font-display {
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  }
+
+  /* Warmth pulse — positive reinforcement on successful measurement log.
+     A single 400ms amber glow rise-and-fall on box-shadow. This is the
+     only place the brand color animates. PRD §11. */
+  @keyframes warmth-pulse {
+    0% { box-shadow: 0 0 0 0 transparent; }
+    50% { box-shadow: 0 0 24px 4px var(--color-brand-glow); }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+  .warmth-pulse {
+    animation: warmth-pulse 400ms ease-out;
+  }
+
+  /* Respect reduced-motion preference (PRD §13) */
+  @media (prefers-reduced-motion: reduce) {
+    .warmth-pulse,
+    .animate-fade-in,
+    .skeleton {
+      animation: none !important;
+    }
   }
 }

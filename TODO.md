@@ -7,27 +7,84 @@
 
 ---
 
-## Phase 59: Visual Identity v2 PRD — Color, Type, Hierarchy (2026-04-15)
+## Phase 58: Visual Identity v2 — Lamplight + 5-Theme Picker (PRD-visual-identity-v2.md, 2026-04-15)
 
-- [x] Audit current design system (`docs/DESIGN.md`, `index.css` tokens, brand purple usage)
-- [x] Scan pet-app and adjacent consumer-health competitors for color/identity positioning
-- [x] Draft `docs/PRDs/PRD-visual-identity-v2.md` with five color options and recommendation ("Lamplight" — amber primary on warm aubergine)
-- [x] Specify typography unification (Plus Jakarta Sans across body+display, web+iOS), hero-stat motif, hierarchy rules, motion additions, light-theme-as-design, accessibility commitments, four-phase rollout
-- [x] Register PRD in `docs/PRDs/REGISTRY.md` as Draft
-- [ ] Product owner review + decision on Q1–Q5 (brand color, app icon, icons, serif, splash) — human action
-- [ ] Implementation — gated on Approved status; do not begin
+### Phase 0 — Tokenization sweep (mandatory groundwork, no visible change)
+- [x] Define canonical TOKEN_CONTRACT in shared/lib/themeTokens.ts (token name list, families, modes, contrast pairs)
+- [x] CI test: parse frontend/src/index.css, assert every variant block defines exactly TOKEN_CONTRACT
+- [ ] CI test: extend to parse app/global.css too (iOS)
+- [ ] CI test: assert every brand/ink token clears AA (4.5:1) against its bg
+- [x] Add missing brand/health/state tokens to frontend/src/index.css :root + [data-theme="light"] (mapped to existing visual hexes)
+- [x] Add missing --color-surface token to web :root (was missing)
+- [x] Expand app/global.css from ~10 to full token contract (brand, health, state, surface, notification)
+- [x] Restructure app/lib/colors.ts: brand/health/state per theme (not in static `accent`); `lavender`/`amber` as backward-compat aliases
+- [x] Update app/tailwind.config.ts: lavender/amber/jade/honey/coral/rose → CSS var-backed (theme-reactive)
+- [x] Widen Palette type to accept both dark + light palettes
+- [x] Audit + replace hardcoded brand/health hexes across frontend/src/ (22 files, 99 sites → var(--color-*))
+- [x] Audit + replace hardcoded hexes across app/ (7 consumer files → colors.X from useThemeColors)
+- [x] household.tsx: ROLE_COLORS converted from static map to per-theme function
+- [x] Recharts chart components: var() strings in stroke/fill resolve automatically via SVG CSS var support — no hook needed
+- [x] Replace inline hexes in :focus-visible, .btn-primary, .input-dark with tokens
+- [x] .glow-* helpers: rgba forms documented (Safari compat); deferred to Phase 1 with color-mix
+- [ ] Second pass: rgba() brand/health forms (hex+alpha suffixes like `${colors.brand}33` vs CSS var) — flag for Phase 1
+- [ ] CatExportPage print styles: intentionally left as static for white-paper output; separate print-palette decision needed
+- [x] All 4 test suites pass (shared 300, worker 151, frontend 62, app 161); tsc clean; frontend builds
 
----
+### Phase 1 — Lamplight default + 5-theme picker + splash refresh
+- [ ] Define all 5 families × dark+light (10 token blocks) in frontend/src/index.css per §5.1
+- [ ] Define same 10 token blocks in app/global.css (NativeWind)
+- [ ] Set Lamplight-dark as :root default (replaces current purple tokens)
+- [ ] Add `themeFamily` storage axis (localStorage web, AsyncStorage iOS); keep existing `theme` mode key
+- [ ] Migration: write `themeFamily=lamplight` on first load if absent
+- [ ] Extend ThemeContext with family axis + tokens object derived from (family, mode)
+- [ ] Settings "Theme" picker: 5 swatched cards (bg/surface/brand/accent preview), one-line description per family
+- [ ] Apply same picker to iOS Settings screen
+- [ ] Refresh login/splash content + colors to Lamplight (PRD-login-splash content refresh)
+- [ ] Pin vet export to Lamplight light regardless of user preference
+- [ ] Pin pre-auth splash to Lamplight (resolve mode via prefers-color-scheme)
+- [ ] One-time release-note row at top of Settings: "We refreshed the look — pick the theme that feels like home"
+- [ ] Tests: ThemeContext (family + mode), Settings picker, storage migration
 
-## Phase 58: Device Integrations PRD Research & Draft (2026-04-15)
+### Phase 2 — Type unification + hero-stat motif
+- [ ] Add Plus Jakarta Sans as body font (web — already loaded; iOS — bundle font weights 400/500/600/700)
+- [ ] Replace system-stack body fallback with Plus Jakarta Sans across web + iOS
+- [ ] Hero-stat treatment component (large tabular numerals, smaller baseline-aligned unit, 1px brand-color underline on numeric portion)
+- [ ] Apply hero-stat to: CatProfile current weight, Home cat-row weight, Daily Check-In confirmation, vet export top stat
+- [ ] Tighten label letter-spacing per §7
+- [ ] Tests: hero-stat component renders, underline reflows on theme change
 
-- [x] Research pet-device API landscape (Sure Petcare, Petlibro, PETKIT, Whisker, Petivity, FitBark, CATLINK, DIY/HA)
-- [x] Document finding: no vendor offers official OAuth APIs except FitBark
-- [x] Draft three-tier strategy: generic ingest endpoint → HealthKit → vendor-specific gated on demand
-- [x] Write `docs/PRDs/PRD-device-integrations.md` (Draft)
-- [x] Register PRD in `docs/PRDs/REGISTRY.md`; mark killer-app P8 as superseded
-- [ ] Product owner review + move to Approved (human action)
-- [ ] Implementation — gated on approval; do not begin
+### Phase 3 — Hierarchy + Phosphor icons + warmth pulse
+- [ ] Verify Phosphor Icons MIT license; add as dependency (web + iOS)
+- [ ] Replace system-chrome emoji (✅👀⚠️🚨 + measurement-type emoji) with Phosphor equivalents
+- [ ] Keep emoji on historical measurement entries + cat-emoji default avatar
+- [ ] Refactor InsightsPanel: collapse to ≤2 bordered surfaces
+- [ ] Refactor CatProfile: enforce 5-zone page rhythm
+- [ ] Refactor Home cat row: avatar 72→88px, photo as visual anchor
+- [ ] Full-bleed profile hero photo with warm-gradient overlay (already half-built)
+- [ ] "Warmth pulse" 400ms amber box-shadow rise/fall on successful measurement log
+- [ ] Gate all entrance + glow + shimmer animations on prefers-reduced-motion: no-preference (system-wide)
+
+### Phase 3.5 — Memorial page serif preview (Almanac spirit)
+- [ ] Add serif display face for Memorial page (free option: Fraunces; verify license + bundle weight)
+- [ ] Apply serif to Memorial cat name + key dates only; body stays Plus Jakarta
+- [ ] Test on web + iOS
+
+### Phase 4 — Marketing assets + app-icon options (deferred, post-Phase 3)
+- [ ] Generate 3–5 amber-lamp app-icon SVG concepts in app/assets/store/shared/icon-options/
+- [ ] Each option: 1024×1024 PNG render alongside SVG source, README.md describing the concept
+- [ ] App Store screenshots refreshed in Lamplight (separate sub-task; gated on Phase 1 ship)
+- [ ] DO NOT swap live app icon — pending future PRD selection
+- [ ] Polish pass on the four non-default themes based on user feedback
+
+### Verification
+- [ ] All 4 test suites pass (shared, worker, frontend, app)
+- [ ] Token-contract CI test green for all 10 (family, mode) blocks
+- [ ] AA contrast CI test green for all variants
+- [ ] Manual visual QA: Lamplight dark + light on Home, CatProfile, Check-In, Settings, Login, Vet Export
+- [ ] Spot-check one alternate family (Forest) on the same 6 screens
+- [ ] Update docs/DESIGN.md to reflect Lamplight as canonical + theme-picker architecture
+- [ ] Mark PRD-visual-identity-v2.md status `Implemented` in REGISTRY.md
+- [ ] Deploy worker (no changes expected) + frontend; ship iOS via build-ios.sh
 
 ---
 

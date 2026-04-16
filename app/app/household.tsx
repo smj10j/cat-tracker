@@ -28,15 +28,18 @@ const ROLE_DESC: Record<Role, string> = {
   admin: 'Full control, can invite members',
 };
 
-const ROLE_COLORS: Record<string, string> = {
-  admin: '#c084fc',
-  editor: '#4ade80',
-  contributor: '#fbbf24',
-  viewer: '#a899c0',
-};
+function buildRoleColors(colors: ReturnType<typeof useThemeColors>): Record<string, string> {
+  return {
+    admin: colors.brand,
+    editor: colors.jade,
+    contributor: colors.honey,
+    viewer: colors.inkMid,
+  };
+}
 
 export default function HouseholdScreen() {
   const colors = useThemeColors();
+  const ROLE_COLORS = buildRoleColors(colors);
   const { rv } = useResponsiveLayout();
   const router = useRouter();
   const [data, setData] = useState<HouseholdResponse | null>(null);
@@ -554,6 +557,7 @@ function MemberRow({
   isLast: boolean;
 }) {
   const colors = useThemeColors();
+  const ROLE_COLORS = buildRoleColors(colors);
   const initial = (member.display_name?.[0] ?? member.email?.[0] ?? '?').toUpperCase();
   const [showRoles, setShowRoles] = useState(false);
 
@@ -574,7 +578,7 @@ function MemberRow({
           width: 32,
           height: 32,
           borderRadius: 16,
-          backgroundColor: 'rgba(192,132,252,0.2)',
+          backgroundColor: `${colors.brand}33`,
           justifyContent: 'center',
           alignItems: 'center',
         }}

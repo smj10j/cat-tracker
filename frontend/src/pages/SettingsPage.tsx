@@ -52,7 +52,7 @@ function SegmentedControl<T extends string>({
               aria-pressed={isActive}
               className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all"
               style={{
-                background: isActive ? 'linear-gradient(135deg, #c084fc 0%, #a855f7 100%)' : 'transparent',
+                background: isActive ? 'linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-pressed) 100%)' : 'transparent',
                 color: isActive ? 'white' : 'var(--color-ink-dim)',
                 boxShadow: isActive ? '0 2px 8px rgba(168,85,247,0.35)' : 'none',
               }}

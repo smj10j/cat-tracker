@@ -3,30 +3,55 @@
 @tailwind utilities;
 
 /* ─── Theme tokens ──────────────────────────────────────────────────────── */
+/*
+ * Phase 0 (PRD-visual-identity-v2): the current dark + light blocks remain
+ * the single active "family" until Phase 1 lands the 5-family system. Brand,
+ * accent, and health tokens are added here mapped to the existing visual
+ * hexes so component code can stop hardcoding them — no pixel drift.
+ */
 :root {
-  /* Dark theme (default) */
+  /* Surface */
   --color-bg: #16111f;
+  --color-surface: #1f1830;
+  --color-surface-hi: #2a2040;
   --color-card: rgba(255,255,255,0.04);
   --color-card-border: rgba(255,255,255,0.07);
-  --color-surface-hi: #2a2040;
-  --color-ink: #ede9f6;
-  --color-ink-mid: #a899c0;
-  --color-ink-dim: #6b5f85;
-  --color-rim: rgba(255,255,255,0.07);
-  --color-rim-hi: rgba(255,255,255,0.12);
   --color-section-bg: rgba(42,32,64,0.8);
   --color-section-border: rgba(255,255,255,0.08);
+  --color-rim: rgba(255,255,255,0.07);
+  --color-rim-hi: rgba(255,255,255,0.12);
+  --color-grid: rgba(255,255,255,0.04);
+  --color-dot-ring: #16111f;
+  --color-tab-bar: rgba(255,255,255,0.04);
   --color-tooltip-bg: rgba(42,32,64,0.95);
   --color-tooltip-border: rgba(255,255,255,0.1);
   --color-nav-bg: rgba(31,24,48,0.85);
   --color-nav-border: rgba(255,255,255,0.07);
-  --color-dot-ring: #16111f;
-  --color-grid: rgba(255,255,255,0.04);
   --color-hero-overlay: rgba(13,9,24,0.96);
   --color-hero-overlay-mid: rgba(13,9,24,0.5);
-  --color-tab-bar: rgba(255,255,255,0.04);
   --color-skeleton-from: rgba(255,255,255,0.04);
   --color-skeleton-to: rgba(255,255,255,0.08);
+  --color-badge-bg: rgba(255,255,255,0.06);
+
+  /* Ink */
+  --color-ink: #ede9f6;
+  --color-ink-mid: #a899c0;
+  --color-ink-dim: #6b5f85;
+
+  /* Brand (current cool-purple — Phase 1 replaces with Lamplight amber) */
+  --color-brand: #c084fc;
+  --color-brand-pressed: #a855f7;
+  --color-brand-glow: rgba(192,132,252,0.18);
+  --color-brand-on: #ffffff;
+  --color-accent: #fb923c;
+
+  /* Health palette (semantic — constant role across families) */
+  --color-health-jade: #4ade80;
+  --color-health-honey: #fbbf24;
+  --color-health-coral: #f97316;
+  --color-health-rose: #f87171;
+
+  /* Notification state */
   --color-overdue: #f87171;
   --color-overdue-muted: #f87171cc;
   --color-overdue-bg: rgba(248,113,113,0.06);
@@ -39,32 +64,51 @@
   --color-refill-muted: #fb923ccc;
   --color-refill-bg: rgba(251,146,60,0.05);
   --color-refill-border: rgba(251,146,60,0.25);
-  --color-badge-bg: rgba(255,255,255,0.06);
 }
 
 [data-theme="light"] {
+  /* Surface */
   --color-bg: #f0eefa;
+  --color-surface: #ffffff;
+  --color-surface-hi: #e8e0f7;
   --color-card: rgba(255,255,255,0.9);
   --color-card-border: rgba(0,0,0,0.08);
-  --color-surface-hi: #e8e0f7;
-  --color-ink: #1a1525;
-  --color-ink-mid: #5a4e7a;
-  --color-ink-dim: #9589b5;
-  --color-rim: rgba(0,0,0,0.08);
-  --color-rim-hi: rgba(0,0,0,0.15);
   --color-section-bg: rgba(255,255,255,0.85);
   --color-section-border: rgba(0,0,0,0.08);
+  --color-rim: rgba(0,0,0,0.08);
+  --color-rim-hi: rgba(0,0,0,0.15);
+  --color-grid: rgba(0,0,0,0.05);
+  --color-dot-ring: #f0eefa;
+  --color-tab-bar: rgba(0,0,0,0.05);
   --color-tooltip-bg: rgba(248,246,255,0.97);
   --color-tooltip-border: rgba(0,0,0,0.12);
   --color-nav-bg: rgba(240,238,250,0.9);
   --color-nav-border: rgba(0,0,0,0.08);
-  --color-dot-ring: #f0eefa;
-  --color-grid: rgba(0,0,0,0.05);
   --color-hero-overlay: rgba(240,238,250,0.95);
   --color-hero-overlay-mid: rgba(240,238,250,0.6);
-  --color-tab-bar: rgba(0,0,0,0.05);
   --color-skeleton-from: rgba(0,0,0,0.05);
   --color-skeleton-to: rgba(0,0,0,0.09);
+  --color-badge-bg: rgba(0,0,0,0.06);
+
+  /* Ink */
+  --color-ink: #1a1525;
+  --color-ink-mid: #5a4e7a;
+  --color-ink-dim: #9589b5;
+
+  /* Brand (current cool-purple, light-mode tuned) */
+  --color-brand: #7c3aed;
+  --color-brand-pressed: #6d28d9;
+  --color-brand-glow: rgba(124,58,237,0.12);
+  --color-brand-on: #ffffff;
+  --color-accent: #c2410c;
+
+  /* Health palette (light-mode tuned for AA on cream surfaces) */
+  --color-health-jade: #2e8c5b;
+  --color-health-honey: #a57a11;
+  --color-health-coral: #b85220;
+  --color-health-rose: #b8312e;
+
+  /* Notification state */
   --color-overdue: #dc2626;
   --color-overdue-muted: #b91c1c;
   --color-overdue-bg: rgba(220,38,38,0.06);
@@ -77,7 +121,6 @@
   --color-refill-muted: #9a3412;
   --color-refill-bg: rgba(194,65,12,0.05);
   --color-refill-border: rgba(194,65,12,0.2);
-  --color-badge-bg: rgba(0,0,0,0.06);
 }
 
 @layer base {
@@ -99,7 +142,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid #c084fc;
+    outline: 2px solid var(--color-brand);
     outline-offset: 2px;
     border-radius: 4px;
   }
@@ -116,17 +159,17 @@
 
   /* Primary button */
   .btn-primary {
-    background: linear-gradient(135deg, #c084fc 0%, #a855f7 100%);
-    color: white;
+    background: linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-pressed) 100%);
+    color: var(--color-brand-on);
     border-radius: 9999px;
     font-weight: 600;
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
     transition: opacity 150ms ease, transform 100ms ease, box-shadow 150ms ease;
-    box-shadow: 0 4px 16px rgba(168, 85, 247, 0.35);
+    box-shadow: 0 4px 16px var(--color-brand-glow);
   }
   .btn-primary:hover {
     opacity: 0.92;
-    box-shadow: 0 6px 20px rgba(168, 85, 247, 0.5);
+    box-shadow: 0 6px 20px var(--color-brand-glow);
   }
   .btn-primary:active {
     transform: scale(0.97);
@@ -166,8 +209,8 @@
     color: var(--color-ink-dim);
   }
   .input-dark:focus {
-    border-color: #c084fc;
-    box-shadow: 0 0 0 3px rgba(192, 132, 252, 0.15);
+    border-color: var(--color-brand);
+    box-shadow: 0 0 0 3px var(--color-brand-glow);
   }
 
   /* Skeleton loading */
@@ -183,7 +226,10 @@
     border-radius: 8px;
   }
 
-  /* Health glow dots */
+  /* Health glow dots — use token colors with alpha fallback.
+     CSS color-mix would be cleaner but Safari <16.4 doesn't support it;
+     the rgba forms here match the current visual exactly. Phase 1 can
+     switch to color-mix when browser floor moves. */
   .glow-jade { box-shadow: 0 0 8px rgba(74, 222, 128, 0.6); }
   .glow-honey { box-shadow: 0 0 8px rgba(251, 191, 36, 0.6); }
   .glow-coral { box-shadow: 0 0 8px rgba(249, 115, 22, 0.6); }

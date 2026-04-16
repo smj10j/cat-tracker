@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 
 function HomeIcon({ active }: { active: boolean }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#c084fc' : 'var(--color-ink-dim)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--color-brand)' : 'var(--color-ink-dim)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
       <polyline points="9 22 9 12 15 12 15 22" />
     </svg>
@@ -11,7 +11,7 @@ function HomeIcon({ active }: { active: boolean }) {
 
 function ChartIcon({ active }: { active: boolean }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#c084fc' : 'var(--color-ink-dim)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--color-brand)' : 'var(--color-ink-dim)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
     </svg>
   )
@@ -40,7 +40,7 @@ export default function BottomNav() {
           {({ isActive }) => (
             <>
               <HomeIcon active={isActive} />
-              <span className="text-xs font-medium" style={{ color: isActive ? '#c084fc' : 'var(--color-ink-dim)' }}>Cats</span>
+              <span className="text-xs font-medium" style={{ color: isActive ? 'var(--color-brand)' : 'var(--color-ink-dim)' }}>Cats</span>
             </>
           )}
         </NavLink>
@@ -56,7 +56,7 @@ export default function BottomNav() {
               width: 52,
               height: 52,
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #c084fc 0%, #a855f7 100%)',
+              background: 'linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-pressed) 100%)',
               boxShadow: '0 4px 20px rgba(168,85,247,0.5)',
               display: 'flex',
               alignItems: 'center',
@@ -78,7 +78,7 @@ export default function BottomNav() {
           {({ isActive }) => (
             <>
               <ChartIcon active={isActive} />
-              <span className="text-xs font-medium" style={{ color: isActive ? '#c084fc' : 'var(--color-ink-dim)' }}>Compare</span>
+              <span className="text-xs font-medium" style={{ color: isActive ? 'var(--color-brand)' : 'var(--color-ink-dim)' }}>Compare</span>
             </>
           )}
         </NavLink>

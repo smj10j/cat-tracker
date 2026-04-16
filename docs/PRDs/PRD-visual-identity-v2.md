@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | `Draft` |
+| **Status** | `Approved` |
 | **Last updated** | 2026-04-15 |
 | **Author** | Design strategy review |
 | **Scope** | Cross-platform: web (`frontend/`) + iOS (`app/`). All visual tokens flow from `frontend/src/index.css` and `app/global.css`. |
@@ -23,9 +23,9 @@ The answer, with high conviction: **the bones are good — keep the warm-night t
 - Brand: keep "warm night" intent; replace generic Tailwind purple as the *default* with **Lamplight** (amber on aubergine).
 - Ship Lamplight + four alternates (Warm Night sharpened, Forest, Clinical, Editorial) as a **Settings → Theme** picker, each with dark/light/system mode (independent axis from family).
 - All ten variants (5 families × 2 modes) share one token contract; no component code branches on theme — it just reads tokens.
-- Mandatory Phase 0: tokenize 86 hardcoded brand-color hex sites across the codebase before the picker can ship. Adds CI tests for token parity + AA contrast.
-- Also in scope: typography unification (Plus Jakarta Sans body + display, web + iOS), the new "hero stat" amber-underline motif, hierarchy rules, custom/Phosphor icon set, "warmth pulse" success animation, light-theme-as-its-own-design.
-- Pre-auth splash, vet export, app icon, and App Store screenshots are pinned to Lamplight regardless of preference (documented exceptions).
+- Phase 0 (mandatory groundwork): tokenize ~86 hardcoded brand-color hex sites across the codebase before the picker can ship. Adds CI tests for token parity + AA contrast.
+- Also in scope: typography unification (Plus Jakarta Sans body + display, web + iOS), the new "hero stat" amber-underline motif, hierarchy rules, **Phosphor Icons** (MIT-licensed, verified) replacing OS emoji in chrome, "warmth pulse" success animation, light-theme-as-its-own-design.
+- Pre-auth splash, vet export, app icon, and App Store screenshots are pinned to Lamplight regardless of preference (documented exceptions in §6.5).
 
 ---
 
@@ -201,7 +201,7 @@ Lean into "natural / living thing" with a deep forest-green primary, warm clay a
 
 ---
 
-### Option D — "Clinical" (anti-recommendation, included for completeness)
+### Option D — "Linen" (anti-recommendation, included for completeness)
 
 Off-white background, single muted teal accent, all-business — what 11pets and PetDesk look like.
 
@@ -212,7 +212,7 @@ Off-white background, single muted teal accent, all-business — what 11pets and
 
 ---
 
-### Option E — "Editorial" (high-effort, high-ceiling)
+### Option E — "Almanac" (high-effort, high-ceiling)
 
 Treat the app as a **personal magazine of one cat's life**. Cream paper background; serif display typeface for cat names (e.g., GT Super, Tiempos, or free alts like Fraunces); a single warm accent; large-format photos.
 
@@ -282,7 +282,7 @@ Every variant has been spot-checked for the four critical contrast pairs: **ink 
 | `--color-accent` | `#D6936A` | `#A75D34` 🛡️ |
 | `--color-rim` | `rgba(220,255,220,0.07)` | `rgba(20,40,20,0.10)` |
 
-### D — "Clinical"
+### D — "Linen"
 
 (Born light. Dark variant included for parity but is the "weaker half" of this pair.)
 
@@ -301,7 +301,7 @@ Every variant has been spot-checked for the four critical contrast pairs: **ink 
 | `--color-accent` | `#E8B05C` | `#A5731F` 🛡️ |
 | `--color-rim` | `rgba(255,255,255,0.07)` | `rgba(15,40,40,0.08)` |
 
-### E — "Editorial"
+### E — "Almanac"
 
 (Born light — paper metaphor. Dark variant works on espresso but loses some warmth.)
 
@@ -337,13 +337,13 @@ Per-family tuning is documented in the implementation notes alongside the token 
 
 ## 6. Recommendation — Lamplight as default, all five families ship as user themes
 
-**Updated thesis:** rather than committing the product to a single visual identity, v2 ships all five color families as **user-selectable themes** in Settings, with Lamplight as the default. Each theme has a dark and light variant; the user picks `(family, mode)` independently. This is achievable because every option is built on the same token contract (§5.1, §11), so no component code branches on theme — the tokens simply resolve to different values.
+**Thesis:** rather than committing the product to a single visual identity, v2 ships all five color families as **user-selectable themes** in Settings, with Lamplight as the default. Each theme has a dark and light variant; the user picks `(family, mode)` independently. This is achievable because every option is built on the same token contract (§5.1, §6.5), so no component code branches on theme — the tokens simply resolve to different values.
 
-The recommendation is therefore two-part:
+The recommendation is two-part:
 1. **Make Lamplight the default and the marketing identity** (App Store screenshots, splash, app icon, login page) — this is the brand's voice when no preference is expressed.
 2. **Ship the other four as alternates** in Settings, surfaced as a "Theme" picker beneath the existing Dark/Light/System mode toggle.
 
-This converts what could have been a contentious one-way-door brand decision into a low-risk, high-delight feature. Users who love the current purple keep it (Option A). Users who want minimal-clinical can have it (Option D). Power users get to make the app theirs. And the brand still gets a defensible, ownable default.
+**Design philosophy: great defaults, joyful optionality.** A user who never opens Settings should have a complete, delightful, opinionated experience — that's Lamplight's job. A user who *does* open Settings should feel like they've found a small toy: five real, considered theme worlds to live in, not a bag of toggles. The picker is not a fallback for a divisive default; it's a reward for curiosity. Users who love the current purple keep it (Option A). Users who want minimal-clinical can have it (Option D). Power users get to make the app theirs. And the brand still gets a defensible, ownable default that carries every external surface.
 
 ### Why Lamplight wins as the default
 
@@ -385,7 +385,7 @@ Shipping five families × two modes = ten variants requires real engineering dis
 
 | Axis | Values | Stored in |
 |---|---|---|
-| **Family** | `lamplight` (default), `warmnight`, `forest`, `clinical`, `editorial` | `localStorage['themeFamily']` (web), `AsyncStorage['themeFamily']` (iOS), eventually D1 `user_preferences` (per `PRD-app-settings` Phase C) |
+| **Family** | `lamplight` (default), `warmnight`, `forest`, `linen`, `almanac` | `localStorage['themeFamily']` (web), `AsyncStorage['themeFamily']` (iOS), eventually D1 `user_preferences` (per `PRD-app-settings` Phase C) |
 | **Mode** | `dark`, `light`, `system` | `localStorage['theme']` (existing key — kept for backward compat), `AsyncStorage['theme']`, same D1 column |
 
 `system` mode resolves at runtime via `prefers-color-scheme`; the resolved value (`dark`/`light`) is then combined with the family to pick the token set.
@@ -441,7 +441,7 @@ Phase 0 (must precede any theme picker shipping) replaces every hardcoded brand/
 - `#a855f7` → `var(--color-brand-pressed)`
 - `#fb923c` → `var(--color-accent)` (note: amber-as-accent in non-Lamplight themes; in Lamplight it equals brand)
 - `#4ade80` / `#fbbf24` / `#f97316` / `#f87171` → `var(--color-health-jade|honey|coral|rose)`
-- Recharts components: read tokens via a `useThemeTokens()` hook that subscribes to `MutationObserver` on `<html>` `data-theme*` attributes (re-renders chart on theme change).
+- Recharts components: read tokens via a `useThemeTokens()` hook backed by **`ThemeContext`** (the existing context already provides mode; extend with `family` and a `tokens` object derived from both axes). Components subscribe via the React context and re-render on change. *Do not* use `MutationObserver` on `<html>` — Context is the canonical reactivity path and avoids subtle hydration bugs.
 - The `:focus-visible` ring, `.btn-primary` gradient, `.input-dark` focus, and `.glow-*` shadows in `index.css` move to tokens.
 
 This is a mechanical, safe, well-scoped pass — but it must happen *before* the theme picker, not alongside it.
@@ -532,8 +532,9 @@ Beyond color and type, the audit (§2) flagged hierarchy as a real problem. v2 s
 **Decision:** Replace OS-emoji icons (✅ 👀 ⚠️ 🚨, plus the various 🍗💧🐾 measurement emoji) with a **custom 24px line-icon set** in two weights (line / filled), drawn in a consistent geometric style with rounded caps. Health-state icons gain a subtle amber/jade/honey/coral tint applied as fill on the filled variant.
 
 - Why: emoji renders inconsistently across iOS / Android web / Windows / Linux, and pulls visual weight we can't control. A custom set ensures consistency and gives the brand a recognizable voice in micro-UI.
-- Cost: ~2 days for a designer to draw the ~30 icons we use. Phosphor Icons (open source, MIT) is a strong pre-built fallback if we want to ship faster.
-- Compromise: keep emoji on **historical** measurement entries and on cat avatars (the literal cat-emoji default avatar). Replace it only in **system chrome**.
+- **v2 ships Phosphor Icons** (https://phosphoricons.com — MIT licensed; verify license file is checked in alongside the dependency). ~2 hours of integration vs ~2 days of custom drawing, and Phosphor's geometric, rounded-cap house style is already aligned with our intended voice.
+- v3 may revisit a custom-drawn ~30-icon set if Phosphor proves limiting, but custom icons are explicitly out of scope for v2.
+- Compromise: keep emoji on **historical** measurement entries and on cat avatars (the literal cat-emoji default avatar). Replace emoji only in **system chrome**.
 
 ---
 
@@ -628,24 +629,30 @@ The token plumbing means we can ship v2 incrementally without a "big bang." Phas
 
 ---
 
-## 16. Open questions for the product owner
+## 16. Resolved decisions (product owner, 2026-04-15)
 
-1. **Default theme commitment.** Lamplight as the default + marketing identity, with the other four available in Settings. Confirm — this is the load-bearing decision.
-2. **All five themes vs subset.** Ship all five families in Phase 1, or start with two (Lamplight + Warm Night for opt-back) and add the others in Phase 4? The contract supports either; cost is roughly the same since the work is the architecture, not the per-theme tokens.
-3. **App icon refresh.** Yes / no / later? If yes, this should follow the App Store re-review (don't pile on changes).
-4. **Custom icon investment.** Custom drawn set vs Phosphor adoption. ~2 days vs ~2 hours.
-5. **Editorial / serif direction.** Park Option E's serif headline experiment for v3, or explore it on a single surface (e.g. Memorial Record page)?
-6. **Splash refresh timing.** The login/splash page (`PRD-login-splash`) is pinned to Lamplight per §6.5 and will need a content refresh to match. Bundle with Phase 1 or treat as its own follow-up?
-7. **Server-side preference sync.** `PRD-app-settings` Phase C is currently unstarted; should `theme_family` ride along with it, or stay localStorage-only until that lands?
+1. **Default theme commitment.** ✅ Lamplight is the default and the marketing identity. The other four families ship as user-selectable themes in Settings.
+2. **All five themes vs subset.** ✅ All five families ship in Phase 1. Architecture cost is the same; per-family token blocks are cheap once the contract exists.
+3. **App icon refresh.** ✅ Generate **options only** in v2 — explore amber-lamp directions and check 3–5 SVG concepts into `app/assets/store/shared/icon-options/` for review. Do **not** swap the live app icon yet (avoids piling on the iPad-fix resubmission and keeps store identity stable). A future PRD selects and ships one.
+4. **Custom icon investment.** ✅ Phosphor Icons (MIT) for v2; custom-drawn set deferred to v3.
+5. **Almanac / serif direction.** ✅ Use a serif display face on the **Memorial Record page only** as a focused preview of Option E's spirit. Restricts the experiment to a single, emotionally appropriate surface.
+6. **Splash refresh timing.** ✅ Bundled with Phase 1. The login/splash page (`PRD-login-splash`) gets its Lamplight content refresh in the same release that flips the brand color — they must land together so the splash doesn't read as broken next to the new app.
+7. **Server-side preference sync.** ✅ localStorage-only for v2. `theme_family` rides along when `PRD-app-settings` Phase C lands; until then, theme is per-device. Acceptable trade-off for v2 ship velocity.
 
 ---
 
 ## 17. What success looks like
 
+**Qualitative bar (the human read):**
 - A friend looks at a screenshot from across the room and says "is that the cat one?" — yes.
 - A vet receives an export and says "this looks more professional than what we send out."
 - A user opens the app at 11 pm and the screen feels like a lamp, not a billboard.
 - The App Store screenshots, on the page, look distinct from every other dark-mode purple-gradient app currently in the Health & Fitness charts.
-- A designer reviewing the app for fun would say: "they made decisions."
+- A designer reviewing the app for fun would say: "they made decisions." *(The bar.)*
 
-That last one is the bar.
+**Quantitative gates (what we measure post-ship):**
+- **Zero AA contrast regressions** vs. current production (CI-enforced on every PR).
+- **Zero theme-token-drift incidents** in the 90 days following Phase 1 (any visible bug traced to a missing/wrong token = a hard look at the contract).
+- **Theme picker engagement (Phase 1 + 30 days):** ≥ 15% of active users open the picker at least once. ≥ 5% pick a non-default theme and keep it for ≥ 7 days. (If both miss, the picker isn't earning its complexity — fold to Lamplight-only and remove the others until demand is proven.)
+- **App Store conversion uplift after screenshot refresh (Phase 4 + 30 days):** target ≥ 10% relative lift in product-page-to-install rate. Below 0% = the visual story didn't land; revisit.
+- **Crash / render-error rate** does not increase in the release containing Phase 1 (token typos and chart re-render bugs are the most likely regression class).

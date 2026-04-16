@@ -48,7 +48,7 @@
 | [PRD-landscape-charts.md](PRD-landscape-charts.md) | Landscape Mode — Full-Screen Chart Visualization | `Implemented` | 2026-04-12 |
 | [PRD-push-notifications.md](PRD-push-notifications.md) | Push Notifications (iOS Native) | `In Progress` | 2026-04-11 |
 | [PRD-device-integrations.md](PRD-device-integrations.md) | Smart Device Integrations (Auto-Ingest) | `Draft` | 2026-04-15 |
-| [PRD-visual-identity-v2.md](PRD-visual-identity-v2.md) | Visual Identity v2: Color, Type, Hierarchy & Feel | `Draft` | 2026-04-15 |
+| [PRD-visual-identity-v2.md](PRD-visual-identity-v2.md) | Visual Identity v2: Color, Type, Hierarchy & Feel | `Approved` | 2026-04-15 |
 
 ---
 
@@ -627,6 +627,24 @@ Nothing rejected yet.
 **Problem:** The app assumes US conventions (12h time, lbs, MM/DD/YYYY) everywhere. International users see unfamiliar formats with no override.
 
 **Scope:** Locale-first defaults framework in `shared/lib/preferences.ts`; explicit overrides in Settings (Regional section); Phase A1 = date/time format; Phase A2 = weight unit + healthMetrics migration; Phase B = week start, temperature, chart/export integration; Phase C = D1 sync + native parity.
+
+---
+
+### PRD-visual-identity-v2.md — Visual Identity v2: Color, Type, Hierarchy & Feel
+
+| | |
+|---|---|
+| **Status** | `Approved` |
+| **Last updated** | 2026-04-15 |
+| **Related** | PRD-app-settings.md (theme infra), PRD-accessibility.md (color independence), PRD-login-splash.md (splash refresh bundled with Phase 1) |
+
+**Problem:** Current dark-purple identity is generic SaaS gradient territory; brand color encodes no meaning; the cat is not the hero; light theme is a port not a design; no recognizable motif.
+
+**Scope:** Lamplight (warm amber on aubergine) as default brand identity. Ship all five color families (Lamplight, Warm Night sharpened, Forest, Linen, Almanac) as user-selectable themes in Settings, dark/light/system per family. Token-contract architecture enforced in CI (parity + AA contrast). Plus Jakarta Sans unified body+display across web+iOS. Hero-stat amber-underline motif. Phosphor Icons replacing OS emoji in chrome. "Warmth pulse" success animation. Light-theme-as-its-own-design (warm cream paper). Memorial page gets serif display preview.
+
+**Resolved decisions (2026-04-15):** all 5 themes ship in Phase 1; app-icon options generated to `app/assets/store/shared/icon-options/` for review (live icon not swapped); Phosphor for v2; serif on Memorial page only; splash refresh bundled with Phase 1; localStorage-only for theme storage until PRD-app-settings Phase C lands.
+
+**Phases:** Phase 0 (tokenization sweep — mandatory groundwork), Phase 1 (Lamplight default + 5-theme picker + splash refresh), Phase 2 (type unification + hero-stat motif), Phase 3 (hierarchy + Phosphor icons + warmth pulse), Phase 4 (marketing assets, deferred).
 
 ---
 

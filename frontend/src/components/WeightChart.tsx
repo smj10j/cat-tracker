@@ -139,12 +139,12 @@ export default function WeightChart({ measurements, showRangeSelector = true, fu
           <AreaChart data={data} margin={{ top: 14, right: 8, left: 0, bottom: 4 }}>
             <defs>
               <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#c084fc" />
-                <stop offset="100%" stopColor="#fb923c" />
+                <stop offset="0%" stopColor="var(--color-brand)" />
+                <stop offset="100%" stopColor="var(--color-accent)" />
               </linearGradient>
               <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#c084fc" stopOpacity={0.15} />
-                <stop offset="100%" stopColor="#c084fc" stopOpacity={0} />
+                <stop offset="0%" stopColor="var(--color-brand)" stopOpacity={0.15} />
+                <stop offset="100%" stopColor="var(--color-brand)" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-grid)" vertical={false} />
@@ -166,7 +166,7 @@ export default function WeightChart({ measurements, showRangeSelector = true, fu
               fill="url(#areaGrad)"
               dot={(props: DotProps) => <HealthDot key={props.index} {...props} periods={filteredPeriods} />}
               activeDot={(props: { cx?: number; cy?: number }) => (
-                <circle cx={props.cx} cy={props.cy} r={7} fill="#c084fc" style={{ stroke: 'var(--color-dot-ring)', strokeWidth: 2 }} />
+                <circle cx={props.cx} cy={props.cy} r={7} fill="var(--color-brand)" style={{ stroke: 'var(--color-dot-ring)', strokeWidth: 2 }} />
               )}
             />
           </AreaChart>

@@ -112,7 +112,7 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
           role="status"
           aria-live="polite"
           className="text-sm font-semibold text-center py-1"
-          style={{ color: '#4ade80' }}
+          style={{ color: 'var(--color-health-jade)' }}
         >
           ✓ Saved!
         </div>
@@ -175,7 +175,7 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
                       ? (preset.concern ? '1.5px solid rgba(248,113,113,0.5)' : '1.5px solid rgba(192,132,252,0.4)')
                       : (preset.concern ? '1px solid rgba(248,113,113,0.25)' : '1px solid var(--color-rim)'),
                     color: isSelected
-                      ? (preset.concern ? '#f87171' : '#c084fc')
+                      ? (preset.concern ? 'var(--color-health-rose)' : 'var(--color-brand)')
                       : (preset.concern ? '#f87171cc' : 'var(--color-ink)'),
                   }}
                 >

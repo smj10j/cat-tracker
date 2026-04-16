@@ -155,7 +155,7 @@ export default function HomeScreen() {
   function renderCatCard({ item }: { item: CatCardData }) {
     const { cat, latestWeight, latestUnit, healthStatus, correlationBadge } = item;
     const isOk = healthStatus === 'ok';
-    const statusColor = STATUS_COLORS[healthStatus as HealthStatus] ?? '#4ade80';
+    const statusColor = STATUS_COLORS[healthStatus as HealthStatus] ?? colors.jade;
     const isUrgent = healthStatus === 'urgent';
     const isConcerning = healthStatus === 'concerning';
 
@@ -231,7 +231,7 @@ export default function HomeScreen() {
 
         {latestWeight !== null && (
           <View style={{ alignItems: 'flex-end', flexShrink: 0 }}>
-            <Text style={{ fontWeight: '700', fontSize: rv(18, 22), color: isOk ? '#fb923c' : statusColor }}>
+            <Text style={{ fontWeight: '700', fontSize: rv(18, 22), color: isOk ? colors.accent : statusColor }}>
               {formatWeightValue(latestWeight, latestUnit, prefs)}
             </Text>
             <Text style={{ color: colors.inkDim, fontSize: rv(12, 14) }}>{prefs.weightUnit}</Text>
@@ -278,7 +278,7 @@ export default function HomeScreen() {
     <View style={{ gap: 12 }}>
       {error && (
         <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.rim }}>
-          <Text style={{ color: '#f87171', fontSize: 14 }}>{error}</Text>
+          <Text style={{ color: colors.rose, fontSize: 14 }}>{error}</Text>
         </View>
       )}
 
@@ -302,7 +302,7 @@ export default function HomeScreen() {
               onPress={handleClaimCats}
               disabled={claiming}
               style={{
-                backgroundColor: '#c084fc',
+                backgroundColor: colors.brand,
                 borderRadius: 12,
                 paddingVertical: 8,
                 paddingHorizontal: 16,
@@ -438,7 +438,7 @@ export default function HomeScreen() {
               onPress={() => { setShowProfile(false); signOut(); }}
               style={{ paddingVertical: 4 }}
             >
-              <Text style={{ fontSize: 14, color: '#f87171' }}>Sign out</Text>
+              <Text style={{ fontSize: 14, color: colors.rose }}>Sign out</Text>
             </Pressable>
           </View>
         </Pressable>
@@ -459,10 +459,10 @@ export default function HomeScreen() {
             <View style={{
               width: 36, height: 36, borderRadius: 18,
               alignItems: 'center', justifyContent: 'center',
-              backgroundColor: 'rgba(192,132,252,0.2)',
-              borderWidth: 1.5, borderColor: 'rgba(192,132,252,0.3)',
+              backgroundColor: `${colors.brand}33`,
+              borderWidth: 1.5, borderColor: `${colors.brand}4D`,
             }}>
-              <Text style={{ fontWeight: '700', fontSize: 14, color: '#c084fc' }}>{initial}</Text>
+              <Text style={{ fontWeight: '700', fontSize: 14, color: colors.brand }}>{initial}</Text>
             </View>
           )}
         </Pressable>
@@ -484,11 +484,11 @@ export default function HomeScreen() {
               position: 'absolute', top: 2, right: 2,
               minWidth: 16, height: 16,
               borderRadius: 8,
-              backgroundColor: '#f87171',
+              backgroundColor: colors.rose,
               alignItems: 'center', justifyContent: 'center',
               paddingHorizontal: 4,
             }}>
-              <Text style={{ color: '#fff', fontSize: 9, fontWeight: '700' }}>
+              <Text style={{ color: colors.brandOn, fontSize: 9, fontWeight: '700' }}>
                 {notifCount > 99 ? '99+' : notifCount}
               </Text>
             </View>

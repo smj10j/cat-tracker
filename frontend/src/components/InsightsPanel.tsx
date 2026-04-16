@@ -53,7 +53,7 @@ function MiniSparkline({ correlation, measurementsByType }: {
     <div className="mt-2 rounded-xl p-3" style={{ background: 'var(--color-card)', border: '1px solid var(--color-rim)' }}>
       <div className="flex items-center gap-3 mb-1">
         <div className="flex items-center gap-1.5">
-          <span className="inline-block w-2 h-2 rounded-full" style={{ background: '#c084fc' }} />
+          <span className="inline-block w-2 h-2 rounded-full" style={{ background: 'var(--color-brand)' }} />
           <span className="text-xs text-ink-dim">{labelA}</span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -65,7 +65,7 @@ function MiniSparkline({ correlation, measurementsByType }: {
         <ComposedChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
           <XAxis dataKey="week" hide />
           <YAxis domain={[0, 1]} hide />
-          <Line type="monotone" dataKey="a" stroke="#c084fc" strokeWidth={1.5} dot={false} connectNulls />
+          <Line type="monotone" dataKey="a" stroke="var(--color-brand)" strokeWidth={1.5} dot={false} connectNulls />
           <Line type="monotone" dataKey="b" stroke="#34d399" strokeWidth={1.5} dot={false} connectNulls />
         </ComposedChart>
       </ResponsiveContainer>
@@ -106,7 +106,7 @@ export default function InsightsPanel({
 
   if (!hasInsights) return null
 
-  const statusColor = STATUS_COLORS[status as keyof typeof STATUS_COLORS] ?? '#c084fc'
+  const statusColor = STATUS_COLORS[status as keyof typeof STATUS_COLORS] ?? 'var(--color-brand)'
 
   const panelBg = isUrgent
     ? 'rgba(248,113,113,0.08)'
@@ -135,7 +135,7 @@ export default function InsightsPanel({
   const strengthDot = (s: string) => (
     <span
       className="inline-block w-2 h-2 rounded-full shrink-0 mt-1"
-      style={{ background: s === 'notable' ? '#c084fc' : '#fb923c' }}
+      style={{ background: s === 'notable' ? 'var(--color-brand)' : 'var(--color-accent)' }}
     />
   )
 
@@ -193,9 +193,9 @@ export default function InsightsPanel({
           >
             <div className="flex items-center gap-2">
               <span className="text-sm">🐾</span>
-              <span className="text-xs font-semibold" style={{ color: '#c084fc' }}>Cat Wellness Guide</span>
+              <span className="text-xs font-semibold" style={{ color: 'var(--color-brand)' }}>Cat Wellness Guide</span>
             </div>
-            <span className="text-sm shrink-0" style={{ color: '#c084fc' }}>→</span>
+            <span className="text-sm shrink-0" style={{ color: 'var(--color-brand)' }}>→</span>
           </Link>
         </div>
       )}
@@ -218,7 +218,7 @@ export default function InsightsPanel({
               className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0"
               style={{
                 background: correlations.length > 0 ? 'rgba(192,132,252,0.15)' : 'var(--color-card)',
-                color: correlations.length > 0 ? '#c084fc' : 'var(--color-ink-dim)',
+                color: correlations.length > 0 ? 'var(--color-brand)' : 'var(--color-ink-dim)',
                 border: correlations.length > 0 ? '1px solid rgba(192,132,252,0.25)' : '1px solid var(--color-rim)',
               }}
             >
@@ -231,7 +231,7 @@ export default function InsightsPanel({
                 className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0"
                 style={{
                   background: 'rgba(249,115,22,0.12)',
-                  color: '#f97316',
+                  color: 'var(--color-health-coral)',
                   border: '1px solid rgba(249,115,22,0.35)',
                 }}
               >
@@ -259,7 +259,7 @@ export default function InsightsPanel({
                     border: '1.5px solid rgba(249,115,22,0.4)',
                   }}
                 >
-                  <p className="text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: '#f97316' }}>
+                  <p className="text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--color-health-coral)' }}>
                     Multiple signals — {confluence.clusterName}
                   </p>
                   <p className="text-sm leading-snug" style={{ color: '#fdba74' }}>
@@ -303,7 +303,7 @@ export default function InsightsPanel({
                 >
                   <span className="text-base shrink-0">&#128202;</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold" style={{ color: '#c084fc' }}>Explore measurement patterns</p>
+                    <p className="text-xs font-semibold" style={{ color: 'var(--color-brand)' }}>Explore measurement patterns</p>
                     <p className="text-xs text-ink-dim mt-0.5">Compare any two types to see how they relate over time</p>
                   </div>
                   <span

@@ -173,7 +173,7 @@ export default function CropModal({ file, onCrop, onCancel }: CropModalProps) {
         <button
           onClick={handleSave}
           className="text-sm font-semibold"
-          style={{ color: '#c084fc' }}
+          style={{ color: 'var(--color-brand)' }}
         >
           Save
         </button>

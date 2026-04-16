@@ -53,7 +53,7 @@ export default function LoginPage() {
               right: -12,
               background: 'rgba(192,132,252,0.15)',
               border: '1px solid rgba(192,132,252,0.35)',
-              color: '#c084fc',
+              color: 'var(--color-brand)',
               backdropFilter: 'blur(8px)',
             }}
           >
@@ -68,7 +68,7 @@ export default function LoginPage() {
               left: -14,
               background: 'rgba(74,222,128,0.1)',
               border: '1px solid rgba(74,222,128,0.3)',
-              color: '#4ade80',
+              color: 'var(--color-health-jade)',
               backdropFilter: 'blur(8px)',
             }}
           >
@@ -81,8 +81,8 @@ export default function LoginPage() {
           <svg viewBox="0 0 220 36" width="220" height="36" fill="none">
             <defs>
               <linearGradient id="spark" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#c084fc" stopOpacity="0.4" />
-                <stop offset="100%" stopColor="#fb923c" stopOpacity="0.8" />
+                <stop offset="0%" stopColor="var(--color-brand)" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0.8" />
               </linearGradient>
             </defs>
             <path
@@ -91,10 +91,10 @@ export default function LoginPage() {
               strokeWidth="2"
               strokeLinecap="round"
             />
-            <circle cx="55" cy="24" r="3" fill="#c084fc" opacity="0.5" />
-            <circle cx="108" cy="13" r="3" fill="#c084fc" opacity="0.7" />
-            <circle cx="165" cy="11" r="3.5" fill="#c084fc" opacity="0.9" />
-            <circle cx="220" cy="4" r="4" fill="#fb923c" />
+            <circle cx="55" cy="24" r="3" fill="var(--color-brand)" opacity="0.5" />
+            <circle cx="108" cy="13" r="3" fill="var(--color-brand)" opacity="0.7" />
+            <circle cx="165" cy="11" r="3.5" fill="var(--color-brand)" opacity="0.9" />
+            <circle cx="220" cy="4" r="4" fill="var(--color-accent)" />
           </svg>
         </div>
 

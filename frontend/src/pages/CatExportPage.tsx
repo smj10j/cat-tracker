@@ -100,7 +100,7 @@ export default function CatExportPage() {
           <button
             onClick={() => window.print()}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ background: '#7c3aed', color: '#fff' }}
+            style={{ background: 'var(--color-brand)', color: '#fff' }}
           >
             Print / Save as PDF
           </button>
@@ -269,7 +269,7 @@ export default function CatExportPage() {
               <ul className="space-y-3">
                 {correlations.map((r) => (
                   <li key={`${r.typeA}-${r.typeB}`} className="text-sm" style={{ color: '#374151' }}>
-                    <span className="font-medium" style={{ color: r.strength === 'notable' ? '#7c3aed' : '#ea580c' }}>
+                    <span className="font-medium" style={{ color: r.strength === 'notable' ? 'var(--color-brand)' : '#ea580c' }}>
                       {r.strength === 'notable' ? '● ' : '○ '}
                     </span>
                     {describeCorrelation(r, cat.name, cat.sex, 'vet')}

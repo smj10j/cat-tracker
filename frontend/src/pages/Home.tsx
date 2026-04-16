@@ -204,7 +204,7 @@ export default function Home() {
           ) : (
             <div
               className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
-              style={{ background: 'rgba(192,132,252,0.2)', color: '#c084fc', border: '1.5px solid rgba(192,132,252,0.3)' }}
+              style={{ background: 'rgba(192,132,252,0.2)', color: 'var(--color-brand)', border: '1.5px solid rgba(192,132,252,0.3)' }}
             >
               {initial}
             </div>
@@ -224,7 +224,7 @@ export default function Home() {
           {notifCount > 0 && (
             <span
               className="absolute top-0.5 right-0.5 flex items-center justify-center text-[9px] font-bold rounded-full min-w-[16px] h-4 px-1"
-              style={{ background: '#f87171', color: 'white' }}
+              style={{ background: 'var(--color-health-rose)', color: 'white' }}
             >
               {notifCount > 99 ? '99+' : notifCount}
             </span>
@@ -268,7 +268,7 @@ export default function Home() {
             {catData.map(({ cat, latestWeight, latestUnit, healthStatus, correlationBadge }, i) => {
               const stagger = i < 5 ? `stagger-${i + 1}` : ''
               const isOk = healthStatus === 'ok'
-              const statusColor = STATUS_COLORS[healthStatus as keyof typeof STATUS_COLORS] ?? '#4ade80'
+              const statusColor = STATUS_COLORS[healthStatus as keyof typeof STATUS_COLORS] ?? 'var(--color-health-jade)'
               const cardStyle = CARD_STYLE[healthStatus] ?? CARD_STYLE.ok
               const avatarStyle = AVATAR_STYLE[healthStatus] ?? AVATAR_STYLE.ok
               const isUrgent = healthStatus === 'urgent'
@@ -325,7 +325,7 @@ export default function Home() {
 
                   {latestWeight !== null && (
                     <div className="text-right shrink-0">
-                      <div className="font-display font-bold text-lg tabular-nums" style={{ color: isOk ? '#fb923c' : statusColor }}>
+                      <div className="font-display font-bold text-lg tabular-nums" style={{ color: isOk ? 'var(--color-accent)' : statusColor }}>
                         {fmtWeight(latestWeight, latestUnit, prefs)}
                       </div>
                     </div>
@@ -342,7 +342,7 @@ export default function Home() {
                 border: '1.5px dashed rgba(192,132,252,0.25)',
                 color: 'var(--color-ink-dim)',
               }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#c084fc'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(192,132,252,0.5)' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--color-brand)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(192,132,252,0.5)' }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--color-ink-dim)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(192,132,252,0.25)' }}
             >
               <span className="text-lg font-light">＋</span>

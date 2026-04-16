@@ -128,8 +128,8 @@ export default function CorrelationChart({ catName, catSex, allMeasurements, ava
   }, [typeA, typeB, allMeasurements, catName, catSex, prefs])
 
   const strengthColor =
-    result?.strength === 'notable' ? '#c084fc'
-    : result?.strength === 'weak' ? '#fb923c'
+    result?.strength === 'notable' ? 'var(--color-brand)'
+    : result?.strength === 'weak' ? 'var(--color-accent)'
     : '#4b4263'
 
   const selectStyle: React.CSSProperties = {
@@ -233,7 +233,7 @@ export default function CorrelationChart({ catName, catSex, allMeasurements, ava
               type="monotone"
               dataKey={typeA}
               name={TYPE_LABELS[typeA] ?? typeA}
-              stroke="#c084fc"
+              stroke="var(--color-brand)"
               strokeWidth={2}
               dot={false}
               connectNulls
@@ -242,7 +242,7 @@ export default function CorrelationChart({ catName, catSex, allMeasurements, ava
               type="monotone"
               dataKey={typeB}
               name={TYPE_LABELS[typeB] ?? typeB}
-              stroke="#fb923c"
+              stroke="var(--color-accent)"
               strokeWidth={2}
               dot={false}
               connectNulls

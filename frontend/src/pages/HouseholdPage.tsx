@@ -257,7 +257,7 @@ export default function HouseholdPage() {
             </div>
             {inviteError && <p className="text-rose text-xs">{inviteError}</p>}
             {inviteSuccess && (
-              <div className="p-3 rounded-xl text-xs break-all" style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', color: '#4ade80' }}>
+              <div className="p-3 rounded-xl text-xs break-all" style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', color: 'var(--color-health-jade)' }}>
                 {inviteSuccess}
               </div>
             )}
@@ -299,7 +299,7 @@ function MemberRow({
       ) : (
         <div
           className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-          style={{ background: 'rgba(192,132,252,0.2)', color: '#c084fc' }}
+          style={{ background: 'rgba(192,132,252,0.2)', color: 'var(--color-brand)' }}
         >
           {initial}
         </div>
@@ -336,7 +336,7 @@ function MemberRow({
       ) : (
         <span
           className="text-[11px] px-2 py-0.5 rounded-full shrink-0"
-          style={{ background: 'rgba(192,132,252,0.12)', color: '#c084fc' }}
+          style={{ background: 'rgba(192,132,252,0.12)', color: 'var(--color-brand)' }}
         >
           {member.role}
         </span>
@@ -357,7 +357,7 @@ function PendingInviteRow({ invite, onRevoke }: {
     <div className="flex items-start gap-3">
       <div
         className="w-8 h-8 rounded-full flex items-center justify-center text-xs shrink-0 mt-0.5"
-        style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24' }}
+        style={{ background: 'rgba(251,191,36,0.1)', color: 'var(--color-health-honey)' }}
       >
         ✉
       </div>

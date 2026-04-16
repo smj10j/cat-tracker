@@ -156,7 +156,7 @@ export default function InvitePage() {
             {actionError && (
               <div
                 className="p-3 rounded-xl text-xs"
-                style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)', color: '#f87171' }}
+                style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)', color: 'var(--color-health-rose)' }}
               >
                 {actionError}
               </div>

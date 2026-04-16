@@ -123,21 +123,21 @@ export default function LogScreen() {
               <View style={{
                 flexDirection: 'row', alignItems: 'center', gap: 12,
                 paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16,
-                backgroundColor: 'rgba(74,222,128,0.12)',
-                borderWidth: 1, borderColor: 'rgba(74,222,128,0.3)',
+                backgroundColor: `${colors.jade}1F`,
+                borderWidth: 1, borderColor: `${colors.jade}4D`,
               }}>
-                <Text style={{ color: '#4ade80' }}>{'\u2713'}</Text>
-                <Text style={{ color: '#4ade80', fontWeight: '600', fontSize: 14 }}>Check-in saved!</Text>
+                <Text style={{ color: colors.jade }}>{'\u2713'}</Text>
+                <Text style={{ color: colors.jade, fontWeight: '600', fontSize: 14 }}>Check-in saved!</Text>
               </View>
             )}
 
             {error && (
               <View style={{
                 paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16,
-                backgroundColor: 'rgba(248,113,113,0.1)',
-                borderWidth: 1, borderColor: 'rgba(248,113,113,0.2)',
+                backgroundColor: `${colors.rose}1A`,
+                borderWidth: 1, borderColor: `${colors.rose}33`,
               }}>
-                <Text style={{ color: '#f87171', fontSize: 14 }}>{error}</Text>
+                <Text style={{ color: colors.rose, fontSize: 14 }}>{error}</Text>
               </View>
             )}
 
@@ -399,14 +399,14 @@ export default function LogScreen() {
                 onPress={handleSubmit}
                 disabled={!canSubmit || saving}
                 style={{
-                  backgroundColor: '#c084fc',
+                  backgroundColor: colors.brand,
                   borderRadius: 12,
                   paddingVertical: 16,
                   alignItems: 'center',
                   opacity: canSubmit && !saving ? 1 : 0.4,
                 }}
               >
-                <Text style={{ color: '#fff', fontWeight: '600', fontSize: 14 }}>
+                <Text style={{ color: colors.brandOn, fontWeight: '600', fontSize: 14 }}>
                   {saving ? 'Saving\u2026' : 'Log Check-In'}
                 </Text>
               </Pressable>

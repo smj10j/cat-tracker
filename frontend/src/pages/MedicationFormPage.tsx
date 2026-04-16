@@ -373,7 +373,7 @@ export default function MedicationFormPage() {
           <button
             type="button" onClick={handleArchive} disabled={saving || deleting}
             className="w-full py-3 rounded-2xl text-sm font-semibold transition-all"
-            style={{ color: '#f87171', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)' }}
+            style={{ color: 'var(--color-health-rose)', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)' }}
           >
             {deleting ? 'Archiving…' : 'Archive medication'}
           </button>

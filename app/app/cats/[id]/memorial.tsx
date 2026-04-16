@@ -70,7 +70,7 @@ export default function MemorialScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.night, alignItems: 'center', justifyContent: 'center' }} edges={['top']}>
         <Text style={{ color: colors.inkDim, fontSize: 14 }}>Cat not found.</Text>
         <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
-          <Text style={{ color: '#c084fc', fontSize: 14 }}>Go back</Text>
+          <Text style={{ color: colors.brand, fontSize: 14 }}>Go back</Text>
         </Pressable>
       </SafeAreaView>
     );
@@ -244,7 +244,7 @@ export default function MemorialScreen() {
                     data={chartData}
                     seriesKeys={['weight']}
                     seriesLabels={{ weight: 'Weight' }}
-                    seriesColors={{ weight: '#c084fc' }}
+                    seriesColors={{ weight: colors.brand }}
                     height={200}
                     yLabel={peakUnit}
                     formatY={(v) => `${v}`}

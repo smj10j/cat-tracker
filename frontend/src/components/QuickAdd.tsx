@@ -178,7 +178,7 @@ export default function QuickAdd({ open, onClose }: Props) {
                             ? (preset.concern ? '1.5px solid rgba(248,113,113,0.5)' : '1.5px solid rgba(74,222,128,0.4)')
                             : '1px solid rgba(255,255,255,0.08)',
                           color: isSelected
-                            ? (preset.concern ? '#f87171' : '#4ade80')
+                            ? (preset.concern ? 'var(--color-health-rose)' : 'var(--color-health-jade)')
                             : '#ede9f6',
                         }}
                       >

@@ -70,7 +70,7 @@ function DoseCard({ dose, variant, onAdminister, onSkip, acting, prefs }: DoseCa
             style={{
               background: 'rgba(167,139,250,0.15)',
               border: '1px solid rgba(167,139,250,0.3)',
-              color: '#c084fc',
+              color: 'var(--color-brand)',
             }}
           >
             {isActing ? '…' : 'Mark Given'}

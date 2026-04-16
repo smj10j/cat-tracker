@@ -87,7 +87,7 @@ export default function WellnessGuide() {
                   <span className="text-xl">{card.icon}</span>
                   <span
                     className="font-semibold text-sm"
-                    style={{ color: isUrgentCard ? '#f87171' : 'var(--color-ink)' }}
+                    style={{ color: isUrgentCard ? 'var(--color-health-rose)' : 'var(--color-ink)' }}
                   >
                     {card.title}
                   </span>
@@ -104,7 +104,7 @@ export default function WellnessGuide() {
                   <ul className="space-y-2">
                     {card.items.map((item, j) => (
                       <li key={j} className="flex items-start gap-2 text-sm text-ink-mid">
-                        <span className="shrink-0 mt-0.5" style={{ color: isUrgentCard ? '#f87171' : 'var(--color-ink-dim)' }}>
+                        <span className="shrink-0 mt-0.5" style={{ color: isUrgentCard ? 'var(--color-health-rose)' : 'var(--color-ink-dim)' }}>
                           {isUrgentCard ? '•' : '·'}
                         </span>
                         {item}
@@ -134,7 +134,7 @@ export default function WellnessGuide() {
             href="https://github.com/smj10j/cat-tracker/tree/main/docs/research"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: 'var(--color-lavender, #c084fc)', textDecoration: 'underline' }}
+            style={{ color: 'var(--color-brand)', textDecoration: 'underline' }}
           >
             Full citations and sources
           </a>.{' '}

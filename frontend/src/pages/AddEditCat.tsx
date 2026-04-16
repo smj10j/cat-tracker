@@ -260,7 +260,7 @@ export default function AddEditCat() {
                 onClick={handleMarkDeceased}
                 disabled={markingDeceased || !deceasedDate}
                 className="w-full py-3.5 text-sm font-semibold rounded-xl transition-all"
-                style={{ background: 'rgba(192,132,252,0.15)', color: '#c084fc', border: '1px solid rgba(192,132,252,0.35)' }}
+                style={{ background: 'rgba(192,132,252,0.15)', color: 'var(--color-brand)', border: '1px solid rgba(192,132,252,0.35)' }}
               >
                 {markingDeceased ? 'Saving…' : `Remember ${catName}`}
               </button>
@@ -454,7 +454,7 @@ export default function AddEditCat() {
                     disabled={markingDeceased || !deceasedDate}
                     className="w-full py-3 text-sm font-semibold rounded-xl transition-all"
                     style={{
-                      color: '#c084fc',
+                      color: 'var(--color-brand)',
                       background: 'rgba(192,132,252,0.1)',
                       border: '1px solid rgba(192,132,252,0.3)',
                     }}

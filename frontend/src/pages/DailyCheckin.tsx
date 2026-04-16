@@ -124,7 +124,7 @@ export default function DailyCheckin() {
             role="status"
             aria-live="polite"
             className="flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold"
-            style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.3)', color: '#4ade80' }}
+            style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.3)', color: 'var(--color-health-jade)' }}
           >
             <span>✓</span>
             <span>Check-in saved!</span>
@@ -137,7 +137,7 @@ export default function DailyCheckin() {
             role="alert"
             aria-live="assertive"
             className="px-4 py-3 rounded-2xl text-sm"
-            style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)', color: '#f87171' }}
+            style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)', color: 'var(--color-health-rose)' }}
           >
             {error}
           </div>
@@ -274,7 +274,7 @@ export default function DailyCheckin() {
                             ? (preset.concern ? '1.5px solid rgba(248,113,113,0.45)' : '1.5px solid rgba(74,222,128,0.35)')
                             : '1px solid var(--color-rim)',
                           color: isSelected
-                            ? (preset.concern ? '#f87171' : '#4ade80')
+                            ? (preset.concern ? 'var(--color-health-rose)' : 'var(--color-health-jade)')
                             : 'var(--color-ink-dim)',
                         }}
                       >

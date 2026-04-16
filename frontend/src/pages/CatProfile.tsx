@@ -51,7 +51,7 @@ function CareScheduleSection({ catId, meds }: { catId: string; meds: Medication[
           {overdueCount > 0 && (
             <span
               className="text-xs font-bold px-2 py-0.5 rounded-full"
-              style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171' }}
+              style={{ background: 'rgba(248,113,113,0.15)', color: 'var(--color-health-rose)' }}
             >
               {overdueCount} overdue
             </span>
@@ -60,7 +60,7 @@ function CareScheduleSection({ catId, meds }: { catId: string; meds: Medication[
         <Link
           to={`/cats/${catId}/medications/new`}
           className="text-xs font-semibold transition-colors"
-          style={{ color: '#c084fc' }}
+          style={{ color: 'var(--color-brand)' }}
         >
           + Add
         </Link>
@@ -83,7 +83,7 @@ function CareScheduleSection({ catId, meds }: { catId: string; meds: Medication[
                   <span className="text-sm font-semibold text-ink truncate">{med.name}</span>
                   {(med.overdue_count ?? 0) > 0 && (
                     <span className="text-xs font-bold px-1.5 py-0.5 rounded-full shrink-0"
-                      style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171' }}>
+                      style={{ background: 'rgba(248,113,113,0.15)', color: 'var(--color-health-rose)' }}>
                       overdue
                     </span>
                   )}
@@ -332,7 +332,7 @@ export default function CatProfile() {
               opacity: 0.8,
             }}
           >
-            <span className="text-xs" style={{ color: '#f87171' }}>✕</span>
+            <span className="text-xs" style={{ color: 'var(--color-health-rose)' }}>✕</span>
           </button>
         )}
 
@@ -345,7 +345,7 @@ export default function CatProfile() {
             </div>
             {latestWeight && (
               <div className="text-right shrink-0">
-                <div className="font-display font-bold text-2xl tabular-nums" style={{ color: status !== 'ok' ? statusColor : '#fb923c' }}>
+                <div className="font-display font-bold text-2xl tabular-nums" style={{ color: status !== 'ok' ? statusColor : 'var(--color-accent)' }}>
                   {latestWeight.value} <span className="text-sm font-normal" style={{ color: 'rgba(255,255,255,0.4)' }}>{latestWeight.unit}</span>
                 </div>
                 {weightMeasurements.length >= 2 && (
@@ -373,7 +373,7 @@ export default function CatProfile() {
             className="flex-1 py-2 text-xs font-semibold rounded-lg transition-all capitalize"
             style={{
               background: profileTab === key ? 'rgba(192,132,252,0.15)' : 'transparent',
-              color: profileTab === key ? '#c084fc' : 'var(--color-ink-dim)',
+              color: profileTab === key ? 'var(--color-brand)' : 'var(--color-ink-dim)',
               border: profileTab === key ? '1px solid rgba(192,132,252,0.25)' : '1px solid transparent',
             }}
           >
@@ -455,7 +455,7 @@ export default function CatProfile() {
                     className="flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all"
                     style={{
                       background: chartTab === key ? 'rgba(192,132,252,0.15)' : 'transparent',
-                      color: chartTab === key ? '#c084fc' : 'var(--color-ink-dim)',
+                      color: chartTab === key ? 'var(--color-brand)' : 'var(--color-ink-dim)',
                       border: chartTab === key ? '1px solid rgba(192,132,252,0.25)' : '1px solid transparent',
                     }}
                   >
@@ -511,7 +511,7 @@ export default function CatProfile() {
                                 <button
                                   onClick={() => executeDeleteMeasurement(m.id)}
                                   className="text-xs px-2 py-1 rounded-lg transition-colors font-semibold"
-                                  style={{ color: '#f87171', background: 'rgba(248,113,113,0.1)' }}
+                                  style={{ color: 'var(--color-health-rose)', background: 'rgba(248,113,113,0.1)' }}
                                 >
                                   Delete
                                 </button>
@@ -609,7 +609,7 @@ export default function CatProfile() {
                   <span className="text-base w-6 text-center">⚖️</span>
                   <span className="text-xs text-ink-dim w-20 shrink-0">Weight</span>
                   <span className="text-sm flex-1">
-                    <span className="font-semibold tabular-nums" style={{ color: status !== 'ok' ? statusColor : '#fb923c' }}>
+                    <span className="font-semibold tabular-nums" style={{ color: status !== 'ok' ? statusColor : 'var(--color-accent)' }}>
                       {latestWeight.value} {latestWeight.unit}
                     </span>
                     {weightMeasurements.length >= 2 && (
@@ -644,7 +644,7 @@ export default function CatProfile() {
           <Link
             to={`/cats/${cat.id}/edit`}
             className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-semibold transition-all"
-            style={{ border: '1px solid rgba(192,132,252,0.25)', color: '#c084fc', background: 'rgba(192,132,252,0.06)' }}
+            style={{ border: '1px solid rgba(192,132,252,0.25)', color: 'var(--color-brand)', background: 'rgba(192,132,252,0.06)' }}
           >
             Edit profile
           </Link>

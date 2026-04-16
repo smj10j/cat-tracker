@@ -40,7 +40,7 @@ export default function ChartRangeSelector({ range, onRangeChange, onNavigate, h
                 className="min-h-[44px] px-3 py-2 rounded-full text-xs font-semibold transition-all whitespace-nowrap"
                 style={{
                   background: active ? 'rgba(168,85,247,0.2)' : 'var(--color-surface-hi)',
-                  color: active ? '#c084fc' : 'var(--color-ink-dim)',
+                  color: active ? 'var(--color-brand)' : 'var(--color-ink-dim)',
                   border: active ? '1px solid rgba(168,85,247,0.4)' : '1px solid transparent',
                 }}
               >
@@ -58,7 +58,7 @@ export default function ChartRangeSelector({ range, onRangeChange, onNavigate, h
           className="min-h-[36px] px-2.5 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap"
           style={{
             background: 'rgba(251,146,60,0.15)',
-            color: '#fb923c',
+            color: 'var(--color-accent)',
             border: '1px solid rgba(251,146,60,0.3)',
           }}
         >

@@ -257,10 +257,10 @@ export default function SettingsScreen() {
         {/* Delete account */}
         <Pressable
           onPress={handleDeleteAccount}
-          style={{ backgroundColor: 'rgba(248,113,113,0.1)', borderRadius: 16, padding: rv(16, 20), borderWidth: 1, borderColor: 'rgba(248,113,113,0.2)', marginTop: 32 }}
+          style={{ backgroundColor: `${colors.rose}1A`, borderRadius: 16, padding: rv(16, 20), borderWidth: 1, borderColor: `${colors.rose}33`, marginTop: 32 }}
         >
-          <Text style={{ color: '#f87171', fontWeight: '600' }}>Delete Account</Text>
-          <Text style={{ color: 'rgba(248,113,113,0.6)', fontSize: 14, marginTop: 4 }}>
+          <Text style={{ color: colors.rose, fontWeight: '600' }}>Delete Account</Text>
+          <Text style={{ color: `${colors.rose}99`, fontSize: 14, marginTop: 4 }}>
             Permanently delete your account and all associated data
           </Text>
         </Pressable>

@@ -76,7 +76,7 @@ export default function PrivacyPage() {
         <Section title="7. Contact">
           <p>
             For privacy inquiries, contact us at{' '}
-            <a href="mailto:privacy@01j.me" style={{ color: '#c084fc' }}>privacy@01j.me</a>.
+            <a href="mailto:privacy@01j.me" style={{ color: 'var(--color-brand)' }}>privacy@01j.me</a>.
           </p>
         </Section>
 

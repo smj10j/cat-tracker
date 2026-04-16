@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Concept 2: Amber health heart with cat ear silhouette -->
+  <rect width="1024" height="1024" rx="224" fill="#1B1424"/>
+  <!-- Outer glow -->
+  <circle cx="512" cy="480" r="280" fill="#F2A65A" opacity="0.06"/>
+  <!-- Heart with cat ears -->
+  <path d="
+    M512 740
+    C512 740 260 560 260 400
+    C260 300 340 240 420 240
+    C460 240 490 280 512 320
+    C534 280 564 240 604 240
+    C684 240 764 300 764 400
+    C764 560 512 740 512 740Z
+  " fill="#F2A65A"/>
+  <!-- Cat ear left -->
+  <path d="M340 310 L300 200 L400 280Z" fill="#F2A65A"/>
+  <!-- Cat ear right -->
+  <path d="M684 310 L724 200 L624 280Z" fill="#F2A65A"/>
+  <!-- Inner ear left -->
+  <path d="M348 300 L320 220 L388 278Z" fill="#C8741F"/>
+  <!-- Inner ear right -->
+  <path d="M676 300 L704 220 L636 278Z" fill="#C8741F"/>
+  <!-- Health cross -->
+  <rect x="488" y="400" width="48" height="120" rx="8" fill="#1B1424" opacity="0.3"/>
+  <rect x="448" y="436" width="128" height="48" rx="8" fill="#1B1424" opacity="0.3"/>
+</svg>

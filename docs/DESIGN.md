@@ -18,13 +18,15 @@ The app's job is to make that act of caring feel:
 
 ---
 
-## The Feeling: "Warm Night"
+## The Feeling: "Lamplight" (v2 default)
+
+> As of April 2026, the app's default brand identity is **Lamplight** — warm amber on deep aubergine. Users can choose from 5 theme families in Settings (Lamplight, Warm Night, Forest, Linen, Almanac), each with dark/light/system mode. See `PRD-visual-identity-v2.md` for the full design rationale and token tables.
 
 Imagine you're sitting in a dim room. Your cat is asleep next to you. You open your phone to log their weight. That is the context for every design decision.
 
 **Dark-first.** Not because dark mode is trendy, but because this app lives in intimate moments. A bright white screen would shatter that.
 
-**Warm, not cold.** Our darks have purple undertones — like a room lit by a single lamp. Never cold gray-black. Never clinical blue-black.
+**Warm, not cold.** Our darks have aubergine undertones — like a room lit by a single warm lamp. The brand color is amber (#F2A65A dark / #C8741F light), not the previous cool purple. Never cold gray-black. Never clinical blue-black.
 
 **Soft, not flat.** Cards float gently above the background. Text glows faintly. Charts breathe. Nothing is hard-edged or harsh.
 
@@ -34,33 +36,30 @@ Imagine you're sitting in a dim room. Your cat is asleep next to you. You open y
 
 ## Color System
 
-### Base Surfaces
-| Token | Hex | Use |
-|-------|-----|-----|
-| `night` | `#16111f` | Page background — deepest layer |
-| `surface` | `#1f1830` | Cards, panels — first elevation |
-| `surface-hi` | `#2a2040` | Modals, bottom sheets, popovers — second elevation |
-| `rim` | `rgba(255,255,255,0.07)` | Borders — barely-there, glass edge |
+### Token Architecture (v2)
 
-### Ink (Text)
-| Token | Hex | Use |
-|-------|-----|-----|
-| `ink` | `#ede9f6` | Primary text — warm white |
-| `ink-mid` | `#a899c0` | Secondary text, labels, captions |
-| `ink-dim` | `#6b5f85` | Placeholder text, disabled states |
+All colors flow through CSS custom properties defined in `frontend/src/index.css` (web) and `app/global.css` (iOS). Each theme family × mode pair defines the full token contract (45 tokens). The canonical contract is in `shared/lib/themeTokens.ts` and is enforced by CI tests.
 
-### Brand
-| Token | Hex | Use |
-|-------|-----|-----|
-| `lavender` | `#c084fc` | Primary brand — softer than our current harsh purple |
-| `lavender-dim` | `#7c3aed` | Pressed states, depth |
-| `lavender-glow` | `rgba(192,132,252,0.15)` | Focus rings, soft glows |
+**5 theme families:** Lamplight (default), Warm Night, Forest, Linen, Almanac.
+**2 modes per family:** Dark, Light (+ System which resolves at runtime).
 
-### Warm Accent
+### Lamplight Dark (default) — Key Tokens
 | Token | Hex | Use |
 |-------|-----|-----|
-| `amber` | `#fb923c` | Warmth — cat names in headings, positive moments |
-| `amber-dim` | `rgba(251,146,60,0.15)` | Amber tints |
+| `bg` | `#1B1424` | Page background — deep aubergine |
+| `surface` | `#261B33` | Cards, panels — first elevation |
+| `surface-hi` | `#332444` | Modals, bottom sheets — second elevation |
+| `ink` | `#F5EDE0` | Primary text — warm cream |
+| `ink-mid` | `#B8A89A` | Secondary text, labels |
+| `ink-dim` | `#7A6B5E` | Placeholder, disabled |
+| `brand` | `#F2A65A` | Primary brand — warm amber |
+| `brand-pressed` | `#C8741F` | Pressed states, depth |
+| `brand-glow` | `rgba(242,166,90,0.18)` | Focus rings, soft glows |
+| `brand-on` | `#1B1424` | Text on brand surfaces |
+| `accent` | `#9C6BD9` | Secondary accent — plum |
+| `rim` | `rgba(255,220,180,0.08)` | Borders — warm-tinted glass edge |
+
+> Full token tables for all 5 families × both modes are in `PRD-visual-identity-v2.md` §5.1.
 
 ### Health Status (softened)
 | Status | Color | Hex | Notes |
@@ -76,9 +75,9 @@ Imagine you're sitting in a dim room. Your cat is asleep next to you. You open y
 
 ## Typography
 
-**Display / Cat Names:** `Plus Jakarta Sans` — friendly, slightly rounded, warm. Used for headings, cat names, and key numbers. It feels like it was designed by someone who owns a cat.
+**Display + Body:** `Plus Jakarta Sans` — friendly, slightly rounded, warm. Used for everything: headings, cat names, body text, and key numbers (v2 unified the font stack). Fallback to system-ui.
 
-**Body / UI:** System UI stack (`-apple-system, BlinkMacSystemFont, 'Segoe UI'`) — familiar, fast, no layout shift.
+**Memorial / Almanac preview:** `Fraunces` — a serif display face used on the Memorial Record page for cat names and dates. This is the single surface where Option E (Almanac) gets a preview.
 
 **Numbers / Weights:** `font-variant-numeric: tabular-nums` — measurements always line up cleanly.
 
@@ -86,8 +85,9 @@ Imagine you're sitting in a dim room. Your cat is asleep next to you. You open y
 - **Hero** (cat names, page titles): `28–32px`, `font-weight: 700`, Plus Jakarta Sans
 - **Section** (card titles): `16–18px`, `font-weight: 600`
 - **Body**: `14–15px`, `font-weight: 400`
-- **Label / Caption**: `11–12px`, `font-weight: 500`, `letter-spacing: 0.02em`, uppercase for category labels
+- **Label / Caption**: `11–12px`, `font-weight: 500`, `letter-spacing: 0.04em`, uppercase for category labels
 - **Stat** (weight values): `22–28px`, `font-weight: 700`, tabular numerals
+- **Hero Stat** (motif): `36–56px`, `font-weight: 700`, tabular numerals, 1px brand-color underline beneath the numeric portion + smaller baseline-aligned unit. The "signature element" that appears on CatProfile, Home, Check-In, and vet export.
 
 ### Rule: Maximum 2 font weights on any single screen. Never bold everything.
 

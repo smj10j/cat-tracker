@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Concept 5: Minimalist cat face lit by amber light -->
+  <rect width="1024" height="1024" rx="224" fill="#1B1424"/>
+  <!-- Ambient amber light from left -->
+  <ellipse cx="300" cy="480" rx="300" ry="400" fill="#F2A65A" opacity="0.06"/>
+  <!-- Cat face (slightly off-center right) -->
+  <circle cx="540" cy="520" r="160" fill="#332444"/>
+  <!-- Ears -->
+  <path d="M420 400 L380 260 L480 370Z" fill="#332444"/>
+  <path d="M660 400 L700 260 L600 370Z" fill="#332444"/>
+  <!-- Inner ears -->
+  <path d="M430 390 L402 290 L470 368Z" fill="#F2A65A" opacity="0.3"/>
+  <path d="M650 390 L678 290 L610 368Z" fill="#F2A65A" opacity="0.15"/>
+  <!-- Left eye (lit side — amber) -->
+  <ellipse cx="480" cy="500" rx="24" ry="28" fill="#F2A65A"/>
+  <ellipse cx="480" cy="500" rx="12" ry="20" fill="#1B1424"/>
+  <!-- Right eye (shadow side — dimmer) -->
+  <ellipse cx="600" cy="500" rx="24" ry="28" fill="#F2A65A" opacity="0.5"/>
+  <ellipse cx="600" cy="500" rx="12" ry="20" fill="#1B1424"/>
+  <!-- Nose -->
+  <path d="M540 560 L528 548 L552 548Z" fill="#F2A65A" opacity="0.7"/>
+  <!-- Whiskers (lit side — brighter) -->
+  <line x1="440" y1="540" x2="320" y2="520" stroke="#F5EDE0" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+  <line x1="440" y1="560" x2="310" y2="570" stroke="#F5EDE0" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+  <line x1="440" y1="580" x2="320" y2="620" stroke="#F5EDE0" stroke-width="4" stroke-linecap="round" opacity="0.4"/>
+  <!-- Whiskers (shadow side — dimmer) -->
+  <line x1="640" y1="540" x2="760" y2="520" stroke="#F5EDE0" stroke-width="4" stroke-linecap="round" opacity="0.2"/>
+  <line x1="640" y1="560" x2="770" y2="570" stroke="#F5EDE0" stroke-width="4" stroke-linecap="round" opacity="0.2"/>
+  <line x1="640" y1="580" x2="760" y2="620" stroke="#F5EDE0" stroke-width="4" stroke-linecap="round" opacity="0.15"/>
+</svg>

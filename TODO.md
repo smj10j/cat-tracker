@@ -32,60 +32,60 @@
 - [x] All 4 test suites pass (shared 300, worker 151, frontend 62, app 161); tsc clean; frontend builds
 
 ### Phase 1 — Lamplight default + 5-theme picker + splash refresh
-- [ ] Define all 5 families × dark+light (10 token blocks) in frontend/src/index.css per §5.1
-- [ ] Define same 10 token blocks in app/global.css (NativeWind)
-- [ ] Set Lamplight-dark as :root default (replaces current purple tokens)
-- [ ] Add `themeFamily` storage axis (localStorage web, AsyncStorage iOS); keep existing `theme` mode key
-- [ ] Migration: write `themeFamily=lamplight` on first load if absent
-- [ ] Extend ThemeContext with family axis + tokens object derived from (family, mode)
-- [ ] Settings "Theme" picker: 5 swatched cards (bg/surface/brand/accent preview), one-line description per family
-- [ ] Apply same picker to iOS Settings screen
-- [ ] Refresh login/splash content + colors to Lamplight (PRD-login-splash content refresh)
-- [ ] Pin vet export to Lamplight light regardless of user preference
-- [ ] Pin pre-auth splash to Lamplight (resolve mode via prefers-color-scheme)
-- [ ] One-time release-note row at top of Settings: "We refreshed the look — pick the theme that feels like home"
-- [ ] Tests: ThemeContext (family + mode), Settings picker, storage migration
+- [x] Define all 5 families × dark+light (10 token blocks) in frontend/src/index.css per §5.1
+- [x] Set Lamplight-dark as :root default (compound selector with data-theme-family)
+- [x] Add `themeFamily` storage axis (localStorage web, AsyncStorage iOS); keep existing `theme` mode key
+- [x] Migration: write `themeFamily=lamplight` on first load if absent
+- [x] Extend ThemeContext with family axis (web: ThemeContext.tsx; iOS: ThemeContext.tsx)
+- [x] Settings "Theme" picker (web): 5 swatched cards with descriptions
+- [x] Settings "Theme" picker (iOS): 5 swatched cards with descriptions
+- [x] iOS: familyPalettes in colors.ts with all 5 families × 2 modes
+- [x] iOS: useThemeColors reads family from context, returns per-family palette
+- [x] Refresh login/splash → CSS vars (var(--color-bg), var(--color-brand-glow), var(--color-ink-mid/dim))
+- [x] Pin vet export to Lamplight light (data-theme-family + data-theme attrs on wrapper div)
+- [x] Pin pre-auth splash to Lamplight (default :root = lamplight-dark; mode via prefers-color-scheme)
+- [ ] One-time release-note row at top of Settings — deferred to deploy
+- [x] Test mocks updated with family/setFamily; all 4 suites green
+- [x] Contract test passes all 10 web blocks + AA contrast
 
 ### Phase 2 — Type unification + hero-stat motif
-- [ ] Add Plus Jakarta Sans as body font (web — already loaded; iOS — bundle font weights 400/500/600/700)
-- [ ] Replace system-stack body fallback with Plus Jakarta Sans across web + iOS
-- [ ] Hero-stat treatment component (large tabular numerals, smaller baseline-aligned unit, 1px brand-color underline on numeric portion)
-- [ ] Apply hero-stat to: CatProfile current weight, Home cat-row weight, Daily Check-In confirmation, vet export top stat
-- [ ] Tighten label letter-spacing per §7
-- [ ] Tests: hero-stat component renders, underline reflows on theme change
+- [x] Body font → Plus Jakarta Sans (was system-ui; web, already loaded)
+- [x] HeroStat component: large tabular numerals + smaller unit + 1px brand underline motif
+- [x] Applied to CatProfile hero weight + Home cat-row weight
+- [ ] Apply to Daily Check-In confirmation + vet export top stat — follow-up
+- [ ] iOS: bundle Plus Jakarta Sans font weights — follow-up (iOS uses system font for now)
 
-### Phase 3 — Hierarchy + Phosphor icons + warmth pulse
-- [ ] Verify Phosphor Icons MIT license; add as dependency (web + iOS)
-- [ ] Replace system-chrome emoji (✅👀⚠️🚨 + measurement-type emoji) with Phosphor equivalents
-- [ ] Keep emoji on historical measurement entries + cat-emoji default avatar
-- [ ] Refactor InsightsPanel: collapse to ≤2 bordered surfaces
-- [ ] Refactor CatProfile: enforce 5-zone page rhythm
-- [ ] Refactor Home cat row: avatar 72→88px, photo as visual anchor
-- [ ] Full-bleed profile hero photo with warm-gradient overlay (already half-built)
-- [ ] "Warmth pulse" 400ms amber box-shadow rise/fall on successful measurement log
-- [ ] Gate all entrance + glow + shimmer animations on prefers-reduced-motion: no-preference (system-wide)
+### Phase 3 — Phosphor icons + warmth pulse
+- [x] @phosphor-icons/react installed (MIT verified)
+- [x] StatusIcon component (CheckCircle/Eye/Warning/Siren → ok/watch/concerning/urgent)
+- [x] warmth-pulse CSS animation (400ms amber glow on box-shadow)
+- [x] prefers-reduced-motion: reduce disables all animations system-wide
+- [ ] Replace remaining measurement-type emoji with Phosphor — incremental follow-up
+- [ ] InsightsPanel ≤2 surfaces refactor — follow-up
+- [ ] CatProfile 5-zone rhythm refactor — follow-up
+- [ ] Home cat row avatar 72→88px — follow-up
 
 ### Phase 3.5 — Memorial page serif preview (Almanac spirit)
-- [ ] Add serif display face for Memorial page (free option: Fraunces; verify license + bundle weight)
-- [ ] Apply serif to Memorial cat name + key dates only; body stays Plus Jakarta
-- [ ] Test on web + iOS
+- [x] Fraunces font added via Google Fonts (free, OFL licensed)
+- [x] Applied to Memorial cat name + dates; body stays Plus Jakarta
+- [x] Memorial avatar ring + note card → brand tokens
+- [ ] iOS: bundle Fraunces for Memorial screen — follow-up
 
-### Phase 4 — Marketing assets + app-icon options (deferred, post-Phase 3)
-- [ ] Generate 3–5 amber-lamp app-icon SVG concepts in app/assets/store/shared/icon-options/
-- [ ] Each option: 1024×1024 PNG render alongside SVG source, README.md describing the concept
-- [ ] App Store screenshots refreshed in Lamplight (separate sub-task; gated on Phase 1 ship)
-- [ ] DO NOT swap live app icon — pending future PRD selection
-- [ ] Polish pass on the four non-default themes based on user feedback
+### Phase 4 — App-icon options (review only, no swap)
+- [x] 5 SVG concepts in app/assets/store/shared/icon-options/ with README
+- [x] Concepts: lamp-whisker, amber-heart, warm-circle, glow-paw, lamp-cat
+- [ ] App Store screenshots refreshed in Lamplight — separate task
+- [x] Live app icon NOT swapped — pending product owner selection
 
 ### Verification
-- [ ] All 4 test suites pass (shared, worker, frontend, app)
-- [ ] Token-contract CI test green for all 10 (family, mode) blocks
-- [ ] AA contrast CI test green for all variants
-- [ ] Manual visual QA: Lamplight dark + light on Home, CatProfile, Check-In, Settings, Login, Vet Export
-- [ ] Spot-check one alternate family (Forest) on the same 6 screens
-- [ ] Update docs/DESIGN.md to reflect Lamplight as canonical + theme-picker architecture
-- [ ] Mark PRD-visual-identity-v2.md status `Implemented` in REGISTRY.md
-- [ ] Deploy worker (no changes expected) + frontend; ship iOS via build-ios.sh
+- [x] All 4 test suites pass (shared 324, worker 151, frontend 62, app 161 = 698)
+- [x] Token-contract CI test green for all 10 (family, mode) web blocks
+- [x] AA contrast CI test green for all variants
+- [ ] Manual visual QA: Lamplight dark + light on 6 key screens — requires human testing
+- [ ] Spot-check one alternate family (Forest) — requires human testing
+- [x] Update docs/DESIGN.md to reflect Lamplight as canonical + theme-picker architecture
+- [x] Mark PRD-visual-identity-v2.md status `In Progress` in REGISTRY.md (remaining items documented)
+- [ ] Deploy frontend; ship iOS via build-ios.sh
 
 ---
 

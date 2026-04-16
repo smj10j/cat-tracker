@@ -48,7 +48,7 @@
 | [PRD-landscape-charts.md](PRD-landscape-charts.md) | Landscape Mode — Full-Screen Chart Visualization | `Implemented` | 2026-04-12 |
 | [PRD-push-notifications.md](PRD-push-notifications.md) | Push Notifications (iOS Native) | `In Progress` | 2026-04-11 |
 | [PRD-device-integrations.md](PRD-device-integrations.md) | Smart Device Integrations (Auto-Ingest) | `Draft` | 2026-04-15 |
-| [PRD-visual-identity-v2.md](PRD-visual-identity-v2.md) | Visual Identity v2: Color, Type, Hierarchy & Feel | `Approved` | 2026-04-15 |
+| [PRD-visual-identity-v2.md](PRD-visual-identity-v2.md) | Visual Identity v2: Color, Type, Hierarchy & Feel | `In Progress` | 2026-04-15 |
 
 ---
 
@@ -634,7 +634,7 @@ Nothing rejected yet.
 
 | | |
 |---|---|
-| **Status** | `Approved` |
+| **Status** | `In Progress` |
 | **Last updated** | 2026-04-15 |
 | **Related** | PRD-app-settings.md (theme infra), PRD-accessibility.md (color independence), PRD-login-splash.md (splash refresh bundled with Phase 1) |
 
@@ -642,9 +642,16 @@ Nothing rejected yet.
 
 **Scope:** Lamplight (warm amber on aubergine) as default brand identity. Ship all five color families (Lamplight, Warm Night sharpened, Forest, Linen, Almanac) as user-selectable themes in Settings, dark/light/system per family. Token-contract architecture enforced in CI (parity + AA contrast). Plus Jakarta Sans unified body+display across web+iOS. Hero-stat amber-underline motif. Phosphor Icons replacing OS emoji in chrome. "Warmth pulse" success animation. Light-theme-as-its-own-design (warm cream paper). Memorial page gets serif display preview.
 
-**Resolved decisions (2026-04-15):** all 5 themes ship in Phase 1; app-icon options generated to `app/assets/store/shared/icon-options/` for review (live icon not swapped); Phosphor for v2; serif on Memorial page only; splash refresh bundled with Phase 1; localStorage-only for theme storage until PRD-app-settings Phase C lands.
+**Implemented Phases 0–3.5:**
+- Phase 0: TOKEN_CONTRACT (45 tokens), CI parity + AA contrast tests, ~130 hardcoded hex sites → tokens across 38 files, brand-on fixed for AA
+- Phase 1: 10 CSS token blocks (5 families × 2 modes) in web + iOS; ThemeContext two-axis model (family + mode); Settings theme picker (web + iOS); splash/login → token vars; vet export pinned to Lamplight light
+- Phase 2: body font → Plus Jakarta Sans; HeroStat component with amber-underline motif on CatProfile + Home
+- Phase 3: @phosphor-icons/react (MIT); StatusIcon component; warmth-pulse animation; prefers-reduced-motion system-wide
+- Phase 3.5: Fraunces serif on Memorial page cat name + dates
 
-**Phases:** Phase 0 (tokenization sweep — mandatory groundwork), Phase 1 (Lamplight default + 5-theme picker + splash refresh), Phase 2 (type unification + hero-stat motif), Phase 3 (hierarchy + Phosphor icons + warmth pulse), Phase 4 (marketing assets, deferred).
+**Remaining:** App Store screenshots in Lamplight; app icon selection from `icon-options/`; incremental Phosphor migration for measurement-type emoji; InsightsPanel/CatProfile hierarchy refactor; iOS font bundling (Plus Jakarta body + Fraunces); manual visual QA on all 5 themes
+
+**Resolved decisions (2026-04-15):** all 5 themes ship in Phase 1; app-icon options generated to `app/assets/store/shared/icon-options/` for review (live icon not swapped); Phosphor for v2; serif on Memorial page only; splash refresh bundled with Phase 1; localStorage-only for theme storage until PRD-app-settings Phase C lands.
 
 ---
 

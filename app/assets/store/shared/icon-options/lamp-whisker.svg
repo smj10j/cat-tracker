@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Concept 1: Warm lamp with cat whisker silhouette -->
+  <rect width="1024" height="1024" rx="224" fill="#1B1424"/>
+  <!-- Lamp body -->
+  <path d="M512 280 C460 280 420 340 420 420 L420 560 C420 580 436 596 456 596 L568 596 C588 596 604 580 604 560 L604 420 C604 340 564 280 512 280Z" fill="#F2A65A"/>
+  <!-- Lamp glow -->
+  <circle cx="512" cy="440" r="200" fill="#F2A65A" opacity="0.12"/>
+  <circle cx="512" cy="440" r="120" fill="#F2A65A" opacity="0.08"/>
+  <!-- Lamp base -->
+  <rect x="476" y="596" width="72" height="20" rx="4" fill="#C8741F"/>
+  <rect x="456" y="616" width="112" height="16" rx="8" fill="#C8741F"/>
+  <!-- Whiskers (from light source) -->
+  <line x1="380" y1="400" x2="260" y2="360" stroke="#F5EDE0" stroke-width="6" stroke-linecap="round" opacity="0.6"/>
+  <line x1="380" y1="440" x2="240" y2="440" stroke="#F5EDE0" stroke-width="6" stroke-linecap="round" opacity="0.6"/>
+  <line x1="380" y1="480" x2="260" y2="520" stroke="#F5EDE0" stroke-width="6" stroke-linecap="round" opacity="0.6"/>
+  <line x1="644" y1="400" x2="764" y2="360" stroke="#F5EDE0" stroke-width="6" stroke-linecap="round" opacity="0.6"/>
+  <line x1="644" y1="440" x2="784" y2="440" stroke="#F5EDE0" stroke-width="6" stroke-linecap="round" opacity="0.6"/>
+  <line x1="644" y1="480" x2="764" y2="520" stroke="#F5EDE0" stroke-width="6" stroke-linecap="round" opacity="0.6"/>
+</svg>

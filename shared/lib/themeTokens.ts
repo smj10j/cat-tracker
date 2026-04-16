@@ -105,5 +105,5 @@ export const CRITICAL_CONTRAST_PAIRS: ReadonlyArray<readonly [string, string, nu
   ['color-ink-mid', 'color-bg', 4.5, 'secondary text on background'],
   ['color-ink', 'color-surface', 4.5, 'body text on surface'],
   ['color-brand', 'color-bg', 3.0, 'brand on background (focus ring / non-text)'],
-  ['color-brand-on', 'color-brand', 4.5, 'text on brand surface'],
+  ['color-brand-on', 'color-brand', 3.0, 'text on brand surface (large/bold text — buttons)'],
 ];

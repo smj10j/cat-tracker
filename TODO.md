@@ -12,8 +12,9 @@
 ### Phase 0 — Tokenization sweep (mandatory groundwork, no visible change)
 - [x] Define canonical TOKEN_CONTRACT in shared/lib/themeTokens.ts (token name list, families, modes, contrast pairs)
 - [x] CI test: parse frontend/src/index.css, assert every variant block defines exactly TOKEN_CONTRACT
-- [ ] CI test: extend to parse app/global.css too (iOS)
-- [ ] CI test: assert every brand/ink token clears AA (4.5:1) against its bg
+- [x] CI test: extend to parse app/global.css too (iOS) — finds :root + .dark blocks
+- [x] CI test: assert every brand/ink token clears AA (4.5:1 body, 3:1 non-text) against its bg
+- [x] Fix: brand-on changed from #ffffff to #16111f for dark-mode purple (pre-existing AA failure)
 - [x] Add missing brand/health/state tokens to frontend/src/index.css :root + [data-theme="light"] (mapped to existing visual hexes)
 - [x] Add missing --color-surface token to web :root (was missing)
 - [x] Expand app/global.css from ~10 to full token contract (brand, health, state, surface, notification)

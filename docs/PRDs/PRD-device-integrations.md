@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | `Draft` |
 | **Last updated** | 2026-04-15 |
-| **Reviewers** | Principal PM + Senior Staff Engineer — 3 passes (2026-04-15) |
+| **Reviewers** | Principal PM + Senior Staff Engineer — 4 passes (2026-04-15) |
 | **Supersedes** | PRD-killer-app.md P8 (Smart scale integration) |
 | **Related** | PRD-api-versioning.md, PRD-security.md, PRD-household-sharing.md |
 
@@ -42,6 +42,20 @@ An owner who manually logs weight weekly will detect a 10% weight loss after ~3-
 - v1 ships the ingest substrate (as scoped). But the **roadmap must explicitly pair ingest with a follow-up "passive-stream anomaly detection" PRD** — otherwise Tier 1 ships as plumbing without a consumer-visible payoff, and the §7 retention hypothesis has nothing to rest on. Retention won't lift because we saved users 30 seconds of typing; it will lift because we caught a hydration drop on a Saturday.
 - Resist the temptation to ship naive threshold alerts on ingested streams before the anomaly PRD lands. A fountain that spikes during cleaning should not page the owner at 2am. This is why §8 Q6 ("monetization free at v1") is correct — **the monetizable feature is alerting-on-streams, which comes next**, not the ingest pipe itself.
 - Telemetry from v1 should capture the *gap-to-detection* metric: for each ingest user, what is the median latency between a clinically-relevant trend onset and the point at which the app first surfaces it? This becomes the north-star metric for the anomaly PRD.
+
+### Silence as signal — the most underrated feature of continuous ingest
+
+**Added (4th-pass, principal PM + staff eng):** The PRD frames ingest value as "more data = better alerts." There's a complementary signal that's arguably *more* clinically actionable: **the absence of data where data is expected.**
+
+A cat who uses a SureFeed feeder twice daily, every day, for 6 months — and then produces zero events for 36 hours — is communicating something. Inappetence is one of the earliest and most sensitive indicators of feline illness (AAFP Senior Care Guidelines, 2021). A fountain that reports 200ml/day average and drops to 40ml over 48h is a CKD/UTI signal. Neither of these requires anomaly-detection ML — they require **silence detection**: "Expected pattern X; observed pattern ∅."
+
+This is qualitatively different from trend alerts (which need weeks of data to detect slopes). Silence detection can fire within 24–48 hours of onset — the exact window where clinical intervention has the most impact and the lowest cost.
+
+**Engineering cost is near-zero on the ingest substrate:** each token already has `last_used_at`. A daily cron job that checks "tokens with ≥ 14 days of history and no event in the last N hours" is trivial. The user configures expected cadence per token (or we infer it from the first 2 weeks). The alert is a push notification: "Luna's feeder hasn't recorded a meal since yesterday morning."
+
+**Product implication:** Silence detection should ship as a *Phase A.5 fast-follow* alongside the vet-share URL — it's the first "the app told me something I didn't know" moment, and it requires zero anomaly-detection infrastructure. It is also the feature that converts the chronic-care segment (§1.5): the CKD owner who worries "is my cat eating enough?" gets an answer passively.
+
+**Not scoped in this PRD** — flag for the anomaly-detection PRD, but note that it can ship far earlier than the full anomaly engine because it's algorithmically trivial.
 
 ### Multi-cat disambiguation — the quiet killer
 
@@ -92,7 +106,7 @@ Flag in §8 alongside the Tier 2 decision.
 
 Reviewing adjacent pain points that owners have but rarely articulate, because they've normalized the friction:
 
-- **Vet-visit data loop.** The single largest measurement gap is the vet scale. Owners get a weight every appointment and manually re-enter it (if at all). A clinic-facing push endpoint (same ingest substrate, different consumer) or a CSV-export-from-vet-PMS path is probably a larger retention lever than any smart device. Out of scope here but **the ingest substrate enables it for near-zero marginal cost** — flag explicitly so we don't redesign when the vet PRD lands.
+- **Vet-visit data loop (potentially the highest-value ingest source, period).** The single largest measurement gap is the vet scale — and lab results. Owners get a weight every appointment and manually re-enter it (if at all). More importantly, **vets produce the only data owners can't generate at home**: CBC panels, metabolic panels, urinalysis, thyroid levels, kidney values (BUN, creatinine, SDMA). This is exactly the data the chronic-care segment (CKD, diabetes, hyperthyroidism) needs to trend over time, and it's exactly what their vet asks to see at follow-ups. Today it lives in a PDF emailed from the clinic PMS, or printed and handed over. Nobody trends it. A clinic-facing push endpoint (same ingest substrate, different consumer), email-forwarded lab PDFs (§4), or a CSV-export-from-vet-PMS path is probably a larger retention lever than any smart device. Out of scope here but **the ingest substrate enables it for near-zero marginal cost** — flag explicitly so we don't redesign when the vet PRD lands. The email-ingest channel (§4) is the natural first path for vet lab data: owners already receive lab results by email.
 - **Boarding / pet-sitter data continuity.** When a cat is away from home, tracking goes dark. A token-per-sitter with time-boxed access solves this and is a natural extension of household sharing.
 - **Cross-vendor reconciliation.** Two feeders + one litter box on different clocks produces duplicate "water event" noise. Owners don't realize this is the problem until they see weird correlations. Our correlation engine is the asset that monetizes cross-vendor ingest. Worth wiring telemetry to detect when this happens and surface it.
 - **Export to vet portals / insurance.** Pet insurance is a growing segment; insurers want longitudinal data for claims. "Export last 12 months to Trupanion / Lemonade" is a future unlock that ingest-sourced data makes credible.
@@ -106,6 +120,18 @@ The PRD is currently silent on whether ingest is free, premium, or acquisition-f
 ### Competitive positioning check (TBD before launch)
 
 We assume the "cross-vendor cat-health aggregator" slot is empty. This PRD does **not** verify that assumption against: Cat Genie, PetPace, MyPetCenter consumer side, Whistle's consumer app expansion, or a well-funded startup that may have launched in 2025–2026. **Pre-launch action:** one engineer-day of competitive scan before the §1.5 marketing copy goes live. If a credible aggregator already exists, we either pivot narrative to "best for cats, strongest privacy" or reconsider the positioning entirely.
+
+### Activation funnel — the metric that actually predicts retention
+
+**Added (4th-pass, principal PM):** The §7 success metrics measure week-4 and week-12 active users. These are *retention* metrics. The missing leading indicator is **activation**: of users who create a token, what % successfully send their first measurement within 24 hours?
+
+Industry benchmarks for developer-facing API products: 40–60% of token creators send a first request within 24h. Below 30% means the setup friction is too high. Above 60% means docs and onboarding are working. This metric tells us whether we have a *distribution* problem or a *product* problem far earlier than week-4 retention.
+
+**Measure separately for each channel:**
+- REST API tokens: % that send first measurement within 24h
+- Email-ingest tokens (if §4 ships): % that receive first parseable email within 7 days (longer because email forwarding setup has more steps)
+
+**v1 must instrument this from day one** — it's the signal that tells us whether to invest in better docs, better onboarding UX, or more parsers.
 
 ### Onboarding the already-quantified owner (the killer first-run experience)
 
@@ -244,6 +270,8 @@ Content-Type: application/json
 - **Audit log policy.** Every ingest *event* is too noisy for `audit_log`. But `token_created`, `token_revoked`, `token_anomaly_alert_sent`, and `backfill_started` belong there — they're the security-relevant transitions. Per-measurement writes rely on the measurement row itself as the record.
 - **Noisy-neighbor on Workers.** Even under our rate limit, a misbehaving token can spray 5000 requests/day in a 1-minute burst and impact tail latency for legitimate traffic. Add a **per-token-per-minute** secondary cap (e.g., 120/min) alongside the daily cap.
 - **`measurements.source` cardinality.** Free-form string is fine for v1, but nothing stops the source column from exploding with typos (`home-assistant-litter-scale` vs `ha-litter-scale`). Phase A ships as-is; a follow-up normalization pass with an `integration_source` FK is straightforward once real data arrives.
+- **D1 write throughput ceiling (4th-pass, staff eng).** Cloudflare D1 is a single-writer SQLite database. Production write throughput is ~100–200 writes/sec under ideal conditions, with tail latency spiking under contention. A 100-item batch insert from one token is a single transaction (~1 write), but 50 tokens each sending 10-item batches simultaneously produces 50 concurrent write transactions. At our current scale (pre-launch, <100 users) this is irrelevant. At the §7 Week-12 target (25 active token users), still fine. But if ingest succeeds and scales to 500+ active tokens with bursty HA automations (cron-triggered, so temporally correlated), D1 becomes the bottleneck before the rate limiter fires. **Mitigation:** the per-token-per-minute cap (120/min) already limits per-client burst; add a global write-queue metric to the health check endpoint. If D1 write latency p95 exceeds 200ms for 5 consecutive minutes, alert. Migration path is Durable Objects (one per household) or Hyperdrive→Postgres, but don't build it until the metric demands it.
+- **Ingest health monitoring for stale tokens.** Users who set up an HA automation and walk away won't notice when it silently breaks (HA update, token expiry, network change). A daily cron that checks "tokens with ≥ 7 days of history and no event in the last 48h" should email the user: "Your token [label] hasn't sent data since [date]. Is your automation still running?" This is different from the *clinical* silence detection (§1.5) — this is *operational* silence detection. Low-effort, high-trust-building. Include in Phase A.
 - **Unit normalization at the boundary.** The ingest contract accepts `kg`, `g`, `lb`, `oz`, `ml`, `fl_oz`. Decision: (a) store as-received and normalize at query time, or (b) normalize to canonical units on write (kg for mass, ml for volume). Recommend (b) — it keeps every downstream consumer (charts, alerts, export, correlation engine) simple and prevents drift where half the measurements for the same cat are in lbs and half in kg. The ingest response should echo back the stored canonical value so the integrator sees the conversion.
 - **Token rotation grace window.** A token baked into an HA `configuration.yaml` is hard to rotate instantly. When the user creates a replacement token, keep the old token valid for 72h in a `deprecated` state (still works, but every response includes `Warning: token-deprecated; rotate by <date>`). This avoids silent breakage when security-conscious users rotate tokens. If a token is *revoked* (not rotated), it dies immediately — the grace only applies to create-then-replace flows.
 - **Support tooling.** Self-serve observability is correctly scoped for users, but support will need a way to view any user's token activity given a support ticket. Add a lightweight admin-only route (`GET /api/admin/tokens/:user_id/activity`) behind the existing admin auth — otherwise every debugging session starts with "can you screenshot your token page?" over email.
@@ -325,7 +353,7 @@ Vendors scored against these gates today:
    - Petivity monthly report (structured HTML table — weight per visit, litter events)
    - Sure Petcare weekly digest (feeding amounts, drinking events per cat)
    - Litter-Robot cycle email (cat weight per use)
-4. **Vet lab result parser (stretch):** PDF attachment extraction → common lab panel values. Higher variance in format, but even a 60% parse rate is transformative for the chronic-care segment.
+4. **Vet lab result parser (promoted from stretch to core, 4th-pass PM review):** PDF attachment extraction → common lab panel values (BUN, creatinine, SDMA, glucose, T4, CBC). Higher variance in format, but: (a) even a 60% parse rate is transformative for the chronic-care segment, (b) vet lab data is the single highest-value data type in the entire ingest strategy — it's the only data owners can't generate at home, and it's what makes the "portable pet health record" narrative credible to vets, (c) owners of chronically ill cats get labs every 2–8 weeks and have years of emailed results sitting in Gmail — the backfill opportunity is enormous, (d) Claude API can parse semi-structured lab PDFs with high accuracy, and our existing Anthropic relationship makes this a natural technical fit. **Recommendation: ship vet lab parsing in the email-ingest launch, not as a stretch goal.** Accept a "best-effort with manual review" posture — a parsed lab result that needs one owner correction is still 10× better than manual entry from a printed page.
 5. **Unrecognized email fallback:** store the raw email, notify the user "we received an email from [sender] but couldn't parse it — want to help us add support for this vendor?" Community feedback loop.
 6. **Settings UI:** `/settings/email-ingest` showing the user's forwarding address, list of received emails with parse status, vendor breakdown
 
@@ -334,7 +362,7 @@ Vendors scored against these gates today:
 | Risk | Mitigation |
 |---|---|
 | Spam/abuse to ingest addresses | Token-scoped addresses; reject unrecognized senders by default; rate-limit inbound by token |
-| Vendor changes email template → parser breaks | Monitor parse-failure rate per vendor; alert maintainer; parsers are isolated modules |
+| Vendor changes email template → parser breaks | Monitor parse-failure rate per vendor; alert maintainer; parsers are isolated modules. **4th-pass eng reality check:** Vendor email templates change more often than APIs — typically 2–4× per year for marketing-driven redesigns. The "0.5 days per parser" estimate is for initial build; budget 0.25 days/quarter/vendor for maintenance. At 5 vendors, that's 1.25 eng-days/quarter — manageable but not zero. Mitigate by using LLM-based parsing (Claude API) for semi-structured content rather than brittle regex/HTML selectors; this trades API cost (~$0.01/email) for resilience to template changes. |
 | PII in forwarded emails (owner name, address, vet details) | Strip and discard all non-measurement content after parsing; document in privacy policy; never store raw email body long-term (retain 7 days for debugging, then delete) |
 | Email deliverability / forwarding chain issues | Provide a "test your forwarding" button in settings that sends a test email and verifies round-trip |
 | Parser accuracy (wrong values extracted) | Every parsed measurement shown to user in a "pending review" state for first 3 emails from a new sender; after user confirms accuracy, auto-accept future emails from that sender |
@@ -389,6 +417,11 @@ Vendors scored against these gates today:
 - **Week 12:** ≥ 25 active token-using users; ≥ 60% of measurements from those users arriving via ingest (i.e., it actually replaced manual entry, not added on top); top three sources identified. **Activates the §3 Tier 3 vendor decision.**
 - **Retention proof point (Week 12):** D30 retention for ingest-using cohort ≥ 1.5× the manual-only cohort, **adjusted for pre-existing engagement**. Raw comparison is misleading — ingest users self-select as power users who were already retaining well. Match cohorts on prior-30-day activity level before measuring the lift. If we can't achieve a credible matched comparison at n=25, extend the window to Week 20 rather than declare victory on unmatched numbers.
 
+**Activation (leading indicator, measure from day one):**
+- **Day 1:** Instrument token-creation → first-successful-measurement funnel. Target: ≥ 50% of tokens send first measurement within 24h (REST API); ≥ 40% receive first parseable email within 7 days (email ingest).
+- **Week 2:** If activation < 30% for REST API, the problem is docs/onboarding, not demand. Invest in better first-run UX before waiting for Week 12 retention data.
+- Measure per-channel (REST, email) and per-source (HA, Shortcuts, IFTTT, Petivity email, etc.) to identify which paths work.
+
 **Kill criteria — stop investment if at Week 12:**
 - < 10 active token users (signal: niche even within self-hosters).
 - ingest-cohort retention is *not* materially higher than manual-only (signal: the hypothesis was wrong; ingest is convenience, not retention).
@@ -420,7 +453,10 @@ If killed: keep the endpoint live and documented (it's nearly free to maintain),
 18. **Vet-share URL fast-follow.** Approve a 1–2 day feature (time-limited read-only share link per cat) as the first visible consumer of ingest data, shipping immediately after Phase A? Recommended: yes — it's the emotional payoff moment.
 19. **Email-ingest promotion (§4).** Promote email-ingest from tentative addendum to co-equal channel, shipping as Phase A+E in parallel with Phase B? Recommended: **yes** — it's the mass-market ingest path and the lowest-friction entry point. The Kayak "forward your emails" pattern is proven, the vendor email landscape is rich, and Cloudflare Email Workers keep infra cost at zero.
 20. **Email-ingest launch parsers.** Ship with Petivity + Sure Petcare + Litter-Robot parsers at launch, or start with just one to validate the pattern? Recommended: ship all three — each covers a different data type (weight, food/water, litter), and the parser effort per vendor is ~0.5 days.
-21. **Vet lab email parsing (stretch).** Include vet lab result PDF parsing in the email-ingest launch? High variance in format, but even partial coverage is transformative for the chronic-care segment. Recommended: include as "best effort" with manual-review fallback — don't block launch on it.
+21. **Vet lab email parsing (promoted from stretch).** Include vet lab result PDF parsing in the email-ingest launch? High variance in format, but the chronic-care segment values this above all other data types, and it's the only data they can't generate at home. Recommended: **yes, ship at launch** with LLM-based parsing (Claude API) and manual-review fallback. Accept imperfect accuracy — a parsed result the owner corrects once is still 10× less friction than manual entry from a printed page.
+22. **Silence detection fast-follow (§1.5).** Ship "your token hasn't sent data in N hours" as a Phase A.5 feature alongside vet-share URL? This is the lowest-cost, highest-impact early-warning feature and requires no anomaly-detection infrastructure. Recommended: yes.
+23. **Activation funnel instrumentation (§1.5).** Instrument token-creation-to-first-measurement conversion rate from day one? This is the leading indicator that tells us whether we have a docs/onboarding problem before week-4 retention data arrives. Recommended: yes, mandatory for v1 launch.
+24. **LLM-based email parsing vs regex.** Use Claude API for email/PDF parsing instead of hand-written parsers? Higher per-email cost (~$0.01) but dramatically more resilient to vendor template changes and format variance. Recommended: yes for vet lab PDFs (high variance, high value); evaluate per-vendor for structured device emails (lower variance, may not justify API cost at scale).
 
 ---
 
@@ -436,8 +472,10 @@ If killed: keep the endpoint live and documented (it's nearly free to maintain),
 7. Tests: fuzz payload (unit), 100-item batch partial-success (integration), rate-limit + `Retry-After` (integration), idempotency under retry (integration), export/deletion coverage (integration)
 8. `docs/API.md` ingest section + Home Assistant blueprint gist + registration for GitHub secret scanning token prefix
 
-**Phase A.5 — Vet-share URL** (≈1–2 days, recommended fast-follow before Phase B)
+**Phase A.5 — Vet-share URL + silence detection** (≈2–3 days, recommended fast-follow before Phase B)
 _a1._ Time-limited, read-only share link per cat (90-day chart bundle: weight, water, food, litter, meds). Expire after 7 days. No auth required to view. This is the first consumer-visible payoff of ingest data and the viral seed for the vet channel.
+_a2._ Operational silence detection: daily cron checks tokens with ≥7 days of history and no event in 48h; emails user "Your token [label] hasn't sent data since [date]." Builds trust and catches broken automations before users notice.
+_a3._ Clinical silence detection (if §8 Q22 approved): for tokens with ≥14 days of history, detect unexpected gaps in expected-cadence events (e.g., feeder that usually fires 2×/day goes silent for 24h). Push notification to user. This is the first "the app caught something I didn't notice" moment — the emotional hook that drives word-of-mouth.
 
 **Phase B — First reference integration** (≈2 days)
 9. Publish a copy-paste Home Assistant automation (load cell → ingest POST) + screenshot-walkthrough blog post
@@ -447,7 +485,7 @@ _e1._ Cloudflare Email Worker inbound route + token resolution from `+<short_tok
 _e2._ Parser framework + launch parsers: Petivity monthly report, Sure Petcare weekly digest, Litter-Robot cycle email
 _e3._ `/settings/email-ingest` UI: forwarding address display, received email log, parse status, "test your forwarding" button
 _e4._ 7-day raw email retention policy + auto-purge
-_e5._ (Stretch) Vet lab result PDF parser with manual-review fallback
+_e5._ Vet lab result PDF parser (promoted from stretch): LLM-based extraction via Claude API with manual-review fallback for first 3 results per sender; auto-accept after owner confirms accuracy
 
 **Phase C — IFTTT docs** (≈1 day, if approved)
 10. One-pager showing how to wire a Litter-Robot IFTTT applet to our ingest URL with a token

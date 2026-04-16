@@ -37,7 +37,7 @@ export const palette = {
     brand: '#c084fc',
     brandPressed: '#a855f7',
     brandGlow: 'rgba(192,132,252,0.18)',
-    brandOn: '#ffffff',
+    brandOn: '#16111f',
     accent: '#fb923c',
     // Legacy aliases — `lavender` ≡ brand, `amber` ≡ accent. Kept so the
     // ~80 existing `colors.lavender` / `colors.amber` call sites stay

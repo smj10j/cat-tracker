@@ -48,6 +48,7 @@
 | [PRD-landscape-charts.md](PRD-landscape-charts.md) | Landscape Mode — Full-Screen Chart Visualization | `Implemented` | 2026-04-12 |
 | [PRD-push-notifications.md](PRD-push-notifications.md) | Push Notifications (iOS Native) | `In Progress` | 2026-04-11 |
 | [PRD-device-integrations.md](PRD-device-integrations.md) | Smart Device Integrations (Auto-Ingest) | `Draft` | 2026-04-15 |
+| [PRD-visual-identity-v2.md](PRD-visual-identity-v2.md) | Visual Identity v2: Color, Type, Hierarchy & Feel | `Draft` | 2026-04-15 |
 
 ---
 

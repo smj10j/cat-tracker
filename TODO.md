@@ -7,6 +7,18 @@
 
 ---
 
+## Phase 59: Visual Identity v2 PRD — Color, Type, Hierarchy (2026-04-15)
+
+- [x] Audit current design system (`docs/DESIGN.md`, `index.css` tokens, brand purple usage)
+- [x] Scan pet-app and adjacent consumer-health competitors for color/identity positioning
+- [x] Draft `docs/PRDs/PRD-visual-identity-v2.md` with five color options and recommendation ("Lamplight" — amber primary on warm aubergine)
+- [x] Specify typography unification (Plus Jakarta Sans across body+display, web+iOS), hero-stat motif, hierarchy rules, motion additions, light-theme-as-design, accessibility commitments, four-phase rollout
+- [x] Register PRD in `docs/PRDs/REGISTRY.md` as Draft
+- [ ] Product owner review + decision on Q1–Q5 (brand color, app icon, icons, serif, splash) — human action
+- [ ] Implementation — gated on Approved status; do not begin
+
+---
+
 ## Phase 58: Device Integrations PRD Research & Draft (2026-04-15)
 
 - [x] Research pet-device API landscape (Sure Petcare, Petlibro, PETKIT, Whisker, Petivity, FitBark, CATLINK, DIY/HA)

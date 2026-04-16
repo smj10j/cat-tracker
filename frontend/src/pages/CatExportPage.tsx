@@ -86,7 +86,13 @@ export default function CatExportPage() {
         }
       `}</style>
 
-      <div className="export-page min-h-screen" style={{ background: '#fff', color: '#111', fontFamily: 'system-ui, sans-serif' }}>
+      {/* Pin to Lamplight light regardless of user theme preference (PRD §6.5) */}
+      <div
+        className="export-page min-h-screen"
+        data-theme-family="lamplight"
+        data-theme="light"
+        style={{ background: '#fff', color: '#111', fontFamily: 'system-ui, sans-serif' }}
+      >
 
         {/* Action bar (screen only) */}
         <div className="no-print flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: '#e5e7eb' }}>

@@ -1,6 +1,7 @@
 import { View, Text, Pressable, ScrollView, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useColorScheme } from 'nativewind';
 import { File, Paths } from 'expo-file-system/next';
 import * as Sharing from 'expo-sharing';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,6 +11,7 @@ import { useThemeColors } from '../hooks/useThemeColors';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import { ResponsiveContainer } from '../components/ResponsiveContainer';
 import { api } from '../lib/api';
+import { THEME_FAMILIES, type ThemeFamily } from '@shared/lib/themeTokens';
 import type { DateFormat, TimeFormat, WeightUnit } from '@shared/lib/preferences';
 
 const DATE_OPTIONS: { value: DateFormat; label: string }[] = [
@@ -34,13 +36,43 @@ const THEME_OPTIONS: { value: ThemePreference; label: string; icon: string }[] =
   { value: 'system', label: 'System', icon: '\u2699\uFE0F' },
 ];
 
+const FAMILY_META: Record<ThemeFamily, { label: string; description: string; swatches: { dark: string[]; light: string[] } }> = {
+  lamplight: {
+    label: 'Lamplight',
+    description: 'Warm amber on aubergine',
+    swatches: { dark: ['#1B1424', '#332444', '#F2A65A', '#9C6BD9'], light: ['#FAF5EC', '#F1E9D8', '#C8741F', '#6E4FA8'] },
+  },
+  warmnight: {
+    label: 'Warm Night',
+    description: 'The original nightshade purple',
+    swatches: { dark: ['#1A1326', '#322547', '#B07BFF', '#FFB37A'], light: ['#F6F2FB', '#EFE8FA', '#7C3AED', '#C2410C'] },
+  },
+  forest: {
+    label: 'Forest',
+    description: 'Deep green with terracotta warmth',
+    swatches: { dark: ['#141A14', '#27332A', '#5BAE7E', '#D6936A'], light: ['#F4F1E8', '#EAE6D8', '#2F6A4A', '#A75D34'] },
+  },
+  linen: {
+    label: 'Linen',
+    description: 'Cool teal on soft neutral',
+    swatches: { dark: ['#15191A', '#2A3132', '#5FB3B0', '#E8B05C'], light: ['#FAFAFA', '#F0F2F3', '#2B7A78', '#A5731F'] },
+  },
+  almanac: {
+    label: 'Almanac',
+    description: 'Terracotta on warm paper',
+    swatches: { dark: ['#1A1410', '#312721', '#D87850', '#C7A86B'], light: ['#F4EFE6', '#EBE3D2', '#B85C2E', '#8A6F3D'] },
+  },
+};
+
 export default function SettingsScreen() {
   const router = useRouter();
   const { user, signOut } = useAuth();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, family, setFamily } = useTheme();
   const { prefs, setPref, resetToLocale, isOverridden } = usePreferences();
   const colors = useThemeColors();
   const { rv } = useResponsiveLayout();
+  const { colorScheme } = useColorScheme();
+  const currentMode = colorScheme === 'light' ? 'light' : 'dark';
   const hasAnyOverride = isOverridden('dateFormat') || isOverridden('timeFormat') || isOverridden('weightUnit');
 
   const handleDeleteAccount = () => {
@@ -120,7 +152,71 @@ export default function SettingsScreen() {
           <Text style={{ color: colors.inkMid, fontSize: rv(10, 12), fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>
             Appearance
           </Text>
-          <Text style={{ color: colors.ink, fontSize: 14, fontWeight: '500', marginBottom: 8 }}>Theme</Text>
+
+          {/* Theme Family Picker */}
+          <Text style={{ color: colors.ink, fontSize: 14, fontWeight: '500', marginBottom: 8 }}>Color theme</Text>
+          <View style={{ gap: 6, marginBottom: 16 }}>
+            {THEME_FAMILIES.map((fam) => {
+              const meta = FAMILY_META[fam];
+              const isActive = family === fam;
+              const swatches = meta.swatches[currentMode];
+              return (
+                <Pressable
+                  key={fam}
+                  onPress={() => setFamily(fam)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: 12,
+                    borderRadius: 12,
+                    backgroundColor: isActive ? colors.brandGlow : colors.card,
+                    borderWidth: isActive ? 1.5 : 1,
+                    borderColor: isActive ? colors.brand : colors.cardBorder,
+                  }}
+                >
+                  {/* Swatches */}
+                  <View style={{ flexDirection: 'row', gap: 4 }}>
+                    {swatches.map((color, i) => (
+                      <View
+                        key={i}
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 10,
+                          backgroundColor: color,
+                          borderWidth: 1,
+                          borderColor: 'rgba(255,255,255,0.1)',
+                        }}
+                      />
+                    ))}
+                  </View>
+                  {/* Label + description */}
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        fontWeight: '600',
+                        color: isActive ? colors.brand : colors.ink,
+                      }}
+                      numberOfLines={1}
+                    >
+                      {meta.label}
+                    </Text>
+                    <Text
+                      style={{ fontSize: 12, color: colors.inkDim, marginTop: 1 }}
+                      numberOfLines={1}
+                    >
+                      {meta.description}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* Mode Picker */}
+          <Text style={{ color: colors.ink, fontSize: 14, fontWeight: '500', marginBottom: 8 }}>Mode</Text>
           <View style={{ flexDirection: 'row', borderRadius: 12, padding: 4, gap: 4, backgroundColor: colors.surfaceHi }}>
             {THEME_OPTIONS.map(({ value, label, icon }) => {
               const isActive = theme === value;

@@ -62,7 +62,7 @@ vi.mock('@react-native-async-storage/async-storage', () => ({
 }));
 
 vi.mock('../contexts/ThemeContext', () => ({
-  useTheme: () => ({ theme: 'dark', setTheme: vi.fn() }),
+  useTheme: () => ({ theme: 'dark', setTheme: vi.fn(), family: 'lamplight', setFamily: vi.fn() }),
   ThemeProvider: ({ children }: any) => React.createElement('div', null, children),
 }));
 

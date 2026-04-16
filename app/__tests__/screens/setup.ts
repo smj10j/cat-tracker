@@ -429,16 +429,22 @@ vi.mock('../../contexts/ThemeContext', () => ({
   useTheme: () => ({
     theme: 'dark',
     setTheme: vi.fn(),
+    family: 'lamplight',
+    setFamily: vi.fn(),
   }),
   ThemeProvider: ({ children }: any) => React.createElement('div', null, children),
+  ThemePreference: {},
 }));
 
 vi.mock('../../../contexts/ThemeContext', () => ({
   useTheme: () => ({
     theme: 'dark',
     setTheme: vi.fn(),
+    family: 'lamplight',
+    setFamily: vi.fn(),
   }),
   ThemeProvider: ({ children }: any) => React.createElement('div', null, children),
+  ThemePreference: {},
 }));
 
 const mockPrefs = { dateFormat: 'MDY', timeFormat: '12h', weightUnit: 'lbs' };

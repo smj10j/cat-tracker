@@ -14,14 +14,14 @@ export default function LoginPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#120c1e' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-bg)' }}>
         <div className="skeleton w-8 h-8 rounded-full" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#120c1e' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--color-bg)' }}>
 
       {/* Hero */}
       <div className="flex flex-col items-center pt-16 pb-10 px-6">
@@ -32,7 +32,7 @@ export default function LoginPage() {
           <div
             className="absolute inset-0 rounded-full"
             style={{
-              background: 'radial-gradient(circle, rgba(192,132,252,0.22) 0%, rgba(251,146,60,0.08) 50%, transparent 72%)',
+              background: 'radial-gradient(circle, var(--color-brand-glow) 0%, transparent 50%, transparent 72%)',
               transform: 'scale(1.4)',
             }}
           />
@@ -51,8 +51,8 @@ export default function LoginPage() {
             style={{
               top: 8,
               right: -12,
-              background: 'rgba(192,132,252,0.15)',
-              border: '1px solid rgba(192,132,252,0.35)',
+              background: 'var(--color-brand-glow)',
+              border: '1px solid var(--color-brand-glow)',
               color: 'var(--color-brand)',
               backdropFilter: 'blur(8px)',
             }}
@@ -102,7 +102,7 @@ export default function LoginPage() {
         <h1 className="font-display font-bold text-3xl text-ink text-center mb-3">
           Whisker Health
         </h1>
-        <p className="text-center text-base leading-relaxed max-w-xs" style={{ color: 'rgba(237,233,246,0.65)' }}>
+        <p className="text-center text-base leading-relaxed max-w-xs" style={{ color: 'var(--color-ink-mid)' }}>
           Know your cat's health trends before they become vet emergencies.
         </p>
       </div>
@@ -141,8 +141,8 @@ export default function LoginPage() {
           href="/api/auth/login?provider=google"
           className="flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-semibold text-sm transition-all"
           style={{
-            background: 'linear-gradient(135deg, rgba(192,132,252,0.18) 0%, rgba(251,146,60,0.12) 100%)',
-            border: '1px solid rgba(192,132,252,0.35)',
+            background: 'linear-gradient(135deg, var(--color-brand-glow) 0%, var(--color-brand-glow) 100%)',
+            border: '1px solid var(--color-brand-glow)',
             color: 'var(--color-ink)',
           }}
         >
@@ -150,7 +150,7 @@ export default function LoginPage() {
           Continue with Google
         </a>
 
-        <p className="text-center text-xs mt-4" style={{ color: 'rgba(237,233,246,0.35)' }}>
+        <p className="text-center text-xs mt-4" style={{ color: 'var(--color-ink-dim)' }}>
           Your data is private and only accessible to you.
         </p>
       </div>
@@ -171,7 +171,7 @@ function FeatureRow({ icon, title, desc }: { icon: string; title: string; desc: 
       <span className="text-xl shrink-0 mt-0.5">{icon}</span>
       <div>
         <p className="text-sm font-semibold text-ink">{title}</p>
-        <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'rgba(237,233,246,0.5)' }}>{desc}</p>
+        <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--color-ink-dim)' }}>{desc}</p>
       </div>
     </div>
   )

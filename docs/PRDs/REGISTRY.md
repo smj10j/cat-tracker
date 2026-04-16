@@ -47,6 +47,7 @@
 | [PRD-localization-preferences.md](PRD-localization-preferences.md) | Localization & Regional Preferences | `Implemented` | 2026-04-12 |
 | [PRD-landscape-charts.md](PRD-landscape-charts.md) | Landscape Mode — Full-Screen Chart Visualization | `Implemented` | 2026-04-12 |
 | [PRD-push-notifications.md](PRD-push-notifications.md) | Push Notifications (iOS Native) | `In Progress` | 2026-04-11 |
+| [PRD-device-integrations.md](PRD-device-integrations.md) | Smart Device Integrations (Auto-Ingest) | `Draft` | 2026-04-15 |
 
 ---
 
@@ -173,7 +174,7 @@ Each entry below provides full implementation notes and open questions. The summ
 | P5 | Household sharing (on top of auth) | Partial (see PRD-household-sharing.md) |
 | P6 | Shelter mode (rooms, triage view, medical templates) | Not started |
 | P7 | AI health narrative (Claude API weekly summaries) | Not started (concept in PRD-ux-redesign.md 3D) |
-| P8 | Smart scale integration | Not started |
+| P8 | Smart scale integration | Superseded by PRD-device-integrations.md (Draft) |
 
 ---
 
@@ -628,4 +629,25 @@ Nothing rejected yet.
 
 ---
 
-*Last updated: 2026-04-11*
+### PRD-device-integrations.md — Smart Device Integrations (Auto-Ingest of Measurements)
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-04-15 |
+| **Supersedes** | PRD-killer-app.md P8 (Smart scale integration) |
+
+**Problem:** Owners with smart pet hardware (SureFeed, Petlibro, PETKIT, Whisker, Petivity, FitBark) re-enter data their devices already capture. The user's stated ideal is one-click OAuth with vendor accounts to auto-sync measurements.
+
+**Key finding:** No major pet-device vendor exposes an official public OAuth API in 2026. Every integration in the ecosystem (surepy, pylitterbot, openHAB bindings) is reverse-engineered, requires password storage, and breaks on vendor rotation. Only FitBark has a documented dev API — and it's dog-centric. Vendors are closing rather than opening (CES 2026 trend).
+
+**Proposed strategy — three tiers:**
+- **Tier 1 (foundation):** Public "Bring Your Own Data" ingest API with user-scoped tokens. Unlocks Home Assistant, IFTTT, Shortcuts, DIY scales, n8n, Zapier without vendor negotiation. ~1 sprint.
+- **Tier 2 (iOS only, deferred):** Apple HealthKit bridge — spike first.
+- **Tier 3 (gated on demand):** Vendor-specific OAuth only when a vendor passes Legal/Auth/Signal/Cost gates. Today only FitBark + IFTTT→Whisker pass.
+
+**Do not implement** — status is `Draft`. Requires product owner approval. Open questions documented in PRD §8.
+
+---
+
+*Last updated: 2026-04-15*

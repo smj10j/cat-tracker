@@ -7,6 +7,18 @@
 
 ---
 
+## Phase 58: Device Integrations PRD Research & Draft (2026-04-15)
+
+- [x] Research pet-device API landscape (Sure Petcare, Petlibro, PETKIT, Whisker, Petivity, FitBark, CATLINK, DIY/HA)
+- [x] Document finding: no vendor offers official OAuth APIs except FitBark
+- [x] Draft three-tier strategy: generic ingest endpoint → HealthKit → vendor-specific gated on demand
+- [x] Write `docs/PRDs/PRD-device-integrations.md` (Draft)
+- [x] Register PRD in `docs/PRDs/REGISTRY.md`; mark killer-app P8 as superseded
+- [ ] Product owner review + move to Approved (human action)
+- [ ] Implementation — gated on approval; do not begin
+
+---
+
 ## Phase 57: iPad Support & App Store Readiness (2026-04-14)
 
 ### Part 1 — Responsive Layout System

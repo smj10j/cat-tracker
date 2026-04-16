@@ -1,13 +1,42 @@
-import { useTheme, type Theme } from '../contexts/ThemeContext'
+import { useTheme, type ThemeMode } from '../contexts/ThemeContext'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { useGoBack } from '../hooks/useGoBack'
+import { THEME_FAMILIES, type ThemeFamily } from '@shared/lib/themeTokens'
 import type { DateFormat, TimeFormat, WeightUnit } from '@shared/lib/preferences'
 
-const THEME_OPTIONS: { value: Theme; label: string; icon: string }[] = [
+const MODE_OPTIONS: { value: ThemeMode; label: string; icon: string }[] = [
   { value: 'dark',   label: 'Dark',   icon: '🌙' },
   { value: 'light',  label: 'Light',  icon: '☀️' },
   { value: 'system', label: 'System', icon: '⚙️' },
 ]
+
+const FAMILY_META: Record<ThemeFamily, { label: string; description: string; swatches: { dark: string[]; light: string[] } }> = {
+  lamplight: {
+    label: 'Lamplight',
+    description: 'Warm amber on aubergine — the default',
+    swatches: { dark: ['#1B1424', '#332444', '#F2A65A', '#9C6BD9'], light: ['#FAF5EC', '#F1E9D8', '#C8741F', '#6E4FA8'] },
+  },
+  warmnight: {
+    label: 'Warm Night',
+    description: 'The original nightshade purple, sharpened',
+    swatches: { dark: ['#1A1326', '#322547', '#B07BFF', '#FFB37A'], light: ['#F6F2FB', '#EFE8FA', '#7C3AED', '#C2410C'] },
+  },
+  forest: {
+    label: 'Forest',
+    description: 'Deep green with terracotta warmth',
+    swatches: { dark: ['#141A14', '#27332A', '#5BAE7E', '#D6936A'], light: ['#F4F1E8', '#EAE6D8', '#2F6A4A', '#A75D34'] },
+  },
+  linen: {
+    label: 'Linen',
+    description: 'Cool teal on soft neutral',
+    swatches: { dark: ['#15191A', '#2A3132', '#5FB3B0', '#E8B05C'], light: ['#FAFAFA', '#F0F2F3', '#2B7A78', '#A5731F'] },
+  },
+  almanac: {
+    label: 'Almanac',
+    description: 'Terracotta on warm paper — editorial feel',
+    swatches: { dark: ['#1A1410', '#312721', '#D87850', '#C7A86B'], light: ['#F4EFE6', '#EBE3D2', '#B85C2E', '#8A6F3D'] },
+  },
+}
 
 const DATE_OPTIONS: { value: DateFormat; label: string }[] = [
   { value: 'MDY', label: 'MM/DD/YYYY' },
@@ -53,8 +82,8 @@ function SegmentedControl<T extends string>({
               className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all"
               style={{
                 background: isActive ? 'linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-pressed) 100%)' : 'transparent',
-                color: isActive ? 'white' : 'var(--color-ink-dim)',
-                boxShadow: isActive ? '0 2px 8px rgba(168,85,247,0.35)' : 'none',
+                color: isActive ? 'var(--color-brand-on)' : 'var(--color-ink-dim)',
+                boxShadow: isActive ? '0 2px 8px var(--color-brand-glow)' : 'none',
               }}
             >
               {icon && <span>{icon}</span>}
@@ -68,12 +97,71 @@ function SegmentedControl<T extends string>({
   )
 }
 
+function ThemeFamilyPicker({ value, onChange, currentMode }: { value: ThemeFamily; onChange: (f: ThemeFamily) => void; currentMode: 'dark' | 'light' }) {
+  return (
+    <div className="space-y-2">
+      {THEME_FAMILIES.map((fam) => {
+        const meta = FAMILY_META[fam]
+        const isActive = value === fam
+        const swatches = meta.swatches[currentMode]
+        return (
+          <button
+            key={fam}
+            onClick={() => onChange(fam)}
+            className="w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left"
+            style={{
+              background: isActive ? 'var(--color-brand-glow)' : 'var(--color-card)',
+              border: isActive ? '1.5px solid var(--color-brand)' : '1px solid var(--color-card-border)',
+            }}
+          >
+            {/* Swatches */}
+            <div className="flex gap-1 shrink-0">
+              {swatches.map((color, i) => (
+                <div
+                  key={i}
+                  className="w-5 h-5 rounded-full"
+                  style={{
+                    backgroundColor: color,
+                    border: '1px solid rgba(255,255,255,0.1)',
+                  }}
+                />
+              ))}
+            </div>
+            {/* Label + description */}
+            <div className="min-w-0">
+              <p
+                className="text-sm font-semibold truncate"
+                style={{ color: isActive ? 'var(--color-brand)' : 'var(--color-ink)' }}
+              >
+                {meta.label}
+              </p>
+              <p className="text-xs truncate" style={{ color: 'var(--color-ink-dim)' }}>
+                {meta.description}
+              </p>
+            </div>
+            {/* Checkmark */}
+            {isActive && (
+              <span className="ml-auto text-sm" style={{ color: 'var(--color-brand)' }}>✓</span>
+            )}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function SettingsPage() {
   const goBack = useGoBack('/')
-  const { theme, setTheme } = useTheme()
+  const { mode, setMode, family, setFamily } = useTheme()
   const { prefs, setPref, resetToLocale, isOverridden } = usePreferences()
 
   const hasAnyOverride = isOverridden('dateFormat') || isOverridden('timeFormat') || isOverridden('weightUnit')
+
+  // Resolve 'system' → actual mode for swatch display
+  const resolvedMode: 'dark' | 'light' =
+    mode === 'system'
+      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      : mode
 
   return (
     <div className="min-h-screen px-4 pt-6 pb-32">
@@ -88,20 +176,25 @@ export default function SettingsPage() {
       </div>
 
       {/* Appearance */}
-      <section className="glass-card p-5 space-y-4 mb-4">
+      <section className="glass-card p-5 space-y-5 mb-4">
         <h2 className="text-xs font-semibold text-ink-mid uppercase tracking-wider">Appearance</h2>
 
         <div>
           <p className="text-sm font-medium text-ink mb-3">Theme</p>
+          <ThemeFamilyPicker value={family} onChange={setFamily} currentMode={resolvedMode} />
+        </div>
+
+        <div>
+          <p className="text-sm font-medium text-ink mb-3">Mode</p>
           <SegmentedControl
-            options={THEME_OPTIONS}
-            value={theme}
-            onChange={setTheme}
+            options={MODE_OPTIONS}
+            value={mode}
+            onChange={setMode}
           />
           <p className="text-xs text-ink-dim mt-2">
-            {theme === 'system'
+            {mode === 'system'
               ? "Follows your device's display settings."
-              : theme === 'light'
+              : mode === 'light'
               ? 'Always uses the light theme.'
               : 'Always uses the dark theme.'}
           </p>

@@ -93,30 +93,29 @@ describe('Theme token contract — web (frontend/src/index.css)', () => {
   const css = readFileSync(WEB_CSS_PATH, 'utf-8');
   const { tokens, values } = extractColorTokensBySelector(css);
 
-  const variantSelectors = Array.from(tokens.keys()).filter(
-    (s) => s === ':root' || s.startsWith('[data-theme'),
-  );
+  // Every top-level block with --color-* declarations is a theme variant.
+  // Phase 1 adds compound selectors like `:root, [data-theme-family="lamplight"][data-theme="dark"]`.
+  const variantSelectors = Array.from(tokens.keys());
 
-  it('finds at least one variant block', () => {
-    expect(variantSelectors.length).toBeGreaterThan(0);
+  it('finds at least two variant blocks (dark + light)', () => {
+    expect(variantSelectors.length).toBeGreaterThanOrEqual(2);
   });
 
-  it.each(variantSelectors)('block %s defines exactly the contract tokens', (selector) => {
+  it.each(variantSelectors)('block "%s" defines exactly the contract tokens', (selector) => {
     const declared = tokens.get(selector)!;
     const missing = THEME_TOKEN_CONTRACT.filter((t) => !declared.has(t));
     const extra = Array.from(declared).filter((t) => !CONTRACT.has(t));
     expect({ selector, missing, extra }).toEqual({ selector, missing: [], extra: [] });
   });
 
-  // AA contrast checks on hex-valued pairs
-  it.each(variantSelectors)('block %s passes AA contrast on critical pairs', (selector) => {
+  it.each(variantSelectors)('block "%s" passes AA contrast on critical pairs', (selector) => {
     const vMap = values.get(selector)!;
     for (const [fgToken, bgToken, minRatio, label] of CRITICAL_CONTRAST_PAIRS) {
       const fgHex = vMap.get(fgToken);
       const bgHex = vMap.get(bgToken);
       const fg = fgHex ? parseHex(fgHex) : null;
       const bg = bgHex ? parseHex(bgHex) : null;
-      if (!fg || !bg) continue; // skip non-hex values (rgba, etc.)
+      if (!fg || !bg) continue;
       const ratio = contrastRatio(fg, bg);
       expect(
         ratio,
@@ -132,23 +131,20 @@ describe('Theme token contract — iOS (app/global.css)', () => {
   const css = readFileSync(IOS_CSS_PATH, 'utf-8');
   const { tokens, values } = extractColorTokensBySelector(css);
 
-  // iOS uses `:root` (light) and `.dark` (dark).
-  const variantSelectors = Array.from(tokens.keys()).filter(
-    (s) => s === ':root' || s === '.dark' || s.startsWith('[data-theme'),
-  );
+  const variantSelectors = Array.from(tokens.keys());
 
-  it('finds at least one variant block', () => {
-    expect(variantSelectors.length).toBeGreaterThan(0);
+  it('finds at least two variant blocks (dark + light)', () => {
+    expect(variantSelectors.length).toBeGreaterThanOrEqual(2);
   });
 
-  it.each(variantSelectors)('block %s defines exactly the contract tokens', (selector) => {
+  it.each(variantSelectors)('block "%s" defines exactly the contract tokens', (selector) => {
     const declared = tokens.get(selector)!;
     const missing = THEME_TOKEN_CONTRACT.filter((t) => !declared.has(t));
     const extra = Array.from(declared).filter((t) => !CONTRACT.has(t));
     expect({ selector, missing, extra }).toEqual({ selector, missing: [], extra: [] });
   });
 
-  it.each(variantSelectors)('block %s passes AA contrast on critical pairs', (selector) => {
+  it.each(variantSelectors)('block "%s" passes AA contrast on critical pairs', (selector) => {
     const vMap = values.get(selector)!;
     for (const [fgToken, bgToken, minRatio, label] of CRITICAL_CONTRAST_PAIRS) {
       const fgHex = vMap.get(fgToken);

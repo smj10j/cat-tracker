@@ -2,56 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Theme tokens ──────────────────────────────────────────────────────── */
-/*
- * Phase 0 (PRD-visual-identity-v2): the current dark + light blocks remain
- * the single active "family" until Phase 1 lands the 5-family system. Brand,
- * accent, and health tokens are added here mapped to the existing visual
- * hexes so component code can stop hardcoding them — no pixel drift.
- */
-:root {
+/* ============================================================
+   Theme Variant Blocks — 5 families x 2 modes = 10 blocks
+   Each block: 44 CSS custom properties (token contract)
+   ============================================================ */
+
+/* --- LAMPLIGHT DARK (default) --- */
+:root,
+[data-theme-family="lamplight"][data-theme="dark"] {
   /* Surface */
-  --color-bg: #16111f;
-  --color-surface: #1f1830;
-  --color-surface-hi: #2a2040;
+  --color-bg: #1B1424;
+  --color-surface: #261B33;
+  --color-surface-hi: #332444;
   --color-card: rgba(255,255,255,0.04);
   --color-card-border: rgba(255,255,255,0.07);
-  --color-section-bg: rgba(42,32,64,0.8);
+  --color-section-bg: rgba(255,255,255,0.05);
   --color-section-border: rgba(255,255,255,0.08);
-  --color-rim: rgba(255,255,255,0.07);
+  --color-rim: rgba(255,220,180,0.08);
   --color-rim-hi: rgba(255,255,255,0.12);
   --color-grid: rgba(255,255,255,0.04);
-  --color-dot-ring: #16111f;
+  --color-dot-ring: #1B1424;
   --color-tab-bar: rgba(255,255,255,0.04);
-  --color-tooltip-bg: rgba(42,32,64,0.95);
+  --color-tooltip-bg: rgba(255,255,255,0.06);
   --color-tooltip-border: rgba(255,255,255,0.1);
-  --color-nav-bg: rgba(31,24,48,0.85);
-  --color-nav-border: rgba(255,255,255,0.07);
-  --color-hero-overlay: rgba(13,9,24,0.96);
-  --color-hero-overlay-mid: rgba(13,9,24,0.5);
+  --color-nav-bg: rgba(255,255,255,0.04);
+  --color-nav-border: rgba(255,220,180,0.08);
+  --color-hero-overlay: #1B1424f5;
+  --color-hero-overlay-mid: #1B142480;
   --color-skeleton-from: rgba(255,255,255,0.04);
   --color-skeleton-to: rgba(255,255,255,0.08);
   --color-badge-bg: rgba(255,255,255,0.06);
-
   /* Ink */
-  --color-ink: #ede9f6;
-  --color-ink-mid: #a899c0;
-  --color-ink-dim: #6b5f85;
-
-  /* Brand (current cool-purple — Phase 1 replaces with Lamplight amber) */
-  --color-brand: #c084fc;
-  --color-brand-pressed: #a855f7;
-  --color-brand-glow: rgba(192,132,252,0.18);
-  --color-brand-on: #16111f;
-  --color-accent: #fb923c;
-
-  /* Health palette (semantic — constant role across families) */
-  --color-health-jade: #4ade80;
-  --color-health-honey: #fbbf24;
-  --color-health-coral: #f97316;
-  --color-health-rose: #f87171;
-
-  /* Notification state */
+  --color-ink: #F5EDE0;
+  --color-ink-mid: #B8A89A;
+  --color-ink-dim: #7A6B5E;
+  /* Brand */
+  --color-brand: #F2A65A;
+  --color-brand-pressed: #C8741F;
+  --color-brand-glow: rgba(242,166,90,0.18);
+  --color-brand-on: #1B1424;
+  --color-accent: #9C6BD9;
+  /* Health */
+  --color-health-jade: #6BCF93;
+  --color-health-honey: #F4C849;
+  --color-health-coral: #EF7E48;
+  --color-health-rose: #E66666;
+  /* State */
   --color-overdue: #f87171;
   --color-overdue-muted: #f87171cc;
   --color-overdue-bg: rgba(248,113,113,0.06);
@@ -66,49 +62,478 @@
   --color-refill-border: rgba(251,146,60,0.25);
 }
 
-[data-theme="light"] {
+/* --- LAMPLIGHT LIGHT --- */
+[data-theme-family="lamplight"][data-theme="light"] {
   /* Surface */
-  --color-bg: #f0eefa;
-  --color-surface: #ffffff;
-  --color-surface-hi: #e8e0f7;
+  --color-bg: #FAF5EC;
+  --color-surface: #FFFEF9;
+  --color-surface-hi: #F1E9D8;
   --color-card: rgba(255,255,255,0.9);
   --color-card-border: rgba(0,0,0,0.08);
   --color-section-bg: rgba(255,255,255,0.85);
   --color-section-border: rgba(0,0,0,0.08);
-  --color-rim: rgba(0,0,0,0.08);
+  --color-rim: rgba(80,50,20,0.10);
   --color-rim-hi: rgba(0,0,0,0.15);
   --color-grid: rgba(0,0,0,0.05);
-  --color-dot-ring: #f0eefa;
+  --color-dot-ring: #FAF5EC;
   --color-tab-bar: rgba(0,0,0,0.05);
-  --color-tooltip-bg: rgba(248,246,255,0.97);
+  --color-tooltip-bg: rgba(255,255,255,0.97);
   --color-tooltip-border: rgba(0,0,0,0.12);
-  --color-nav-bg: rgba(240,238,250,0.9);
+  --color-nav-bg: #FAF5ECe6;
   --color-nav-border: rgba(0,0,0,0.08);
-  --color-hero-overlay: rgba(240,238,250,0.95);
-  --color-hero-overlay-mid: rgba(240,238,250,0.6);
+  --color-hero-overlay: #FAF5ECf2;
+  --color-hero-overlay-mid: #FAF5EC99;
   --color-skeleton-from: rgba(0,0,0,0.05);
   --color-skeleton-to: rgba(0,0,0,0.09);
   --color-badge-bg: rgba(0,0,0,0.06);
-
   /* Ink */
-  --color-ink: #1a1525;
-  --color-ink-mid: #5a4e7a;
-  --color-ink-dim: #9589b5;
-
-  /* Brand (current cool-purple, light-mode tuned) */
-  --color-brand: #7c3aed;
-  --color-brand-pressed: #6d28d9;
-  --color-brand-glow: rgba(124,58,237,0.12);
-  --color-brand-on: #ffffff;
-  --color-accent: #c2410c;
-
-  /* Health palette (light-mode tuned for AA on cream surfaces) */
+  --color-ink: #2A211A;
+  --color-ink-mid: #6B5B4E;
+  --color-ink-dim: #9C8E80;
+  /* Brand */
+  --color-brand: #C8741F;
+  --color-brand-pressed: #9A4F11;
+  --color-brand-glow: rgba(200,116,31,0.14);
+  --color-brand-on: #FFFFFF;
+  --color-accent: #6E4FA8;
+  /* Health */
   --color-health-jade: #2e8c5b;
   --color-health-honey: #a57a11;
   --color-health-coral: #b85220;
   --color-health-rose: #b8312e;
+  /* State */
+  --color-overdue: #dc2626;
+  --color-overdue-muted: #b91c1c;
+  --color-overdue-bg: rgba(220,38,38,0.06);
+  --color-overdue-border: rgba(220,38,38,0.25);
+  --color-due-today: #a16207;
+  --color-due-today-muted: #92400e;
+  --color-due-today-bg: rgba(161,98,7,0.06);
+  --color-due-today-border: rgba(161,98,7,0.25);
+  --color-refill: #c2410c;
+  --color-refill-muted: #9a3412;
+  --color-refill-bg: rgba(194,65,12,0.05);
+  --color-refill-border: rgba(194,65,12,0.2);
+}
 
-  /* Notification state */
+/* --- WARMNIGHT DARK --- */
+[data-theme-family="warmnight"][data-theme="dark"] {
+  /* Surface */
+  --color-bg: #1A1326;
+  --color-surface: #241A33;
+  --color-surface-hi: #322547;
+  --color-card: rgba(255,255,255,0.04);
+  --color-card-border: rgba(255,255,255,0.07);
+  --color-section-bg: rgba(255,255,255,0.05);
+  --color-section-border: rgba(255,255,255,0.08);
+  --color-rim: rgba(255,255,255,0.07);
+  --color-rim-hi: rgba(255,255,255,0.12);
+  --color-grid: rgba(255,255,255,0.04);
+  --color-dot-ring: #1A1326;
+  --color-tab-bar: rgba(255,255,255,0.04);
+  --color-tooltip-bg: rgba(255,255,255,0.06);
+  --color-tooltip-border: rgba(255,255,255,0.1);
+  --color-nav-bg: rgba(255,255,255,0.04);
+  --color-nav-border: rgba(255,255,255,0.07);
+  --color-hero-overlay: #1A1326f5;
+  --color-hero-overlay-mid: #1A132680;
+  --color-skeleton-from: rgba(255,255,255,0.04);
+  --color-skeleton-to: rgba(255,255,255,0.08);
+  --color-badge-bg: rgba(255,255,255,0.06);
+  /* Ink */
+  --color-ink: #EDE9F6;
+  --color-ink-mid: #A899C0;
+  --color-ink-dim: #6B5F85;
+  /* Brand */
+  --color-brand: #B07BFF;
+  --color-brand-pressed: #8A52E6;
+  --color-brand-glow: rgba(176,123,255,0.18);
+  --color-brand-on: #1A1326;
+  --color-accent: #FFB37A;
+  /* Health */
+  --color-health-jade: #6BCF93;
+  --color-health-honey: #F4C849;
+  --color-health-coral: #EF7E48;
+  --color-health-rose: #E66666;
+  /* State */
+  --color-overdue: #f87171;
+  --color-overdue-muted: #f87171cc;
+  --color-overdue-bg: rgba(248,113,113,0.06);
+  --color-overdue-border: rgba(248,113,113,0.35);
+  --color-due-today: #fbbf24;
+  --color-due-today-muted: #fbbf24cc;
+  --color-due-today-bg: rgba(251,191,36,0.04);
+  --color-due-today-border: rgba(251,191,36,0.3);
+  --color-refill: #fb923c;
+  --color-refill-muted: #fb923ccc;
+  --color-refill-bg: rgba(251,146,60,0.05);
+  --color-refill-border: rgba(251,146,60,0.25);
+}
+
+/* --- WARMNIGHT LIGHT --- */
+[data-theme-family="warmnight"][data-theme="light"] {
+  /* Surface */
+  --color-bg: #F6F2FB;
+  --color-surface: #FFFFFF;
+  --color-surface-hi: #EFE8FA;
+  --color-card: rgba(255,255,255,0.9);
+  --color-card-border: rgba(0,0,0,0.08);
+  --color-section-bg: rgba(255,255,255,0.85);
+  --color-section-border: rgba(0,0,0,0.08);
+  --color-rim: rgba(40,20,80,0.08);
+  --color-rim-hi: rgba(0,0,0,0.15);
+  --color-grid: rgba(0,0,0,0.05);
+  --color-dot-ring: #F6F2FB;
+  --color-tab-bar: rgba(0,0,0,0.05);
+  --color-tooltip-bg: rgba(255,255,255,0.97);
+  --color-tooltip-border: rgba(0,0,0,0.12);
+  --color-nav-bg: #F6F2FBe6;
+  --color-nav-border: rgba(0,0,0,0.08);
+  --color-hero-overlay: #F6F2FBf2;
+  --color-hero-overlay-mid: #F6F2FB99;
+  --color-skeleton-from: rgba(0,0,0,0.05);
+  --color-skeleton-to: rgba(0,0,0,0.09);
+  --color-badge-bg: rgba(0,0,0,0.06);
+  /* Ink */
+  --color-ink: #1F1A2E;
+  --color-ink-mid: #5A4E7A;
+  --color-ink-dim: #9589B5;
+  /* Brand */
+  --color-brand: #7C3AED;
+  --color-brand-pressed: #6D28D9;
+  --color-brand-glow: rgba(124,58,237,0.12);
+  --color-brand-on: #FFFFFF;
+  --color-accent: #C2410C;
+  /* Health */
+  --color-health-jade: #2e8c5b;
+  --color-health-honey: #a57a11;
+  --color-health-coral: #b85220;
+  --color-health-rose: #b8312e;
+  /* State */
+  --color-overdue: #dc2626;
+  --color-overdue-muted: #b91c1c;
+  --color-overdue-bg: rgba(220,38,38,0.06);
+  --color-overdue-border: rgba(220,38,38,0.25);
+  --color-due-today: #a16207;
+  --color-due-today-muted: #92400e;
+  --color-due-today-bg: rgba(161,98,7,0.06);
+  --color-due-today-border: rgba(161,98,7,0.25);
+  --color-refill: #c2410c;
+  --color-refill-muted: #9a3412;
+  --color-refill-bg: rgba(194,65,12,0.05);
+  --color-refill-border: rgba(194,65,12,0.2);
+}
+
+/* --- FOREST DARK --- */
+[data-theme-family="forest"][data-theme="dark"] {
+  /* Surface */
+  --color-bg: #141A14;
+  --color-surface: #1E2820;
+  --color-surface-hi: #27332A;
+  --color-card: rgba(255,255,255,0.04);
+  --color-card-border: rgba(255,255,255,0.07);
+  --color-section-bg: rgba(255,255,255,0.05);
+  --color-section-border: rgba(255,255,255,0.08);
+  --color-rim: rgba(220,255,220,0.07);
+  --color-rim-hi: rgba(255,255,255,0.12);
+  --color-grid: rgba(255,255,255,0.04);
+  --color-dot-ring: #141A14;
+  --color-tab-bar: rgba(255,255,255,0.04);
+  --color-tooltip-bg: rgba(255,255,255,0.06);
+  --color-tooltip-border: rgba(255,255,255,0.1);
+  --color-nav-bg: rgba(255,255,255,0.04);
+  --color-nav-border: rgba(220,255,220,0.07);
+  --color-hero-overlay: #141A14f5;
+  --color-hero-overlay-mid: #141A1480;
+  --color-skeleton-from: rgba(255,255,255,0.04);
+  --color-skeleton-to: rgba(255,255,255,0.08);
+  --color-badge-bg: rgba(255,255,255,0.06);
+  /* Ink */
+  --color-ink: #EFEFE7;
+  --color-ink-mid: #A6B0A0;
+  --color-ink-dim: #6B756A;
+  /* Brand */
+  --color-brand: #5BAE7E;
+  --color-brand-pressed: #3F8A60;
+  --color-brand-glow: rgba(91,174,126,0.18);
+  --color-brand-on: #0E140E;
+  --color-accent: #D6936A;
+  /* Health */
+  --color-health-jade: #6BCF93;
+  --color-health-honey: #F4C849;
+  --color-health-coral: #EF7E48;
+  --color-health-rose: #E66666;
+  /* State */
+  --color-overdue: #f87171;
+  --color-overdue-muted: #f87171cc;
+  --color-overdue-bg: rgba(248,113,113,0.06);
+  --color-overdue-border: rgba(248,113,113,0.35);
+  --color-due-today: #fbbf24;
+  --color-due-today-muted: #fbbf24cc;
+  --color-due-today-bg: rgba(251,191,36,0.04);
+  --color-due-today-border: rgba(251,191,36,0.3);
+  --color-refill: #fb923c;
+  --color-refill-muted: #fb923ccc;
+  --color-refill-bg: rgba(251,146,60,0.05);
+  --color-refill-border: rgba(251,146,60,0.25);
+}
+
+/* --- FOREST LIGHT --- */
+[data-theme-family="forest"][data-theme="light"] {
+  /* Surface */
+  --color-bg: #F4F1E8;
+  --color-surface: #FFFFFF;
+  --color-surface-hi: #EAE6D8;
+  --color-card: rgba(255,255,255,0.9);
+  --color-card-border: rgba(0,0,0,0.08);
+  --color-section-bg: rgba(255,255,255,0.85);
+  --color-section-border: rgba(0,0,0,0.08);
+  --color-rim: rgba(20,40,20,0.10);
+  --color-rim-hi: rgba(0,0,0,0.15);
+  --color-grid: rgba(0,0,0,0.05);
+  --color-dot-ring: #F4F1E8;
+  --color-tab-bar: rgba(0,0,0,0.05);
+  --color-tooltip-bg: rgba(255,255,255,0.97);
+  --color-tooltip-border: rgba(0,0,0,0.12);
+  --color-nav-bg: #F4F1E8e6;
+  --color-nav-border: rgba(0,0,0,0.08);
+  --color-hero-overlay: #F4F1E8f2;
+  --color-hero-overlay-mid: #F4F1E899;
+  --color-skeleton-from: rgba(0,0,0,0.05);
+  --color-skeleton-to: rgba(0,0,0,0.09);
+  --color-badge-bg: rgba(0,0,0,0.06);
+  /* Ink */
+  --color-ink: #1A201A;
+  --color-ink-mid: #4F5A4D;
+  --color-ink-dim: #8A958A;
+  /* Brand */
+  --color-brand: #2F6A4A;
+  --color-brand-pressed: #214E36;
+  --color-brand-glow: rgba(47,106,74,0.12);
+  --color-brand-on: #FFFFFF;
+  --color-accent: #A75D34;
+  /* Health */
+  --color-health-jade: #2e8c5b;
+  --color-health-honey: #a57a11;
+  --color-health-coral: #b85220;
+  --color-health-rose: #b8312e;
+  /* State */
+  --color-overdue: #dc2626;
+  --color-overdue-muted: #b91c1c;
+  --color-overdue-bg: rgba(220,38,38,0.06);
+  --color-overdue-border: rgba(220,38,38,0.25);
+  --color-due-today: #a16207;
+  --color-due-today-muted: #92400e;
+  --color-due-today-bg: rgba(161,98,7,0.06);
+  --color-due-today-border: rgba(161,98,7,0.25);
+  --color-refill: #c2410c;
+  --color-refill-muted: #9a3412;
+  --color-refill-bg: rgba(194,65,12,0.05);
+  --color-refill-border: rgba(194,65,12,0.2);
+}
+
+/* --- LINEN DARK --- */
+[data-theme-family="linen"][data-theme="dark"] {
+  /* Surface */
+  --color-bg: #15191A;
+  --color-surface: #1E2425;
+  --color-surface-hi: #2A3132;
+  --color-card: rgba(255,255,255,0.04);
+  --color-card-border: rgba(255,255,255,0.07);
+  --color-section-bg: rgba(255,255,255,0.05);
+  --color-section-border: rgba(255,255,255,0.08);
+  --color-rim: rgba(255,255,255,0.07);
+  --color-rim-hi: rgba(255,255,255,0.12);
+  --color-grid: rgba(255,255,255,0.04);
+  --color-dot-ring: #15191A;
+  --color-tab-bar: rgba(255,255,255,0.04);
+  --color-tooltip-bg: rgba(255,255,255,0.06);
+  --color-tooltip-border: rgba(255,255,255,0.1);
+  --color-nav-bg: rgba(255,255,255,0.04);
+  --color-nav-border: rgba(255,255,255,0.07);
+  --color-hero-overlay: #15191Af5;
+  --color-hero-overlay-mid: #15191A80;
+  --color-skeleton-from: rgba(255,255,255,0.04);
+  --color-skeleton-to: rgba(255,255,255,0.08);
+  --color-badge-bg: rgba(255,255,255,0.06);
+  /* Ink */
+  --color-ink: #E8EDED;
+  --color-ink-mid: #9BA8A8;
+  --color-ink-dim: #65706F;
+  /* Brand */
+  --color-brand: #5FB3B0;
+  --color-brand-pressed: #3F908D;
+  --color-brand-glow: rgba(95,179,176,0.18);
+  --color-brand-on: #0E1718;
+  --color-accent: #E8B05C;
+  /* Health */
+  --color-health-jade: #6BCF93;
+  --color-health-honey: #F4C849;
+  --color-health-coral: #EF7E48;
+  --color-health-rose: #E66666;
+  /* State */
+  --color-overdue: #f87171;
+  --color-overdue-muted: #f87171cc;
+  --color-overdue-bg: rgba(248,113,113,0.06);
+  --color-overdue-border: rgba(248,113,113,0.35);
+  --color-due-today: #fbbf24;
+  --color-due-today-muted: #fbbf24cc;
+  --color-due-today-bg: rgba(251,191,36,0.04);
+  --color-due-today-border: rgba(251,191,36,0.3);
+  --color-refill: #fb923c;
+  --color-refill-muted: #fb923ccc;
+  --color-refill-bg: rgba(251,146,60,0.05);
+  --color-refill-border: rgba(251,146,60,0.25);
+}
+
+/* --- LINEN LIGHT --- */
+[data-theme-family="linen"][data-theme="light"] {
+  /* Surface */
+  --color-bg: #FAFAFA;
+  --color-surface: #FFFFFF;
+  --color-surface-hi: #F0F2F3;
+  --color-card: rgba(255,255,255,0.9);
+  --color-card-border: rgba(0,0,0,0.08);
+  --color-section-bg: rgba(255,255,255,0.85);
+  --color-section-border: rgba(0,0,0,0.08);
+  --color-rim: rgba(15,40,40,0.08);
+  --color-rim-hi: rgba(0,0,0,0.15);
+  --color-grid: rgba(0,0,0,0.05);
+  --color-dot-ring: #FAFAFA;
+  --color-tab-bar: rgba(0,0,0,0.05);
+  --color-tooltip-bg: rgba(255,255,255,0.97);
+  --color-tooltip-border: rgba(0,0,0,0.12);
+  --color-nav-bg: #FAFAFAe6;
+  --color-nav-border: rgba(0,0,0,0.08);
+  --color-hero-overlay: #FAFAFAf2;
+  --color-hero-overlay-mid: #FAFAFA99;
+  --color-skeleton-from: rgba(0,0,0,0.05);
+  --color-skeleton-to: rgba(0,0,0,0.09);
+  --color-badge-bg: rgba(0,0,0,0.06);
+  /* Ink */
+  --color-ink: #0F1718;
+  --color-ink-mid: #4A5556;
+  --color-ink-dim: #8A9495;
+  /* Brand */
+  --color-brand: #2B7A78;
+  --color-brand-pressed: #1F5957;
+  --color-brand-glow: rgba(43,122,120,0.12);
+  --color-brand-on: #FFFFFF;
+  --color-accent: #A5731F;
+  /* Health */
+  --color-health-jade: #2e8c5b;
+  --color-health-honey: #a57a11;
+  --color-health-coral: #b85220;
+  --color-health-rose: #b8312e;
+  /* State */
+  --color-overdue: #dc2626;
+  --color-overdue-muted: #b91c1c;
+  --color-overdue-bg: rgba(220,38,38,0.06);
+  --color-overdue-border: rgba(220,38,38,0.25);
+  --color-due-today: #a16207;
+  --color-due-today-muted: #92400e;
+  --color-due-today-bg: rgba(161,98,7,0.06);
+  --color-due-today-border: rgba(161,98,7,0.25);
+  --color-refill: #c2410c;
+  --color-refill-muted: #9a3412;
+  --color-refill-bg: rgba(194,65,12,0.05);
+  --color-refill-border: rgba(194,65,12,0.2);
+}
+
+/* --- ALMANAC DARK --- */
+[data-theme-family="almanac"][data-theme="dark"] {
+  /* Surface */
+  --color-bg: #1A1410;
+  --color-surface: #251D17;
+  --color-surface-hi: #312721;
+  --color-card: rgba(255,255,255,0.04);
+  --color-card-border: rgba(255,255,255,0.07);
+  --color-section-bg: rgba(255,255,255,0.05);
+  --color-section-border: rgba(255,255,255,0.08);
+  --color-rim: rgba(255,235,210,0.08);
+  --color-rim-hi: rgba(255,255,255,0.12);
+  --color-grid: rgba(255,255,255,0.04);
+  --color-dot-ring: #1A1410;
+  --color-tab-bar: rgba(255,255,255,0.04);
+  --color-tooltip-bg: rgba(255,255,255,0.06);
+  --color-tooltip-border: rgba(255,255,255,0.1);
+  --color-nav-bg: rgba(255,255,255,0.04);
+  --color-nav-border: rgba(255,235,210,0.08);
+  --color-hero-overlay: #1A1410f5;
+  --color-hero-overlay-mid: #1A141080;
+  --color-skeleton-from: rgba(255,255,255,0.04);
+  --color-skeleton-to: rgba(255,255,255,0.08);
+  --color-badge-bg: rgba(255,255,255,0.06);
+  /* Ink */
+  --color-ink: #F2E8D8;
+  --color-ink-mid: #B5A696;
+  --color-ink-dim: #7A6E60;
+  /* Brand */
+  --color-brand: #D87850;
+  --color-brand-pressed: #A85535;
+  --color-brand-glow: rgba(216,120,80,0.18);
+  --color-brand-on: #1A1410;
+  --color-accent: #C7A86B;
+  /* Health */
+  --color-health-jade: #6BCF93;
+  --color-health-honey: #F4C849;
+  --color-health-coral: #EF7E48;
+  --color-health-rose: #E66666;
+  /* State */
+  --color-overdue: #f87171;
+  --color-overdue-muted: #f87171cc;
+  --color-overdue-bg: rgba(248,113,113,0.06);
+  --color-overdue-border: rgba(248,113,113,0.35);
+  --color-due-today: #fbbf24;
+  --color-due-today-muted: #fbbf24cc;
+  --color-due-today-bg: rgba(251,191,36,0.04);
+  --color-due-today-border: rgba(251,191,36,0.3);
+  --color-refill: #fb923c;
+  --color-refill-muted: #fb923ccc;
+  --color-refill-bg: rgba(251,146,60,0.05);
+  --color-refill-border: rgba(251,146,60,0.25);
+}
+
+/* --- ALMANAC LIGHT --- */
+[data-theme-family="almanac"][data-theme="light"] {
+  /* Surface */
+  --color-bg: #F4EFE6;
+  --color-surface: #FFFCF5;
+  --color-surface-hi: #EBE3D2;
+  --color-card: rgba(255,255,255,0.9);
+  --color-card-border: rgba(0,0,0,0.08);
+  --color-section-bg: rgba(255,255,255,0.85);
+  --color-section-border: rgba(0,0,0,0.08);
+  --color-rim: rgba(60,40,20,0.10);
+  --color-rim-hi: rgba(0,0,0,0.15);
+  --color-grid: rgba(0,0,0,0.05);
+  --color-dot-ring: #F4EFE6;
+  --color-tab-bar: rgba(0,0,0,0.05);
+  --color-tooltip-bg: rgba(255,255,255,0.97);
+  --color-tooltip-border: rgba(0,0,0,0.12);
+  --color-nav-bg: #F4EFE6e6;
+  --color-nav-border: rgba(0,0,0,0.08);
+  --color-hero-overlay: #F4EFE6f2;
+  --color-hero-overlay-mid: #F4EFE699;
+  --color-skeleton-from: rgba(0,0,0,0.05);
+  --color-skeleton-to: rgba(0,0,0,0.09);
+  --color-badge-bg: rgba(0,0,0,0.06);
+  /* Ink */
+  --color-ink: #1F1A14;
+  --color-ink-mid: #5A4E40;
+  --color-ink-dim: #8F8474;
+  /* Brand */
+  --color-brand: #B85C2E;
+  --color-brand-pressed: #8C4220;
+  --color-brand-glow: rgba(184,92,46,0.12);
+  --color-brand-on: #FFFFFF;
+  --color-accent: #8A6F3D;
+  /* Health */
+  --color-health-jade: #2e8c5b;
+  --color-health-honey: #a57a11;
+  --color-health-coral: #b85220;
+  --color-health-rose: #b8312e;
+  /* State */
   --color-overdue: #dc2626;
   --color-overdue-muted: #b91c1c;
   --color-overdue-bg: rgba(220,38,38,0.06);

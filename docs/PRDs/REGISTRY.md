@@ -38,7 +38,7 @@
 | [PRD-app-settings.md](PRD-app-settings.md) | App Settings — Dark/Light/System Mode Toggle | `Partial` | 2026-04-11 |
 | [PRD-deceased-cat.md](PRD-deceased-cat.md) | In Memoriam — Marking a Cat as Deceased | `Implemented` | 2026-04-11 |
 | [PRD-weight-alert-sensitivity.md](PRD-weight-alert-sensitivity.md) | Weight Alert Sensitivity Review | `Implemented` | 2026-04-11 |
-| [PRD-ios-app-store.md](PRD-ios-app-store.md) | iOS App Store Deployment | `In Progress` | 2026-04-10 |
+| [PRD-ios-app-store.md](PRD-ios-app-store.md) | iOS App Store Deployment | `Implemented` | 2026-04-17 |
 | [PRD-api-versioning.md](PRD-api-versioning.md) | API Versioning & Backend-Driven Updates | `Implemented` | 2026-04-11 |
 | [PRD-security-phase2.md](PRD-security-phase2.md) | Security Hardening Phase 2 — Native App & Multi-Client | `Implemented` | 2026-04-11 |
 | [PRD-chart-time-navigation.md](PRD-chart-time-navigation.md) | Chart Time Range & Swipe Navigation | `Implemented` | 2026-04-11 |
@@ -538,8 +538,8 @@ Nothing rejected yet.
 
 | | |
 |---|---|
-| **Status** | `In Progress` |
-| **Last updated** | 2026-04-10 |
+| **Status** | `Implemented` |
+| **Last updated** | 2026-04-17 |
 | **Depends on** | All current `Implemented` PRDs |
 | **Related TDD** | docs/TDD/cross-platform.md |
 

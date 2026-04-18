@@ -7,6 +7,37 @@
 
 ---
 
+## Phase 59: Device-integration competitive research + PRD decomposition (2026-04-17)
+
+Triggered by: user noticed Padr (competitor) achieves device ingest via Home Assistant, Smart Life/Tuya. Prompts re-examination of the Draft PRD-device-integrations.md which assumed no vendor OAuth was reachable.
+
+### Research
+- [x] Competitive scan: Padr, PetDesk, Tractive (post-Whistle), PetPace, 11pets, Petable
+- [x] Tuya / Smart Life Developer Platform OAuth2 reachability and pricing
+- [x] Home Assistant long-lived access token + REST API pattern (how Padr wires in HA)
+- [x] Matter 1.5 pet device type coverage (verdict: none, defer 24+ months)
+- [x] SmartThings status (verdict: ignore, pet ecosystem never developed)
+- [x] PetLibro / PetKit non-Tuya cloud HACS integrations (reverse-engineered, stable)
+
+### Documentation
+- [x] Add §10 Competitive research addendum (2026-04-17) to PRD-device-integrations.md — reframes Tuya as reachable, introduces HA-pull-mode pattern, decomposes future work into child PRDs
+- [x] Create PRD-home-assistant-connector.md (Draft) — pull-mode connector for HA users who don't want to write YAML; paste URL + LLAT, entity picker, Worker polls /api/states
+- [x] Create PRD-tuya-connector.md (Draft) — OAuth2 into Tuya Cloud Dev Platform, unlocks long-tail Amazon-tier feeders/fountains/scales, free tier sufficient for pilot (1M req/mo, 100 users)
+- [x] Update REGISTRY.md with both new Draft PRDs; link parent PRD → children
+- [x] Commit + push
+
+### Not scoped here (follow-ups, require product-owner decisions)
+- [ ] PRD-vendor-cloud-connectors.md — policy decision on whether to ship PetLibro/PetKit reverse-engineered clients server-side (contradicts existing "no reverse-engineered clients" posture in PRD-device-integrations §2.2). Do not write until product owner weighs in.
+- [ ] PRD-healthkit-bridge.md — bidirectional (read + write) HealthKit integration, iOS only. Existing PRD §3 Tier 2 tentatively scoped; promote to its own PRD if §8 Q2 / Q17 approved.
+- [ ] PRD-ifttt-one-pager.md — docs-only Litter-Robot→Whisker Health applet. Existing PRD §3 Tier 3 covers; probably doesn't need its own PRD, just the 1-day docs task.
+
+### Verification
+- [x] No code changes — docs-only sprint
+- [x] All three files render correctly in GitHub markdown
+- [x] REGISTRY.md summary table and detail sections both updated
+
+---
+
 ## Phase 58: Visual Identity v2 — Lamplight + 5-Theme Picker (PRD-visual-identity-v2.md, 2026-04-15)
 
 ### Phase 0 — Tokenization sweep (mandatory groundwork, no visible change)

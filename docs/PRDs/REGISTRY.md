@@ -47,7 +47,9 @@
 | [PRD-localization-preferences.md](PRD-localization-preferences.md) | Localization & Regional Preferences | `Implemented` | 2026-04-12 |
 | [PRD-landscape-charts.md](PRD-landscape-charts.md) | Landscape Mode — Full-Screen Chart Visualization | `Implemented` | 2026-04-12 |
 | [PRD-push-notifications.md](PRD-push-notifications.md) | Push Notifications (iOS Native) | `In Progress` | 2026-04-11 |
-| [PRD-device-integrations.md](PRD-device-integrations.md) | Smart Device Integrations (Auto-Ingest) | `Draft` | 2026-04-15 |
+| [PRD-device-integrations.md](PRD-device-integrations.md) | Smart Device Integrations (Auto-Ingest) | `Draft` | 2026-04-17 |
+| [PRD-home-assistant-connector.md](PRD-home-assistant-connector.md) | Home Assistant Direct Connector (pull-mode) | `Draft` | 2026-04-17 |
+| [PRD-tuya-connector.md](PRD-tuya-connector.md) | Tuya / Smart Life Cloud Connector (vendor OAuth2) | `Draft` | 2026-04-17 |
 | [PRD-visual-identity-v2.md](PRD-visual-identity-v2.md) | Visual Identity v2: Color, Type, Hierarchy & Feel | `In Progress` | 2026-04-15 |
 
 ---
@@ -660,20 +662,64 @@ Nothing rejected yet.
 | | |
 |---|---|
 | **Status** | `Draft` |
-| **Last updated** | 2026-04-15 |
+| **Last updated** | 2026-04-17 |
 | **Supersedes** | PRD-killer-app.md P8 (Smart scale integration) |
+| **Children (Draft)** | [PRD-home-assistant-connector.md](PRD-home-assistant-connector.md), [PRD-tuya-connector.md](PRD-tuya-connector.md) |
 
-**Problem:** Owners with smart pet hardware (SureFeed, Petlibro, PETKIT, Whisker, Petivity, FitBark) re-enter data their devices already capture. The user's stated ideal is one-click OAuth with vendor accounts to auto-sync measurements.
+**Problem:** Owners with smart pet hardware (SureFeed, Petlibro, PETKIT, Whisker, Petivity, FitBark, and the Tuya long tail) re-enter data their devices already capture. The user's stated ideal is one-click OAuth with vendor accounts to auto-sync measurements.
 
-**Key finding:** No major pet-device vendor exposes an official public OAuth API in 2026. Every integration in the ecosystem (surepy, pylitterbot, openHAB bindings) is reverse-engineered, requires password storage, and breaks on vendor rotation. Only FitBark has a documented dev API — and it's dog-centric. Vendors are closing rather than opening (CES 2026 trend).
+**Key finding (original, 2026-04-15):** Most major pet-device vendors do not expose an official public OAuth API. Sure Petcare, Petlibro (non-Tuya cloud), PETKIT (non-Tuya cloud), Whisker, and Petivity are password-only or closed. Only FitBark has a documented dev API — and it's dog-centric.
 
-**Proposed strategy — three tiers:**
-- **Tier 1 (foundation):** Public "Bring Your Own Data" ingest API with user-scoped tokens. Unlocks Home Assistant, IFTTT, Shortcuts, DIY scales, n8n, Zapier without vendor negotiation. ~1 sprint.
+**Key finding (addendum, 2026-04-17, §10):** **Tuya / Smart Life DOES offer a real OAuth2 developer platform.** Competitive research (triggered by user noticing the Padr app's Smart Life/Tuya integration) confirmed Tuya IoT Development Platform provides authorization-code OAuth with a free tier (1M req/mo, 100 users) and powers the long tail of budget Amazon/Aliexpress pet devices. Separately, Home Assistant exposes a pull-mode REST API via long-lived access tokens that unlocks a much larger HA audience than the "writes-YAML" subset Phase A targets.
+
+**Proposed strategy — updated tiers:**
+- **Tier 1 (foundation, unchanged):** Public "Bring Your Own Data" ingest REST API with user-scoped tokens. Unlocks HA-push, IFTTT, Shortcuts, DIY, n8n, Zapier. ~1 sprint. Parent PRD Phase A.
+- **Tier 1a (new, spun off):** Home Assistant Direct Connector (pull-mode) — see `PRD-home-assistant-connector.md`. ~1 sprint.
+- **Tier 1E:** Email ingest (Kayak pattern). Parent PRD §4. ~1 sprint.
 - **Tier 2 (iOS only, deferred):** Apple HealthKit bridge — spike first.
-- **Tier 3 (gated on demand):** Vendor-specific OAuth only when a vendor passes Legal/Auth/Signal/Cost gates. Today only FitBark + IFTTT→Whisker pass.
+- **Tier 2a (new, spun off):** Tuya / Smart Life Cloud Connector (vendor OAuth2) — see `PRD-tuya-connector.md`. ~1.5 sprints.
+- **Tier 3 (gated on demand):** Other vendor-specific OAuth (FitBark, IFTTT→Whisker). Policy decision still open on whether to reverse the "no reverse-engineered clients server-side" stance to reach Petlibro/PETKIT (see §10.6).
 
-**Do not implement** — status is `Draft`. Requires product owner approval. Open questions documented in PRD §8.
+**Do not implement** — status is `Draft`. Requires product owner approval. Open questions documented in PRD §8 + §10.9.
 
 ---
 
-*Last updated: 2026-04-15*
+### PRD-home-assistant-connector.md — Home Assistant Direct Connector (pull-mode)
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-04-17 |
+| **Depends on** | PRD-device-integrations.md Phase A (ingest substrate) |
+| **Parent** | [PRD-device-integrations.md](PRD-device-integrations.md) |
+
+**Problem:** Home Assistant is the dominant open-source smart-home hub and the broadest surface where pet-device data already lives (Sure Petcare, Petlibro, Whisker, PETKIT, Tuya-inside, Tractive). Parent PRD's Tier 1 REST API targets HA users who write YAML automations — a narrow subset. A much larger HA audience expects a "connect" button, not a code-editing exercise. Competitive research (PRD-device-integrations §10) showed this is how Padr integrates HA.
+
+**Proposed:** User pastes HA URL + long-lived access token, picks sensor entities to subscribe to, Worker cron polls `/api/states` on a schedule, internally reuses the Phase A ingest pipeline. Zero YAML, zero HACS install.
+
+**Key risk:** HA long-lived access tokens grant full admin API access. Storage is envelope-encrypted, token never round-trips to frontend, KEK rotation planned.
+
+**Do not implement** — Draft. Depends on parent PRD Approval.
+
+---
+
+### PRD-tuya-connector.md — Tuya / Smart Life Cloud Connector (vendor OAuth2)
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-04-17 |
+| **Depends on** | PRD-device-integrations.md Phase A (ingest substrate), §10.2 (Tuya OAuth finding) |
+| **Parent** | [PRD-device-integrations.md](PRD-device-integrations.md) |
+
+**Problem:** The parent PRD assumed no major vendor offers usable OAuth. 2026-04-17 research proved Tuya / Smart Life Developer Platform DOES — a published OAuth2 authorization-code flow with free tier (1M req/mo, 100 users). Tuya powers the long-tail of budget pet devices (Tikpaws, Oneisall, WOpet, Faroro, generic Amazon feeders/fountains/scales). This audience overlaps with the chronic-care and budget-conscious segments who will never run Home Assistant.
+
+**Proposed:** "Sign in with Smart Life" OAuth2 flow → Worker receives tokens → polls user's pet-category devices on 15-min cron → normalizes per Tuya device category (`cwwsq` feeder, `cwy` fountain, `qp` scale) → writes through internal ingest pipeline with `source = 'tuya:<connection_id>'`.
+
+**Key complications:** 7 regional data centers (cross-region blocked), refresh tokens ~30d (forces periodic re-auth), Chinese-platform regulatory considerations (documented in consent flow + privacy memo).
+
+**Do not implement** — Draft. Depends on parent PRD Approval + Phase A complete + legal review.
+
+---
+
+*Last updated: 2026-04-17*

@@ -494,3 +494,118 @@ _e5._ Vet lab result PDF parser (promoted from stretch): LLM-based extraction vi
 11. OAuth2 client, `/settings/integrations` UI, polling cron, measurement writer — reusing the Phase A ingest pipeline internally so vendor writes flow through the same validation/dedup path.
 
 Stop after each phase and reassess based on adoption data.
+
+---
+
+## 10. Competitive research addendum — 2026-04-17
+
+Triggered by a user observation: the iOS app **Padr** (Sloth Precision, cat-first dashboard, iOS-only) has a visual language similar to Whisker Health and **already ships device integrations**. A targeted scan was performed to check whether the original §2.2 finding ("no vendor offers real OAuth except FitBark") still holds. It partially does not. This addendum updates the strategy without invalidating Phase A.
+
+### 10.1 What Padr actually does
+
+- **Channels:** Home Assistant (direct), Smart Life / Tuya (direct), and a server-side "PadrDEN browser portal" that scrapes PetKit / PetLibro / Neakasa cloud accounts.
+- **Home Assistant integration pattern:** long-lived access token + HA REST API (`/api/states`) — **not** a custom HACS add-on. The user pastes their HA URL and an access token; Padr pulls sensor entities on a schedule. This is a **pull** pattern from our perspective, not the **push** pattern our Tier 1 assumes.
+- **Smart Life / Tuya integration:** direct, implying use of the Tuya IoT Development Platform's OAuth2 flow.
+- **Video:** supports RTSP, ONVIF, NDI — IP-cam streaming, not recording/CV. Out of scope for us (we are a health-record app, not a surveillance one).
+- **Positioning & moat:** iOS-only, single-developer, thin. Not a serious long-term aggregator threat. But the *pattern* is what matters — they validated that the HA-pull UX works.
+
+Sources: padrapp.slothprecision.com; HA Developer Docs `/api/states`; Tuya `developer.tuya.com` OAuth 2.0 Authorization flow.
+
+### 10.2 Three findings that update the PRD
+
+**A. Tuya / Smart Life has a real, documented OAuth2 developer platform.**
+- Tuya IoT Development Platform (powers Smart Life, Tuya Smart, and thousands of white-label apps including most $25–$50 Amazon/Aliexpress-tier pet feeders, fountains, and scales).
+- Authorization-code flow with user consent, client credentials, regional data-center constraints (7 DCs: cross-region calls blocked; callback URLs per-DC).
+- Free "IoT Core" Trial Edition: 1M cloud requests/month and 100 end users. Platform ceiling: 500 req/sec, 500k calls/day per app. Enforceable but generous for a pilot.
+- Home Assistant's official Tuya integration uses this **exact** same platform — so we are not reaching for a back door; we are using the published public API.
+- **This contradicts §2.2's premise** that no vendor OAuth is reachable. Not all vendors — Sure Petcare, Petlibro (non-Tuya cloud), Whisker, PETKIT (non-Tuya cloud), Petivity remain closed — but the **long tail of generic Tuya-inside devices is reachable**, and that long tail is large.
+
+**B. Home Assistant should be addressed as a pull-mode connector, not just a push-mode consumer.**
+- The PRD's Tier 1 (BYO Data REST API) assumes the HA user writes a YAML automation that POSTs to us. That works for tinkerers who already author automations but represents real friction for HA users who just want a "connect" button.
+- The alternative: we accept an HA URL + long-lived access token, enumerate the user's sensor entities, let them map each one to a cat + measurement type, and poll on a schedule. User writes zero code.
+- **This audience is much larger than the "writes-YAML" population** and includes chronic-care owners who bought an HA hub expressly to pipe their Sure Petcare / Tuya feeder data somewhere useful.
+- Security note: the long-lived token is effectively a password to the user's entire HA instance. It cannot round-trip to the frontend after creation; must be encrypted at rest; must be revocable; must be scoped read-only when possible (HA doesn't support token scoping today — log this as a known limitation).
+
+**C. Matter is not a pet-ingest channel in the 12–24 month horizon.**
+- Matter 1.5 (Nov 2025) added cameras, soil moisture, energy. No pet-device types, no `PetFeederDevice` cluster, no announced roadmap.
+- **Do not design around Matter.** Revisit when CSA defines a pet device type.
+
+### 10.3 Revised tier structure
+
+The original §3 three-tier structure is preserved, but Tuya moves from §3 Tier 3 ("No / password-only") to its own parent-of-child slot. HA gains a dedicated pull-mode variant. The updated picture:
+
+| Tier | Channel | Audience | Effort | Status |
+|---|---|---|---|---|
+| **1** | BYO Data REST API (`POST /api/ingest/measurements`) | Self-hosters with HA/Python/Shortcuts wired up | 1 sprint | Parent PRD (this doc), Phase A |
+| **1a (new)** | **HA Direct Connector (pull)** | HA users who don't write automations | 1 sprint | **Spin off → `PRD-home-assistant-connector.md` (Draft)** |
+| **1E** | Email ingest (Kayak pattern) | Chronic-care owners, Petivity owners, vet labs | 1 sprint | Parent PRD §4 |
+| **2** | Apple HealthKit bidirectional bridge | iOS users with HealthKit-writing devices/scales | Spike + 1 sprint | Parent PRD §3 Tier 2, deferred pending spike |
+| **2a (new)** | **Tuya Cloud OAuth2** | Owners of cheap Amazon/Aliexpress Tuya-inside devices (huge long tail) | 1–2 sprints | **Spin off → `PRD-tuya-connector.md` (Draft)** |
+| **3** | Vendor-specific OAuth (FitBark, IFTTT→Whisker) | Owners of specific branded devices | Per vendor | Parent PRD §3 Tier 3, gated on §7 Week-12 + §3 gates |
+
+### 10.4 Revised vendor gate table (§3 Tier 3 update)
+
+| Vendor | Legal | Auth | 2026-04-17 verdict |
+|---|---|---|---|
+| Sure Petcare | Unclear | Password only | **No** unless OAuth ships |
+| **Tuya / Smart Life** | **Real developer agreement** | **OAuth2 documented** | **Yes — promote to its own PRD (see 10.3)** |
+| Petlibro (non-Tuya cloud) | Terms prohibit | Weak/broken | **No** unless we reverse our "no reverse-engineered clients" stance (§10.6) |
+| PETKIT (non-Tuya cloud) | Terms prohibit | Closed | **No** (same policy call as Petlibro) |
+| Whisker / Litter-Robot | IFTTT partnership | OAuth via IFTTT only | **Maybe** — event-level only, and the official HA integration has been repeatedly broken in 2025 |
+| FitBark | Public dev API | OAuth2 | **Yes** if dog-signal appears; cat-signal unlikely |
+| Petivity | App-only | None | **No** (but email-ingest covers the monthly report) |
+
+### 10.5 PRD decomposition recommendation
+
+Rather than proliferate a PRD per vendor brand, decompose along the **channel architecture axis** — each channel has a distinct UX, backend shape, and security review:
+
+1. **Parent (this PRD):** stays the canonical ingest strategy document. Phase A (REST API + email) ships the substrate. Future channels route through that substrate.
+2. **Child: `PRD-home-assistant-connector.md`** — new Draft. Pull-mode HA ingest. Depends on parent Phase A (reuses `source`/`external_id`/`measurements` schema and the internal ingest pipeline).
+3. **Child: `PRD-tuya-connector.md`** — new Draft. Tuya Cloud OAuth2. Covers the Tuya long tail. Also depends on parent Phase A.
+4. **Future children (not written yet; add only if product owner approves the underlying policy decision):**
+   - `PRD-healthkit-bridge.md` — if §8 Q2 / Q17 lands "yes"; bidirectional (read + write).
+   - `PRD-vendor-cloud-connectors.md` — if the "no reverse-engineered clients server-side" posture in §2.2 is **reversed** (§10.6). Covers PetLibro + PETKIT via community-library embedding.
+   - `PRD-ifttt-one-pager.md` — probably doesn't need its own PRD; a 1-day docs task on the parent Phase C covers it.
+
+### 10.6 The unresolved policy call: reverse-engineered vendor clients server-side
+
+The research surfaces a legitimate temptation. The open-source community has maintained stable non-Tuya cloud clients for **PetLibro** (`jjjonesjr33/petlibro`) and **PETKIT** (`RobertD502/home-assistant-petkit`) as HACS integrations. Both have active user bases. Embedding these server-side (with attribution) would add two important vendors to our coverage.
+
+**Arguments for reversing the §2.2 posture:**
+- Both projects are MIT/Apache-licensed and widely used inside HA without incident.
+- Our current posture forces users to run HA in the middle just to reach these vendors — we are making a philosophical purity argument that costs us real users.
+- The security risk (storing vendor account credentials) is containable: envelope encryption in D1 (same pattern as Phase A tokens), read-only scope, per-user.
+
+**Arguments against (the §2.2 posture):**
+- Vendor ToS prohibits automated access. We take on legal risk they do not today.
+- Vendor API rotations become our support burden (PetKit has a single-session login conflict with the mobile app — a common user-visible breakage).
+- Brand confusion: a vendor outage reads as a Whisker Health bug; support load grows as a function of their reliability, not ours.
+- Credential-in-database is a significantly different security posture from OAuth tokens, and one user-visible breach narrative ("Whisker Health leaked my PetKit password") does lasting brand damage.
+
+**Recommendation:** defer. Ship Phase A + HA connector + Tuya connector first. If Tier 1 Week-12 gates pass (§7) and the top support tickets are "add PetLibro / PETKIT," **then** open `PRD-vendor-cloud-connectors.md` with a formal legal review and a proposed envelope-encryption architecture. Do not silently drift into it through an HA HACS-lookalike feature.
+
+### 10.7 Competitive positioning update (supersedes §1.5 "Competitive positioning check")
+
+The §1.5 action item ("one engineer-day of competitive scan") is now complete. Findings:
+
+- **Padr is a direct competitor but beatable.** iOS-only, indie, HA-dependent, thin moat. Not a serious multi-year aggregator threat. Our differentiation: cross-platform (web + iOS), clinical-evidence depth (`docs/research/`), vet-ready PDF export, household sharing, *and a cheaper-to-reach long tail once the Tuya connector ships*.
+- **The real long-term threat is Tractive post-Whistle.** Mars shut Whistle down in Aug 2025; Tractive acquired the assets. Tractive has GPS-collar distribution and could pivot to aggregator. Our defense is **cat-specific clinical depth**, not feature parity on activity tracking.
+- **PetDesk (vet-comms, 7M users) could move into device aggregation** via their clinic channel. Our defense is **consumer-first framing** and export-to-any-clinic posture — we are not tied to any PMS vendor.
+- The aggregator slot in the consumer segment remains **functionally empty**. §1.5 framing holds.
+
+**Implication for marketing (§1.5):** keep the "portable pet health record that outlives any device brand" line. Add, when the Tuya connector ships, the secondary line: **"Works with cheap devices and premium devices equally well."** That framing is uniquely available to us because we accept rather than resell hardware.
+
+### 10.8 What we deliberately did NOT promote to a PRD
+
+To avoid sprawl, the following surfaced during research but are **not** decomposed into their own PRDs at this time:
+
+- **Smart video / on-device CV.** Padr ships RTSP viewing. On-device computer vision ("the cat went to the bowl at 3pm") is a large, expensive, health-adjacent bet. Out of scope. Revisit if a device vendor emits structured event streams.
+- **SmartThings integration.** Aeotec stopped making the v3 hub (out of stock since ~Aug 2024). SmartThings never developed a pet category. Same users are now reachable via Matter (when pets arrive) or direct Tuya. Ignore.
+- **Google Home / Nest integration.** No pet schema exists in the Google Home Device SDK. Same reasoning as Matter: revisit if/when device types appear.
+- **Zigbee / Z-Wave direct.** Protocol-level ingestion requires the user to run our software on their own hardware. This is the Home Assistant pattern wearing a different hat — route those users through the HA connector instead.
+
+### 10.9 New open questions (append to §8)
+
+25. **Approve spin-off of `PRD-home-assistant-connector.md` and `PRD-tuya-connector.md`?** Both depend on parent Phase A and can start drafting in parallel once parent is Approved. Recommended: yes.
+26. **Reverse the "no reverse-engineered clients server-side" posture (§10.6)?** Default: no (defer until Tier 1 data proves demand). Confirm.
+27. **Marketing line timing.** Add "works with cheap devices equally well" to public copy when the Tuya connector ships, or hold until Week-12 retention gates? Recommended: ship with the connector — it is a factual capability statement, not an aggregator boast, and shouldn't provoke vendor C&D.

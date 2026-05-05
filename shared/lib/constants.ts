@@ -46,8 +46,13 @@ export const VALID_UNITS = ['lbs', 'kg', 'scale'] as const;
 export type MeasurementUnit = typeof VALID_UNITS[number];
 
 /** Allowed medication frequencies */
-export const VALID_FREQUENCIES = ['daily', 'twice_daily', 'weekly', 'monthly', 'custom'] as const;
+export const VALID_FREQUENCIES = ['as_needed', 'daily', 'twice_daily', 'weekly', 'monthly', 'custom'] as const;
 export type MedicationFrequency = typeof VALID_FREQUENCIES[number];
+
+/** True when a frequency means "give only when triggered" — no schedule, no reminders */
+export function isAsNeeded(frequency: string): boolean {
+  return frequency === 'as_needed';
+}
 
 /** Field length limits */
 export const LIMITS = {

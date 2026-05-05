@@ -15,6 +15,7 @@ import CatExportPage from './pages/CatExportPage'
 import LoginPage from './pages/LoginPage'
 import NotificationsPage from './pages/NotificationsPage'
 import MedicationFormPage from './pages/MedicationFormPage'
+import SitterView from './pages/SitterView'
 import HouseholdPage from './pages/HouseholdPage'
 import InvitePage from './pages/InvitePage'
 import DailyCheckin from './pages/DailyCheckin'
@@ -38,6 +39,11 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/invite" element={<InvitePage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/cats/:id/sitter" element={
+            <ProtectedRoute>
+              <SitterView />
+            </ProtectedRoute>
+          } />
           <Route path="/*" element={
             <ProtectedRoute>
               <PageShell>

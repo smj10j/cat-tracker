@@ -6,6 +6,7 @@ import {
   LIMITS,
   ROLE_LEVEL,
   hasRole,
+  isAsNeeded,
 } from '../lib/constants'
 
 describe('VALID_MEASUREMENT_TYPES', () => {
@@ -32,12 +33,23 @@ describe('VALID_UNITS', () => {
 
 describe('VALID_FREQUENCIES', () => {
   it('contains all expected frequencies', () => {
+    expect(VALID_FREQUENCIES).toContain('as_needed')
     expect(VALID_FREQUENCIES).toContain('daily')
     expect(VALID_FREQUENCIES).toContain('twice_daily')
     expect(VALID_FREQUENCIES).toContain('weekly')
     expect(VALID_FREQUENCIES).toContain('monthly')
     expect(VALID_FREQUENCIES).toContain('custom')
-    expect(VALID_FREQUENCIES).toHaveLength(5)
+    expect(VALID_FREQUENCIES).toHaveLength(6)
+  })
+})
+
+describe('isAsNeeded', () => {
+  it('returns true only for the as_needed frequency', () => {
+    expect(isAsNeeded('as_needed')).toBe(true)
+    expect(isAsNeeded('daily')).toBe(false)
+    expect(isAsNeeded('twice_daily')).toBe(false)
+    expect(isAsNeeded('custom')).toBe(false)
+    expect(isAsNeeded('')).toBe(false)
   })
 })
 

@@ -7,6 +7,7 @@
 
 import type { Medication, MedicationDose, MedicationInput } from './types'
 import type { MedicationPreset } from './medicationPresets'
+import { isAsNeeded } from './constants'
 import { todayLocalDate, roundToHour } from './formatting'
 
 // ---------------------------------------------------------------------------
@@ -94,6 +95,7 @@ export function validateCareItem(fields: CareItemFields): string | null {
 // ---------------------------------------------------------------------------
 
 export function buildCareItemPayload(fields: CareItemFields, catId: string): MedicationInput {
+  const asNeeded = isAsNeeded(fields.frequency)
   return {
     cat_id: catId,
     name: fields.name.trim(),
@@ -102,11 +104,11 @@ export function buildCareItemPayload(fields: CareItemFields, catId: string): Med
     frequency: fields.frequency,
     frequency_days: fields.frequency === 'custom' ? parseInt(fields.frequencyDays, 10) || null : null,
     reminder_time: fields.reminderTime,
-    start_date: fields.startDate,
-    end_date: fields.endDate || null,
-    doses_total: fields.dosesTotal ? parseInt(fields.dosesTotal, 10) || null : null,
+    start_date: fields.startDate || todayLocalDate(),
+    end_date: asNeeded ? null : (fields.endDate || null),
+    doses_total: asNeeded ? null : (fields.dosesTotal ? parseInt(fields.dosesTotal, 10) || null : null),
     notes: fields.notes.trim() || null,
-    doses_remaining: fields.dosesRemaining ? parseInt(fields.dosesRemaining, 10) || null : null,
-    refill_alert_threshold: fields.refillThreshold ? parseInt(fields.refillThreshold, 10) || null : null,
+    doses_remaining: asNeeded ? null : (fields.dosesRemaining ? parseInt(fields.dosesRemaining, 10) || null : null),
+    refill_alert_threshold: asNeeded ? null : (fields.refillThreshold ? parseInt(fields.refillThreshold, 10) || null : null),
   }
 }

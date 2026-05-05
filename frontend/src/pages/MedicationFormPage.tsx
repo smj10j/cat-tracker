@@ -22,6 +22,7 @@ import {
   buildCareItemPayload,
   type CareItemFields,
 } from '@shared/lib/careItemForm'
+import { isAsNeeded } from '@shared/lib/constants'
 
 // Extended labels for web where there's room for longer text
 const FREQ_LABELS: Record<string, string> = {
@@ -34,6 +35,7 @@ const TYPE_LABELS: Record<string, string> = {
   flea: 'Flea/Tick prevention',
   heartworm: 'Heartworm prevention',
   pill: 'Pill / Oral medication',
+  subq_fluids: 'Subcutaneous fluids',
   dental: 'Dental cleaning',
   exam: 'Vet exam / Checkup',
   bloodwork: 'Bloodwork / Lab work',
@@ -69,6 +71,7 @@ export default function MedicationFormPage() {
     reminderTime, startDate, endDate, dosesTotal,
     notes, dosesRemaining, refillThreshold,
   } = fields
+  const asNeeded = isAsNeeded(frequency)
 
   useEffect(() => {
     async function load() {
@@ -251,12 +254,19 @@ export default function MedicationFormPage() {
           </div>
 
           <div>
-            <label htmlFor="med-notes" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Notes</label>
+            <label htmlFor="med-notes" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">
+              {asNeeded ? 'When to give' : 'Notes'}
+            </label>
             <input
               id="med-notes" value={notes} onChange={e => setField("notes", e.target.value)}
-              placeholder="e.g. Give with food" maxLength={1000}
+              placeholder={asNeeded ? "e.g. If hiding or refusing food" : "e.g. Give with food"} maxLength={1000}
               className="input-dark w-full px-3 py-2.5 text-sm"
             />
+            {asNeeded && (
+              <p className="text-xs text-ink-dim mt-1.5">
+                Shown to sitters as the trigger for giving this medication.
+              </p>
+            )}
           </div>
         </div>
 
@@ -273,9 +283,14 @@ export default function MedicationFormPage() {
                 <option key={v} value={v}>{l}</option>
               ))}
             </select>
+            {asNeeded && (
+              <p className="text-xs text-ink-dim mt-1.5">
+                No reminders or overdue alerts for as-needed items.
+              </p>
+            )}
           </div>
 
-          {frequency === 'custom' && (
+          {!asNeeded && frequency === 'custom' && (
             <div>
               <label htmlFor="med-freq-days" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Interval (every {frequencyDays || '?'} days)</label>
               <input
@@ -286,81 +301,87 @@ export default function MedicationFormPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          {!asNeeded && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="med-start-date" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Start date</label>
+                  <input
+                    id="med-start-date" type="date" value={startDate} onChange={e => setField("startDate", e.target.value)}
+                    className="input-dark w-full px-3 py-2.5 text-sm" required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="med-reminder-time" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Reminder time</label>
+                  <select
+                    id="med-reminder-time" value={reminderTime} onChange={e => setField("reminderTime", e.target.value)}
+                    className="input-dark w-full px-3 py-2.5 text-sm"
+                  >
+                    {Array.from({ length: 24 }, (_, i) => {
+                      const v = `${String(i).padStart(2, '0')}:00`
+                      if (prefs.timeFormat === '24h') {
+                        return <option key={v} value={v}>{String(i).padStart(2, '0')}:00</option>
+                      }
+                      const h = i === 0 ? 12 : i > 12 ? i - 12 : i
+                      const ap = i < 12 ? 'AM' : 'PM'
+                      return <option key={v} value={v}>{h}:00 {ap}</option>
+                    })}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="med-end-date" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">
+                  Stop date <span className="font-normal normal-case text-ink-dim">(leave blank for ongoing)</span>
+                </label>
+                <input
+                  id="med-end-date" type="date" value={endDate} onChange={e => setField("endDate", e.target.value)}
+                  className="input-dark w-full px-3 py-2.5 text-sm"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="med-doses-total" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">
+                  Course length <span className="font-normal normal-case text-ink-dim">(total doses, blank = ongoing)</span>
+                </label>
+                <input
+                  id="med-doses-total" type="number" min="1" value={dosesTotal} onChange={e => setField("dosesTotal", e.target.value)}
+                  placeholder="e.g. 14 for a 14-day course"
+                  className="input-dark w-full px-3 py-2.5 text-sm"
+                />
+              </div>
+            </>
+          )}
+        </div>
+
+        {!asNeeded && (
+          <div
+            className="rounded-2xl p-5 space-y-5"
+            style={{ background: 'rgba(192,132,252,0.04)', border: '1px solid rgba(192,132,252,0.12)' }}
+          >
+            <h2 className="text-xs font-bold uppercase tracking-widest text-ink-mid">Stock tracking <span className="font-normal normal-case text-ink-dim">(optional)</span></h2>
+
             <div>
-              <label htmlFor="med-start-date" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Start date</label>
+              <label htmlFor="med-doses-remaining" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Doses currently in stock</label>
               <input
-                id="med-start-date" type="date" value={startDate} onChange={e => setField("startDate", e.target.value)}
-                className="input-dark w-full px-3 py-2.5 text-sm" required
+                id="med-doses-remaining" type="number" min="0" value={dosesRemaining} onChange={e => setField("dosesRemaining", e.target.value)}
+                placeholder="e.g. 3"
+                className="input-dark w-full px-3 py-2.5 text-sm"
               />
             </div>
+
             <div>
-              <label htmlFor="med-reminder-time" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Reminder time</label>
-              <select
-                id="med-reminder-time" value={reminderTime} onChange={e => setField("reminderTime", e.target.value)}
+              <label htmlFor="med-refill-threshold" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">
+                Refill alert threshold <span className="font-normal normal-case text-ink-dim">(alert when stock falls to this)</span>
+              </label>
+              <input
+                id="med-refill-threshold" type="number" min="1" value={refillThreshold} onChange={e => setField("refillThreshold", e.target.value)}
+                placeholder="e.g. 2"
                 className="input-dark w-full px-3 py-2.5 text-sm"
-              >
-                {Array.from({ length: 24 }, (_, i) => {
-                  const v = `${String(i).padStart(2, '0')}:00`
-                  if (prefs.timeFormat === '24h') {
-                    return <option key={v} value={v}>{String(i).padStart(2, '0')}:00</option>
-                  }
-                  const h = i === 0 ? 12 : i > 12 ? i - 12 : i
-                  const ap = i < 12 ? 'AM' : 'PM'
-                  return <option key={v} value={v}>{h}:00 {ap}</option>
-                })}
-              </select>
+              />
             </div>
           </div>
-
-          <div>
-            <label htmlFor="med-end-date" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">
-              Stop date <span className="font-normal normal-case text-ink-dim">(leave blank for ongoing)</span>
-            </label>
-            <input
-              id="med-end-date" type="date" value={endDate} onChange={e => setField("endDate", e.target.value)}
-              className="input-dark w-full px-3 py-2.5 text-sm"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="med-doses-total" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">
-              Course length <span className="font-normal normal-case text-ink-dim">(total doses, blank = ongoing)</span>
-            </label>
-            <input
-              id="med-doses-total" type="number" min="1" value={dosesTotal} onChange={e => setField("dosesTotal", e.target.value)}
-              placeholder="e.g. 14 for a 14-day course"
-              className="input-dark w-full px-3 py-2.5 text-sm"
-            />
-          </div>
-        </div>
-
-        <div
-          className="rounded-2xl p-5 space-y-5"
-          style={{ background: 'rgba(192,132,252,0.04)', border: '1px solid rgba(192,132,252,0.12)' }}
-        >
-          <h2 className="text-xs font-bold uppercase tracking-widest text-ink-mid">Stock tracking <span className="font-normal normal-case text-ink-dim">(optional)</span></h2>
-
-          <div>
-            <label htmlFor="med-doses-remaining" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Doses currently in stock</label>
-            <input
-              id="med-doses-remaining" type="number" min="0" value={dosesRemaining} onChange={e => setField("dosesRemaining", e.target.value)}
-              placeholder="e.g. 3"
-              className="input-dark w-full px-3 py-2.5 text-sm"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="med-refill-threshold" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">
-              Refill alert threshold <span className="font-normal normal-case text-ink-dim">(alert when stock falls to this)</span>
-            </label>
-            <input
-              id="med-refill-threshold" type="number" min="1" value={refillThreshold} onChange={e => setField("refillThreshold", e.target.value)}
-              placeholder="e.g. 2"
-              className="input-dark w-full px-3 py-2.5 text-sm"
-            />
-          </div>
-        </div>
+        )}
 
         <button
           type="submit" disabled={saving || deleting}

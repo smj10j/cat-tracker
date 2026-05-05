@@ -7,6 +7,29 @@
 
 ---
 
+## Phase 60: Care Extensions — SubQ fluids, PRN, Sitter View (PRD-care-extensions.md, 2026-05-05)
+
+Triggered by: user request — three improvements to the Care section. (1) add subcutaneous fluids as a preset, (2) support care items with no schedule that are given only as needed (no notifications), (3) make the Care section easy to share with a cat sitter via a single screenshot.
+
+### Implementation
+- [x] Write PRD-care-extensions.md and add to REGISTRY.md (Approved)
+- [x] Add `subq_fluids` care type, icon, label; add SubQ fluids preset in `shared/lib/medicationPresets.ts`
+- [x] Add `as_needed` to `VALID_FREQUENCIES`; strip schedule/stock fields in `buildCareItemPayload` when as-needed
+- [x] Worker: skip `generateDoses` when frequency is `as_needed`; exclude PRN from cron extension and refill alerts
+- [x] Web `MedicationFormPage` — "As needed" frequency option that hides schedule + stock cards
+- [x] iOS `care-item.tsx` — same as_needed behavior
+- [x] Web Care tab — split into Scheduled vs As-needed groups, both linkable
+- [x] Web `/cats/:id/sitter` route — read-only screenshot-friendly view; "Sitter view" button on Care tab
+- [x] Tests for shared (327), worker (154), frontend (62), app (161); all green
+- [ ] Deploy worker + frontend (run locally — automation env has no Cloudflare creds)
+- [x] Commit and push to `claude/add-care-options-U5daJ`
+
+### Out of scope (follow-ups)
+- [ ] Native iOS Sitter View screen — web URL works in mobile Safari for now
+- [ ] PRN administration log — explicit "I gave a dose now" timestamp record
+
+---
+
 ## Phase 59: Device-integration competitive research + PRD decomposition (2026-04-17)
 
 Triggered by: user noticed Padr (competitor) achieves device ingest via Home Assistant, Smart Life/Tuya. Prompts re-examination of the Draft PRD-device-integrations.md which assumed no vendor OAuth was reachable.

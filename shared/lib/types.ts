@@ -172,6 +172,7 @@ export const CARE_TYPE_ICONS: Record<string, string> = {
   pill: '💊',
   vaccine: '💉',
   supplement: '🌿',
+  subq_fluids: '💧',
   dental: '🦷',
   exam: '🩺',
   bloodwork: '🩸',

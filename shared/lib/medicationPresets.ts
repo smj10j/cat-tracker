@@ -30,6 +30,7 @@ export const MEDICATION_PRESETS: MedicationPreset[] = [
   { name: 'Cerenia', type: 'pill', frequency: 'daily', notes: 'Anti-nausea', category: 'Medication' },
   { name: 'Onsior', type: 'pill', frequency: 'daily', notes: 'NSAID pain relief — max 6 days', category: 'Medication' },
   { name: 'Mirataz', type: 'other', frequency: 'daily', notes: 'Transdermal — inner ear — appetite stimulant', category: 'Medication' },
+  { name: 'Subcutaneous fluids', type: 'subq_fluids', frequency: 'daily', notes: 'Warm to body temp — typical dose 100mL LRS under skin between shoulder blades', category: 'Medication' },
   { name: 'Dewormer', type: 'other', frequency: 'custom', frequency_days: 90, category: 'Medication' },
   // Supplement
   { name: 'Lysine', type: 'supplement', frequency: 'daily', notes: 'Immune support', category: 'Supplement' },
@@ -47,6 +48,7 @@ export const MEDICATION_PRESET_CATEGORIES = ['Prevention', 'Medication', 'Supple
 
 /** Display labels for medication frequencies (used in form selectors) */
 export const MEDICATION_FREQ_LABELS: Record<string, string> = {
+  as_needed: 'As needed (no schedule)',
   daily: 'Daily',
   twice_daily: 'Twice daily',
   weekly: 'Weekly',
@@ -61,6 +63,7 @@ export const MEDICATION_TYPE_LABELS: Record<string, string> = {
   pill: 'Oral med',
   vaccine: 'Vaccine',
   supplement: 'Supplement',
+  subq_fluids: 'SubQ fluids',
   dental: 'Dental',
   exam: 'Vet exam',
   bloodwork: 'Bloodwork',
@@ -80,7 +83,7 @@ export function formatFrequencyLabel(frequency: string, frequencyDays?: number):
     return `Every ${frequencyDays} days`
   }
   const labels: Record<string, string> = {
-    daily: 'Daily', twice_daily: 'Twice daily', weekly: 'Weekly', monthly: 'Monthly',
+    as_needed: 'As needed', daily: 'Daily', twice_daily: 'Twice daily', weekly: 'Weekly', monthly: 'Monthly',
   }
   return labels[frequency] ?? frequency
 }

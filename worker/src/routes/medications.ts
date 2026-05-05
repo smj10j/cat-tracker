@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import type { AppEnv } from '../types'
 import { getCatRole, hasRole } from '../lib/household'
 import { localToUTC } from '../../../shared/lib/dates'
-import { VALID_FREQUENCIES } from '../../../shared/lib/constants'
+import { VALID_FREQUENCIES, isAsNeeded } from '../../../shared/lib/constants'
 
 const medications = new Hono<AppEnv>()
 
@@ -38,6 +38,9 @@ export function generateDoses(
   windowEnd: string,    // YYYY-MM-DD
   timezone: string | null = null,
 ): DoseRow[] {
+  // PRN items have no schedule — no doses are generated and they never fire reminders.
+  if (isAsNeeded(frequency)) return []
+
   const doses: DoseRow[] = []
   const effectiveEnd = endDate && endDate < windowEnd ? endDate : windowEnd
 
@@ -190,6 +193,8 @@ medications.post('/medications', async (c) => {
   if (body.frequency === 'custom' && !body.frequency_days) {
     return c.json({ error: 'frequency_days required for custom frequency' }, 400)
   }
+  // PRN items must not carry refill alerts — owners administer unpredictably.
+  const asNeeded = isAsNeeded(body.frequency)
 
   // Verify cat access (supports household sharing)
   const catRole = await getCatRole(c.env.DB, body.cat_id, userId)
@@ -211,14 +216,14 @@ medications.post('/medications', async (c) => {
     (body.type ?? 'other').slice(0, 50),
     body.dose?.trim().slice(0, 100) ?? null,
     body.frequency,
-    body.frequency_days ?? null,
+    asNeeded ? null : (body.frequency_days ?? null),
     reminderTime,
     body.start_date,
-    body.end_date ?? null,
-    body.doses_total ?? null,
+    asNeeded ? null : (body.end_date ?? null),
+    asNeeded ? null : (body.doses_total ?? null),
     body.notes?.trim().slice(0, 1000) ?? null,
-    body.doses_remaining ?? null,
-    body.refill_alert_threshold ?? null,
+    asNeeded ? null : (body.doses_remaining ?? null),
+    asNeeded ? null : (body.refill_alert_threshold ?? null),
   ).run()
 
   // Look up user timezone for UTC dose generation
@@ -445,12 +450,13 @@ medications.get('/notifications', async (c) => {
        ORDER BY d.due_at ASC LIMIT 50`
     ).bind(userId, userId, tomorrowStartUTC, weekEndUTC).all(),
 
-    // Refill alerts: doses_remaining <= threshold
+    // Refill alerts: doses_remaining <= threshold (PRN items excluded — unpredictable consumption)
     c.env.DB.prepare(
       `SELECT m.*, c.name AS cat_name, c.id AS cat_id
        FROM medications m
        JOIN cats c ON c.id = m.cat_id
        WHERE ${hhFilter} AND m.is_active = 1
+         AND m.frequency != 'as_needed'
          AND m.doses_remaining IS NOT NULL
          AND m.refill_alert_threshold IS NOT NULL
          AND m.doses_remaining <= m.refill_alert_threshold

@@ -51,6 +51,7 @@
 | [PRD-home-assistant-connector.md](PRD-home-assistant-connector.md) | Home Assistant Direct Connector (pull-mode) | `Draft` | 2026-04-17 |
 | [PRD-tuya-connector.md](PRD-tuya-connector.md) | Tuya / Smart Life Cloud Connector (vendor OAuth2) | `Draft` | 2026-04-17 |
 | [PRD-visual-identity-v2.md](PRD-visual-identity-v2.md) | Visual Identity v2: Color, Type, Hierarchy & Feel | `In Progress` | 2026-04-15 |
+| [PRD-care-extensions.md](PRD-care-extensions.md) | Care Extensions — SubQ Fluids, As-Needed Items, Sitter View | `Approved` | 2026-05-05 |
 
 ---
 

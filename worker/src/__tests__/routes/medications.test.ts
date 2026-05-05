@@ -77,6 +77,45 @@ describe('POST /api/medications', () => {
     })
     expect(res.status).toBe(401)
   })
+
+  it('accepts as_needed frequency without generating doses', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const catId = await createCat(session)
+
+    const res = await SELF.fetch('http://localhost/api/medications', {
+      method: 'POST',
+      headers: { ...authedHeaders(session), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cat_id: catId,
+        name: 'Gabapentin (PRN)',
+        type: 'pill',
+        frequency: 'as_needed',
+        start_date: '2026-01-01',
+        notes: 'Give if hiding or limping',
+        // these should be stripped server-side for as_needed
+        end_date: '2026-12-31',
+        doses_total: 30,
+        doses_remaining: 5,
+        refill_alert_threshold: 2,
+      }),
+    })
+    expect(res.status).toBe(201)
+    const med = await res.json() as {
+      id: string; frequency: string; end_date: string | null;
+      doses_total: number | null; doses_remaining: number | null; refill_alert_threshold: number | null
+    }
+    expect(med.frequency).toBe('as_needed')
+    expect(med.end_date).toBeNull()
+    expect(med.doses_total).toBeNull()
+    expect(med.doses_remaining).toBeNull()
+    expect(med.refill_alert_threshold).toBeNull()
+
+    const doses = await env.DB.prepare(
+      'SELECT COUNT(*) as count FROM medication_doses WHERE medication_id = ?'
+    ).bind(med.id).first<{ count: number }>()
+    expect(doses!.count).toBe(0)
+  })
 })
 
 describe('GET /api/notifications', () => {

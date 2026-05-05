@@ -18,7 +18,7 @@ import { catAge } from '@shared/lib/dates'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { formatTime as fmtTime, formatWeight as fmtWeight } from '@shared/lib/preferences'
 import { groupByDay, formatFreqShort, formatNextDue, formatSexNeuter } from '@shared/lib/formatting'
-import { MEASUREMENT_TYPE_LABELS as MEAS_TYPE_LABELS, BEHAVIOR_CHART_TYPES as BEHAVIORAL_TYPES } from '@shared/lib/constants'
+import { MEASUREMENT_TYPE_LABELS as MEAS_TYPE_LABELS, BEHAVIOR_CHART_TYPES as BEHAVIORAL_TYPES, isAsNeeded } from '@shared/lib/constants'
 
 type ChartTab = 'weight' | 'food' | 'water' | 'behavior' | 'all'
 type ProfileTab = 'health' | 'care' | 'about'
@@ -42,7 +42,40 @@ function SkeletonProfile() {
 
 function CareScheduleSection({ catId, meds }: { catId: string; meds: Medication[] }) {
   const { prefs } = usePreferences()
-  const overdueCount = meds.reduce((sum, m) => sum + (m.overdue_count ?? 0), 0)
+  const scheduled = meds.filter(m => !isAsNeeded(m.frequency))
+  const asNeeded = meds.filter(m => isAsNeeded(m.frequency))
+  const overdueCount = scheduled.reduce((sum, m) => sum + (m.overdue_count ?? 0), 0)
+
+  function renderMedRow(med: Medication, asNeededRow: boolean) {
+    return (
+      <Link
+        key={med.id}
+        to={`/medications/${med.id}/edit`}
+        className="flex items-center gap-3 py-2.5 px-1 rounded-xl transition-all"
+        style={{ color: 'inherit' }}
+      >
+        <span className="text-lg w-7 text-center shrink-0">{CARE_TYPE_ICONS[med.type] ?? '📅'}</span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-ink truncate">{med.name}</span>
+            {med.dose && <span className="text-xs text-ink-dim shrink-0">{med.dose}</span>}
+            {!asNeededRow && (med.overdue_count ?? 0) > 0 && (
+              <span className="text-xs font-bold px-1.5 py-0.5 rounded-full shrink-0"
+                style={{ background: 'rgba(248,113,113,0.15)', color: 'var(--color-health-rose)' }}>
+                overdue
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-ink-dim mt-0.5 truncate">
+            {asNeededRow
+              ? (med.notes ? `Give if: ${med.notes}` : 'As needed')
+              : `${formatFreqShort(med.frequency, med.frequency_days)} · ${formatNextDue(med.next_due_at, prefs)}`}
+          </p>
+        </div>
+        <span className="text-ink-dim text-sm ml-1 shrink-0">→</span>
+      </Link>
+    )
+  }
 
   return (
     <div className="glass-card p-5">
@@ -70,30 +103,37 @@ function CareScheduleSection({ catId, meds }: { catId: string; meds: Medication[
       {meds.length === 0 ? (
         <p className="text-xs text-ink-dim py-1">No care items tracked yet.</p>
       ) : (
-        <div className="space-y-1">
-          {meds.map(med => (
-            <Link
-              key={med.id}
-              to={`/medications/${med.id}/edit`}
-              className="flex items-center gap-3 py-2.5 px-1 rounded-xl transition-all"
-              style={{ color: 'inherit' }}
-            >
-              <span className="text-lg w-7 text-center shrink-0">{CARE_TYPE_ICONS[med.type] ?? '📅'}</span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-ink truncate">{med.name}</span>
-                  {(med.overdue_count ?? 0) > 0 && (
-                    <span className="text-xs font-bold px-1.5 py-0.5 rounded-full shrink-0"
-                      style={{ background: 'rgba(248,113,113,0.15)', color: 'var(--color-health-rose)' }}>
-                      overdue
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-ink-dim mt-0.5">{formatFreqShort(med.frequency, med.frequency_days)} &middot; {formatNextDue(med.next_due_at, prefs)}</p>
+        <>
+          {scheduled.length > 0 && (
+            <>
+              {asNeeded.length > 0 && (
+                <p className="text-[10px] font-bold uppercase tracking-widest text-ink-dim mb-1.5">Scheduled</p>
+              )}
+              <div className="space-y-1 mb-2">
+                {scheduled.map(med => renderMedRow(med, false))}
               </div>
-              <span className="text-ink-dim text-sm ml-1 shrink-0">→</span>
-            </Link>
-          ))}
+            </>
+          )}
+          {asNeeded.length > 0 && (
+            <>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-ink-dim mt-3 mb-1.5">As needed</p>
+              <div className="space-y-1">
+                {asNeeded.map(med => renderMedRow(med, true))}
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {meds.length > 0 && (
+        <div className="mt-4 pt-3 border-t" style={{ borderColor: 'rgba(192,132,252,0.15)' }}>
+          <Link
+            to={`/cats/${catId}/sitter`}
+            className="flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold transition-colors"
+            style={{ color: 'var(--color-brand)', background: 'rgba(192,132,252,0.06)' }}
+          >
+            🐾 Sitter view <span className="text-ink-dim">— shareable summary</span>
+          </Link>
         </div>
       )}
     </div>

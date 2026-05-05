@@ -8,8 +8,15 @@ import {
 } from '../lib/medicationPresets'
 
 describe('MEDICATION_PRESETS', () => {
-  it('has 22 presets', () => {
-    expect(MEDICATION_PRESETS).toHaveLength(22)
+  it('has 23 presets', () => {
+    expect(MEDICATION_PRESETS).toHaveLength(23)
+  })
+
+  it('includes Subcutaneous fluids preset', () => {
+    const subq = MEDICATION_PRESETS.find(p => p.type === 'subq_fluids')
+    expect(subq).toBeDefined()
+    expect(subq?.name).toBe('Subcutaneous fluids')
+    expect(subq?.category).toBe('Medication')
   })
 
   it('every preset has required fields', () => {
@@ -37,6 +44,7 @@ describe('MEDICATION_PRESETS', () => {
 
 describe('MEDICATION_FREQ_LABELS', () => {
   it('has labels for all standard frequencies', () => {
+    expect(MEDICATION_FREQ_LABELS.as_needed).toBe('As needed (no schedule)')
     expect(MEDICATION_FREQ_LABELS.daily).toBe('Daily')
     expect(MEDICATION_FREQ_LABELS.twice_daily).toBe('Twice daily')
     expect(MEDICATION_FREQ_LABELS.weekly).toBe('Weekly')

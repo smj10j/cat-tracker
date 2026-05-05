@@ -36,6 +36,7 @@ import {
   buildCareItemPayload,
   type CareItemFields,
 } from '@shared/lib/careItemForm';
+import { isAsNeeded } from '@shared/lib/constants';
 import { parseDate, formatDateStr as formatDate } from '../../../lib/dateHelpers';
 
 const FREQ_OPTIONS = Object.entries(MEDICATION_FREQ_LABELS).map(([value, label]) => ({ value, label }));
@@ -356,17 +357,18 @@ export default function CareItemScreen() {
             </>
           )}
 
-          <FieldLabel label="Notes" />
+          <FieldLabel label={isAsNeeded(fields.frequency) ? "When to give" : "Notes"} />
           <StyledInput
             value={fields.notes}
             onChangeText={v => setField("notes", v)}
-            placeholder="e.g. Give with food"
+            placeholder={isAsNeeded(fields.frequency) ? "e.g. If hiding or refusing food" : "e.g. Give with food"}
             maxLength={1000}
             multiline
           />
         </SectionCard>
 
-        {/* Schedule */}
+        {/* Schedule — hidden for as-needed items */}
+        {!isAsNeeded(fields.frequency) && (
         <SectionCard title="Schedule">
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <View style={{ flex: 1 }}>
@@ -453,8 +455,10 @@ export default function CareItemScreen() {
             placeholder="e.g. 14 for a 14-day course"
           />
         </SectionCard>
+        )}
 
-        {/* Stock tracking */}
+        {/* Stock tracking — hidden for as-needed items */}
+        {!isAsNeeded(fields.frequency) && (
         <SectionCard title="Stock tracking (optional)">
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <View style={{ flex: 1 }}>
@@ -477,6 +481,7 @@ export default function CareItemScreen() {
             </View>
           </View>
         </SectionCard>
+        )}
 
         {/* Save button */}
         <Pressable

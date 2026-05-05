@@ -196,4 +196,27 @@ describe('buildCareItemPayload', () => {
     const custom = { ...validFields, frequency: 'custom', frequencyDays: '30' }
     expect(buildCareItemPayload(custom, 'cat-1').frequency_days).toBe(30)
   })
+
+  it('strips schedule and stock fields when frequency is as_needed', () => {
+    const prn: CareItemFields = {
+      ...validFields,
+      frequency: 'as_needed',
+      frequencyDays: '30',
+      endDate: '2026-12-31',
+      dosesTotal: '14',
+      dosesRemaining: '5',
+      refillThreshold: '2',
+    }
+    const payload = buildCareItemPayload(prn, 'cat-1')
+    expect(payload.frequency).toBe('as_needed')
+    expect(payload.frequency_days).toBeNull()
+    expect(payload.end_date).toBeNull()
+    expect(payload.doses_total).toBeNull()
+    expect(payload.doses_remaining).toBeNull()
+    expect(payload.refill_alert_threshold).toBeNull()
+    // start_date is preserved (defaults to today if blank)
+    expect(payload.start_date).toBe('2026-01-15')
+    // notes flow through (used as the "give if" trigger)
+    expect(payload.notes).toBe('Topical')
+  })
 })

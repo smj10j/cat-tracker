@@ -76,6 +76,18 @@ describe('generateDoses — monthly', () => {
   })
 })
 
+describe('generateDoses — as_needed', () => {
+  it('generates zero doses for as_needed frequency', () => {
+    const doses = generateDoses('med-1', '2026-01-01', '09:00', 'as_needed', null, null, '2026-12-31')
+    expect(doses).toHaveLength(0)
+  })
+
+  it('returns empty even when end_date is set', () => {
+    const doses = generateDoses('med-1', '2026-01-01', '09:00', 'as_needed', null, '2026-06-30', '2026-12-31')
+    expect(doses).toHaveLength(0)
+  })
+})
+
 describe('generateDoses — custom frequency', () => {
   it('generates doses every N days', () => {
     // Every 3 days: Jan 1, 4, 7

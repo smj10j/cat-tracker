@@ -136,13 +136,14 @@ export default {
          WHERE status = 'pending' AND invite_expires_at < datetime('now')`,
       ).run()
 
-      // Extend 90-day rolling dose window for all active medications
+      // Extend 90-day rolling dose window for all scheduled active medications
+      // (PRN / 'as_needed' items have no schedule and are skipped)
       const activeMeds = await env.DB.prepare(
         `SELECT m.id, m.start_date, m.reminder_time, m.frequency, m.frequency_days, m.end_date,
                 u.timezone
          FROM medications m
          JOIN users u ON u.id = m.user_id
-         WHERE m.is_active = 1`
+         WHERE m.is_active = 1 AND m.frequency != 'as_needed'`
       ).all<{
         id: string; start_date: string; reminder_time: string
         frequency: string; frequency_days: number | null; end_date: string | null

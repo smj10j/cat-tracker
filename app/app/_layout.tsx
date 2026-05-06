@@ -92,6 +92,7 @@ function AppContent() {
           <Stack.Screen name="cats/[id]/export" />
           <Stack.Screen name="cats/[id]/memorial" />
           <Stack.Screen name="cats/[id]/health" />
+          <Stack.Screen name="cats/[id]/sitter" />
         </Stack>
       </View>
       {showNav && <BottomNav />}

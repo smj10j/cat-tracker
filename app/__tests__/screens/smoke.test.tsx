@@ -214,6 +214,67 @@ describe('CatExport screen', () => {
   });
 });
 
+describe('Sitter screen', () => {
+  let Sitter: React.ComponentType<any>;
+
+  beforeAll(async () => {
+    Sitter = (await import('../../app/cats/[id]/sitter')).default;
+  });
+
+  it('renders without crashing', async () => {
+    const { container } = await renderScreen(Sitter);
+    expect(container).toBeTruthy();
+  });
+
+  it('renders cat name and the Daily Schedule section', async () => {
+    await renderScreen(Sitter);
+    await waitFor(() => {
+      expect(screen.getByText('Luna')).toBeTruthy();
+      expect(screen.getByText('Daily Schedule')).toBeTruthy();
+    });
+  });
+
+  it('renders a Share button', async () => {
+    await renderScreen(Sitter);
+    await waitFor(() => {
+      expect(screen.getByLabelText('Share sitter view')).toBeTruthy();
+    });
+  });
+
+  it('groups scheduled meds and surfaces an as-needed section when present', async () => {
+    const { api } = (await import('../../lib/api')) as any;
+    api.getMedications.mockResolvedValueOnce([
+      {
+        id: 'sched1', cat_id: 'test-cat-123', name: 'Subcutaneous fluids',
+        type: 'subq_fluids', frequency: 'daily', dose: '100mL LRS',
+        reminder_time: '08:00', notes: null, is_active: 1,
+        created_at: '2026-01-01T00:00:00Z',
+      },
+      {
+        id: 'prn1', cat_id: 'test-cat-123', name: 'Gabapentin',
+        type: 'medication', frequency: 'as_needed', dose: '50mg',
+        notes: 'If hiding or limping', is_active: 1,
+        created_at: '2026-01-01T00:00:00Z',
+      },
+    ]);
+    await renderScreen(Sitter);
+    await waitFor(() => {
+      expect(screen.getByText('Subcutaneous fluids')).toBeTruthy();
+      expect(screen.getByText('Gabapentin')).toBeTruthy();
+      // As-Needed heading is split across nested Text nodes; assert the trailing copy.
+      expect(screen.getByText(/only if triggered/)).toBeTruthy();
+    });
+  });
+
+  it('handles a cat with no medications', async () => {
+    const { api } = (await import('../../lib/api')) as any;
+    api.getMedications.mockResolvedValueOnce([]);
+    const { container } = await renderScreen(Sitter);
+    expect(container).toBeTruthy();
+    expect(screen.getByText('No scheduled medications.')).toBeTruthy();
+  });
+});
+
 describe('CatHealth screen', () => {
   let CatHealth: React.ComponentType<any>;
 

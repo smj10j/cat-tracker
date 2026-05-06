@@ -740,6 +740,27 @@ export default function CatProfileScreen() {
               </View>
               <Text style={{ color: colors.inkDim, fontSize: 18 }}>{'\u203A'}</Text>
             </Pressable>
+
+            {/* Sitter view link */}
+            <Pressable
+              onPress={() => router.push(`/cats/${cat.id}/sitter` as never)}
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: 16,
+                padding: 16,
+                borderWidth: 1,
+                borderColor: colors.rim,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <View>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: colors.ink }}>{'\uD83D\uDC3E'} Sitter view</Text>
+                <Text style={{ fontSize: 12, color: colors.inkDim, marginTop: 2 }}>Shareable summary \u2014 send a PDF to your cat sitter</Text>
+              </View>
+              <Text style={{ color: colors.inkDim, fontSize: 18 }}>{'\u203A'}</Text>
+            </Pressable>
           </View>
         )}
 

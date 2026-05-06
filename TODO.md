@@ -25,8 +25,24 @@ Triggered by: user request — three improvements to the Care section. (1) add s
 - [x] Commit and push to `claude/add-care-options-U5daJ`
 
 ### Out of scope (follow-ups)
-- [ ] Native iOS Sitter View screen — web URL works in mobile Safari for now
+- [x] Native iOS Sitter View screen — implemented in Phase 60.5 (2026-05-05)
 - [ ] PRN administration log — explicit "I gave a dose now" timestamp record
+
+---
+
+## Phase 60.5: iOS Sitter View — native screen + share sheet (2026-05-05)
+
+Triggered by: user opened the iOS app after 1.0.1 deploy and asked "I don't see a simple screenshot I could send to a cat sitter". The web Sitter view was working at `/cats/:id/sitter`, but the iOS app lacked an entry point.
+
+### Implementation
+- [x] Amend PRD-care-extensions.md — bring iOS Sitter View in scope
+- [x] Add `app/app/cats/[id]/sitter.tsx` — native screen mirroring web layout
+- [x] Native share via `expo-print.printToFileAsync` (HTML→PDF) + `expo-sharing.shareAsync` (system share sheet)
+- [x] Register the screen in `app/app/_layout.tsx`
+- [x] Add "🐾 Sitter view" entry on the Care tab (below Reminders & Notifications)
+- [x] Smoke + content tests in `app/__tests__/screens/smoke.test.tsx`; mock `expo-print` in `setup.ts`
+- [x] Bump app version 1.0.1 → 1.0.2 (Apple closed the 1.0.1 train after submission)
+- [ ] Deploy to TestFlight (build-ios.sh + submit-testflight.sh)
 
 ---
 

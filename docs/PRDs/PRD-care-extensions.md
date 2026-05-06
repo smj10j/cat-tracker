@@ -47,12 +47,19 @@ In addition, when an owner leaves the cat with a sitter, there is no clean read-
   - Uses `loader=eager` for the photo so screenshots don't show a placeholder
 - A "Sitter view" button on the Care tab that links to it.
 
+### Added 2026-05-05 — iOS Sitter View (in scope for follow-up)
+
+The original plan deferred the iOS screen because the web URL is reachable from mobile Safari. In practice owners open the app, tap Care, and expect a "send to sitter" affordance there — not a context switch to Safari. So we bring it in.
+
+- **iOS Sitter screen** at `app/app/cats/[id]/sitter.tsx` mirroring the web layout, with iPad-responsive container.
+- **Native share** via `expo-print` (render the screen content to PDF) + `expo-sharing` (open the iOS share sheet). PDF is universal: AirDrop, Messages, Mail, Notes, third-party apps.
+- **Entry point**: "🐾 Sitter view — shareable summary" Pressable on the Care tab, placed below the Reminders link.
+
 ### Out of scope (this sprint)
 
-- iOS Sitter View screen — the web URL works in mobile Safari and AirDrops cleanly; native screen is a follow-up if requested.
-- Native iOS share-sheet integration ("Share with sitter" → Messages prefill).
 - Editable PRN log ("administered as-needed at X time") — owners can still note it but no formal log this sprint.
 - Multiple sitter profiles or per-sitter access controls (different problem space — covered by household sharing).
+- Sharing a deep-link rather than a static PDF (would require unauthenticated read-token endpoints; not justified yet).
 
 ---
 
@@ -122,6 +129,9 @@ No edit affordances. No nav bar. Background: `surface` so it screenshots cleanly
 - [x] Care tab on the cat profile groups items into Scheduled vs As Needed.
 - [x] `/cats/:id/sitter` renders a clean, no-chrome layout suitable for one-screenshot capture; print stylesheet hides nav.
 - [x] Existing scheduled medications continue to work; cron continues to extend their dose window.
+- [ ] iOS Sitter screen renders cat header, scheduled meds grouped by reminder time, as-needed items, and care notes.
+- [ ] iOS Sitter screen has a Share button that produces a PDF and opens the iOS share sheet (Messages/Mail/AirDrop).
+- [ ] Care tab on iOS surfaces a "Sitter view" entry point.
 
 ---
 

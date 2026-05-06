@@ -94,9 +94,10 @@ iPhone 6.7" / 6.9" App Store screenshots: **1284×2778** or **1242×2688**. Resi
 - **App Store Connect**: https://appstoreconnect.apple.com/apps/6762031793/testflight/ios
 - **Status**: Submitted to TestFlight
 
-## Version 1.0.3 (Build 2026-05-05)
-- **Submitted**: 2026-05-05 20:08:20 (via local)
+## Version 1.0.3 (Build 2026-05-05) - IN REVIEW
+- **TestFlight**: 2026-05-05 20:08:20 (via local)
 - **Commit**: 094651d (094651d84a3fc08a4656cc9975c1c0cb66e386cc)
 - **Commit message**: care: fix Sitter view subtitle rendering as literal escape
 - **App Store Connect**: https://appstoreconnect.apple.com/apps/6762031793/testflight/ios
-- **Status**: Submitted to TestFlight
+- **App Store Review**: 2026-05-05 (submitted)
+  - **App Store Status**: In Review since 2026-05-05

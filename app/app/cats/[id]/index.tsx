@@ -757,7 +757,7 @@ export default function CatProfileScreen() {
             >
               <View>
                 <Text style={{ fontSize: 14, fontWeight: '600', color: colors.ink }}>{'\uD83D\uDC3E'} Sitter view</Text>
-                <Text style={{ fontSize: 12, color: colors.inkDim, marginTop: 2 }}>Shareable summary \u2014 send a PDF to your cat sitter</Text>
+                <Text style={{ fontSize: 12, color: colors.inkDim, marginTop: 2 }}>Send a shareable PDF summary to your cat sitter</Text>
               </View>
               <Text style={{ color: colors.inkDim, fontSize: 18 }}>{'\u203A'}</Text>
             </Pressable>

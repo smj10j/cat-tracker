@@ -86,3 +86,10 @@ iPhone 6.7" / 6.9" App Store screenshots: **1284×2778** or **1242×2688**. Resi
 - **Commit message**: Merge pull request #2 from smj10j/claude/add-care-options-U5daJ
 - **App Store Connect**: https://appstoreconnect.apple.com/apps/6762031793/testflight/ios
 - **Status**: Submitted to TestFlight
+
+## Version 1.0.2 (Build 2026-05-05)
+- **Submitted**: 2026-05-05 19:57:11 (via local)
+- **Commit**: 7f8e3af (7f8e3af06fadfa98c3297c72e88b55bbd6cc9048)
+- **Commit message**: care: native iOS Sitter view with PDF share
+- **App Store Connect**: https://appstoreconnect.apple.com/apps/6762031793/testflight/ios
+- **Status**: Submitted to TestFlight

@@ -79,3 +79,10 @@ iPhone 6.7" / 6.9" App Store screenshots: **1284×2778** or **1242×2688**. Resi
 - **Commit message**: Visual Identity v2 Phase 4 + docs: icon options, DESIGN.md, REGISTRY, deploy
 - **App Store Connect**: https://appstoreconnect.apple.com/apps/6762031793/testflight/ios
 - **Status**: Submitted to TestFlight
+
+## Version 1.0.1 (Build 2026-05-05)
+- **Submitted**: 2026-05-05 19:30:36 (via local)
+- **Commit**: d25e764 (d25e764501648520d6d545358b3bb27b41613d98)
+- **Commit message**: Merge pull request #2 from smj10j/claude/add-care-options-U5daJ
+- **App Store Connect**: https://appstoreconnect.apple.com/apps/6762031793/testflight/ios
+- **Status**: Submitted to TestFlight

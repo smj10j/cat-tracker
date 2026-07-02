@@ -27,6 +27,7 @@ export interface CareItemFields {
   notes: string
   dosesRemaining: string
   refillThreshold: string
+  scheduleMode: string
 }
 
 export const CARE_ITEM_DEFAULTS: CareItemFields = {
@@ -42,6 +43,27 @@ export const CARE_ITEM_DEFAULTS: CareItemFields = {
   notes: '',
   dosesRemaining: '',
   refillThreshold: '',
+  scheduleMode: 'fixed',
+}
+
+/**
+ * Default schedule anchoring per frequency. Interval-driven care (custom
+ * frequency, e.g. sub-q fluids every 3 days) re-anchors from the last given
+ * dose; calendar-style frequencies stay anchored to the start date.
+ * Approved decision, PRD-medication-reminders (2026-07-02).
+ */
+export function defaultScheduleMode(frequency: string): 'fixed' | 'interval' {
+  return frequency === 'custom' ? 'interval' : 'fixed'
+}
+
+/** Whether the schedule-mode choice applies to this frequency at all. */
+export function scheduleModeApplies(frequency: string): boolean {
+  return !isAsNeeded(frequency) && frequency !== 'twice_daily'
+}
+
+/** True when the chosen start date is before today (local) — the past-dose prompt case. */
+export function isPastStartDate(startDate: string): boolean {
+  return !!startDate && startDate < todayLocalDate()
 }
 
 // ---------------------------------------------------------------------------
@@ -62,6 +84,7 @@ export function hydrateFromMedication(med: Medication & { doses?: MedicationDose
     notes: med.notes ?? '',
     dosesRemaining: med.doses_remaining != null ? String(med.doses_remaining) : '',
     refillThreshold: med.refill_alert_threshold != null ? String(med.refill_alert_threshold) : '',
+    scheduleMode: med.schedule_mode ?? defaultScheduleMode(med.frequency),
   }
 }
 
@@ -94,7 +117,11 @@ export function validateCareItem(fields: CareItemFields): string | null {
 // Build API payload
 // ---------------------------------------------------------------------------
 
-export function buildCareItemPayload(fields: CareItemFields, catId: string): MedicationInput {
+export function buildCareItemPayload(
+  fields: CareItemFields,
+  catId: string,
+  firstDoseGiven?: boolean,
+): MedicationInput {
   const asNeeded = isAsNeeded(fields.frequency)
   return {
     cat_id: catId,
@@ -110,5 +137,9 @@ export function buildCareItemPayload(fields: CareItemFields, catId: string): Med
     notes: fields.notes.trim() || null,
     doses_remaining: asNeeded ? null : (fields.dosesRemaining ? parseInt(fields.dosesRemaining, 10) || null : null),
     refill_alert_threshold: asNeeded ? null : (fields.refillThreshold ? parseInt(fields.refillThreshold, 10) || null : null),
+    schedule_mode: scheduleModeApplies(fields.frequency)
+      ? (fields.scheduleMode === 'interval' ? 'interval' : 'fixed')
+      : 'fixed',
+    ...(firstDoseGiven !== undefined ? { first_dose_given: firstDoseGiven } : {}),
   }
 }

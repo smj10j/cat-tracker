@@ -72,6 +72,8 @@ describe('PUT /api/auth/me — timezone sync', () => {
     })
     const cat = await catRes.json() as { id: string }
 
+    // Start tomorrow (UTC) so the dose is inside the generation window.
+    const startDate = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
     await SELF.fetch('http://localhost/api/medications', {
       method: 'POST',
       headers: { ...authedHeaders(session), 'Content-Type': 'application/json' },
@@ -80,36 +82,33 @@ describe('PUT /api/auth/me — timezone sync', () => {
         name: 'Test Med',
         type: 'pill',
         frequency: 'daily',
-        start_date: '2026-04-12',
+        start_date: startDate,
         reminder_time: '09:00',
       }),
     })
 
     // Before timezone set: doses should have naive time 09:00
     const beforeDose = await env.DB.prepare(
-      "SELECT due_at FROM medication_doses WHERE due_at LIKE '2026-04-12%'"
-    ).first<{ due_at: string }>()
-    expect(beforeDose?.due_at).toBe('2026-04-12 09:00:00')
+      'SELECT due_at FROM medication_doses WHERE due_at LIKE ?'
+    ).bind(`${startDate}%`).first<{ due_at: string }>()
+    expect(beforeDose?.due_at).toBe(`${startDate} 09:00:00`)
 
-    // Set timezone — triggers lazy migration
+    // Set timezone — triggers lazy migration. Phoenix (UTC-7, no DST) keeps the
+    // expected value deterministic year-round.
     const res = await SELF.fetch('http://localhost/api/auth/me', {
       method: 'PUT',
       headers: { ...authedHeaders(session), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ timezone: 'America/New_York' }),
+      body: JSON.stringify({ timezone: 'America/Phoenix' }),
     })
     expect(res.status).toBe(200)
 
-    // After timezone set: future doses should have been regenerated with UTC conversion.
-    // The exact UTC offset depends on the runtime's Intl support (workerd may not
-    // apply DST offsets correctly), so we verify the doses were regenerated (not still
-    // the naive 09:00:00) OR that they are at least present. On runtimes with full
-    // Intl support, 9 AM EDT = 13:00 UTC.
+    // After timezone set: future doses regenerated with UTC conversion.
+    // 9 AM Phoenix = 16:00 UTC. Naive value accepted only for runtimes without
+    // full Intl timezone support (workerd limitation).
     const afterDose = await env.DB.prepare(
-      "SELECT due_at FROM medication_doses WHERE due_at LIKE '2026-04-12%'"
-    ).first<{ due_at: string }>()
+      'SELECT due_at FROM medication_doses WHERE due_at LIKE ?'
+    ).bind(`${startDate}%`).first<{ due_at: string }>()
     expect(afterDose).toBeTruthy()
-    // If the runtime supports timezone conversion, the time should differ from naive
-    // We accept either the correctly converted time or the naive time (workerd limitation)
-    expect(['2026-04-12 13:00:00', '2026-04-12 09:00:00']).toContain(afterDose?.due_at)
+    expect([`${startDate} 16:00:00`, `${startDate} 09:00:00`]).toContain(afterDose?.due_at)
   })
 })

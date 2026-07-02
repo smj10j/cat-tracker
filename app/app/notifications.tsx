@@ -37,6 +37,7 @@ export default function NotificationsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
 
   const fetchInbox = useCallback(async () => {
     try {
@@ -96,6 +97,33 @@ export default function NotificationsScreen() {
     } finally {
       setProcessingId(null);
     }
+  }
+
+  async function doBulk(action: 'administer' | 'skip') {
+    const overdueIds = inbox?.overdue.map((d) => d.id) ?? [];
+    if (overdueIds.length === 0) return;
+    setBulkProcessing(true);
+    try {
+      await api.bulkDoseAction(overdueIds, action);
+      await fetchInbox();
+    } catch (e) {
+      Alert.alert('Error', (e as Error).message);
+    } finally {
+      setBulkProcessing(false);
+    }
+  }
+
+  function handleBulkDismiss() {
+    const count = inbox?.overdue.length ?? 0;
+    if (count === 0) return;
+    if (Platform.OS === 'web') {
+      if (confirm(`Dismiss all ${count} overdue doses?`)) doBulk('skip');
+      return;
+    }
+    Alert.alert('Dismiss All', `Dismiss all ${count} overdue doses?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Dismiss', style: 'destructive', onPress: () => doBulk('skip') },
+    ]);
   }
 
   const sections: Section[] = inbox
@@ -185,21 +213,71 @@ export default function NotificationsScreen() {
         }
         contentContainerStyle={{ padding: contentPadding, paddingBottom: 40, maxWidth: contentMaxWidth, width: '100%', alignSelf: 'center' as const }}
         stickySectionHeadersEnabled={false}
-        renderSectionHeader={({ section }) => (
-          <Text
-            style={{
-              fontSize: 13,
-              fontWeight: '700',
-              color: section.accent,
-              textTransform: 'uppercase',
-              letterSpacing: 0.5,
-              marginTop: 16,
-              marginBottom: 8,
-            }}
-          >
-            {section.title}
-          </Text>
-        )}
+        renderSectionHeader={({ section }) => {
+          const showBulkActions = section.title === 'Overdue' && (inbox?.overdue.length ?? 0) >= 2;
+          return (
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8,
+                marginTop: 16,
+                marginBottom: 8,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: '700',
+                  color: section.accent,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                }}
+              >
+                {section.title}
+              </Text>
+              {showBulkActions && (
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <Pressable
+                    onPress={() => doBulk('administer')}
+                    disabled={bulkProcessing}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      borderRadius: 8,
+                      backgroundColor: 'rgba(74,222,128,0.15)',
+                      borderWidth: 1,
+                      borderColor: 'rgba(74,222,128,0.25)',
+                      opacity: bulkProcessing ? 0.5 : 1,
+                    }}
+                  >
+                    <Text style={{ color: colors.jade, fontSize: 12, fontWeight: '600' }}>
+                      {bulkProcessing ? 'Saving...' : 'Mark all given'}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={handleBulkDismiss}
+                    disabled={bulkProcessing}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      borderRadius: 8,
+                      backgroundColor: colors.card,
+                      borderWidth: 1,
+                      borderColor: colors.rim,
+                      opacity: bulkProcessing ? 0.5 : 1,
+                    }}
+                  >
+                    <Text style={{ color: colors.inkDim, fontSize: 12, fontWeight: '500' }}>
+                      Dismiss all
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
+            </View>
+          );
+        }}
         renderItem={({ item, section }) => {
           if (item.kind === 'refill') {
             const med = item.data;

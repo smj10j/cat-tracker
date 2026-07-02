@@ -310,6 +310,14 @@ export const api: CatTrackerNativeApi = {
     });
   },
 
+  async bulkDoseAction(doseIds: string[], action: 'administer' | 'skip'): Promise<{ updated: number }> {
+    const res = await apiFetch('/api/doses/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ dose_ids: doseIds, action }),
+    });
+    return res.json() as Promise<{ updated: number }>;
+  },
+
   async getNotifications(): Promise<NotificationInbox> {
     const res = await apiFetch('/api/notifications');
     return res.json() as Promise<NotificationInbox>;

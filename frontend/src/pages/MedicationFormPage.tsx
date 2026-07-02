@@ -20,9 +20,28 @@ import {
   applyPresetToFields,
   validateCareItem,
   buildCareItemPayload,
+  defaultScheduleMode,
+  scheduleModeApplies,
+  isPastStartDate,
   type CareItemFields,
 } from '@shared/lib/careItemForm'
 import { isAsNeeded } from '@shared/lib/constants'
+import { formatDate } from '@shared/lib/preferences'
+import { formatDueAt } from '@shared/lib/formatting'
+import type { MedicationDose } from '@shared/lib/types'
+
+const SCHEDULE_MODE_OPTIONS = [
+  {
+    value: 'fixed',
+    title: 'Stick to schedule',
+    helper: 'Doses stay on the original calendar — e.g. the 1st of each month.',
+  },
+  {
+    value: 'interval',
+    title: 'Restart the interval',
+    helper: 'Next dose is due one interval after you mark this one given — right for sub-q fluids.',
+  },
+]
 
 // Extended labels for web where there's room for longer text
 const FREQ_LABELS: Record<string, string> = {
@@ -56,11 +75,13 @@ export default function MedicationFormPage() {
 
   const [cat, setCat] = useState<Cat | null>(null)
   const [fields, setFields] = useState<CareItemFields>(CARE_ITEM_DEFAULTS)
+  const [doses, setDoses] = useState<MedicationDose[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showPresets, setShowPresets] = useState(false)
+  const [firstDoseGiven, setFirstDoseGiven] = useState(true)
 
   const setField = <K extends keyof CareItemFields>(key: K, value: CareItemFields[K]) =>
     setFields(prev => ({ ...prev, [key]: value }))
@@ -69,9 +90,11 @@ export default function MedicationFormPage() {
   const {
     name, type, dose, frequency, frequencyDays,
     reminderTime, startDate, endDate, dosesTotal,
-    notes, dosesRemaining, refillThreshold,
+    notes, dosesRemaining, refillThreshold, scheduleMode,
   } = fields
   const asNeeded = isAsNeeded(frequency)
+  // Create-mode only: ask whether the first dose was already given for past start dates
+  const showPastStartPrompt = !isEdit && !asNeeded && isPastStartDate(startDate)
 
   useEffect(() => {
     async function load() {
@@ -80,6 +103,7 @@ export default function MedicationFormPage() {
         if (isEdit && medId) {
           const med = await getMedication(medId)
           setFields(hydrateFromMedication(med))
+          setDoses(med.doses ?? [])
           const c = await getCat(med.cat_id)
           setCat(c)
         } else if (catId) {
@@ -113,7 +137,11 @@ export default function MedicationFormPage() {
     const validationError = validateCareItem(fields)
     if (validationError) { showError(validationError); return }
 
-    const payload = buildCareItemPayload(fields, resolvedCatId)
+    const payload = buildCareItemPayload(
+      fields,
+      resolvedCatId,
+      showPastStartPrompt ? firstDoseGiven : undefined,
+    )
 
     setSaving(true)
     setError(null)
@@ -145,6 +173,12 @@ export default function MedicationFormPage() {
       setDeleting(false)
     }
   }
+
+  // Resolved doses (given / skipped / missed), most recent first
+  const doseHistory = doses
+    .filter(d => d.administered_at || d.skipped === 1 || d.missed === 1)
+    .sort((a, b) => b.due_at.localeCompare(a.due_at))
+    .slice(0, 10)
 
   if (loading) {
     return (
@@ -278,7 +312,14 @@ export default function MedicationFormPage() {
 
           <div>
             <label htmlFor="med-frequency" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Frequency</label>
-            <select id="med-frequency" value={frequency} onChange={e => setField("frequency", e.target.value)} className="input-dark w-full px-3 py-2.5 text-sm">
+            <select
+              id="med-frequency" value={frequency}
+              onChange={e => {
+                const f = e.target.value
+                setFields(prev => ({ ...prev, frequency: f, scheduleMode: defaultScheduleMode(f) }))
+              }}
+              className="input-dark w-full px-3 py-2.5 text-sm"
+            >
               {Object.entries(FREQ_LABELS).map(([v, l]) => (
                 <option key={v} value={v}>{l}</option>
               ))}
@@ -298,6 +339,31 @@ export default function MedicationFormPage() {
                 value={frequencyDays} onChange={e => setField("frequencyDays", e.target.value)}
                 className="input-dark w-full px-3 py-2.5 text-sm"
               />
+            </div>
+          )}
+
+          {scheduleModeApplies(frequency) && (
+            <div role="radiogroup" aria-label="After a dose is given">
+              <span className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">After a dose is given</span>
+              <div className="space-y-2">
+                {SCHEDULE_MODE_OPTIONS.map(opt => {
+                  const active = scheduleMode === opt.value
+                  return (
+                    <button
+                      key={opt.value} type="button" role="radio" aria-checked={active}
+                      onClick={() => setField("scheduleMode", opt.value)}
+                      className="w-full text-left px-3 py-2.5 rounded-xl transition-all"
+                      style={{
+                        background: active ? 'rgba(192,132,252,0.12)' : 'rgba(255,255,255,0.03)',
+                        border: active ? '1.5px solid rgba(192,132,252,0.5)' : '1px solid var(--color-rim)',
+                      }}
+                    >
+                      <span className={`block text-sm font-semibold ${active ? 'text-lavender' : 'text-ink'}`}>{opt.title}</span>
+                      <span className="block text-xs text-ink-dim mt-0.5">{opt.helper}</span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           )}
 
@@ -329,6 +395,35 @@ export default function MedicationFormPage() {
                   </select>
                 </div>
               </div>
+
+              {showPastStartPrompt && (
+                <div
+                  className="rounded-xl p-3 space-y-2.5"
+                  style={{ background: 'rgba(244,200,73,0.08)', border: '1px solid rgba(244,200,73,0.25)' }}
+                >
+                  <p className="text-xs text-ink-mid">
+                    The start date is in the past. Did you already give the first dose on {formatDate(startDate, prefs)}?
+                  </p>
+                  <div className="flex gap-2" role="radiogroup" aria-label="First dose already given">
+                    {[{ v: true, l: 'Yes' }, { v: false, l: 'No' }].map(({ v, l }) => {
+                      const active = firstDoseGiven === v
+                      return (
+                        <button
+                          key={l} type="button" role="radio" aria-checked={active}
+                          onClick={() => setFirstDoseGiven(v)}
+                          className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${active ? 'text-lavender' : 'text-ink-dim'}`}
+                          style={{
+                            background: active ? 'rgba(192,132,252,0.15)' : 'rgba(255,255,255,0.04)',
+                            border: active ? '1px solid rgba(192,132,252,0.4)' : '1px solid var(--color-rim)',
+                          }}
+                        >
+                          {l}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label htmlFor="med-end-date" className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">
@@ -379,6 +474,30 @@ export default function MedicationFormPage() {
                 placeholder="e.g. 2"
                 className="input-dark w-full px-3 py-2.5 text-sm"
               />
+            </div>
+          </div>
+        )}
+
+        {isEdit && doseHistory.length > 0 && (
+          <div
+            className="rounded-2xl p-5 space-y-3"
+            style={{ background: 'rgba(192,132,252,0.04)', border: '1px solid rgba(192,132,252,0.12)' }}
+          >
+            <h2 className="text-xs font-bold uppercase tracking-widest text-ink-mid">Dose history</h2>
+            <div className="space-y-2">
+              {doseHistory.map(d => {
+                const status = d.administered_at
+                  ? { label: 'Given', color: 'var(--color-health-jade)' }
+                  : d.skipped === 1
+                  ? { label: 'Skipped', color: 'var(--color-ink-dim)' }
+                  : { label: 'Missed', color: 'var(--color-ink-dim)' }
+                return (
+                  <div key={d.id} className="flex items-center justify-between gap-3 py-1">
+                    <span className="text-xs text-ink-mid">{formatDueAt(d.due_at, prefs)}</span>
+                    <span className="text-xs font-semibold" style={{ color: status.color }}>{status.label}</span>
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}

@@ -63,6 +63,7 @@ export interface Medication {
   is_active: number;
   doses_remaining: number | null;
   refill_alert_threshold: number | null;
+  schedule_mode?: 'fixed' | 'interval';
   created_at: string;
   updated_at: string;
   next_due_at?: string | null;
@@ -77,6 +78,7 @@ export interface MedicationDose {
   skipped: number;
   skip_reason: string | null;
   notes: string | null;
+  missed?: number;
   created_at: string;
 }
 
@@ -151,6 +153,8 @@ export type MedicationInput = {
   notes?: string | null;
   doses_remaining?: number | null;
   refill_alert_threshold?: number | null;
+  schedule_mode?: 'fixed' | 'interval';
+  first_dose_given?: boolean;
 };
 
 export interface HouseholdListItem {

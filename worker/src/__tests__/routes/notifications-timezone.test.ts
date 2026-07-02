@@ -59,9 +59,8 @@ describe('Notification timezone categorization', () => {
     const user = await seedUser()
     const session = await seedSession(user.id)
 
-    // User is in CST (UTC-6). Create med with 11 PM reminder.
-    // 11 PM CST Jan 15 = 05:00 UTC Jan 16.
-    // If today is Jan 15 locally, this should be "due_today" not "upcoming".
+    // User is in Chicago time. A late-evening local reminder lands on the NEXT
+    // UTC calendar day — storage must be the converted UTC value.
     await env.DB.prepare('UPDATE users SET timezone = ? WHERE id = ?')
       .bind('America/Chicago', user.id).run()
 
@@ -72,6 +71,10 @@ describe('Notification timezone categorization', () => {
     })
     const cat = await catRes.json() as { id: string }
 
+    const chicagoToday = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(new Date())
+
     const medRes = await SELF.fetch('http://localhost/api/medications', {
       method: 'POST',
       headers: { ...authedHeaders(session), 'Content-Type': 'application/json' },
@@ -80,19 +83,20 @@ describe('Notification timezone categorization', () => {
         name: 'Late Night Med',
         type: 'pill',
         frequency: 'daily',
-        start_date: '2026-01-01',
+        start_date: chicagoToday,
         reminder_time: '23:00',
       }),
     })
     expect(medRes.status).toBe(201)
     const med = await medRes.json() as { id: string }
 
-    // Verify the dose for Jan 15 is stored as UTC Jan 16 05:00
+    // Verify today's dose is stored at the UTC equivalent of 11 PM Chicago time
+    const { localToUTC } = await import('../../../../shared/lib/dates')
+    const expected = localToUTC(chicagoToday, '23:00', 'America/Chicago')
     const dose = await env.DB.prepare(
-      "SELECT due_at FROM medication_doses WHERE medication_id = ? AND due_at LIKE '2026-01-16 05%'"
-    ).bind(med.id).first<{ due_at: string }>()
+      'SELECT due_at FROM medication_doses WHERE medication_id = ? AND due_at = ?'
+    ).bind(med.id, expected).first<{ due_at: string }>()
     expect(dose).toBeTruthy()
-    expect(dose!.due_at).toBe('2026-01-16 05:00:00')
   })
 
   it('generates UTC doses correctly for CST timezone', async () => {
@@ -110,7 +114,10 @@ describe('Notification timezone categorization', () => {
     })
     const cat = await catRes.json() as { id: string }
 
-    // 11 AM CST = 17:00 UTC in winter
+    const chicagoToday = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(new Date())
+
     const medRes = await SELF.fetch('http://localhost/api/medications', {
       method: 'POST',
       headers: { ...authedHeaders(session), 'Content-Type': 'application/json' },
@@ -119,19 +126,20 @@ describe('Notification timezone categorization', () => {
         name: 'Morning Med',
         type: 'pill',
         frequency: 'daily',
-        start_date: '2026-01-15',
+        start_date: chicagoToday,
         reminder_time: '11:00',
       }),
     })
     expect(medRes.status).toBe(201)
     const med = await medRes.json() as { id: string }
 
-    // 11 AM CST (UTC-6) = 17:00 UTC
+    // Stored value must be the UTC conversion of 11 AM Chicago (CST or CDT)
+    const { localToUTC } = await import('../../../../shared/lib/dates')
+    const expected = localToUTC(chicagoToday, '11:00', 'America/Chicago')
     const dose = await env.DB.prepare(
-      "SELECT due_at FROM medication_doses WHERE medication_id = ? AND due_at LIKE '2026-01-15%'"
-    ).bind(med.id).first<{ due_at: string }>()
+      'SELECT due_at FROM medication_doses WHERE medication_id = ? AND due_at = ?'
+    ).bind(med.id, expected).first<{ due_at: string }>()
     expect(dose).toBeTruthy()
-    expect(dose!.due_at).toBe('2026-01-15 17:00:00')
   })
 
   it('generates UTC doses with CDT offset via generateDoses directly', async () => {

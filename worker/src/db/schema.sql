@@ -100,9 +100,12 @@ CREATE TABLE IF NOT EXISTS medications (
   is_active              INTEGER NOT NULL DEFAULT 1,
   doses_remaining        INTEGER,           -- null = not tracking stock
   refill_alert_threshold INTEGER,           -- alert when doses_remaining <= this
+  schedule_mode          TEXT NOT NULL DEFAULT 'fixed',  -- 'fixed' = doses anchored to start_date; 'interval' = re-anchor from last given dose
   created_at             TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at             TEXT NOT NULL DEFAULT (datetime('now'))
 );
+-- Migration 2026-07-02 (care schedule correctness):
+-- ALTER TABLE medications ADD COLUMN schedule_mode TEXT NOT NULL DEFAULT 'fixed';
 
 CREATE INDEX IF NOT EXISTS idx_medications_cat ON medications(cat_id);
 CREATE INDEX IF NOT EXISTS idx_medications_user ON medications(user_id, is_active);
@@ -116,9 +119,12 @@ CREATE TABLE IF NOT EXISTS medication_doses (
   skip_reason     TEXT,
   notes                TEXT,
   notification_sent_at TEXT,           -- set when push notification sent for this dose
+  missed               INTEGER NOT NULL DEFAULT 0,  -- cron-expired overdue dose; excluded from inbox, visible in history
   created_at           TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(medication_id, due_at)       -- idempotent cron insertion via INSERT OR IGNORE
 );
+-- Migration 2026-07-02 (care schedule correctness):
+-- ALTER TABLE medication_doses ADD COLUMN missed INTEGER NOT NULL DEFAULT 0;
 
 CREATE INDEX IF NOT EXISTS idx_doses_medication ON medication_doses(medication_id, due_at);
 CREATE INDEX IF NOT EXISTS idx_doses_due ON medication_doses(due_at, administered_at);

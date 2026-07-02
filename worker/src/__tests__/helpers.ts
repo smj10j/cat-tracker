@@ -116,6 +116,7 @@ CREATE TABLE IF NOT EXISTS medications (
   is_active              INTEGER NOT NULL DEFAULT 1,
   doses_remaining        INTEGER,
   refill_alert_threshold INTEGER,
+  schedule_mode          TEXT NOT NULL DEFAULT 'fixed',
   created_at             TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at             TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -129,6 +130,7 @@ CREATE TABLE IF NOT EXISTS medication_doses (
   skip_reason     TEXT,
   notes                TEXT,
   notification_sent_at TEXT,
+  missed               INTEGER NOT NULL DEFAULT 0,
   created_at           TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(medication_id, due_at)
 );

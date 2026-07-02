@@ -225,6 +225,8 @@ export const administerDose = async (id: string, data?: { administered_at?: stri
 export const skipDose = async (id: string, skipReason?: string): Promise<void> => {
   await request(`/doses/${id}/skip`, { method: 'POST', body: JSON.stringify({ skip_reason: skipReason }) })
 }
+export const bulkDoseAction = (doseIds: string[], action: 'administer' | 'skip') =>
+  request<{ updated: number }>('/doses/bulk', { method: 'POST', body: JSON.stringify({ dose_ids: doseIds, action }) })
 
 // Type conformance check — ensures this module implements every method in CatTrackerWebApi.
 // If a method is missing or has the wrong signature, this line will produce a compile error.
@@ -234,7 +236,7 @@ const _typeCheck: CatTrackerWebApi = {
   uploadCatPhoto, deleteCatPhoto,
   getMeasurements, createMeasurement, deleteMeasurement,
   getMedications, getMedication, createMedication, updateMedication, archiveMedication,
-  administerDose, skipDose,
+  administerDose, skipDose, bulkDoseAction,
   getNotifications,
   getHousehold, getHouseholdList, renameHousehold,
   sendInvite, revokeInvite, changeMemberRole, removeMember,

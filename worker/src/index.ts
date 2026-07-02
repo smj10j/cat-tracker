@@ -7,7 +7,10 @@ import configRoutes from './routes/config'
 import cats from './routes/cats'
 import measurements from './routes/measurements'
 import importRoute from './routes/import'
-import medicationsRoute, { generateDoses, insertDoses, windowEnd90 } from './routes/medications'
+import medicationsRoute, {
+  generateDoses, insertDoses, windowEnd90,
+  generationWindowStart, effectiveAnchorStart, frequencyToDays,
+} from './routes/medications'
 import householdRoute, { householdPublic } from './routes/household'
 import { sendExpoPushNotifications, getStaleTokens, type ExpoPushMessage } from './lib/push'
 
@@ -140,24 +143,40 @@ export default {
       // (PRN / 'as_needed' items have no schedule and are skipped)
       const activeMeds = await env.DB.prepare(
         `SELECT m.id, m.start_date, m.reminder_time, m.frequency, m.frequency_days, m.end_date,
-                u.timezone
+                m.schedule_mode, u.timezone
          FROM medications m
          JOIN users u ON u.id = m.user_id
          WHERE m.is_active = 1 AND m.frequency != 'as_needed'`
       ).all<{
         id: string; start_date: string; reminder_time: string
         frequency: string; frequency_days: number | null; end_date: string | null
-        timezone: string | null
+        schedule_mode: string | null; timezone: string | null
       }>()
 
       const window = windowEnd90()
       for (const med of activeMeds.results) {
+        // 'interval' medications anchor to the last given dose — regenerating
+        // from start_date would resurrect grid doses the re-anchor path removed.
+        const anchor = await effectiveAnchorStart(env.DB, med, med.timezone)
         const doses = generateDoses(
-          med.id, med.start_date, med.reminder_time,
+          med.id, anchor, med.reminder_time,
           med.frequency, med.frequency_days, med.end_date, window,
           med.timezone,
+          generationWindowStart(med.frequency, med.frequency_days, med.timezone),
         )
         await insertDoses(env.DB, doses)
+
+        // Overdue hygiene: unresolved doses older than max(2 intervals, 7 days)
+        // become 'missed' — kept in history, dropped from the overdue inbox.
+        const intervalDays = frequencyToDays(med.frequency, med.frequency_days)
+        const cutoffDays = Math.max(2 * intervalDays, 7)
+        const cutoff = new Date(Date.now() - cutoffDays * 86400000)
+          .toISOString().replace('T', ' ').slice(0, 19)
+        await env.DB.prepare(
+          `UPDATE medication_doses SET missed = 1
+           WHERE medication_id = ? AND administered_at IS NULL AND skipped = 0 AND missed = 0
+             AND due_at < ?`
+        ).bind(med.id, cutoff).run()
       }
 
       // --- Push notifications for doses due this hour ---
@@ -178,6 +197,7 @@ export default {
         WHERE d.due_at >= ? AND d.due_at < ?
           AND d.administered_at IS NULL
           AND d.skipped = 0
+          AND d.missed = 0
           AND d.notification_sent_at IS NULL
           AND m.is_active = 1
       `).bind(hourStart, hourEnd).all<{

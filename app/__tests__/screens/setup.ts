@@ -341,10 +341,18 @@ vi.mock('expo-notifications', () => ({
 
 // ---------------------------------------------------------------------------
 // Mock: @react-native-community/datetimepicker
+// Renders a button that fires onChange with a fixed past date (2020-01-01)
+// when clicked, so tests can simulate picking a past date.
 // ---------------------------------------------------------------------------
 vi.mock('@react-native-community/datetimepicker', () => ({
   __esModule: true,
-  default: mockComponent('DateTimePicker'),
+  default: ({ onChange, testID }: any) =>
+    React.createElement('button', {
+      'data-testid': testID,
+      'data-component': 'DateTimePicker',
+      type: 'button',
+      onClick: () => onChange?.({ type: 'set' }, new Date(2020, 0, 1, 12)),
+    }),
 }));
 
 // ---------------------------------------------------------------------------
@@ -559,6 +567,7 @@ vi.mock('../../lib/api', () => ({
     getNotifications: vi.fn().mockResolvedValue({ overdue: [], due_today: [], upcoming: [], refill_alerts: [] }),
     administerDose: vi.fn().mockResolvedValue(undefined),
     skipDose: vi.fn().mockResolvedValue(undefined),
+    bulkDoseAction: vi.fn().mockResolvedValue({ updated: 0 }),
     renameHousehold: vi.fn().mockResolvedValue(undefined),
     sendInvite: vi.fn().mockResolvedValue(undefined),
     revokeInvite: vi.fn().mockResolvedValue(undefined),
@@ -594,6 +603,7 @@ vi.mock('../../../lib/api', () => ({
     getNotifications: vi.fn().mockResolvedValue({ overdue: [], due_today: [], upcoming: [], refill_alerts: [] }),
     administerDose: vi.fn().mockResolvedValue(undefined),
     skipDose: vi.fn().mockResolvedValue(undefined),
+    bulkDoseAction: vi.fn().mockResolvedValue({ updated: 0 }),
     deleteMeasurement: vi.fn().mockResolvedValue(undefined),
     createMeasurement: vi.fn().mockResolvedValue({ id: 'new-m' }),
     updateCat: vi.fn().mockResolvedValue(fixtures.cat),

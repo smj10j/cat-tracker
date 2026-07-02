@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useGoBack } from '../hooks/useGoBack'
-import { getNotifications, administerDose, skipDose, CARE_TYPE_ICONS, type NotificationInbox, type DoseWithContext, type Medication } from '../lib/api'
+import { getNotifications, administerDose, skipDose, bulkDoseAction, CARE_TYPE_ICONS, type NotificationInbox, type DoseWithContext, type Medication } from '../lib/api'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { formatDueAt, formatFutureDueAt } from '@shared/lib/formatting'
 import type { UserPreferences } from '@shared/lib/preferences'
@@ -118,7 +118,7 @@ function RefillCard({ med }: { med: Medication & { cat_name: string } }) {
   )
 }
 
-function SectionHeader({ label, count, color }: { label: string; count: number; color: string }) {
+function SectionHeader({ label, count, color, actions }: { label: string; count: number; color: string; actions?: ReactNode }) {
   return (
     <div className="flex items-center gap-2 mb-3">
       <span className="text-xs font-bold uppercase tracking-widest" style={{ color }}>{label}</span>
@@ -128,6 +128,7 @@ function SectionHeader({ label, count, color }: { label: string; count: number; 
       >
         {count}
       </span>
+      {actions && <div className="ml-auto flex gap-2">{actions}</div>}
     </div>
   )
 }
@@ -138,6 +139,7 @@ export default function NotificationsPage() {
   const [inbox, setInbox] = useState<NotificationInbox | null>(null)
   const [loading, setLoading] = useState(true)
   const [acting, setActing] = useState<string | null>(null)
+  const [bulkActing, setBulkActing] = useState(false)
 
   useEffect(() => { loadInbox() }, [])
 
@@ -170,6 +172,19 @@ export default function NotificationsPage() {
     }
   }
 
+  async function handleBulk(action: 'administer' | 'skip') {
+    const overdueIds = inbox?.overdue.map(d => d.id) ?? []
+    if (overdueIds.length === 0) return
+    if (action === 'skip' && !window.confirm(`Dismiss all ${overdueIds.length} overdue doses?`)) return
+    setBulkActing(true)
+    try {
+      await bulkDoseAction(overdueIds, action)
+      await loadInbox()
+    } finally {
+      setBulkActing(false)
+    }
+  }
+
   const totalUrgent = (inbox?.overdue.length ?? 0) + (inbox?.due_today.length ?? 0)
 
   return (
@@ -199,7 +214,39 @@ export default function NotificationsPage() {
         <div className="space-y-8">
           {inbox.overdue.length > 0 && (
             <section>
-              <SectionHeader label="Overdue" count={inbox.overdue.length} color="var(--color-overdue)" />
+              <SectionHeader
+                label="Overdue" count={inbox.overdue.length} color="var(--color-overdue)"
+                actions={inbox.overdue.length >= 2 ? (
+                  <>
+                    <button
+                      onClick={() => handleBulk('administer')}
+                      disabled={bulkActing}
+                      className="text-xs font-semibold px-2.5 py-1 rounded-lg transition-all"
+                      style={{
+                        background: 'rgba(167,139,250,0.15)',
+                        border: '1px solid rgba(167,139,250,0.3)',
+                        color: 'var(--color-brand)',
+                        opacity: bulkActing ? 0.5 : 1,
+                      }}
+                    >
+                      {bulkActing ? '…' : 'Mark all given'}
+                    </button>
+                    <button
+                      onClick={() => handleBulk('skip')}
+                      disabled={bulkActing}
+                      className="text-xs font-semibold px-2.5 py-1 rounded-lg transition-all"
+                      style={{
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        color: 'var(--color-ink-dim)',
+                        opacity: bulkActing ? 0.5 : 1,
+                      }}
+                    >
+                      Dismiss all
+                    </button>
+                  </>
+                ) : undefined}
+              />
               <div className="space-y-3">
                 {inbox.overdue.map(d => (
                   <DoseCard key={d.id} dose={d} variant="overdue"

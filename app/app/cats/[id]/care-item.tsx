@@ -14,12 +14,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { api, CARE_TYPE_ICONS } from '../../../lib/api';
-import type { Cat, Medication } from '../../../lib/api';
+import type { Cat, Medication, MedicationDose } from '../../../lib/api';
 import { useThemeColors } from '../../../hooks/useThemeColors';
 import { useResponsiveLayout } from '../../../hooks/useResponsiveLayout';
 import { ResponsiveContainer } from '../../../components/ResponsiveContainer';
 import { usePreferences } from '../../../contexts/PreferencesContext';
-import { formatHour } from '@shared/lib/formatting';
+import { formatHour, formatDueAt } from '@shared/lib/formatting';
+import { formatDate as formatDisplayDate } from '@shared/lib/preferences';
 import {
   MEDICATION_PRESETS as PRESETS,
   MEDICATION_PRESET_CATEGORIES as PRESET_CATEGORIES,
@@ -34,6 +35,9 @@ import {
   applyPresetToFields,
   validateCareItem,
   buildCareItemPayload,
+  defaultScheduleMode,
+  scheduleModeApplies,
+  isPastStartDate,
   type CareItemFields,
 } from '@shared/lib/careItemForm';
 import { isAsNeeded } from '@shared/lib/constants';
@@ -41,6 +45,19 @@ import { parseDate, formatDateStr as formatDate } from '../../../lib/dateHelpers
 
 const FREQ_OPTIONS = Object.entries(MEDICATION_FREQ_LABELS).map(([value, label]) => ({ value, label }));
 const TYPE_OPTIONS = Object.entries(MEDICATION_TYPE_LABELS).map(([value, label]) => ({ value, label }));
+
+const SCHEDULE_MODE_OPTIONS = [
+  {
+    value: 'fixed',
+    title: 'Stick to schedule',
+    helper: 'Doses stay on the original calendar — e.g. the 1st of each month.',
+  },
+  {
+    value: 'interval',
+    title: 'Restart the interval',
+    helper: 'Next dose is due one interval after you mark this one given — right for sub-q fluids.',
+  },
+];
 
 export default function CareItemScreen() {
   const colors = useThemeColors();
@@ -53,11 +70,13 @@ export default function CareItemScreen() {
 
   const [cat, setCat] = useState<Cat | null>(null);
   const [fields, setFields] = useState<CareItemFields>(CARE_ITEM_DEFAULTS);
+  const [doses, setDoses] = useState<MedicationDose[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPresets, setShowPresets] = useState(false);
+  const [firstDoseGiven, setFirstDoseGiven] = useState(true);
 
   // Date/time picker state
   const [showStartPicker, setShowStartPicker] = useState(false);
@@ -76,6 +95,7 @@ export default function CareItemScreen() {
         if (isEdit && medId) {
           const med = await api.getMedication(medId);
           setFields(hydrateFromMedication(med));
+          setDoses(med.doses ?? []);
           const c = await api.getCat(med.cat_id);
           setCat(c);
         } else if (id) {
@@ -104,6 +124,15 @@ export default function CareItemScreen() {
     setShowPresets(false);
   }
 
+  // Create-mode only: ask whether the first dose was already given for past start dates
+  const showPastStartPrompt = !isEdit && !isAsNeeded(fields.frequency) && isPastStartDate(fields.startDate);
+
+  // Resolved doses (given / skipped / missed), most recent first
+  const doseHistory = doses
+    .filter((d) => d.administered_at || d.skipped === 1 || d.missed === 1)
+    .sort((a, b) => b.due_at.localeCompare(a.due_at))
+    .slice(0, 10);
+
   async function handleSave() {
     const catId = id;
     if (!catId) { showError('Cat is required'); return; }
@@ -111,7 +140,11 @@ export default function CareItemScreen() {
     const validationError = validateCareItem(fields);
     if (validationError) { showError(validationError); return; }
 
-    const payload = buildCareItemPayload(fields, catId);
+    const payload = buildCareItemPayload(
+      fields,
+      catId,
+      showPastStartPrompt ? firstDoseGiven : undefined,
+    );
 
     setSaving(true);
     setError(null);
@@ -340,7 +373,7 @@ export default function CareItemScreen() {
               <PillPicker
                 options={FREQ_OPTIONS}
                 value={fields.frequency}
-                onChange={v => setField("frequency", v)}
+                onChange={v => setFields(prev => ({ ...prev, frequency: v, scheduleMode: defaultScheduleMode(v) }))}
               />
             </View>
           </View>
@@ -370,6 +403,42 @@ export default function CareItemScreen() {
         {/* Schedule — hidden for as-needed items */}
         {!isAsNeeded(fields.frequency) && (
         <SectionCard title="Schedule">
+          {scheduleModeApplies(fields.frequency) && (
+            <View>
+              <FieldLabel label="After a dose is given" />
+              <View style={{ gap: 8, marginTop: 8 }}>
+                {SCHEDULE_MODE_OPTIONS.map((opt) => {
+                  const active = fields.scheduleMode === opt.value;
+                  return (
+                    <Pressable
+                      key={opt.value}
+                      onPress={() => setField("scheduleMode", opt.value)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: active }}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 10,
+                        borderRadius: 12,
+                        backgroundColor: active ? 'rgba(192,132,252,0.12)' : colors.surface,
+                        borderWidth: active ? 1.5 : 1,
+                        borderColor: active ? 'rgba(192,132,252,0.5)' : colors.rim,
+                        minHeight: 44,
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: active ? colors.lavender : colors.ink }}>
+                        {opt.title}
+                      </Text>
+                      <Text style={{ fontSize: 12, color: colors.inkDim, marginTop: 2 }}>
+                        {opt.helper}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <View style={{ flex: 1 }}>
               <FieldLabel label="Start date" />
@@ -437,6 +506,50 @@ export default function CareItemScreen() {
             </ScrollView>
           )}
 
+          {showPastStartPrompt && (
+            <View
+              style={{
+                padding: 12,
+                borderRadius: 12,
+                backgroundColor: 'rgba(244,200,73,0.08)',
+                borderWidth: 1,
+                borderColor: 'rgba(244,200,73,0.25)',
+                gap: 10,
+              }}
+            >
+              <Text style={{ fontSize: 13, color: colors.inkMid }}>
+                The start date is in the past. Did you already give the first dose on {formatDisplayDate(fields.startDate, prefs)}?
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {[{ v: true, l: 'Yes' }, { v: false, l: 'No' }].map(({ v, l }) => {
+                  const active = firstDoseGiven === v;
+                  return (
+                    <Pressable
+                      key={l}
+                      onPress={() => setFirstDoseGiven(v)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: active }}
+                      style={{
+                        paddingHorizontal: 16,
+                        paddingVertical: 8,
+                        borderRadius: 10,
+                        backgroundColor: active ? 'rgba(192,132,252,0.15)' : colors.surface,
+                        borderWidth: 1,
+                        borderColor: active ? 'rgba(192,132,252,0.4)' : colors.rim,
+                        minHeight: 36,
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: active ? colors.lavender : colors.inkDim }}>
+                        {l}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
           <FieldLabel label="Stop date (blank = ongoing)" />
           <DatePickerField
             value={fields.endDate}
@@ -481,6 +594,38 @@ export default function CareItemScreen() {
             </View>
           </View>
         </SectionCard>
+        )}
+
+        {/* Dose history — resolved doses (given / skipped / missed), edit mode only */}
+        {isEdit && doseHistory.length > 0 && (
+          <SectionCard title="Dose history">
+            {doseHistory.map((d) => {
+              const status = d.administered_at
+                ? { label: 'Given', color: colors.jade }
+                : d.skipped === 1
+                ? { label: 'Skipped', color: colors.inkDim }
+                : { label: 'Missed', color: colors.inkDim };
+              return (
+                <View
+                  key={d.id}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    paddingVertical: 2,
+                  }}
+                >
+                  <Text style={{ fontSize: 13, color: colors.inkMid }}>
+                    {formatDueAt(d.due_at, prefs)}
+                  </Text>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: status.color }}>
+                    {status.label}
+                  </Text>
+                </View>
+              );
+            })}
+          </SectionCard>
         )}
 
         {/* Save button */}

@@ -421,13 +421,17 @@ auth.put('/auth/me', requireAuth, async (c) => {
 
     // Lazy migration: regenerate future doses when timezone is set for the first time
     if (!existing?.timezone) {
-      const { generateDoses, insertDoses, windowEnd90 } = await import('./medications')
+      const {
+        generateDoses, insertDoses, windowEnd90,
+        generationWindowStart, effectiveAnchorStart,
+      } = await import('./medications')
       const meds = await c.env.DB.prepare(
-        `SELECT id, start_date, reminder_time, frequency, frequency_days, end_date
+        `SELECT id, start_date, reminder_time, frequency, frequency_days, end_date, schedule_mode
          FROM medications WHERE user_id = ? AND is_active = 1`
       ).bind(userId).all<{
         id: string; start_date: string; reminder_time: string;
         frequency: string; frequency_days: number | null; end_date: string | null;
+        schedule_mode: string | null;
       }>()
 
       const todayStr = new Date().toISOString().slice(0, 10)
@@ -439,11 +443,14 @@ auth.put('/auth/me', requireAuth, async (c) => {
              AND due_at >= ?`
         ).bind(med.id, `${todayStr} 00:00:00`).run()
 
-        // Regenerate with UTC conversion
+        // Regenerate with UTC conversion, honoring interval re-anchoring and
+        // the one-interval generation window.
+        const anchor = await effectiveAnchorStart(c.env.DB, med, body.timezone)
         const doses = generateDoses(
-          med.id, med.start_date, med.reminder_time,
+          med.id, anchor, med.reminder_time,
           med.frequency, med.frequency_days, med.end_date,
           windowEnd90(), body.timezone,
+          generationWindowStart(med.frequency, med.frequency_days, body.timezone),
         )
         const futureDoses = doses.filter(d => d.due_at >= `${todayStr} 00:00:00`)
         await insertDoses(c.env.DB, futureDoses)

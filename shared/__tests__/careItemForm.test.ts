@@ -5,6 +5,9 @@ import {
   applyPresetToFields,
   validateCareItem,
   buildCareItemPayload,
+  defaultScheduleMode,
+  scheduleModeApplies,
+  isPastStartDate,
   type CareItemFields,
 } from '../lib/careItemForm'
 import type { Medication } from '../lib/types'
@@ -218,5 +221,73 @@ describe('buildCareItemPayload', () => {
     expect(payload.start_date).toBe('2026-01-15')
     // notes flow through (used as the "give if" trigger)
     expect(payload.notes).toBe('Topical')
+  })
+})
+
+describe('schedule anchoring (WP1, 2026-07-02)', () => {
+  const base: CareItemFields = {
+    name: 'SubQ Fluids',
+    type: 'subq_fluids',
+    dose: '100ml',
+    frequency: 'custom',
+    frequencyDays: '3',
+    reminderTime: '09:00',
+    startDate: '2026-01-15',
+    endDate: '',
+    dosesTotal: '',
+    notes: '',
+    dosesRemaining: '',
+    refillThreshold: '',
+    scheduleMode: 'interval',
+  }
+
+  it('defaults custom frequency to interval anchoring, others to fixed', () => {
+    expect(defaultScheduleMode('custom')).toBe('interval')
+    expect(defaultScheduleMode('daily')).toBe('fixed')
+    expect(defaultScheduleMode('weekly')).toBe('fixed')
+    expect(defaultScheduleMode('monthly')).toBe('fixed')
+  })
+
+  it('schedule mode applies to scheduled frequencies only', () => {
+    expect(scheduleModeApplies('custom')).toBe(true)
+    expect(scheduleModeApplies('daily')).toBe(true)
+    expect(scheduleModeApplies('as_needed')).toBe(false)
+    expect(scheduleModeApplies('twice_daily')).toBe(false)
+  })
+
+  it('builds payload with schedule_mode and first_dose_given', () => {
+    const payload = buildCareItemPayload(base, 'cat-1', true)
+    expect(payload.schedule_mode).toBe('interval')
+    expect(payload.first_dose_given).toBe(true)
+
+    const without = buildCareItemPayload(base, 'cat-1')
+    expect(without.first_dose_given).toBeUndefined()
+  })
+
+  it('forces fixed mode for as_needed and twice_daily', () => {
+    const prn = { ...base, frequency: 'as_needed' }
+    expect(buildCareItemPayload(prn, 'cat-1').schedule_mode).toBe('fixed')
+    const bid = { ...base, frequency: 'twice_daily' }
+    expect(buildCareItemPayload(bid, 'cat-1').schedule_mode).toBe('fixed')
+  })
+
+  it('detects past start dates', () => {
+    expect(isPastStartDate('2020-01-01')).toBe(true)
+    const tomorrow = new Date(Date.now() + 86400000)
+    const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`
+    expect(isPastStartDate(tomorrowStr)).toBe(false)
+    expect(isPastStartDate('')).toBe(false)
+  })
+
+  it('hydrates scheduleMode from the medication, falling back to frequency default', () => {
+    const med = {
+      id: 'm1', cat_id: 'c1', user_id: 'u1', name: 'X', type: 'pill', dose: null,
+      frequency: 'custom', frequency_days: 3, reminder_time: '09:00',
+      start_date: '2026-01-01', end_date: null, doses_total: null, notes: null,
+      is_active: 1, doses_remaining: null, refill_alert_threshold: null,
+      created_at: '', updated_at: '',
+    }
+    expect(hydrateFromMedication({ ...med, schedule_mode: 'fixed' as const }).scheduleMode).toBe('fixed')
+    expect(hydrateFromMedication(med).scheduleMode).toBe('interval')
   })
 })

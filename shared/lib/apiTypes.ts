@@ -54,6 +54,7 @@ export interface CatTrackerApi {
   // Doses
   administerDose(id: string, data?: { administered_at?: string; notes?: string }): Promise<void>
   skipDose(id: string, skipReason?: string): Promise<void>
+  bulkDoseAction(doseIds: string[], action: 'administer' | 'skip'): Promise<{ updated: number }>
 
   // Notifications
   getNotifications(): Promise<NotificationInbox>

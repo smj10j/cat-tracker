@@ -15,7 +15,7 @@ interface DoseRow {
   due_at: string // 'YYYY-MM-DD HH:MM:00' — SQLite datetime format for correct comparisons
 }
 
-function frequencyToDays(frequency: string, frequencyDays: number | null): number {
+export function frequencyToDays(frequency: string, frequencyDays: number | null): number {
   switch (frequency) {
     case 'daily': return 1
     case 'weekly': return 7
@@ -28,6 +28,8 @@ function frequencyToDays(frequency: string, frequencyDays: number | null): numbe
 // Generate doses for a medication within [startDate, min(endDate, windowEnd)]
 // When timezone is provided, due_at values are converted to UTC.
 // When null (unmigrated users), due_at remains as naive local time (legacy behavior).
+// When windowStart is provided, occurrences on dates before it are not created —
+// a backdated start_date acts as a schedule anchor, not an overdue backlog.
 export function generateDoses(
   medicationId: string,
   startDate: string,    // YYYY-MM-DD
@@ -37,6 +39,7 @@ export function generateDoses(
   endDate: string | null,
   windowEnd: string,    // YYYY-MM-DD
   timezone: string | null = null,
+  windowStart: string | null = null, // YYYY-MM-DD
 ): DoseRow[] {
   // PRN items have no schedule — no doses are generated and they never fire reminders.
   if (isAsNeeded(frequency)) return []
@@ -70,6 +73,7 @@ export function generateDoses(
     const DAY = 86400000
     for (let ms = startMs; ms <= endMs; ms += DAY) {
       const d = new Date(ms).toISOString().slice(0, 10)
+      if (windowStart && d < windowStart) continue
       doses.push({ medication_id: medicationId, due_at: makeDueAt(d, t1) })
       doses.push({ medication_id: medicationId, due_at: makeDueAt(d, t2) })
     }
@@ -91,8 +95,9 @@ export function generateDoses(
       const dueMs = startMs + n * intervalMs
       if (dueMs > endMs) break
       const d = new Date(dueMs).toISOString().slice(0, 10)
-      doses.push({ medication_id: medicationId, due_at: makeDueAt(d, reminderTime) })
       n++
+      if (windowStart && d < windowStart) continue
+      doses.push({ medication_id: medicationId, due_at: makeDueAt(d, reminderTime) })
     }
   }
 
@@ -115,6 +120,65 @@ export function windowEnd90(): string {
   return new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10)
 }
 
+// Today (YYYY-MM-DD) in the user's timezone; falls back to UTC when unset.
+export function userLocalToday(timezone: string | null): string {
+  const now = new Date()
+  if (!timezone) return now.toISOString().slice(0, 10)
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(now)
+}
+
+// Add days to a YYYY-MM-DD string (UTC arithmetic — date-only, no DST drift).
+export function addDays(dateStr: string, days: number): string {
+  const ms = Date.UTC(
+    parseInt(dateStr.slice(0, 4), 10),
+    parseInt(dateStr.slice(5, 7), 10) - 1,
+    parseInt(dateStr.slice(8, 10), 10),
+  ) + days * 86400000
+  return new Date(ms).toISOString().slice(0, 10)
+}
+
+// Earliest occurrence date worth generating: one interval before the user's
+// local today, so at most the single most recent (possibly still-due)
+// occurrence is created for a backdated start_date.
+export function generationWindowStart(
+  frequency: string,
+  frequencyDays: number | null,
+  timezone: string | null,
+): string {
+  return addDays(userLocalToday(timezone), -frequencyToDays(frequency, frequencyDays))
+}
+
+// Local calendar date of a UTC datetime string, in the given timezone.
+function localDateOf(utcDatetime: string, timezone: string | null): string {
+  if (!timezone) return utcDatetime.slice(0, 10)
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date(utcDatetime.replace(' ', 'T') + 'Z'))
+}
+
+// The date future doses should be generated from. For 'interval' medications
+// the schedule re-anchors to (last given dose + interval); 'fixed' medications
+// stay on the start_date grid. Cron and PUT regeneration MUST use this — using
+// start_date directly would resurrect grid doses the re-anchor path deleted.
+export async function effectiveAnchorStart(
+  db: AppEnv['Bindings']['DB'],
+  med: { id: string; start_date: string; schedule_mode?: string | null; frequency: string; frequency_days: number | null },
+  timezone: string | null,
+): Promise<string> {
+  if (med.schedule_mode !== 'interval' || isAsNeeded(med.frequency) || med.frequency === 'twice_daily') {
+    return med.start_date
+  }
+  const last = await db.prepare(
+    `SELECT administered_at FROM medication_doses
+     WHERE medication_id = ? AND administered_at IS NOT NULL
+     ORDER BY administered_at DESC LIMIT 1`
+  ).bind(med.id).first<{ administered_at: string }>()
+  if (!last) return med.start_date
+  return addDays(localDateOf(last.administered_at, timezone), frequencyToDays(med.frequency, med.frequency_days))
+}
+
 // ---------------------------------------------------------------------------
 // Medication CRUD
 // ---------------------------------------------------------------------------
@@ -135,11 +199,11 @@ medications.get('/medications', async (c) => {
     ? await c.env.DB.prepare(
         `SELECT m.*,
            (SELECT due_at FROM medication_doses d
-            WHERE d.medication_id = m.id AND d.administered_at IS NULL AND d.skipped = 0
+            WHERE d.medication_id = m.id AND d.administered_at IS NULL AND d.skipped = 0 AND d.missed = 0
               AND d.due_at >= ?
             ORDER BY d.due_at ASC LIMIT 1) AS next_due_at,
            (SELECT COUNT(*) FROM medication_doses d
-            WHERE d.medication_id = m.id AND d.administered_at IS NULL AND d.skipped = 0
+            WHERE d.medication_id = m.id AND d.administered_at IS NULL AND d.skipped = 0 AND d.missed = 0
               AND d.due_at < ?) AS overdue_count
          FROM medications m
          JOIN cats c ON c.id = m.cat_id
@@ -149,11 +213,11 @@ medications.get('/medications', async (c) => {
     : await c.env.DB.prepare(
         `SELECT m.*,
            (SELECT due_at FROM medication_doses d
-            WHERE d.medication_id = m.id AND d.administered_at IS NULL AND d.skipped = 0
+            WHERE d.medication_id = m.id AND d.administered_at IS NULL AND d.skipped = 0 AND d.missed = 0
               AND d.due_at >= ?
             ORDER BY d.due_at ASC LIMIT 1) AS next_due_at,
            (SELECT COUNT(*) FROM medication_doses d
-            WHERE d.medication_id = m.id AND d.administered_at IS NULL AND d.skipped = 0
+            WHERE d.medication_id = m.id AND d.administered_at IS NULL AND d.skipped = 0 AND d.missed = 0
               AND d.due_at < ?) AS overdue_count
          FROM medications m
          JOIN cats c ON c.id = m.cat_id
@@ -181,6 +245,8 @@ medications.post('/medications', async (c) => {
     notes?: string | null
     doses_remaining?: number | null
     refill_alert_threshold?: number | null
+    schedule_mode?: string
+    first_dose_given?: boolean
   }>()
 
   if (!body.cat_id || !body.name?.trim() || !body.frequency || !body.start_date) {
@@ -195,6 +261,10 @@ medications.post('/medications', async (c) => {
   }
   // PRN items must not carry refill alerts — owners administer unpredictably.
   const asNeeded = isAsNeeded(body.frequency)
+  const scheduleMode = body.schedule_mode ?? (body.frequency === 'custom' ? 'interval' : 'fixed')
+  if (scheduleMode !== 'fixed' && scheduleMode !== 'interval') {
+    return c.json({ error: 'Invalid schedule_mode' }, 400)
+  }
 
   // Verify cat access (supports household sharing)
   const catRole = await getCatRole(c.env.DB, body.cat_id, userId)
@@ -208,8 +278,8 @@ medications.post('/medications', async (c) => {
     `INSERT INTO medications
        (id, cat_id, user_id, name, type, dose, frequency, frequency_days,
         reminder_time, start_date, end_date, doses_total, notes,
-        doses_remaining, refill_alert_threshold)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        doses_remaining, refill_alert_threshold, schedule_mode)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id, body.cat_id, userId,
     body.name.trim().slice(0, 200),
@@ -224,15 +294,31 @@ medications.post('/medications', async (c) => {
     body.notes?.trim().slice(0, 1000) ?? null,
     asNeeded ? null : (body.doses_remaining ?? null),
     asNeeded ? null : (body.refill_alert_threshold ?? null),
+    asNeeded ? 'fixed' : scheduleMode,
   ).run()
 
   // Look up user timezone for UTC dose generation
   const userRow = await c.env.DB.prepare('SELECT timezone FROM users WHERE id = ?').bind(userId).first<{ timezone: string | null }>()
+  const tz = userRow?.timezone ?? null
 
-  // Generate 90 days of doses
+  // Generate 90 days of doses, windowed so a backdated start_date anchors the
+  // schedule instead of creating an instantly-overdue backlog.
   const doses = generateDoses(id, body.start_date, reminderTime, body.frequency,
-    body.frequency_days ?? null, body.end_date ?? null, windowEnd90(), userRow?.timezone ?? null)
+    body.frequency_days ?? null, body.end_date ?? null, windowEnd90(), tz,
+    generationWindowStart(body.frequency, body.frequency_days ?? null, tz))
   await insertDoses(c.env.DB, doses)
+
+  // "Already gave the first dose" — mark the single past occurrence given so it
+  // lands in history instead of the overdue inbox.
+  if (body.first_dose_given && !asNeeded) {
+    const nowUTC = new Date().toISOString().replace('T', ' ').slice(0, 19)
+    await c.env.DB.prepare(
+      `UPDATE medication_doses SET administered_at = due_at
+       WHERE id = (SELECT id FROM medication_doses
+                   WHERE medication_id = ? AND due_at < ? AND administered_at IS NULL AND skipped = 0
+                   ORDER BY due_at DESC LIMIT 1)`
+    ).bind(id, nowUTC).run()
+  }
 
   const med = await c.env.DB.prepare('SELECT * FROM medications WHERE id = ?').bind(id).first()
   return c.json(med, 201)
@@ -267,6 +353,7 @@ medications.put('/medications/:id', async (c) => {
     frequency_days: number | null; reminder_time: string; start_date: string
     end_date: string | null; doses_total: number | null; notes: string | null
     is_active: number; doses_remaining: number | null; refill_alert_threshold: number | null
+    schedule_mode: string
   }
   const med = await c.env.DB.prepare('SELECT * FROM medications WHERE id = ?').bind(id).first<MedRow>()
   if (!med) return c.json({ error: 'Not found' }, 404)
@@ -289,32 +376,41 @@ medications.put('/medications/:id', async (c) => {
   const isActive = 'is_active' in body ? (body.is_active ?? 1) : med.is_active
   const dosesRemaining = 'doses_remaining' in body ? (body.doses_remaining ?? null) : med.doses_remaining
   const refillThreshold = 'refill_alert_threshold' in body ? (body.refill_alert_threshold ?? null) : med.refill_alert_threshold
+  const scheduleMode = body.schedule_mode === 'fixed' || body.schedule_mode === 'interval'
+    ? body.schedule_mode : (med.schedule_mode ?? 'fixed')
 
   await c.env.DB.prepare(
     `UPDATE medications
      SET name=?, type=?, dose=?, frequency=?, frequency_days=?, reminder_time=?,
          start_date=?, end_date=?, doses_total=?, notes=?, is_active=?,
-         doses_remaining=?, refill_alert_threshold=?, updated_at=datetime('now')
+         doses_remaining=?, refill_alert_threshold=?, schedule_mode=?, updated_at=datetime('now')
      WHERE id = ?`
   ).bind(
     name, type, dose, frequency, frequencyDays, reminderTime,
     startDate, endDate, dosesTotal, notes, isActive,
-    dosesRemaining, refillThreshold, id,
+    dosesRemaining, refillThreshold, scheduleMode, id,
   ).run()
 
-  // Delete future unadministered/unskipped doses and regenerate
-  const todayStr = new Date().toISOString().slice(0, 10)
+  // Delete future unadministered/unskipped doses and regenerate.
+  // "Today" is the user's local day — a UTC boundary deletes/keeps the wrong
+  // doses for users editing within a few hours of UTC midnight.
+  const userRow = await c.env.DB.prepare('SELECT timezone FROM users WHERE id = ?').bind(userId).first<{ timezone: string | null }>()
+  const tz = userRow?.timezone ?? null
+  const todayLocal = userLocalToday(tz)
+  const todayStartUTC = tz ? localToUTC(todayLocal, '00:00', tz) : `${todayLocal} 00:00:00`
   await c.env.DB.prepare(
     `DELETE FROM medication_doses
      WHERE medication_id = ? AND administered_at IS NULL AND skipped = 0
        AND due_at >= ?`
-  ).bind(id, `${todayStr} 00:00:00`).run()
+  ).bind(id, todayStartUTC).run()
 
   if (isActive) {
-    const userRow = await c.env.DB.prepare('SELECT timezone FROM users WHERE id = ?').bind(userId).first<{ timezone: string | null }>()
-    const doses = generateDoses(id, startDate, reminderTime, frequency,
-      frequencyDays, endDate, windowEnd90(), userRow?.timezone ?? null)
-    const futureDoses = doses.filter(d => d.due_at >= `${todayStr} 00:00:00`)
+    const anchor = await effectiveAnchorStart(c.env.DB,
+      { id, start_date: startDate, schedule_mode: scheduleMode, frequency, frequency_days: frequencyDays }, tz)
+    const doses = generateDoses(id, anchor, reminderTime, frequency,
+      frequencyDays, endDate, windowEnd90(), tz,
+      generationWindowStart(frequency, frequencyDays, tz))
+    const futureDoses = doses.filter(d => d.due_at >= todayStartUTC)
     await insertDoses(c.env.DB, futureDoses)
   }
 
@@ -418,7 +514,7 @@ medications.get('/notifications', async (c) => {
        JOIN cats c ON c.id = m.cat_id
        WHERE ${hhFilter} AND m.is_active = 1
          AND d.due_at < ?
-         AND d.administered_at IS NULL AND d.skipped = 0
+         AND d.administered_at IS NULL AND d.skipped = 0 AND d.missed = 0
        ORDER BY d.due_at ASC LIMIT 50`
     ).bind(userId, userId, nowUTC).all(),
 
@@ -432,7 +528,7 @@ medications.get('/notifications', async (c) => {
        WHERE ${hhFilter} AND m.is_active = 1
          AND d.due_at >= ?
          AND d.due_at >= ? AND d.due_at < ?
-         AND d.administered_at IS NULL AND d.skipped = 0
+         AND d.administered_at IS NULL AND d.skipped = 0 AND d.missed = 0
        ORDER BY d.due_at ASC LIMIT 50`
     ).bind(userId, userId, nowUTC, todayStartUTC, tomorrowStartUTC).all(),
 
@@ -446,7 +542,7 @@ medications.get('/notifications', async (c) => {
        WHERE ${hhFilter} AND m.is_active = 1
          AND d.due_at >= ?
          AND d.due_at < ?
-         AND d.administered_at IS NULL AND d.skipped = 0
+         AND d.administered_at IS NULL AND d.skipped = 0 AND d.missed = 0
        ORDER BY d.due_at ASC LIMIT 50`
     ).bind(userId, userId, tomorrowStartUTC, weekEndUTC).all(),
 
@@ -483,20 +579,58 @@ medications.post('/doses/:id/administer', async (c) => {
   const body = await c.req.json<{ administered_at?: string; notes?: string }>().catch(() => ({} as { administered_at?: string; notes?: string }))
 
   const dose = await c.env.DB.prepare(
-    `SELECT d.id, m.cat_id FROM medication_doses d
+    `SELECT d.id, d.administered_at, m.cat_id, m.id AS medication_id, m.user_id AS med_user_id,
+            m.schedule_mode, m.frequency, m.frequency_days, m.reminder_time, m.end_date, m.doses_remaining
+     FROM medication_doses d
      JOIN medications m ON m.id = d.medication_id
      WHERE d.id = ?`
-  ).bind(doseId).first<{ id: string; cat_id: string }>()
+  ).bind(doseId).first<{
+    id: string; administered_at: string | null; cat_id: string; medication_id: string
+    med_user_id: string; schedule_mode: string | null; frequency: string
+    frequency_days: number | null; reminder_time: string; end_date: string | null
+    doses_remaining: number | null
+  }>()
   if (!dose) return c.json({ error: 'Not found' }, 404)
   const adminRole = await getCatRole(c.env.DB, dose.cat_id, userId)
   if (!adminRole || !hasRole(adminRole, 'contributor')) return c.json({ error: 'Not found' }, 404)
 
-  const administeredAt = body.administered_at ?? new Date().toISOString().replace('T', ' ').slice(0, 19)
+  const administeredAt = (body.administered_at ?? new Date().toISOString())
+    .replace('T', ' ').replace('Z', '').slice(0, 19)
+  const firstAdministration = dose.administered_at === null
   await c.env.DB.prepare(
     `UPDATE medication_doses
-     SET administered_at = ?, notes = ?, skipped = 0
+     SET administered_at = ?, notes = ?, skipped = 0, missed = 0
      WHERE id = ?`
   ).bind(administeredAt, body.notes?.trim().slice(0, 1000) ?? null, doseId).run()
+
+  // Stock tracking: giving a dose consumes one (only on first administration)
+  if (firstAdministration && dose.doses_remaining !== null && dose.doses_remaining > 0) {
+    await c.env.DB.prepare(
+      'UPDATE medications SET doses_remaining = doses_remaining - 1 WHERE id = ?'
+    ).bind(dose.medication_id).run()
+  }
+
+  // Interval anchoring: the next dose is due one interval after this one was
+  // actually given, not on the original start_date grid.
+  if (firstAdministration && dose.schedule_mode === 'interval'
+      && !isAsNeeded(dose.frequency) && dose.frequency !== 'twice_daily') {
+    const owner = await c.env.DB.prepare('SELECT timezone FROM users WHERE id = ?')
+      .bind(dose.med_user_id).first<{ timezone: string | null }>()
+    const tz = owner?.timezone ?? null
+    const nowUTC = new Date().toISOString().replace('T', ' ').slice(0, 19)
+    await c.env.DB.prepare(
+      `DELETE FROM medication_doses
+       WHERE medication_id = ? AND administered_at IS NULL AND skipped = 0 AND due_at > ?`
+    ).bind(dose.medication_id, nowUTC).run()
+    const anchor = await effectiveAnchorStart(c.env.DB,
+      { id: dose.medication_id, start_date: administeredAt.slice(0, 10), schedule_mode: 'interval',
+        frequency: dose.frequency, frequency_days: dose.frequency_days }, tz)
+    if (!dose.end_date || anchor <= dose.end_date) {
+      const regenerated = generateDoses(dose.medication_id, anchor, dose.reminder_time,
+        dose.frequency, dose.frequency_days, dose.end_date, windowEnd90(), tz)
+      await insertDoses(c.env.DB, regenerated)
+    }
+  }
 
   const updated = await c.env.DB.prepare(
     'SELECT * FROM medication_doses WHERE id = ?'
@@ -521,7 +655,7 @@ medications.post('/doses/:id/skip', async (c) => {
 
   await c.env.DB.prepare(
     `UPDATE medication_doses
-     SET skipped = 1, skip_reason = ?, administered_at = NULL
+     SET skipped = 1, skip_reason = ?, administered_at = NULL, missed = 0
      WHERE id = ?`
   ).bind(body.skip_reason?.trim().slice(0, 500) ?? null, doseId).run()
 
@@ -529,6 +663,72 @@ medications.post('/doses/:id/skip', async (c) => {
     'SELECT * FROM medication_doses WHERE id = ?'
   ).bind(doseId).first()
   return c.json(updated)
+})
+
+// POST /api/doses/bulk — bulk administer/skip, used by "Mark all given" /
+// "Dismiss all" on the overdue inbox.
+medications.post('/doses/bulk', async (c) => {
+  const userId = c.get('userId')
+  const body = await c.req.json<{ dose_ids?: unknown; action?: string }>()
+    .catch(() => ({} as { dose_ids?: unknown; action?: string }))
+  const doseIds = Array.isArray(body.dose_ids)
+    ? body.dose_ids.filter((x): x is string => typeof x === 'string').slice(0, 100)
+    : []
+  if (doseIds.length === 0) return c.json({ error: 'dose_ids required' }, 400)
+  if (body.action !== 'administer' && body.action !== 'skip') {
+    return c.json({ error: "action must be 'administer' or 'skip'" }, 400)
+  }
+
+  const placeholders = doseIds.map(() => '?').join(',')
+  const rows = await c.env.DB.prepare(
+    `SELECT d.id, d.administered_at, m.cat_id, m.id AS medication_id, m.doses_remaining
+     FROM medication_doses d JOIN medications m ON m.id = d.medication_id
+     WHERE d.id IN (${placeholders})`
+  ).bind(...doseIds).all<{
+    id: string; administered_at: string | null; cat_id: string
+    medication_id: string; doses_remaining: number | null
+  }>()
+
+  // Authorize once per cat
+  const allowedCats = new Map<string, boolean>()
+  for (const row of rows.results) {
+    if (!allowedCats.has(row.cat_id)) {
+      const role = await getCatRole(c.env.DB, row.cat_id, userId)
+      allowedCats.set(row.cat_id, !!role && hasRole(role, 'contributor'))
+    }
+  }
+  const authorized = rows.results.filter(r => allowedCats.get(r.cat_id))
+  if (authorized.length === 0) return c.json({ error: 'Not found' }, 404)
+
+  if (body.action === 'administer') {
+    // Catch-up semantics: the dose was given around when it was due but never
+    // logged, so record it at its due time. No interval re-anchoring here —
+    // this is history repair, not a schedule change.
+    const stmt = c.env.DB.prepare(
+      `UPDATE medication_doses SET administered_at = due_at, skipped = 0, missed = 0
+       WHERE id = ? AND administered_at IS NULL`
+    )
+    await c.env.DB.batch(authorized.map(r => stmt.bind(r.id)))
+    const byMed = new Map<string, number>()
+    for (const r of authorized) {
+      if (r.administered_at === null && r.doses_remaining !== null) {
+        byMed.set(r.medication_id, (byMed.get(r.medication_id) ?? 0) + 1)
+      }
+    }
+    for (const [medId, count] of byMed) {
+      await c.env.DB.prepare(
+        'UPDATE medications SET doses_remaining = MAX(0, doses_remaining - ?) WHERE id = ? AND doses_remaining IS NOT NULL'
+      ).bind(count, medId).run()
+    }
+  } else {
+    const stmt = c.env.DB.prepare(
+      `UPDATE medication_doses SET skipped = 1, skip_reason = 'dismissed', administered_at = NULL, missed = 0
+       WHERE id = ? AND administered_at IS NULL`
+    )
+    await c.env.DB.batch(authorized.map(r => stmt.bind(r.id)))
+  }
+
+  return c.json({ updated: authorized.length })
 })
 
 export default medications

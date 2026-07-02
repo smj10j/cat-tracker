@@ -11,7 +11,7 @@
  * They do NOT test visual layout, native gestures, or device-specific behavior.
  */
 import React from 'react';
-import { render, screen, act, waitFor } from '@testing-library/react';
+import { render, screen, act, waitFor, fireEvent } from '@testing-library/react';
 import { fixtures } from './setup';
 
 // ---------------------------------------------------------------------------
@@ -406,6 +406,22 @@ describe('Wellness Guide screen', () => {
 describe('Notifications screen', () => {
   let Notifications: React.ComponentType<any>;
 
+  const overdueDose = (id: string) => ({
+    id,
+    medication_id: 'med1',
+    due_at: '2026-06-30 09:00',
+    administered_at: null,
+    skipped: 0,
+    skip_reason: null,
+    notes: null,
+    created_at: '2026-06-30 09:00',
+    med_name: 'Flea Prevention',
+    dose: null,
+    med_type: 'flea',
+    cat_name: 'Luna',
+    cat_id: 'test-cat-123',
+  });
+
   beforeAll(async () => {
     Notifications = (await import('../../app/notifications')).default;
   });
@@ -413,6 +429,47 @@ describe('Notifications screen', () => {
   it('renders without crashing', async () => {
     const { container } = await renderScreen(Notifications);
     expect(container).toBeTruthy();
+  });
+
+  it('shows bulk actions in the Overdue header with 2+ overdue doses', async () => {
+    const { api } = (await import('../../lib/api')) as any;
+    api.getNotifications.mockResolvedValueOnce({
+      overdue: [overdueDose('d1'), overdueDose('d2')],
+      due_today: [], upcoming: [], refill_alerts: [],
+    });
+    await renderScreen(Notifications);
+    await waitFor(() => {
+      expect(screen.getByText('Mark all given')).toBeTruthy();
+      expect(screen.getByText('Dismiss all')).toBeTruthy();
+    });
+  });
+
+  it('hides bulk actions with a single overdue dose', async () => {
+    const { api } = (await import('../../lib/api')) as any;
+    api.getNotifications.mockResolvedValueOnce({
+      overdue: [overdueDose('d1')],
+      due_today: [], upcoming: [], refill_alerts: [],
+    });
+    await renderScreen(Notifications);
+    await waitFor(() => expect(screen.getByText('Overdue')).toBeTruthy());
+    expect(screen.queryByText('Mark all given')).toBeNull();
+    expect(screen.queryByText('Dismiss all')).toBeNull();
+  });
+
+  it('calls bulkDoseAction with all overdue ids when Mark all given is pressed', async () => {
+    const { api } = (await import('../../lib/api')) as any;
+    api.getNotifications.mockResolvedValueOnce({
+      overdue: [overdueDose('d1'), overdueDose('d2')],
+      due_today: [], upcoming: [], refill_alerts: [],
+    });
+    await renderScreen(Notifications);
+    await waitFor(() => expect(screen.getByText('Mark all given')).toBeTruthy());
+    await act(async () => {
+      fireEvent.click(screen.getByText('Mark all given'));
+    });
+    await waitFor(() =>
+      expect(api.bulkDoseAction).toHaveBeenCalledWith(['d1', 'd2'], 'administer'),
+    );
   });
 });
 
@@ -458,6 +515,53 @@ describe('CareItem screen', () => {
     const { container } = await renderScreen(CareItem);
     // Should have loaded cat data from mock API
     expect(container.innerHTML).toContain('Luna');
+  });
+
+  it('renders the schedule mode control with both options', async () => {
+    await renderScreen(CareItem);
+    expect(screen.getByText('After a dose is given')).toBeTruthy();
+    expect(screen.getByText('Stick to schedule')).toBeTruthy();
+    expect(screen.getByText('Restart the interval')).toBeTruthy();
+  });
+
+  it('keeps the schedule mode control when custom frequency is selected', async () => {
+    await renderScreen(CareItem);
+    await act(async () => {
+      fireEvent.click(screen.getByText('Custom interval'));
+    });
+    expect(screen.getByText('After a dose is given')).toBeTruthy();
+    expect(screen.getByText('Restart the interval')).toBeTruthy();
+  });
+
+  it('hides the schedule mode control for as-needed frequency', async () => {
+    await renderScreen(CareItem);
+    await act(async () => {
+      fireEvent.click(screen.getByText('As needed (no schedule)'));
+    });
+    expect(screen.queryByText('After a dose is given')).toBeNull();
+  });
+
+  it('shows the past-start-date prompt in create mode when a past date is picked', async () => {
+    const { container } = await renderScreen(CareItem);
+    const { todayLocalDate } = await import('@shared/lib/formatting');
+
+    // Open the start-date picker (field shows today's date by default)
+    const dateField = screen.getByText(todayLocalDate()).closest('button')!;
+    await act(async () => {
+      fireEvent.click(dateField);
+    });
+
+    // The mocked DateTimePicker fires onChange with 2020-01-01 on click
+    const picker = container.querySelector('[data-component="DateTimePicker"]')!;
+    await act(async () => {
+      fireEvent.click(picker);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/start date is in the past/i)).toBeTruthy();
+      expect(screen.getByText('Yes')).toBeTruthy();
+      expect(screen.getByText('No')).toBeTruthy();
+    });
   });
 });
 

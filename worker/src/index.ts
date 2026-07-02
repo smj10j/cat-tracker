@@ -13,6 +13,7 @@ import medicationsRoute, {
 } from './routes/medications'
 import householdRoute, { householdPublic } from './routes/household'
 import { sendExpoPushNotifications, getStaleTokens, type ExpoPushMessage } from './lib/push'
+import { sendEmail } from './lib/email'
 
 const app = new Hono<AppEnv>()
 
@@ -275,6 +276,114 @@ export default {
             await env.DB.prepare(
               `UPDATE medication_doses SET notification_sent_at = datetime('now') WHERE id IN (${placeholders})`
             ).bind(...chunk).run()
+          }
+        }
+      }
+
+      // --- Single 24h follow-up push for still-unresolved doses (WP4b) ---
+      // Fires once per dose (followup_sent_at marker); 48h lookback cap so a
+      // deploy never mass-notifies historic backlog.
+      const followupStart = new Date(Date.now() - 48 * 3600000).toISOString().replace('T', ' ').slice(0, 19)
+      const followupEnd = new Date(Date.now() - 24 * 3600000).toISOString().replace('T', ' ').slice(0, 19)
+      const followupDoses = await env.DB.prepare(`
+        SELECT d.id AS dose_id, m.name AS med_name, m.user_id,
+               c.name AS cat_name, c.id AS cat_id
+        FROM medication_doses d
+        JOIN medications m ON m.id = d.medication_id
+        JOIN cats c ON c.id = m.cat_id
+        WHERE d.due_at >= ? AND d.due_at < ?
+          AND d.administered_at IS NULL AND d.skipped = 0 AND d.missed = 0
+          AND d.notification_sent_at IS NOT NULL
+          AND d.followup_sent_at IS NULL
+          AND m.is_active = 1
+      `).bind(followupStart, followupEnd).all<{
+        dose_id: string; med_name: string; user_id: string; cat_name: string; cat_id: string
+      }>()
+
+      if (followupDoses.results.length > 0) {
+        const fuUserIds = [...new Set(followupDoses.results.map(d => d.user_id))]
+        const fuTokenRows = await env.DB.prepare(
+          `SELECT token, user_id FROM device_tokens WHERE platform = 'ios'`
+        ).all<{ token: string; user_id: string }>()
+        const fuTokensByUser = new Map<string, string[]>()
+        for (const row of fuTokenRows.results) {
+          if (!fuUserIds.includes(row.user_id)) continue
+          fuTokensByUser.set(row.user_id, [...(fuTokensByUser.get(row.user_id) ?? []), row.token])
+        }
+
+        const fuMessages: ExpoPushMessage[] = []
+        const fuDoseIds: string[] = []
+        for (const dose of followupDoses.results) {
+          const tokens = fuTokensByUser.get(dose.user_id)
+          fuDoseIds.push(dose.dose_id) // mark even without tokens — one follow-up chance, then done
+          if (!tokens) continue
+          for (const token of tokens) {
+            fuMessages.push({
+              to: token,
+              title: `Still due: ${dose.cat_name}`,
+              body: `${dose.med_name} from yesterday hasn't been marked given`,
+              sound: 'default',
+              data: { catId: dose.cat_id, url: `/notifications` },
+            })
+          }
+        }
+        if (fuMessages.length > 0) await sendExpoPushNotifications(fuMessages)
+        for (let i = 0; i < fuDoseIds.length; i += 50) {
+          const chunk = fuDoseIds.slice(i, i + 50)
+          const placeholders = chunk.map(() => '?').join(',')
+          await env.DB.prepare(
+            `UPDATE medication_doses SET followup_sent_at = datetime('now') WHERE id IN (${placeholders})`
+          ).bind(...chunk).run()
+        }
+      }
+
+      // --- Email fallback for users with no push channel (Phase C, WP4d) ---
+      // One digest per user per run. 1h grace gives push the first shot; 48h
+      // lookback cap prevents mass-mailing backlog on first deploy.
+      const emailStart = new Date(Date.now() - 48 * 3600000).toISOString().replace('T', ' ').slice(0, 19)
+      const emailEnd = new Date(Date.now() - 1 * 3600000).toISOString().replace('T', ' ').slice(0, 19)
+      const emailDoses = await env.DB.prepare(`
+        SELECT d.id AS dose_id, d.due_at, m.name AS med_name, m.user_id,
+               c.name AS cat_name, u.email, u.display_name
+        FROM medication_doses d
+        JOIN medications m ON m.id = d.medication_id
+        JOIN cats c ON c.id = m.cat_id
+        JOIN users u ON u.id = m.user_id
+        WHERE d.due_at >= ? AND d.due_at < ?
+          AND d.administered_at IS NULL AND d.skipped = 0 AND d.missed = 0
+          AND d.notification_sent_at IS NULL
+          AND d.email_sent_at IS NULL
+          AND m.is_active = 1
+          AND u.email_reminders = 1
+          AND NOT EXISTS (SELECT 1 FROM device_tokens t WHERE t.user_id = m.user_id)
+      `).bind(emailStart, emailEnd).all<{
+        dose_id: string; due_at: string; med_name: string; user_id: string
+        cat_name: string; email: string; display_name: string | null
+      }>()
+
+      if (emailDoses.results.length > 0) {
+        const byUser = new Map<string, typeof emailDoses.results>()
+        for (const d of emailDoses.results) {
+          byUser.set(d.user_id, [...(byUser.get(d.user_id) ?? []), d])
+        }
+        for (const [, doses] of byUser) {
+          const first = doses[0]!
+          const lines = doses.map(d => `• ${d.cat_name} — ${d.med_name} (was due ${d.due_at} UTC)`)
+          try {
+            await sendEmail({
+              to: first.email,
+              toName: first.display_name ?? undefined,
+              subject: `Care reminder: ${doses.length === 1 ? `${first.cat_name}'s ${first.med_name}` : `${doses.length} items need attention`}`,
+              text: `The following care items haven't been marked given:\n\n${lines.join('\n')}\n\nOpen Whisker Health to mark them given or dismiss them:\nhttps://cat-tracker.pages.dev/notifications`,
+            }, env.RESEND_API_KEY)
+            // Mark only after a successful send so failures retry next hour
+            const ids = doses.map(d => d.dose_id)
+            const placeholders = ids.map(() => '?').join(',')
+            await env.DB.prepare(
+              `UPDATE medication_doses SET email_sent_at = datetime('now') WHERE id IN (${placeholders})`
+            ).bind(...ids).run()
+          } catch {
+            // Resend failure — leave email_sent_at NULL, retried next run
           }
         }
       }

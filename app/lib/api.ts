@@ -318,6 +318,14 @@ export const api: CatTrackerNativeApi = {
     return res.json() as Promise<{ updated: number }>;
   },
 
+  async logPrnDose(medicationId: string, data?: { given_at?: string; notes?: string }): Promise<MedicationDose> {
+    const res = await apiFetch(`/api/medications/${medicationId}/log-dose`, {
+      method: 'POST',
+      body: JSON.stringify(data ?? {}),
+    });
+    return res.json() as Promise<MedicationDose>;
+  },
+
   async getNotifications(): Promise<NotificationInbox> {
     const res = await apiFetch('/api/notifications');
     return res.json() as Promise<NotificationInbox>;

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
 import { useGoBack } from '../hooks/useGoBack'
-import { getCat, getMeasurements, deleteMeasurement, getMedications, uploadCatPhoto, deleteCatPhoto, CARE_TYPE_ICONS, type Cat, type Measurement, type Medication } from '../lib/api'
+import { getCat, getMeasurements, deleteMeasurement, getMedications, uploadCatPhoto, deleteCatPhoto, logPrnDose, CARE_TYPE_ICONS, type Cat, type Measurement, type Medication } from '../lib/api'
 import CatAvatar from '../components/CatAvatar'
 import HeroStat from '../components/HeroStat'
 
@@ -17,7 +17,7 @@ import { getPresetLabel } from '@shared/lib/measurementPresets'
 import { catAge } from '@shared/lib/dates'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { formatTime as fmtTime, formatWeight as fmtWeight } from '@shared/lib/preferences'
-import { groupByDay, formatFreqShort, formatNextDue, formatSexNeuter } from '@shared/lib/formatting'
+import { groupByDay, formatFreqShort, formatNextDue, formatDueAt, formatSexNeuter } from '@shared/lib/formatting'
 import { MEASUREMENT_TYPE_LABELS as MEAS_TYPE_LABELS, BEHAVIOR_CHART_TYPES as BEHAVIORAL_TYPES, isAsNeeded } from '@shared/lib/constants'
 
 type ChartTab = 'weight' | 'food' | 'water' | 'behavior' | 'all'
@@ -40,11 +40,24 @@ function SkeletonProfile() {
   )
 }
 
-function CareScheduleSection({ catId, meds }: { catId: string; meds: Medication[] }) {
+function CareScheduleSection({ catId, meds, onRefresh }: { catId: string; meds: Medication[]; onRefresh?: () => void }) {
   const { prefs } = usePreferences()
   const scheduled = meds.filter(m => !isAsNeeded(m.frequency))
   const asNeeded = meds.filter(m => isAsNeeded(m.frequency))
   const overdueCount = scheduled.reduce((sum, m) => sum + (m.overdue_count ?? 0), 0)
+  const [loggingId, setLoggingId] = useState<string | null>(null)
+
+  async function handleLogDose(e: React.MouseEvent, medId: string) {
+    e.preventDefault()
+    e.stopPropagation()
+    setLoggingId(medId)
+    try {
+      await logPrnDose(medId)
+      onRefresh?.()
+    } catch { /* 409 double-tap or network — list refresh reflects reality */ } finally {
+      setLoggingId(null)
+    }
+  }
 
   function renderMedRow(med: Medication, asNeededRow: boolean) {
     return (
@@ -68,10 +81,28 @@ function CareScheduleSection({ catId, meds }: { catId: string; meds: Medication[
           </div>
           <p className="text-xs text-ink-dim mt-0.5 truncate">
             {asNeededRow
-              ? (med.notes ? `Give if: ${med.notes}` : 'As needed')
+              ? [med.notes ? `Give if: ${med.notes}` : 'As needed',
+                 med.last_given_at ? `last given ${formatDueAt(med.last_given_at, prefs)}` : null]
+                  .filter(Boolean).join(' · ')
               : `${formatFreqShort(med.frequency, med.frequency_days)} · ${formatNextDue(med.next_due_at, prefs)}`}
           </p>
         </div>
+        {asNeededRow && (
+          <button
+            type="button"
+            onClick={(e) => handleLogDose(e, med.id)}
+            disabled={loggingId === med.id}
+            className="text-xs font-semibold px-2.5 py-1.5 rounded-lg shrink-0 transition-all"
+            style={{
+              color: 'var(--color-brand)',
+              background: 'rgba(192,132,252,0.12)',
+              border: '1px solid rgba(192,132,252,0.3)',
+              opacity: loggingId === med.id ? 0.5 : 1,
+            }}
+          >
+            {loggingId === med.id ? '…' : 'Log dose'}
+          </button>
+        )}
         <span className="text-ink-dim text-sm ml-1 shrink-0">→</span>
       </Link>
     )
@@ -610,7 +641,7 @@ export default function CatProfile() {
       {/* ── Care tab ── */}
       {profileTab === 'care' && (
         <div className="px-4 space-y-4 mt-4 pb-8">
-          <CareScheduleSection catId={id!} meds={meds} />
+          <CareScheduleSection catId={id!} meds={meds} onRefresh={() => { if (id) getMedications(id).then(setMeds).catch(() => {}) }} />
           {meds.length > 0 && (
             <Link
               to="/notifications"

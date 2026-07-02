@@ -1,4 +1,7 @@
+import { useState } from 'react'
 import { useTheme, type ThemeMode } from '../contexts/ThemeContext'
+import { useAuth } from '../contexts/AuthContext'
+import { updateMe } from '../lib/api'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { useGoBack } from '../hooks/useGoBack'
 import { THEME_FAMILIES, type ThemeFamily } from '@shared/lib/themeTokens'
@@ -154,6 +157,23 @@ export default function SettingsPage() {
   const goBack = useGoBack('/')
   const { mode, setMode, family, setFamily } = useTheme()
   const { prefs, setPref, resetToLocale, isOverridden } = usePreferences()
+  const { user, refresh } = useAuth()
+  const [emailReminders, setEmailReminders] = useState<number>(user?.email_reminders ?? 1)
+  const [savingEmail, setSavingEmail] = useState(false)
+
+  async function toggleEmailReminders() {
+    const next = emailReminders === 1 ? 0 : 1
+    setEmailReminders(next)
+    setSavingEmail(true)
+    try {
+      await updateMe({ email_reminders: next })
+      await refresh()
+    } catch {
+      setEmailReminders(next === 1 ? 0 : 1) // revert on failure
+    } finally {
+      setSavingEmail(false)
+    }
+  }
 
   const hasAnyOverride = isOverridden('dateFormat') || isOverridden('timeFormat') || isOverridden('weightUnit')
 
@@ -243,6 +263,37 @@ export default function SettingsPage() {
             Reset to locale defaults
           </button>
         )}
+      </section>
+
+      {/* Notifications */}
+      <section className="glass-card p-5 space-y-3 mt-4">
+        <h2 className="text-xs font-semibold text-ink-mid uppercase tracking-wider">Notifications</h2>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-ink">Email reminders</p>
+            <p className="text-xs text-ink-dim mt-0.5">
+              A fallback email when a care item goes overdue and you have no push notifications set up.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={emailReminders === 1}
+            aria-label="Email reminders"
+            disabled={savingEmail}
+            onClick={toggleEmailReminders}
+            className="relative w-12 h-7 rounded-full transition-all shrink-0"
+            style={{
+              background: emailReminders === 1 ? 'var(--color-brand)' : 'rgba(255,255,255,0.12)',
+              opacity: savingEmail ? 0.6 : 1,
+            }}
+          >
+            <span
+              className="absolute top-1 w-5 h-5 rounded-full transition-all"
+              style={{ left: emailReminders === 1 ? 'calc(100% - 24px)' : '4px', background: '#fff' }}
+            />
+          </button>
+        </div>
       </section>
     </div>
   )

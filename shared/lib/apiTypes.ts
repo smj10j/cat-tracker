@@ -21,7 +21,7 @@ import type {
 export interface CatTrackerApi {
   // Auth
   getMe(): Promise<User>
-  updateMe(data: { timezone?: string }): Promise<void>
+  updateMe(data: { timezone?: string; email_reminders?: number }): Promise<void>
   logout(): Promise<void>
   claimCats(): Promise<{ claimed: number }>
 
@@ -50,6 +50,7 @@ export interface CatTrackerApi {
   createMedication(data: MedicationInput): Promise<Medication>
   updateMedication(id: string, data: Partial<MedicationInput & { is_active: number }>): Promise<Medication>
   archiveMedication(id: string): Promise<void>
+  logPrnDose(medicationId: string, data?: { given_at?: string; notes?: string }): Promise<MedicationDose>
 
   // Doses
   administerDose(id: string, data?: { administered_at?: string; notes?: string }): Promise<void>

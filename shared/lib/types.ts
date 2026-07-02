@@ -41,6 +41,7 @@ export interface User {
   display_name: string | null;
   avatar_url: string | null;
   timezone: string | null;
+  email_reminders?: number;
   oauth_provider: string;
   hasOrphanedCats: boolean;
   session_age_seconds?: number;
@@ -68,6 +69,7 @@ export interface Medication {
   updated_at: string;
   next_due_at?: string | null;
   overdue_count?: number;
+  last_given_at?: string | null;
 }
 
 export interface MedicationDose {

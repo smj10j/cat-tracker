@@ -19,23 +19,24 @@ Triggered by: owner approved PRD-actionable-notifications, PRD-body-condition, P
 - [x] ROADMAP.md: 1e/4f/4g, WP7 annotations, session plan updated
 
 ### WP1 — Care schedule correctness
-- [-] Schema: `missed` on medication_doses, `schedule_mode` on medications (idempotent migration)
-- [-] generateDoses windowing: max one interval before user-local today
-- [-] Cron: auto-expire stale overdue doses to `missed`
-- [-] PUT regeneration boundary → user-local today
-- [-] Bulk dose actions endpoint + first_dose_given on POST
-- [-] Re-anchor on administer for `interval` mode; decrement doses_remaining (4e)
-- [-] Web + iOS: past-start-date prompt, schedule-mode toggle, bulk overdue actions
-- [-] Tests (all 4 suites), db migrate remote, deploy, commit, push
+- [x] Schema: `missed` on medication_doses, `schedule_mode` on medications (deployed to prod DB)
+- [x] generateDoses windowing: max one interval before user-local today
+- [x] Cron: auto-expire stale overdue doses to `missed`; one-time prod sweep marked 310 stale doses missed
+- [x] PUT regeneration boundary → user-local today
+- [x] Bulk dose actions endpoint + first_dose_given on POST
+- [x] Re-anchor on administer for `interval` mode; decrement doses_remaining (4e); cron/PUT/auth-migration honor anchor via effectiveAnchorStart
+- [x] Web + iOS: past-start-date prompt, schedule-mode toggle, bulk overdue actions, missed-state in dose history
+- [x] Tests (all 4 suites), db migrate remote, deploy, commit, push
 
 ### WP2 — Timezone & date sweep
-- [ ] users.timezone capture at login; legacy naive-dose migration; catAge fix; UTC boundary audit; tests
+- [x] Verified both clients already sync timezone at sign-in (naive doses self-heal via lazy migration); catAge day-of-month fix; UTC boundaries audited + documented; DST/extreme-tz tests confirmed + catAge tests added
 
 ### WP3 — Data integrity & error handling
-- [ ] Import validation parity + preview; ConfirmDialog/toast replacing alert/confirm; iOS silent catches; error copy
+- [x] Import validation parity + preview; ConfirmDialog (promise-based hook) replacing all alert/confirm sites; iOS refresh-failure banner; error copy fixed
 
 ### WP4 — Care & notifications QoL
-- [ ] 4a PRN log; 4b overdue follow-up push; 4d email fallback; 4e (folded into WP1); 4g actionable-notifications Phase A
+- [x] 4a PRN log-dose endpoint + button both platforms + last_given_at; 4b single 24h follow-up push; 4d email fallback digest + settings toggle both platforms; 4e (folded into WP1)
+- [ ] 4g actionable-notifications Phase A (iOS notification categories + snooze) — next session, with TestFlight build
 
 ---
 
@@ -81,7 +82,7 @@ Triggered by: user request — three improvements to the Care section. (1) add s
 - [x] Web Care tab — split into Scheduled vs As-needed groups, both linkable
 - [x] Web `/cats/:id/sitter` route — read-only screenshot-friendly view; "Sitter view" button on Care tab
 - [x] Tests for shared (327), worker (154), frontend (62), app (161); all green
-- [ ] Deploy worker + frontend (run locally — automation env has no Cloudflare creds)
+- [x] Deploy worker + frontend (reconciled 2026-07-02 — shipped with v1.0.2 per docs/app-store-submissions.md)
 - [x] Commit and push to `claude/add-care-options-U5daJ`
 
 ### Out of scope (follow-ups)
@@ -102,7 +103,7 @@ Triggered by: user opened the iOS app after 1.0.1 deploy and asked "I don't see 
 - [x] Add "🐾 Sitter view" entry on the Care tab (below Reminders & Notifications)
 - [x] Smoke + content tests in `app/__tests__/screens/smoke.test.tsx`; mock `expo-print` in `setup.ts`
 - [x] Bump app version 1.0.1 → 1.0.2 (Apple closed the 1.0.1 train after submission)
-- [ ] Deploy to TestFlight (build-ios.sh + submit-testflight.sh)
+- [x] Deploy to TestFlight (reconciled 2026-07-02 — v1.0.2 submitted per docs/app-store-submissions.md)
 
 ---
 

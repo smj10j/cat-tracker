@@ -205,7 +205,9 @@ medications.get('/medications', async (c) => {
             ORDER BY d.due_at ASC LIMIT 1) AS next_due_at,
            (SELECT COUNT(*) FROM medication_doses d
             WHERE d.medication_id = m.id AND d.administered_at IS NULL AND d.skipped = 0 AND d.missed = 0
-              AND d.due_at < ?) AS overdue_count
+              AND d.due_at < ?) AS overdue_count,
+           (SELECT MAX(administered_at) FROM medication_doses d
+            WHERE d.medication_id = m.id AND d.administered_at IS NOT NULL) AS last_given_at
          FROM medications m
          JOIN cats c ON c.id = m.cat_id
          WHERE ${householdFilter} AND m.cat_id = ? AND m.is_active = 1
@@ -219,7 +221,9 @@ medications.get('/medications', async (c) => {
             ORDER BY d.due_at ASC LIMIT 1) AS next_due_at,
            (SELECT COUNT(*) FROM medication_doses d
             WHERE d.medication_id = m.id AND d.administered_at IS NULL AND d.skipped = 0 AND d.missed = 0
-              AND d.due_at < ?) AS overdue_count
+              AND d.due_at < ?) AS overdue_count,
+           (SELECT MAX(administered_at) FROM medication_doses d
+            WHERE d.medication_id = m.id AND d.administered_at IS NOT NULL) AS last_given_at
          FROM medications m
          JOIN cats c ON c.id = m.cat_id
          WHERE ${householdFilter} AND m.is_active = 1
@@ -417,6 +421,41 @@ medications.put('/medications/:id', async (c) => {
 
   const updated = await c.env.DB.prepare('SELECT * FROM medications WHERE id = ?').bind(id).first()
   return c.json(updated)
+})
+
+// POST /api/medications/:id/log-dose — PRN administration log.
+// As-needed items have no schedule and no dose rows; this records an ad-hoc
+// "I gave a dose now" event so PRN history is visible and shareable.
+medications.post('/medications/:id/log-dose', async (c) => {
+  const userId = c.get('userId')
+  const id = c.req.param('id')
+  const body = await c.req.json<{ given_at?: string; notes?: string }>()
+    .catch(() => ({} as { given_at?: string; notes?: string }))
+
+  const med = await c.env.DB.prepare(
+    'SELECT cat_id, frequency FROM medications WHERE id = ? AND is_active = 1'
+  ).bind(id).first<{ cat_id: string; frequency: string }>()
+  if (!med) return c.json({ error: 'Not found' }, 404)
+  if (!isAsNeeded(med.frequency)) {
+    return c.json({ error: 'log-dose is only for as-needed items — scheduled items use dose administer' }, 400)
+  }
+  const role = await getCatRole(c.env.DB, med.cat_id, userId)
+  if (!role || !hasRole(role, 'contributor')) return c.json({ error: 'Not found' }, 404)
+
+  const givenAt = (body.given_at ?? new Date().toISOString())
+    .replace('T', ' ').replace('Z', '').slice(0, 19)
+
+  // UNIQUE(medication_id, due_at) doubles as a double-tap guard.
+  const result = await c.env.DB.prepare(
+    `INSERT OR IGNORE INTO medication_doses (medication_id, due_at, administered_at, notes)
+     VALUES (?, ?, ?, ?)`
+  ).bind(id, givenAt, givenAt, body.notes?.trim().slice(0, 1000) ?? null).run()
+  if (!result.meta.changes) return c.json({ error: 'Already logged at this time' }, 409)
+
+  const dose = await c.env.DB.prepare(
+    'SELECT * FROM medication_doses WHERE medication_id = ? AND due_at = ?'
+  ).bind(id, givenAt).first()
+  return c.json(dose, 201)
 })
 
 // DELETE /api/medications/:id — archive (soft delete)

@@ -160,7 +160,7 @@ export const deleteMeasurement = async (id: string): Promise<void> => {
 
 // Auth
 export const getMe = () => request<User>('/auth/me')
-export const updateMe = async (data: { timezone?: string }): Promise<void> => {
+export const updateMe = async (data: { timezone?: string; email_reminders?: number }): Promise<void> => {
   await request('/auth/me', { method: 'PUT', body: JSON.stringify(data) })
 }
 export const logout = async (): Promise<void> => {
@@ -227,6 +227,8 @@ export const skipDose = async (id: string, skipReason?: string): Promise<void> =
 }
 export const bulkDoseAction = (doseIds: string[], action: 'administer' | 'skip') =>
   request<{ updated: number }>('/doses/bulk', { method: 'POST', body: JSON.stringify({ dose_ids: doseIds, action }) })
+export const logPrnDose = (medicationId: string, data?: { given_at?: string; notes?: string }) =>
+  request<MedicationDose>(`/medications/${medicationId}/log-dose`, { method: 'POST', body: JSON.stringify(data ?? {}) })
 
 // Type conformance check — ensures this module implements every method in CatTrackerWebApi.
 // If a method is missing or has the wrong signature, this line will produce a compile error.
@@ -235,7 +237,7 @@ const _typeCheck: CatTrackerWebApi = {
   getCats, getCat, createCat, updateCat, markDeceased, markAlive, deleteCat,
   uploadCatPhoto, deleteCatPhoto,
   getMeasurements, createMeasurement, deleteMeasurement,
-  getMedications, getMedication, createMedication, updateMedication, archiveMedication,
+  getMedications, getMedication, createMedication, updateMedication, archiveMedication, logPrnDose,
   administerDose, skipDose, bulkDoseAction,
   getNotifications,
   getHousehold, getHouseholdList, renameHousehold,

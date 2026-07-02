@@ -25,7 +25,8 @@ import {
   formatTime as formatTimePref,
   formatDateShort,
 } from '@shared/lib/preferences';
-import { groupByDay, formatFreqShort, formatNextDue, formatSexNeuter } from '@shared/lib/formatting';
+import { groupByDay, formatFreqShort, formatNextDue, formatDueAt, formatSexNeuter } from '@shared/lib/formatting';
+import { isAsNeeded } from '@shared/lib/constants';
 import { MEASUREMENT_TYPE_LABELS as MEAS_TYPE_LABELS, BEHAVIOR_CHART_TYPES as BEHAVIORAL_TYPES } from '@shared/lib/constants';
 
 type ProfileTab = 'health' | 'care' | 'about';
@@ -54,6 +55,7 @@ export default function CatProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshFailed, setRefreshFailed] = useState(false);
+  const [loggingPrnId, setLoggingPrnId] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [expandedChart, setExpandedChart] = useState<string | null>(null);
   const [measurementFormOpen, setMeasurementFormOpen] = useState(false);
@@ -73,6 +75,16 @@ export default function CatProfileScreen() {
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
   }, [id]);
+
+  async function handleLogPrnDose(medId: string) {
+    setLoggingPrnId(medId);
+    try {
+      await api.logPrnDose(medId);
+      if (id) await api.getMedications(id).then(setMeds);
+    } catch { /* 409 double-tap or network — refetch reflects reality */ } finally {
+      setLoggingPrnId(null);
+    }
+  }
 
   // Re-fetch cat data when screen regains focus (e.g. returning from edit with new photo).
   // Failures surface as a stale-data banner instead of silently showing old data.
@@ -711,9 +723,32 @@ export default function CatProfileScreen() {
                           )}
                         </View>
                         <Text style={{ fontSize: 12, color: colors.inkDim, marginTop: 2 }}>
-                          {formatFreqShort(med.frequency, med.frequency_days)} {'\u00B7'} {formatNextDue(med.next_due_at, prefs)}
+                          {isAsNeeded(med.frequency)
+                            ? [med.notes ? `Give if: ${med.notes}` : 'As needed',
+                               med.last_given_at ? `last given ${formatDueAt(med.last_given_at, prefs)}` : null]
+                                .filter(Boolean).join(' \u00B7 ')
+                            : `${formatFreqShort(med.frequency, med.frequency_days)} \u00B7 ${formatNextDue(med.next_due_at, prefs)}`}
                         </Text>
                       </View>
+                      {isAsNeeded(med.frequency) && !isDeceased && (
+                        <Pressable
+                          onPress={() => handleLogPrnDose(med.id)}
+                          disabled={loggingPrnId === med.id}
+                          style={{
+                            paddingHorizontal: 10,
+                            paddingVertical: 7,
+                            borderRadius: 8,
+                            backgroundColor: 'rgba(192,132,252,0.12)',
+                            borderWidth: 1,
+                            borderColor: 'rgba(192,132,252,0.3)',
+                            opacity: loggingPrnId === med.id ? 0.5 : 1,
+                          }}
+                        >
+                          <Text style={{ color: colors.lavender, fontSize: 12, fontWeight: '600' }}>
+                            {loggingPrnId === med.id ? '\u2026' : 'Log dose'}
+                          </Text>
+                        </Pressable>
+                      )}
                       <Text style={{ color: colors.inkDim, fontSize: 14 }}>{'\u203A'}</Text>
                     </Pressable>
                   ))}

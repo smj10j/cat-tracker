@@ -365,8 +365,8 @@ auth.get('/auth/me', requireAuth, async (c) => {
   const userId = c.get('userId')
   const sessionId = c.get('sessionId')
   const user = await c.env.DB.prepare(
-    'SELECT id, email, display_name, avatar_url, oauth_provider, timezone FROM users WHERE id = ?'
-  ).bind(userId).first<{ id: string; email: string; display_name: string | null; avatar_url: string | null; oauth_provider: string; timezone: string | null }>()
+    'SELECT id, email, display_name, avatar_url, oauth_provider, timezone, email_reminders FROM users WHERE id = ?'
+  ).bind(userId).first<{ id: string; email: string; display_name: string | null; avatar_url: string | null; oauth_provider: string; timezone: string | null; email_reminders: number }>()
 
   if (!user) return c.json({ error: 'User not found' }, 404)
 
@@ -392,15 +392,25 @@ auth.get('/auth/me', requireAuth, async (c) => {
     avatar_url: user.avatar_url,
     oauth_provider: user.oauth_provider,
     timezone: user.timezone,
+    email_reminders: user.email_reminders,
     hasOrphanedCats: (orphaned?.count ?? 0) > 0,
     session_age_seconds,
   })
 })
 
-// PUT /api/auth/me — Update user profile (timezone, etc.)
+// PUT /api/auth/me — Update user profile (timezone, email reminders, etc.)
 auth.put('/auth/me', requireAuth, async (c) => {
   const userId = c.get('userId')
-  const body = await c.req.json<{ timezone?: string }>()
+  const body = await c.req.json<{ timezone?: string; email_reminders?: number }>()
+
+  if (body.email_reminders !== undefined) {
+    if (body.email_reminders !== 0 && body.email_reminders !== 1) {
+      return c.json({ error: 'email_reminders must be 0 or 1' }, 400)
+    }
+    await c.env.DB.prepare(
+      'UPDATE users SET email_reminders = ? WHERE id = ?'
+    ).bind(body.email_reminders, userId).run()
+  }
 
   if (body.timezone) {
     // Validate IANA timezone

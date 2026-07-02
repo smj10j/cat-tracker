@@ -1,9 +1,10 @@
-import { View, Text, Pressable, ScrollView, Alert, Platform } from 'react-native';
+import { View, Text, Pressable, ScrollView, Alert, Platform, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from 'nativewind';
 import { File, Paths } from 'expo-file-system/next';
 import * as Sharing from 'expo-sharing';
+import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme, ThemePreference } from '../contexts/ThemeContext';
 import { usePreferences } from '../contexts/PreferencesContext';
@@ -67,6 +68,20 @@ const FAMILY_META: Record<ThemeFamily, { label: string; description: string; swa
 export default function SettingsScreen() {
   const router = useRouter();
   const { user, signOut } = useAuth();
+  const [emailReminders, setEmailReminders] = useState<boolean>((user?.email_reminders ?? 1) === 1);
+  const [savingEmail, setSavingEmail] = useState(false);
+
+  async function toggleEmailReminders(next: boolean) {
+    setEmailReminders(next);
+    setSavingEmail(true);
+    try {
+      await api.updateMe({ email_reminders: next ? 1 : 0 });
+    } catch {
+      setEmailReminders(!next); // revert on failure
+    } finally {
+      setSavingEmail(false);
+    }
+  }
   const { theme, setTheme, family, setFamily } = useTheme();
   const { prefs, setPref, resetToLocale, isOverridden } = usePreferences();
   const colors = useThemeColors();
@@ -310,6 +325,28 @@ export default function SettingsScreen() {
               <Text style={{ color: colors.inkDim, fontSize: 14 }}>Reset to locale defaults</Text>
             </Pressable>
           )}
+        </View>
+
+        {/* Notifications */}
+        <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: rv(16, 20), borderWidth: 1, borderColor: colors.rim }}>
+          <Text style={{ color: colors.inkMid, fontSize: rv(10, 12), fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>
+            Notifications
+          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.ink, fontSize: 14, fontWeight: '500' }}>Email reminders</Text>
+              <Text style={{ color: colors.inkDim, fontSize: 12, marginTop: 2 }}>
+                Fallback email when a care item goes overdue and push isn't set up
+              </Text>
+            </View>
+            <Switch
+              value={emailReminders}
+              onValueChange={toggleEmailReminders}
+              disabled={savingEmail}
+              trackColor={{ true: colors.lavender, false: colors.surfaceHi }}
+              accessibilityLabel="Email reminders"
+            />
+          </View>
         </View>
 
         {/* Household settings */}

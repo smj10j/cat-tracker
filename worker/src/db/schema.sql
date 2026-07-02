@@ -57,9 +57,12 @@ CREATE TABLE IF NOT EXISTS users (
   oauth_provider  TEXT NOT NULL,
   oauth_id        TEXT NOT NULL,
   timezone        TEXT,              -- IANA timezone, e.g. 'America/New_York'
+  email_reminders INTEGER NOT NULL DEFAULT 1,  -- overdue-dose email fallback opt-out
   created_at      TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(oauth_provider, oauth_id)
 );
+-- Migration 2026-07-02 (medication reminders Phase C):
+-- ALTER TABLE users ADD COLUMN email_reminders INTEGER NOT NULL DEFAULT 1;
 
 CREATE TABLE IF NOT EXISTS sessions (
   id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
@@ -120,11 +123,16 @@ CREATE TABLE IF NOT EXISTS medication_doses (
   notes                TEXT,
   notification_sent_at TEXT,           -- set when push notification sent for this dose
   missed               INTEGER NOT NULL DEFAULT 0,  -- cron-expired overdue dose; excluded from inbox, visible in history
+  followup_sent_at     TEXT,           -- set when the single 24h overdue follow-up push was sent
+  email_sent_at        TEXT,           -- set when the overdue email fallback was sent
   created_at           TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(medication_id, due_at)       -- idempotent cron insertion via INSERT OR IGNORE
 );
 -- Migration 2026-07-02 (care schedule correctness):
 -- ALTER TABLE medication_doses ADD COLUMN missed INTEGER NOT NULL DEFAULT 0;
+-- Migration 2026-07-02 (medication reminders Phase C + overdue follow-up):
+-- ALTER TABLE medication_doses ADD COLUMN followup_sent_at TEXT;
+-- ALTER TABLE medication_doses ADD COLUMN email_sent_at TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_doses_medication ON medication_doses(medication_id, due_at);
 CREATE INDEX IF NOT EXISTS idx_doses_due ON medication_doses(due_at, administered_at);

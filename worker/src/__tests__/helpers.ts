@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
   oauth_provider  TEXT NOT NULL,
   oauth_id        TEXT NOT NULL,
   timezone        TEXT,
+  email_reminders INTEGER NOT NULL DEFAULT 1,
   created_at      TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(oauth_provider, oauth_id)
 );
@@ -131,6 +132,8 @@ CREATE TABLE IF NOT EXISTS medication_doses (
   notes                TEXT,
   notification_sent_at TEXT,
   missed               INTEGER NOT NULL DEFAULT 0,
+  followup_sent_at     TEXT,
+  email_sent_at        TEXT,
   created_at           TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(medication_id, due_at)
 );

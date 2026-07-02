@@ -524,3 +524,117 @@ describe('Missed-dose exclusion', () => {
     expect(meds[0]!.overdue_count).toBe(0)
   })
 })
+
+describe('POST /api/medications/:id/log-dose (PRN administration log)', () => {
+  beforeAll(async () => { await applySchema() })
+  beforeEach(async () => { await clearDb() })
+
+  async function createPrnMed(session: string, catId: string): Promise<string> {
+    const res = await SELF.fetch('http://localhost/api/medications', {
+      method: 'POST',
+      headers: { ...authedHeaders(session), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cat_id: catId, name: 'Gabapentin (PRN)', type: 'pill',
+        frequency: 'as_needed', start_date: new Date().toISOString().slice(0, 10),
+      }),
+    })
+    const med = await res.json() as { id: string }
+    return med.id
+  }
+
+  it('logs an ad-hoc given dose for an as-needed item', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const catId = await createCat(session)
+    const medId = await createPrnMed(session, catId)
+
+    const res = await SELF.fetch(`http://localhost/api/medications/${medId}/log-dose`, {
+      method: 'POST',
+      headers: { ...authedHeaders(session), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notes: 'was hiding under bed' }),
+    })
+    expect(res.status).toBe(201)
+    const dose = await res.json() as { administered_at: string | null; due_at: string; notes: string }
+    expect(dose.administered_at).toBe(dose.due_at)
+    expect(dose.notes).toBe('was hiding under bed')
+
+    // last_given_at surfaces on the medication list
+    const list = await SELF.fetch(`http://localhost/api/medications?cat_id=${catId}`, {
+      headers: authedHeaders(session),
+    })
+    const meds = await list.json() as Array<{ last_given_at: string | null }>
+    expect(meds[0]!.last_given_at).toBe(dose.administered_at)
+  })
+
+  it('rejects log-dose on scheduled items', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const catId = await createCat(session)
+    const res = await SELF.fetch('http://localhost/api/medications', {
+      method: 'POST',
+      headers: { ...authedHeaders(session), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cat_id: catId, name: 'Daily Pill', type: 'pill',
+        frequency: 'daily', start_date: new Date().toISOString().slice(0, 10),
+      }),
+    })
+    const med = await res.json() as { id: string }
+    const logRes = await SELF.fetch(`http://localhost/api/medications/${med.id}/log-dose`, {
+      method: 'POST',
+      headers: { ...authedHeaders(session), 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    })
+    expect(logRes.status).toBe(400)
+  })
+
+  it('guards against double-tap via the unique due_at constraint', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const catId = await createCat(session)
+    const medId = await createPrnMed(session, catId)
+
+    const givenAt = '2026-07-02 15:00:00'
+    const first = await SELF.fetch(`http://localhost/api/medications/${medId}/log-dose`, {
+      method: 'POST',
+      headers: { ...authedHeaders(session), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ given_at: givenAt }),
+    })
+    expect(first.status).toBe(201)
+    const second = await SELF.fetch(`http://localhost/api/medications/${medId}/log-dose`, {
+      method: 'POST',
+      headers: { ...authedHeaders(session), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ given_at: givenAt }),
+    })
+    expect(second.status).toBe(409)
+  })
+})
+
+describe('email_reminders preference', () => {
+  beforeAll(async () => { await applySchema() })
+  beforeEach(async () => { await clearDb() })
+
+  it('defaults to 1, round-trips through PUT /auth/me, and rejects invalid values', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+
+    let me = await (await SELF.fetch('http://localhost/api/auth/me', { headers: authedHeaders(session) })).json() as { email_reminders: number }
+    expect(me.email_reminders).toBe(1)
+
+    const put = await SELF.fetch('http://localhost/api/auth/me', {
+      method: 'PUT',
+      headers: { ...authedHeaders(session), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email_reminders: 0 }),
+    })
+    expect(put.status).toBe(200)
+
+    me = await (await SELF.fetch('http://localhost/api/auth/me', { headers: authedHeaders(session) })).json() as { email_reminders: number }
+    expect(me.email_reminders).toBe(0)
+
+    const bad = await SELF.fetch('http://localhost/api/auth/me', {
+      method: 'PUT',
+      headers: { ...authedHeaders(session), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email_reminders: 5 }),
+    })
+    expect(bad.status).toBe(400)
+  })
+})

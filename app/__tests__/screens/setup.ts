@@ -118,6 +118,12 @@ vi.mock('react-native', () => {
       if (!visible) return null;
       return React.createElement('div', { 'data-testid': testID, 'data-component': 'Modal' }, children);
     },
+    Switch: ({ value, onValueChange, testID, accessibilityLabel, disabled }: any) =>
+      React.createElement('input', {
+        type: 'checkbox', checked: !!value, disabled: !!disabled,
+        'data-testid': testID, 'data-component': 'Switch', 'aria-label': accessibilityLabel,
+        onChange: () => onValueChange?.(!value),
+      }),
     Alert: { alert: vi.fn() },
     Platform: { OS: 'ios', select: (obj: any) => obj.ios ?? obj.default },
     StyleSheet: { create: (s: any) => s, flatten: (s: any) => s },

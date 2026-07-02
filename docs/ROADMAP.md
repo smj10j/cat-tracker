@@ -1,6 +1,7 @@
 # Cat Tracker — Delivery Roadmap
 
 > **Status:** Active. Created 2026-07-02 from a full-codebase bug audit + PRD registry review. Updated same day after a feature-ideation pass: 9 new Draft PRDs written, 6 existing Drafts deepened, all 7 Partial PRDs given detailed remaining-scope specs (see each PRD's "Remaining scope — detailed (2026-07-02)" section).
+> **Progress (2026-07-02):** WP1, WP2, WP3 complete and deployed (web + worker + prod DB migrated; 310 stale overdue doses swept to `missed`). WP4 complete except 4g (iOS notification actions — next session, needs TestFlight build). iOS app changes accumulated across WP1/WP3/WP4 still need a TestFlight release.
 > **How to use:** Each work package (WP) is sized for roughly one session. Work them in order unless the product owner reprioritizes. At the start of a session, pick the first WP with unchecked items, follow the CLAUDE.md Execution Loop (TODO.md phase entry → implement → test → deploy → commit → push), and check items off **here and in TODO.md**. iOS-visible changes additionally need a TestFlight build via `/deploy`.
 
 ---
@@ -32,42 +33,42 @@
 
 **Tasks:**
 
-- [ ] 1a. Dose generation: never generate doses more than one interval before "today" (user-local today when timezone known). Backdated start dates become an **anchor**, not a backlog. Applies to POST, PUT, and cron paths (all funnel through `generateDoses`).
-- [ ] 1b. Creation UX: when start date < today, ask "Already gave the first dose?" — if yes, create that one past dose pre-marked administered so history is accurate; if no, create it as genuinely overdue. Both platforms.
-- [ ] 1c. Overdue hygiene: cron auto-expires unresolved doses older than a cutoff (recommend `max(2×interval, 7 days)`) into a `missed` state — visible in history, excluded from the overdue inbox and `overdue_count`. Add "Mark all given" / "Dismiss all" bulk actions to the notifications inbox (web + iOS).
-- [ ] 1d. Fix the PUT regeneration boundary to use user-local today (reuse `userDateBoundaries()` in `medications.ts:349`).
-- [ ] 1e. **Approved (owner, 2026-07-02):** per-item `schedule_mode` — `fixed` (calendar-anchored) vs `interval` (re-anchor from last given), default `interval` for `custom`-frequency items. Decision logged in PRD-medication-reminders "Approved decisions (2026-07-02)". Implement with 1a–1d.
-- [ ] 1f. Tests: past start date, overdue expiry, bulk actions, PUT near UTC midnight, cron idempotency (`worker/src/__tests__/`).
+- [x] 1a. Dose generation: never generate doses more than one interval before "today" (user-local today when timezone known). Backdated start dates become an **anchor**, not a backlog. Applies to POST, PUT, and cron paths (all funnel through `generateDoses`).
+- [x] 1b. Creation UX: when start date < today, ask "Already gave the first dose?" — if yes, create that one past dose pre-marked administered so history is accurate; if no, create it as genuinely overdue. Both platforms.
+- [x] 1c. Overdue hygiene: cron auto-expires unresolved doses older than a cutoff (recommend `max(2×interval, 7 days)`) into a `missed` state — visible in history, excluded from the overdue inbox and `overdue_count`. Add "Mark all given" / "Dismiss all" bulk actions to the notifications inbox (web + iOS).
+- [x] 1d. Fix the PUT regeneration boundary to use user-local today (reuse `userDateBoundaries()` in `medications.ts:349`).
+- [x] 1e. **Approved (owner, 2026-07-02):** per-item `schedule_mode` — `fixed` (calendar-anchored) vs `interval` (re-anchor from last given), default `interval` for `custom`-frequency items. Decision logged in PRD-medication-reminders "Approved decisions (2026-07-02)". Implement with 1a–1d.
+- [x] 1f. Tests: past start date, overdue expiry, bulk actions, PUT near UTC midnight, cron idempotency (`worker/src/__tests__/`).
 
 ---
 
 ## WP2 — Timezone & date correctness sweep (P1, ~1 session)
 
-- [ ] 2a. **Naive/UTC dual storage.** Users without `users.timezone` get `due_at` stored as naive local time (`medications.ts:47-50`), but clients blindly append `Z` and treat it as UTC (`shared/lib/dates.ts:61`), shifting displayed times by the full UTC offset. Fix: capture timezone at login/session for all users, backfill `users.timezone`, migrate naive dose rows (or regenerate pending doses per med), then drop the `timezone: null` legacy path.
-- [ ] 2b. **`catAge()` off-by-one month** (`shared/lib/dates.ts:77-85`): month arithmetic ignores day-of-month, overstating age up to ~10 days/month. Affects Home, CatProfile, exports, Sitter view on both platforms. Fix + tests.
-- [ ] 2c. Cron/window boundaries use UTC dates (`windowEnd90()`, hour-window push query in `index.ts:163-186`) — audit each for user-local correctness; document any intentionally-UTC ones inline.
-- [ ] 2d. Extreme-timezone day-label drift (Today/Yesterday/Tomorrow in `shared/lib/formatting.ts:122-175`) — resolves mostly via 2a; add regression tests at UTC±12.
-- [ ] 2e. Regression-test suite for `dates.ts`/`formatting.ts` covering DST transitions and date-only parsing.
+- [x] 2a. **Naive/UTC dual storage.** Users without `users.timezone` get `due_at` stored as naive local time (`medications.ts:47-50`), but clients blindly append `Z` and treat it as UTC (`shared/lib/dates.ts:61`), shifting displayed times by the full UTC offset. Fix: capture timezone at login/session for all users, backfill `users.timezone`, migrate naive dose rows (or regenerate pending doses per med), then drop the `timezone: null` legacy path.
+- [x] 2b. **`catAge()` off-by-one month** (`shared/lib/dates.ts:77-85`): month arithmetic ignores day-of-month, overstating age up to ~10 days/month. Affects Home, CatProfile, exports, Sitter view on both platforms. Fix + tests.
+- [x] 2c. Cron/window boundaries use UTC dates (`windowEnd90()`, hour-window push query in `index.ts:163-186`) — audit each for user-local correctness; document any intentionally-UTC ones inline.
+- [x] 2d. Extreme-timezone day-label drift (Today/Yesterday/Tomorrow in `shared/lib/formatting.ts:122-175`) — resolves mostly via 2a; add regression tests at UTC±12.
+- [x] 2e. Regression-test suite for `dates.ts`/`formatting.ts` covering DST transitions and date-only parsing.
 
 ---
 
 ## WP3 — Data integrity & error handling (P1, ~1 session)
 
-- [ ] 3a. **CSV import validation parity** (`worker/src/routes/import.ts:150-168`): import bypasses the type/unit/value validation that `POST /measurements` enforces — invalid types can enter the DB and confuse charts/correlations. Mirror the validation; add rejection tests.
-- [ ] 3b. Import preview (`frontend/src/pages/ImportPage.tsx`) should validate type/unit client-side so bad rows show as invalid before submit.
-- [ ] 3c. Replace `window.confirm()`/`alert()` with a shared in-app confirm dialog + toast: `CatProfile.tsx:180`, `HouseholdPage.tsx:110`, `MedicationFormPage.tsx:139`, `AddEditCat.tsx:168,204`. This also closes the household-sharing Phase B "custom confirmation dialogs" item.
-- [ ] 3d. iOS: replace silent `.catch(() => {})` refetch failures (`app/app/cats/[id]/index.tsx:80-82` and similar) with a lightweight stale-data/error indicator; audit other screens for the same pattern.
-- [ ] 3e. Fix misleading validation copy in `worker/src/routes/measurements.ts:65-66` ("weight value must be…" shown for all non-scale types).
+- [x] 3a. **CSV import validation parity** (`worker/src/routes/import.ts:150-168`): import bypasses the type/unit/value validation that `POST /measurements` enforces — invalid types can enter the DB and confuse charts/correlations. Mirror the validation; add rejection tests.
+- [x] 3b. Import preview (`frontend/src/pages/ImportPage.tsx`) should validate type/unit client-side so bad rows show as invalid before submit.
+- [x] 3c. Replace `window.confirm()`/`alert()` with a shared in-app confirm dialog + toast: `CatProfile.tsx:180`, `HouseholdPage.tsx:110`, `MedicationFormPage.tsx:139`, `AddEditCat.tsx:168,204`. This also closes the household-sharing Phase B "custom confirmation dialogs" item.
+- [x] 3d. iOS: replace silent `.catch(() => {})` refetch failures (`app/app/cats/[id]/index.tsx:80-82` and similar) with a lightweight stale-data/error indicator; audit other screens for the same pattern.
+- [x] 3e. Fix misleading validation copy in `worker/src/routes/measurements.ts:65-66` ("weight value must be…" shown for all non-scale types).
 
 ---
 
 ## WP4 — Care & notifications QoL (P2, ~1–2 sessions)
 
-- [ ] 4a. PRN administration log — explicit "gave a dose now" timestamped record for as-needed items (existing follow-up from TODO Phase 60; in approved PRD-care-extensions scope).
-- [ ] 4b. Overdue follow-up notification: push fires once at the due hour (`notification_sent_at` guard, `index.ts:181`) and never again — add a single follow-up reminder (e.g., 24h later) with its own sent-marker. Within PRD-medication-reminders approved scope.
-- [ ] 4c. Snooze / "given late" affordances on dose rows (web + iOS). Superset specced in PRD-actionable-notifications (Draft) — if that PRD is approved, implement its Phase A instead of a one-off here.
-- [ ] 4d. PRD-medication-reminders Phase C: email fallback via Resend when no push token and dose goes overdue. Detailed spec now in the PRD (`email_sent_at` marker, 1-hour grace, 48-hour lookback cap).
-- [ ] 4e. PRD-medication-reminders Phase D: refill stock tracking. Audit finding (2026-07-02): the edit form and refill alerts already exist — the actual gap is that `POST /api/doses/:id/administer` never decrements `doses_remaining`. Spec in the PRD.
+- [x] 4a. PRN administration log — explicit "gave a dose now" timestamped record for as-needed items (existing follow-up from TODO Phase 60; in approved PRD-care-extensions scope).
+- [x] 4b. Overdue follow-up notification: push fires once at the due hour (`notification_sent_at` guard, `index.ts:181`) and never again — add a single follow-up reminder (e.g., 24h later) with its own sent-marker. Within PRD-medication-reminders approved scope.
+- [x] 4c. Subsumed by 4g (PRD-actionable-notifications Phase A, approved) — no one-off built.
+- [x] 4d. PRD-medication-reminders Phase C: email fallback via Resend when no push token and dose goes overdue. Detailed spec now in the PRD (`email_sent_at` marker, 1-hour grace, 48-hour lookback cap).
+- [x] 4e. PRD-medication-reminders Phase D: refill stock tracking. Audit finding (2026-07-02): the edit form and refill alerts already exist — the actual gap is that `POST /api/doses/:id/administer` never decrements `doses_remaining`. Spec in the PRD.
 - [x] 4f. Phase B (web push/VAPID) — **dropped (owner decision, 2026-07-02)**: iOS push exists and the Phase C email fallback covers web-only users far cheaper. Logged in PRD-medication-reminders.
 - [ ] 4g. **PRD-actionable-notifications Phase A (Approved 2026-07-02):** "Mark given" / "Snooze 1h" actions on the iOS push via expo-notifications categories; hybrid snooze (server `snoozed_until` + local notification). Subsumes 4c.
 
@@ -91,7 +92,7 @@ Every item below now has an implementation-level spec in its PRD's "Remaining sc
 - [ ] 6b. Frontend: tests for the highest-risk untested pages first — MedicationFormPage, NotificationsPage, ImportPage, CatProfile (17 of 34 pages untested).
 - [ ] 6c. App: screen tests beyond smoke for care-item, notifications, sitter (3 of 22 screens covered).
 - [ ] 6d. Cron efficiency: `generateDoses` re-walks from `start_date` every hourly run for every med (O(age) growth + `INSERT OR IGNORE` churn). Generate from `max(today − 1 interval, last generated due_at)` instead. (Partly falls out of 1a.)
-- [ ] 6e. Housekeeping: reconcile stale TODO.md checkboxes — Phase 60 "deploy worker + frontend" and Phase 60.5 "deploy to TestFlight" are unchecked, but the submission log shows v1.0.2/v1.0.3 shipped; verify and mark.
+- [x] 6e. Housekeeping: reconcile stale TODO.md checkboxes — Phase 60 "deploy worker + frontend" and Phase 60.5 "deploy to TestFlight" are unchecked, but the submission log shows v1.0.2/v1.0.3 shipped; verify and mark.
 
 ---
 

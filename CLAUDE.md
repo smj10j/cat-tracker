@@ -112,6 +112,12 @@ npm run db:migrate:remote  # apply to production
 
 Use `IF NOT EXISTS` and `ADD COLUMN IF NOT EXISTS` to keep migrations idempotent.
 
+**Gotchas (learned 2026-07-02):**
+- `wrangler d1 execute` defaults to the **local** DB in wrangler 4.71+ — production always needs an explicit `--remote` flag (plus `-y` in non-interactive shells). Verify prod changes landed with a `pragma_table_info` query; a missing `--remote` fails silently from the caller's perspective.
+- `CREATE TABLE IF NOT EXISTS` in schema.sql does NOT add new columns to existing tables. Adding a column means: (1) add it to the `CREATE TABLE` block, (2) run a one-off `ALTER TABLE ... ADD COLUMN` against prod via `wrangler d1 execute --remote -y --command "..."`, (3) leave a commented `-- ALTER TABLE ...` line in schema.sql documenting the migration, (4) mirror the column in `TEST_SCHEMA` in `worker/src/__tests__/helpers.ts` (tests use their own self-contained schema copy).
+- If the local dev DB is stale enough that `db:migrate:local` errors on missing columns, it's regenerable scratch — delete `worker/.wrangler/state/v3/d1` and re-run.
+- If wrangler auth fails with "Failed to fetch auth token: 400", the OAuth refresh token has expired — the user must run `npx wrangler login` (interactive; suggest `! npx wrangler login` in a Claude session).
+
 ### Adding a new measurement type
 
 The measurements table is generic (`type`, `value`, `unit`). To add a new type:

@@ -102,3 +102,10 @@ iPhone 6.7" / 6.9" App Store screenshots: **1284×2778** or **1242×2688**. Resi
 - **App Store Connect**: https://appstoreconnect.apple.com/apps/6762031793/testflight/ios
 - **App Store Review**: 2026-05-05 (submitted)
   - **App Store Status**: In Review since 2026-05-05
+
+## Version 1.0.4 (Build 2026-07-02)
+- **Submitted**: 2026-07-02 17:38:03 (via local)
+- **Commit**: f6cde9c (f6cde9cd9eaff3edc392c6d58dbdaeb4c0cf98ac)
+- **Commit message**: app: bump version 1.0.3 -> 1.0.4; log v1.0.3 App Store approval
+- **App Store Connect**: https://appstoreconnect.apple.com/apps/6762031793/testflight/ios
+- **Status**: Submitted to TestFlight

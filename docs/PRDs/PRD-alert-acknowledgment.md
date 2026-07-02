@@ -1,6 +1,6 @@
 # PRD: Health Alert Acknowledgment
 
-> **Status:** Draft
+> **Status:** Approved
 > **Created:** 2026-04-11
 > **Last updated:** 2026-07-02
 

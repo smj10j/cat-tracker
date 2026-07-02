@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | `Draft` |
+| **Status** | `Approved` |
 | **Created** | 2026-07-02 |
 | **Last updated** | 2026-07-02 |
 | **Author** | AI research (for product owner review) |

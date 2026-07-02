@@ -36,7 +36,7 @@
 - [ ] 1b. Creation UX: when start date < today, ask "Already gave the first dose?" — if yes, create that one past dose pre-marked administered so history is accurate; if no, create it as genuinely overdue. Both platforms.
 - [ ] 1c. Overdue hygiene: cron auto-expires unresolved doses older than a cutoff (recommend `max(2×interval, 7 days)`) into a `missed` state — visible in history, excluded from the overdue inbox and `overdue_count`. Add "Mark all given" / "Dismiss all" bulk actions to the notifications inbox (web + iOS).
 - [ ] 1d. Fix the PUT regeneration boundary to use user-local today (reuse `userDateBoundaries()` in `medications.ts:349`).
-- [ ] 1e. **Needs product decision (PRD amendment to PRD-care-extensions or PRD-medication-reminders):** per-item schedule mode — `fixed` (calendar-anchored, e.g. "1st of month") vs `interval` (re-anchor from last given). Recommend `interval` as default for `custom`-frequency items like sub-q fluids. Do not implement until approved; 1a–1d land independently.
+- [ ] 1e. **Approved (owner, 2026-07-02):** per-item `schedule_mode` — `fixed` (calendar-anchored) vs `interval` (re-anchor from last given), default `interval` for `custom`-frequency items. Decision logged in PRD-medication-reminders "Approved decisions (2026-07-02)". Implement with 1a–1d.
 - [ ] 1f. Tests: past start date, overdue expiry, bulk actions, PUT near UTC midnight, cron idempotency (`worker/src/__tests__/`).
 
 ---
@@ -68,7 +68,8 @@
 - [ ] 4c. Snooze / "given late" affordances on dose rows (web + iOS). Superset specced in PRD-actionable-notifications (Draft) — if that PRD is approved, implement its Phase A instead of a one-off here.
 - [ ] 4d. PRD-medication-reminders Phase C: email fallback via Resend when no push token and dose goes overdue. Detailed spec now in the PRD (`email_sent_at` marker, 1-hour grace, 48-hour lookback cap).
 - [ ] 4e. PRD-medication-reminders Phase D: refill stock tracking. Audit finding (2026-07-02): the edit form and refill alerts already exist — the actual gap is that `POST /api/doses/:id/administer` never decrements `doses_remaining`. Spec in the PRD.
-- [ ] 4f. Phase B (web push/VAPID) — recommend **dropping**: iOS push exists and the Phase C email fallback covers web-only users far cheaper. Awaiting product-owner confirmation (see PRD).
+- [x] 4f. Phase B (web push/VAPID) — **dropped (owner decision, 2026-07-02)**: iOS push exists and the Phase C email fallback covers web-only users far cheaper. Logged in PRD-medication-reminders.
+- [ ] 4g. **PRD-actionable-notifications Phase A (Approved 2026-07-02):** "Mark given" / "Snooze 1h" actions on the iOS push via expo-notifications categories; hybrid snooze (server `snoozed_until` + local notification). Subsumes 4c.
 
 ---
 
@@ -99,19 +100,19 @@ Every item below now has an implementation-level spec in its PRD's "Remaining sc
 All Draft PRDs awaiting a product-owner decision, grouped by theme and ordered by recommended priority within each group. Every one was written or substantially deepened on 2026-07-02.
 
 **Care & clinical depth (strongest fit with the chronic-care audience):**
-- [ ] 7a. PRD-actionable-notifications — mark-given/snooze on the push itself + daily digest + notification prefs. Directly attacks the forgot-to-mark failure mode behind WP1.
-- [ ] 7b. PRD-vet-visits — appointments, visit history, vaccine records with reminders; Phase B document attachments.
-- [ ] 7c. PRD-lab-results — bloodwork trend tracking for CKD/hyperthyroid/diabetic cats; zero interpretation, user-entered reference ranges.
-- [ ] 7d. PRD-body-condition — WSAVA 9-point BCS as a new measurement type via the generic pipeline; cheapest of the clinical trio.
-- [ ] 7e. PRD-alert-acknowledgment — severity-rank episode model specced; pairs with WP1 overdue hygiene.
-- [ ] 7f. PRD-notes-journal — free-text observations with photos and descriptive tags, interleaved into the history timeline and vet export.
+- [ ] 7a. PRD-actionable-notifications — **Approved 2026-07-02.** Phase A lands with WP4 (item 4g); Phases B/C (digest + prefs) scheduled after WP4.
+- [ ] 7b. PRD-vet-visits — appointments, visit history, vaccine records with reminders; Phase B document attachments. (Draft — not approved.)
+- [ ] 7c. PRD-lab-results — bloodwork trend tracking for CKD/hyperthyroid/diabetic cats; zero interpretation, user-entered reference ranges. (Draft — not approved.)
+- [ ] 7d. PRD-body-condition — **Approved 2026-07-02.** WSAVA 9-point BCS via the generic measurement pipeline; integers-only v1. Requires the docs/research/ citation step first.
+- [ ] 7e. PRD-alert-acknowledgment — **Approved 2026-07-02.** Severity-rank episode model; pairs with WP1 overdue hygiene.
+- [ ] 7f. PRD-notes-journal — **Approved 2026-07-02.** Journal entries + photos + descriptive tags in timeline and vet export.
 
 **Insights & engagement:**
 - [ ] 7g. PRD-behavioral-trends — web behavior-tab charts + ordinal-correct rendering both platforms (reframed 2026-07-02: iOS already has line charts; web has none).
 - [ ] 7h. Streak & consistency tracking (PRD-ux-redesign §3B — needs status decision; gaps filled 2026-07-02).
 - [ ] 7i. Weigh-in reminders (PRD-ux-redesign §3C — detailed 2026-07-02; reuses notification substrate).
 - [ ] 7j. PRD-onboarding — first-run carousel, guided first cat, empty-state CTAs, demo cat, what's-new sheet.
-- [ ] 7k. Trend line on weight chart (PRD-features-backlog — non-clinical version implementable now; "ideal weight band" needs the vet-entered-range decision).
+- [ ] 7k. Trend line on weight chart (PRD-features-backlog — non-clinical version implementable now). "Ideal weight band": **decision deferred by owner 2026-07-02 — revisit later**; both paths documented in the PRD, do not build either.
 
 **Reach & platform:**
 - [ ] 7l. PRD-sitter-live-link — expiring tokenized live sitter URL; Phase B sitter check-off. First unauthenticated endpoint — security section mandatory reading.
@@ -142,12 +143,14 @@ Note: PRD-killer-app (`Under Review`) is now largely superseded by this roadmap 
 
 | Session | Contents |
 |---------|----------|
-| 1 | WP1 (1a–1d, 1f) + write the 1e PRD amendment for review |
+| 1 | WP1 (all of 1a–1f — 1e approved) |
 | 2 | WP2 (timezone sweep + catAge) |
 | 3 | WP3 (import validation + dialogs/toasts) |
-| 4 | WP4 (4a–4c; 4d/4e if time) |
-| 5 | WP5 (5a–5c) |
-| 6 | WP5 (5d–5e) + WP6 backlog |
-| 7+ | WP7 as PRDs get approved; WP6 as filler |
+| 4 | WP4 (4a, 4b, 4d, 4e, 4g) |
+| 5 | Newly approved PRDs: alert-acknowledgment, notes-journal |
+| 6 | Newly approved PRDs: body-condition (research citation first), actionable-notifications Phases B/C |
+| 7 | WP5 (5a–5c) |
+| 8 | WP5 (5d–5e) + WP6 backlog |
+| 9+ | Remaining WP7 as PRDs get approved; WP6 as filler |
 
 **Standing rules for every session:** all 4 test suites (shared/worker/frontend/app) before deploy; cross-platform parity check (`frontend/` ↔ `app/`); deploy worker + frontend after changes; TestFlight build when iOS-visible; commit + push per logical unit; update this file's checkboxes.

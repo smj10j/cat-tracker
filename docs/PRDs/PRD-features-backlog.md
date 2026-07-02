@@ -240,7 +240,7 @@ Design: collapsible cards or a horizontal scrolling card strip to keep it from d
 - Edge cases: <4 points in window → no trend line; windowed vs All range → compute on visible points only; huge time gaps make slope/week misleading — caption states the actual span.
 - Acceptance: dashed line + caption appear with ≥4 in-window points; slope matches a hand-computed fixture; copy contains no clinical adjectives; parity web + iOS.
 
-**(b) Ideal weight band — blocked pending a decision.** Two paths, PO to choose:
+**(b) Ideal weight band — decision deferred by product owner (2026-07-02). Do not implement either path; revisit when the owner reopens it.** The two paths, for when that happens:
 1. **Vet/user-entered target range (recommended):** optional `target_weight_min/max` fields on the cat edit form; chart shows a shaded band; copy stays neutral ("outside your target range" — the numbers are the vet's, not the app's, so no citation is needed, but the rendering copy still must avoid clinical claims).
 2. **App-derived default band:** requires Tier 1 sourcing (candidate: WSAVA/AAHA body-condition-score guidance) documented in `docs/research/weight-thresholds.md` and the full clinical-content process before implementation. Do not build without it.
 

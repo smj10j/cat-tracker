@@ -379,6 +379,14 @@ CREATE TABLE push_subscriptions (
 
 ---
 
+## Approved decisions (2026-07-02)
+
+1. **Schedule anchoring (interval re-anchoring) — Approved by product owner.** Medications gain a `schedule_mode` column: `fixed` (doses stay anchored to `start_date + n×interval` — right for calendar-style items like "flea treatment on the 1st") or `interval` (marking a dose given re-anchors subsequent doses to the given date + interval — clinically correct for interval-driven care like sub-q fluids every 3 days). Default: `interval` for `custom`-frequency items, `fixed` otherwise; user-visible toggle on the care item form. Skipping a dose does not re-anchor. Implemented with ROADMAP.md WP1.
+
+2. **Phase B (Web Push / VAPID) — Dropped by product owner.** Per the assessment in "Remaining scope — detailed" below: iOS native push already ships and Phase C email fallback covers web-only users at a fraction of the cost. Revisit only if `version_log` data shows meaningful web-only reminder usage.
+
+---
+
 ## Implementation Plan (phased)
 
 ### Phase A — Core scheduling + in-app inbox (no push)

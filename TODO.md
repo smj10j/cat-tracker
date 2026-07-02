@@ -7,6 +7,38 @@
 
 ---
 
+## Phase 63: Approvals + WP1–WP4 implementation (2026-07-02)
+
+Triggered by: owner approved PRD-actionable-notifications, PRD-body-condition, PRD-alert-acknowledgment, PRD-notes-journal; approved interval re-anchoring (WP1e) and web-push drop (WP4f); OK'd invite-token rotation; deferred ideal-weight-band. Then: implement ROADMAP WP1–WP4.
+
+### Decisions logged
+- [x] REGISTRY.md: 4 PRDs → `Approved`
+- [x] PRD-medication-reminders: "Approved decisions (2026-07-02)" (re-anchoring approved, web push dropped)
+- [x] PRD-household-sharing: resolved decision #8 (invite token rotation)
+- [x] PRD-features-backlog: ideal-band deferral logged
+- [x] ROADMAP.md: 1e/4f/4g, WP7 annotations, session plan updated
+
+### WP1 — Care schedule correctness
+- [-] Schema: `missed` on medication_doses, `schedule_mode` on medications (idempotent migration)
+- [-] generateDoses windowing: max one interval before user-local today
+- [-] Cron: auto-expire stale overdue doses to `missed`
+- [-] PUT regeneration boundary → user-local today
+- [-] Bulk dose actions endpoint + first_dose_given on POST
+- [-] Re-anchor on administer for `interval` mode; decrement doses_remaining (4e)
+- [-] Web + iOS: past-start-date prompt, schedule-mode toggle, bulk overdue actions
+- [-] Tests (all 4 suites), db migrate remote, deploy, commit, push
+
+### WP2 — Timezone & date sweep
+- [ ] users.timezone capture at login; legacy naive-dose migration; catAge fix; UTC boundary audit; tests
+
+### WP3 — Data integrity & error handling
+- [ ] Import validation parity + preview; ConfirmDialog/toast replacing alert/confirm; iOS silent catches; error copy
+
+### WP4 — Care & notifications QoL
+- [ ] 4a PRN log; 4b overdue follow-up push; 4d email fallback; 4e (folded into WP1); 4g actionable-notifications Phase A
+
+---
+
 ## Phase 62: PRD ideation + flesh-out pass (docs-only, 2026-07-02)
 
 Triggered by: user asked for new feature/QoL PRDs beyond the existing set, deeper specs for unimplemented PRDs, and an updated roadmap with an approval queue.

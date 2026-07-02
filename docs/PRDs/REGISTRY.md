@@ -42,7 +42,7 @@
 | [PRD-api-versioning.md](PRD-api-versioning.md) | API Versioning & Backend-Driven Updates | `Implemented` | 2026-04-11 |
 | [PRD-security-phase2.md](PRD-security-phase2.md) | Security Hardening Phase 2 — Native App & Multi-Client | `Implemented` | 2026-04-11 |
 | [PRD-chart-time-navigation.md](PRD-chart-time-navigation.md) | Chart Time Range & Swipe Navigation | `Implemented` | 2026-04-11 |
-| [PRD-alert-acknowledgment.md](PRD-alert-acknowledgment.md) | Health Alert Acknowledgment | `Draft` | 2026-07-02 |
+| [PRD-alert-acknowledgment.md](PRD-alert-acknowledgment.md) | Health Alert Acknowledgment | `Approved` | 2026-07-02 |
 | [PRD-behavioral-trends.md](PRD-behavioral-trends.md) | Behavioral Trend Charts | `Draft` | 2026-07-02 |
 | [PRD-localization-preferences.md](PRD-localization-preferences.md) | Localization & Regional Preferences | `Implemented` | 2026-04-12 |
 | [PRD-landscape-charts.md](PRD-landscape-charts.md) | Landscape Mode — Full-Screen Chart Visualization | `Implemented` | 2026-04-12 |
@@ -54,9 +54,9 @@
 | [PRD-care-extensions.md](PRD-care-extensions.md) | Care Extensions — SubQ Fluids, As-Needed Items, Sitter View | `Approved` | 2026-05-05 |
 | [PRD-vet-visits.md](PRD-vet-visits.md) | Vet Visits & Medical Records | `Draft` | 2026-07-02 |
 | [PRD-lab-results.md](PRD-lab-results.md) | Lab Results Tracking | `Draft` | 2026-07-02 |
-| [PRD-body-condition.md](PRD-body-condition.md) | Body Condition Score (BCS) | `Draft` | 2026-07-02 |
-| [PRD-notes-journal.md](PRD-notes-journal.md) | Observations Journal | `Draft` | 2026-07-02 |
-| [PRD-actionable-notifications.md](PRD-actionable-notifications.md) | Actionable Notifications & Daily Digest | `Draft` | 2026-07-02 |
+| [PRD-body-condition.md](PRD-body-condition.md) | Body Condition Score (BCS) | `Approved` | 2026-07-02 |
+| [PRD-notes-journal.md](PRD-notes-journal.md) | Observations Journal | `Approved` | 2026-07-02 |
+| [PRD-actionable-notifications.md](PRD-actionable-notifications.md) | Actionable Notifications & Daily Digest | `Approved` | 2026-07-02 |
 | [PRD-onboarding.md](PRD-onboarding.md) | First-Run Onboarding & Empty-State Guidance | `Draft` | 2026-07-02 |
 | [PRD-sitter-live-link.md](PRD-sitter-live-link.md) | Sitter Live Share Link | `Draft` | 2026-07-02 |
 | [PRD-ios-widgets.md](PRD-ios-widgets.md) | iOS Widgets & Siri Shortcuts | `Draft` | 2026-07-02 |
@@ -329,9 +329,12 @@ Each entry below provides full implementation notes and open questions. The summ
 **Implemented Phase A** — core scheduling + in-app inbox: `medications` and `medication_doses` tables, CRUD endpoints, 90-day dose generation with cron, `/notifications` inbox (overdue/due-today/upcoming/refill), mark-given/skip endpoints, MedicationFormPage with presets, NotificationsPage, home screen badge count.
 
 **Not yet implemented:**
-- Phase B — Web Push notifications (VAPID key pair, service worker, `/api/push/*` endpoints, push delivery in cron)
-- Phase C — Email fallback (Resend email when no push subscription and dose becomes overdue)
-- Phase D — Refill stock tracking UI (doses_remaining management on medication edit form)
+- Phase C — Email fallback (Resend digest email when a dose goes overdue and the user has no push channel)
+- Phase D — Refill stock tracking (verified 2026-07-02: the real gap is that administer never decrements `doses_remaining`)
+
+**Dropped (2026-07-02, owner decision):** Phase B Web Push — iOS native push ships today and Phase C email covers web-only users.
+
+**Approved (2026-07-02, owner decision):** interval schedule re-anchoring — `schedule_mode` (`fixed`|`interval`) on medications, `interval` default for custom-frequency items; implemented with ROADMAP WP1.
 
 ---
 
@@ -770,16 +773,14 @@ Nothing rejected yet.
 
 | | |
 |---|---|
-| **Status** | `Draft` |
+| **Status** | `Approved` |
 | **Last updated** | 2026-07-02 |
 
 **Problem:** Weight alone can't distinguish healthy weight change from concerning change; body condition scoring is the standard veterinary companion metric.
 
 **Proposed:** `bcs` as a new measurement type via the existing generic pipeline (shared constants + 9-entry preset list; zero schema changes, zero new routes), targeting the WSAVA 9-point scale. Visual 1–9 picker and BCS-over-time chart on both platforms; per-score descriptive copy, ideal-range shading, and weight+BCS interpretation all gated on Tier 1 citations in `docs/research/`.
 
-**Open questions:** muscle condition score (Phase C) scope; integers-only vs half-points; staleness nudge.
-
-**Do not implement** — Draft.
+**Approved 2026-07-02.** Integers-only in v1; muscle condition score stays a Phase C open question.
 
 ---
 
@@ -787,16 +788,14 @@ Nothing rejected yet.
 
 | | |
 |---|---|
-| **Status** | `Draft` |
+| **Status** | `Approved` |
 | **Last updated** | 2026-07-02 |
 
 **Problem:** Not everything is a number — "hiding under the bed," "limping slightly," vet-call outcomes have nowhere to live, so context is lost by the next vet visit.
 
 **Proposed:** Per-cat journal entries (≤2000 chars, backdatable, optional R2 photo, preset descriptive-not-diagnostic tags); entries interleave into the day-grouped History timeline with tag filtering; quick-add from the check-in screen; "Owner observations" section in the vet export. Contributor+ can write; one new `journal_entries` table.
 
-**Open questions:** tag taxonomy; shared vs dedicated R2 bucket; promote-measurement-note-to-journal affordance.
-
-**Do not implement** — Draft.
+**Approved 2026-07-02.** Shared R2 bucket under a `journal/` prefix; tag taxonomy stays descriptive-only per the clinical-content rule.
 
 ---
 
@@ -804,7 +803,7 @@ Nothing rejected yet.
 
 | | |
 |---|---|
-| **Status** | `Draft` |
+| **Status** | `Approved` |
 | **Last updated** | 2026-07-02 |
 | **Depends on** | PRD-medication-reminders.md (Partial), PRD-push-notifications.md (In Progress) |
 
@@ -812,9 +811,7 @@ Nothing rejected yet.
 
 **Proposed:** Phase A — "Mark given" / "Snooze 1h" actions on the iOS push via expo-notifications categories (administer endpoint exists; snooze specced as hybrid server `snoozed_until` + local notification). Phase B — opt-in morning digest push at a user-chosen time. Phase C — notification preferences screen (digest, quiet hours, per-item mute) backed by `notification_prefs` + `care_item_mutes`.
 
-**Open questions:** snooze mechanism (hybrid recommended); Android future-proofing now vs later; digest granularity.
-
-**Do not implement** — Draft.
+**Approved 2026-07-02.** Snooze: hybrid (server `snoozed_until` is source of truth + exact local notification on the acting device). Phase A implements alongside ROADMAP WP4.
 
 ---
 

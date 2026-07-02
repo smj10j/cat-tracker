@@ -435,6 +435,8 @@ All questions from the initial draft have been answered by the product owner.
 
 7. **Email address mismatch on invite acceptance** → **Re-request the invite.** If the logged-in Google account's email does not match `invite_email`, the system shows a clear error: "This invite was sent to [invite_email]. Sign in with that Google account, or ask the household admin to send a new invite to [logged-in email]." No override or confirmation flow — the mismatch check is a security control, not a convenience gap.
 
+8. **Invite reminder email token rotation (2026-07-02)** → **Approved.** Raw invite tokens are never stored (hash only), so the 3-day reminder email must mint a fresh token — invalidating the link in the original email. Acceptable: the reminder supersedes the original. See "Remaining scope — detailed (2026-07-02)".
+
 ---
 
 ## Implementation Plan (phased)

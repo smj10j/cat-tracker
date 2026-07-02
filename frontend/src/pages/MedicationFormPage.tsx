@@ -5,6 +5,7 @@ import {
   type Cat,
 } from '../lib/api'
 import { useGoBack } from '../hooks/useGoBack'
+import { useConfirmDialog } from '../components/ConfirmDialog'
 import { usePreferences } from '../contexts/PreferencesContext'
 import {
   MEDICATION_PRESETS as PRESETS,
@@ -70,6 +71,7 @@ export default function MedicationFormPage() {
   const { catId, medId } = useParams<{ catId?: string; medId?: string }>()
   const goBack = useGoBack('/')
   const { prefs } = usePreferences()
+  const { confirm, confirmDialog } = useConfirmDialog()
   const errorRef = useRef<HTMLDivElement>(null)
   const isEdit = Boolean(medId)
 
@@ -164,7 +166,11 @@ export default function MedicationFormPage() {
 
   async function handleArchive() {
     if (!medId) return
-    if (!window.confirm(`Stop tracking ${name}? This will archive the medication schedule.`)) return
+    if (!(await confirm({
+      title: 'Archive medication',
+      message: `Stop tracking ${name}? This will archive the medication schedule.`,
+      confirmLabel: 'Archive', danger: true,
+    }))) return
     setDeleting(true)
     try {
       await archiveMedication(medId)
@@ -197,6 +203,7 @@ export default function MedicationFormPage() {
 
   return (
     <div className="min-h-screen px-4 pt-6 pb-4">
+      {confirmDialog}
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <Link to={backPath} className="text-ink-dim hover:text-ink text-lg leading-none flex items-center justify-center w-9 h-9">←</Link>

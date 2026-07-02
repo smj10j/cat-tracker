@@ -157,6 +157,7 @@ export default function CatProfile() {
   const [showOlderHistory, setShowOlderHistory] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
 
   const [photoUploading, setPhotoUploading] = useState(false)
@@ -177,7 +178,10 @@ export default function CatProfile() {
     try {
       await deleteMeasurement(id)
       setMeasurements((prev) => prev.filter((x) => x.id !== id))
-    } catch (e: unknown) { alert((e as Error).message) }
+    } catch (e: unknown) {
+      setActionError((e as Error).message)
+      setTimeout(() => setActionError(null), 5000)
+    }
     setPendingDeleteId(null)
   }
 
@@ -270,6 +274,15 @@ export default function CatProfile() {
 
   return (
     <div className="min-h-screen">
+      {actionError && (
+        <div
+          role="alert"
+          className="fixed top-4 left-4 right-4 z-50 mx-auto max-w-sm rounded-xl p-3 text-sm text-rose"
+          style={{ background: 'rgba(30,20,40,0.95)', border: '1px solid rgba(248,113,113,0.35)' }}
+        >
+          {actionError}
+        </div>
+      )}
 
       {/* ── Full-bleed hero ── */}
       <div

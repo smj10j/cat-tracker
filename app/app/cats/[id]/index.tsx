@@ -53,6 +53,7 @@ export default function CatProfileScreen() {
   const [showOlderHistory, setShowOlderHistory] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshFailed, setRefreshFailed] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [expandedChart, setExpandedChart] = useState<string | null>(null);
   const [measurementFormOpen, setMeasurementFormOpen] = useState(false);
@@ -73,13 +74,18 @@ export default function CatProfileScreen() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  // Re-fetch cat data when screen regains focus (e.g. returning from edit with new photo)
+  // Re-fetch cat data when screen regains focus (e.g. returning from edit with new photo).
+  // Failures surface as a stale-data banner instead of silently showing old data.
   useFocusEffect(
     useCallback(() => {
       if (!id || loading) return;
-      api.getCat(id).then(setCat).catch(() => {});
-      api.getMeasurements(id).then(setMeasurements).catch(() => {});
-      api.getMedications(id).then(setMeds).catch(() => {});
+      Promise.allSettled([
+        api.getCat(id).then(setCat),
+        api.getMeasurements(id).then(setMeasurements),
+        api.getMedications(id).then(setMeds),
+      ]).then((results) => {
+        setRefreshFailed(results.some((r) => r.status === 'rejected'));
+      });
     }, [id, loading]),
   );
 
@@ -156,6 +162,21 @@ export default function CatProfileScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.night }}>
+      {refreshFailed && (
+        <View
+          accessibilityRole="alert"
+          style={{
+            position: 'absolute', top: insets.top + 8, left: 16, right: 16, zIndex: 50,
+            padding: 10, borderRadius: 12,
+            backgroundColor: 'rgba(30,20,40,0.95)',
+            borderWidth: 1, borderColor: 'rgba(244,200,73,0.35)',
+          }}
+        >
+          <Text style={{ color: colors.honey, fontSize: 12, textAlign: 'center' }}>
+            Couldn't refresh — showing saved data
+          </Text>
+        </View>
+      )}
       <ScrollView style={{ flex: 1 }}>
         {/* Hero — extends behind status bar for edge-to-edge image */}
         <View

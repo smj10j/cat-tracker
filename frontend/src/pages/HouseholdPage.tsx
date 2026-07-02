@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useGoBack } from '../hooks/useGoBack'
+import { useConfirmDialog } from '../components/ConfirmDialog'
 import {
   getHousehold, renameHousehold, sendInvite, revokeInvite,
   changeMemberRole, removeMember,
@@ -18,6 +19,7 @@ const ROLE_DESC: Record<Role, string> = {
 
 export default function HouseholdPage() {
   const goBack = useGoBack('/')
+  const { confirm, confirmDialog } = useConfirmDialog()
   const [data, setData] = useState<HouseholdResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -107,7 +109,11 @@ export default function HouseholdPage() {
   async function handleRemove(userId: string) {
     const member = data?.members.find(m => m.user_id === userId)
     const name = member?.display_name ?? member?.email ?? 'this member'
-    if (!confirm(`Remove ${name} from this household? They'll lose access immediately.`)) return
+    if (!(await confirm({
+      title: 'Remove member',
+      message: `Remove ${name} from this household? They'll lose access immediately.`,
+      confirmLabel: 'Remove', danger: true,
+    }))) return
     try {
       await removeMember(userId)
       await load()
@@ -134,6 +140,7 @@ export default function HouseholdPage() {
 
   return (
     <div className="min-h-screen px-4 pt-6 pb-24">
+      {confirmDialog}
       {/* Header */}
       <header className="flex items-center gap-3 mb-8">
         <button onClick={goBack} className="text-ink-dim text-sm mr-1">← Back</button>

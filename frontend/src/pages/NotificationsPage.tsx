@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useGoBack } from '../hooks/useGoBack'
+import { useConfirmDialog } from '../components/ConfirmDialog'
 import { getNotifications, administerDose, skipDose, bulkDoseAction, CARE_TYPE_ICONS, type NotificationInbox, type DoseWithContext, type Medication } from '../lib/api'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { formatDueAt, formatFutureDueAt } from '@shared/lib/formatting'
@@ -140,6 +141,7 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true)
   const [acting, setActing] = useState<string | null>(null)
   const [bulkActing, setBulkActing] = useState(false)
+  const { confirm, confirmDialog } = useConfirmDialog()
 
   useEffect(() => { loadInbox() }, [])
 
@@ -175,7 +177,11 @@ export default function NotificationsPage() {
   async function handleBulk(action: 'administer' | 'skip') {
     const overdueIds = inbox?.overdue.map(d => d.id) ?? []
     if (overdueIds.length === 0) return
-    if (action === 'skip' && !window.confirm(`Dismiss all ${overdueIds.length} overdue doses?`)) return
+    if (action === 'skip' && !(await confirm({
+      title: 'Dismiss all overdue',
+      message: `Dismiss all ${overdueIds.length} overdue doses? They'll show as skipped in each item's history.`,
+      confirmLabel: 'Dismiss all', danger: true,
+    }))) return
     setBulkActing(true)
     try {
       await bulkDoseAction(overdueIds, action)
@@ -189,6 +195,7 @@ export default function NotificationsPage() {
 
   return (
     <div className="min-h-screen px-4 pt-6 pb-4">
+      {confirmDialog}
       <header className="mb-8">
         <button onClick={goBack} className="text-ink-dim hover:text-ink text-xl leading-none mb-4 block">←</button>
         <h1 className="font-display text-2xl font-bold text-ink">Reminders</h1>

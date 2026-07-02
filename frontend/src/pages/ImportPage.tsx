@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { VALID_MEASUREMENT_TYPES, VALID_UNITS } from '@shared/lib/constants'
 
 interface ImportResult { imported: number; catsCreated: string[]; errors: string[] }
 
@@ -8,6 +9,11 @@ interface PreviewRow {
   valid: boolean; error?: string
 }
 
+const TYPE_SET = new Set<string>(VALID_MEASUREMENT_TYPES)
+const UNIT_SET = new Set<string>(VALID_UNITS)
+
+// Mirrors the server-side validation in worker/src/routes/import.ts so bad
+// rows show as invalid in the preview instead of failing after submit.
 function parseCSVPreview(text: string): PreviewRow[] {
   const lines = text.trim().split('\n').filter(Boolean)
   if (lines.length < 2) return []
@@ -17,7 +23,16 @@ function parseCSVPreview(text: string): PreviewRow[] {
     const [date, cat, type, value, unit] = parts as [string, string, string, string, string]
     const num = parseFloat(value)
     if (!date || !cat) return { date, cat, type, value, unit, valid: false, error: 'Missing date or cat' }
-    if (isNaN(num) || num <= 0) return { date, cat, type, value, unit, valid: false, error: `Invalid value: ${value}` }
+    if (!TYPE_SET.has(type)) return { date, cat, type, value, unit, valid: false, error: `Unknown type: ${type}` }
+    if (!UNIT_SET.has(unit)) return { date, cat, type, value, unit, valid: false, error: `Unknown unit: ${unit}` }
+    if (isNaN(num)) return { date, cat, type, value, unit, valid: false, error: `Invalid value: ${value}` }
+    if (unit === 'scale') {
+      if (!Number.isInteger(num) || num < 0 || num > 3) {
+        return { date, cat, type, value, unit, valid: false, error: 'Scale value must be 0–3' }
+      }
+    } else if (num <= 0 || num > 200) {
+      return { date, cat, type, value, unit, valid: false, error: `Value out of range: ${value}` }
+    }
     return { date, cat, type, value, unit, valid: true }
   })
 }

@@ -4,6 +4,7 @@ import { createCat, updateCat, getCat, deleteCat, uploadCatPhoto, deleteCatPhoto
 import CatAvatar from '../components/CatAvatar'
 
 import { useGoBack } from '../hooks/useGoBack'
+import { useConfirmDialog } from '../components/ConfirmDialog'
 
 function isTempMicrochip(id: string | null | undefined): boolean {
   return !id || id.startsWith('temp-microchip-id-')
@@ -14,6 +15,7 @@ export default function AddEditCat() {
   const navigate = useNavigate()
   const isEdit = Boolean(id)
   const goBack = useGoBack(isEdit && id ? `/cats/${id}` : '/')
+  const { confirm: confirmDelete, confirmDialog } = useConfirmDialog()
 
   const [form, setForm] = useState({
     name: '', birthdate: '', breed: '', coloring: '', notes: '', sex: '', microchip_id: '', is_neutered: '',
@@ -165,7 +167,11 @@ export default function AddEditCat() {
 
   async function handleDelete() {
     if (!id) return
-    if (!confirm('Delete this cat and all their measurements? This cannot be undone.')) return
+    if (!(await confirmDelete({
+      title: 'Delete cat',
+      message: 'Delete this cat and all their measurements? This cannot be undone.',
+      confirmLabel: 'Delete', danger: true,
+    }))) return
     setDeleting(true)
     setError(null)
     try {
@@ -211,6 +217,7 @@ export default function AddEditCat() {
 
   return (
     <div className="min-h-screen px-4 pt-6">
+      {confirmDialog}
       {/* Deceased bottom sheet */}
       {deceasedSheetOpen && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setDeceasedSheetOpen(false)}>

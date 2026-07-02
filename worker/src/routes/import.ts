@@ -1,13 +1,17 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../types'
 import { ensureHousehold } from '../lib/household'
-import { LIMITS } from '../../../shared/lib/constants'
+import { LIMITS, VALID_MEASUREMENT_TYPES, VALID_UNITS as VALID_UNITS_ARRAY } from '../../../shared/lib/constants'
 
 const importRoute = new Hono<AppEnv>()
 
 const IMPORT_MAX_BYTES = 1024 * 1024 // 1 MB — SEC-06
 const MAX_CAT_NAME = LIMITS.CAT_NAME
 const MAX_NOTES = LIMITS.NOTES
+// Same allowlists as POST /cats/:id/measurements — imports must not bypass
+// measurement validation (invalid types corrupt charts and correlations).
+const VALID_TYPES = new Set<string>(VALID_MEASUREMENT_TYPES)
+const VALID_UNITS = new Set<string>(VALID_UNITS_ARRAY)
 
 // POST /api/import
 importRoute.post('/import', async (c) => {
@@ -87,6 +91,25 @@ importRoute.post('/import', async (c) => {
     const value = parseFloat(valueStr)
     if (isNaN(value)) {
       errors.push(`Row ${rowNum}: invalid numeric value "${valueStr}"`)
+      continue
+    }
+
+    // Mirror POST /cats/:id/measurements validation (SEC-05)
+    if (!VALID_TYPES.has(type ?? '')) {
+      errors.push(`Row ${rowNum}: type must be one of: ${[...VALID_TYPES].join(', ')}`)
+      continue
+    }
+    if (!VALID_UNITS.has(unit ?? '')) {
+      errors.push(`Row ${rowNum}: unit must be one of: ${[...VALID_UNITS].join(', ')}`)
+      continue
+    }
+    if (unit === 'scale') {
+      if (!Number.isInteger(value) || value < 0 || value > 3) {
+        errors.push(`Row ${rowNum}: scale value must be an integer 0–3`)
+        continue
+      }
+    } else if (value <= 0 || value > 200) {
+      errors.push(`Row ${rowNum}: value must be a positive number ≤ 200`)
       continue
     }
 

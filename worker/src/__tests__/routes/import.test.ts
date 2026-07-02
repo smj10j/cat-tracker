@@ -66,3 +66,60 @@ describe('POST /api/import', () => {
     expect(data.imported).toBe(0)
   })
 })
+
+describe('POST /api/import — measurement validation parity (WP3a)', () => {
+  beforeAll(async () => { await applySchema() })
+  beforeEach(async () => { await clearDb() })
+
+  async function importCsv(session: string, rows: string): Promise<{ status: number; imported: number; errors: string[] }> {
+    const res = await SELF.fetch('http://localhost/api/import', {
+      method: 'POST',
+      headers: { ...authedHeaders(session), 'Content-Type': 'text/plain' },
+      body: `date,cat_name,type,value,unit\n${rows}`,
+    })
+    const data = await res.json() as { imported: number; errors: string[] }
+    return { status: res.status, ...data }
+  }
+
+  it('rejects invalid measurement types', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const result = await importCsv(session, '1/15/2026,Luna,banana,9.4,lbs')
+    expect(result.imported).toBe(0)
+    expect(result.errors.some(e => e.includes('type must be one of'))).toBe(true)
+    const count = await env.DB.prepare('SELECT COUNT(*) AS c FROM measurements').first<{ c: number }>()
+    expect(count!.c).toBe(0)
+  })
+
+  it('rejects invalid units', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const result = await importCsv(session, '1/15/2026,Luna,weight,9.4,stone')
+    expect(result.imported).toBe(0)
+    expect(result.errors.some(e => e.includes('unit must be one of'))).toBe(true)
+  })
+
+  it('rejects out-of-range values', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const result = await importCsv(session, '1/15/2026,Luna,weight,999,lbs')
+    expect(result.imported).toBe(0)
+    expect(result.errors.some(e => e.includes('positive number'))).toBe(true)
+  })
+
+  it('rejects non-integer scale values but accepts valid ones', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const result = await importCsv(session, '1/15/2026,Luna,grooming,2.5,scale\n1/16/2026,Luna,grooming,2,scale')
+    expect(result.imported).toBe(1)
+    expect(result.errors.some(e => e.includes('integer 0–3'))).toBe(true)
+  })
+
+  it('imports valid rows while rejecting invalid ones in the same file', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const result = await importCsv(session, '1/15/2026,Luna,weight,9.4,lbs\n1/16/2026,Luna,banana,1,lbs')
+    expect(result.imported).toBe(1)
+    expect(result.errors.length).toBe(1)
+  })
+})

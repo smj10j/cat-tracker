@@ -63,7 +63,7 @@ measurements.post('/cats/:id/measurements', async (c) => {
     }
   } else {
     if (typeof body.value !== 'number' || body.value <= 0 || body.value > 200) {
-      return c.json({ error: 'weight value must be a positive number ≤ 200' }, 400)
+      return c.json({ error: 'value must be a positive number ≤ 200' }, 400)
     }
   }
 

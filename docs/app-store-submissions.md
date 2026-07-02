@@ -32,6 +32,7 @@ Done automatically by `scripts/submit-testflight.sh` (invoked after `scripts/bui
 - **TestFlight**: YYYY-MM-DD
 - **App Store Review**: YYYY-MM-DD (submitted)
   - **App Store Status**: In Review since YYYY-MM-DD
+  - **Outcome**: Approved (confirmed 2026-07-02 — altool rejected a new 1.0.3 TestFlight build with 'previously approved version [1.0.3]' / closed pre-release train, which only occurs post-approval)
 ```
 
 **Step 2 — When the review completes (approved or rejected):** Update the suffix and append outcome details:
@@ -94,7 +95,7 @@ iPhone 6.7" / 6.9" App Store screenshots: **1284×2778** or **1242×2688**. Resi
 - **App Store Connect**: https://appstoreconnect.apple.com/apps/6762031793/testflight/ios
 - **Status**: Submitted to TestFlight
 
-## Version 1.0.3 (Build 2026-05-05) - IN REVIEW
+## Version 1.0.3 (Build 2026-05-05) - APPROVED
 - **TestFlight**: 2026-05-05 20:08:20 (via local)
 - **Commit**: 094651d (094651d84a3fc08a4656cc9975c1c0cb66e386cc)
 - **Commit message**: care: fix Sitter view subtitle rendering as literal escape

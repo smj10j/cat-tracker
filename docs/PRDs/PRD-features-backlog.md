@@ -224,3 +224,26 @@ Design: collapsible cards or a horizontal scrolling card strip to keep it from d
 4. **Food/water intake types** — extends the core tracking loop
 5. **Measurement reminders** — drives retention
 6. **PWA manifest** — trivial effort, meaningful UX upgrade for mobile users
+
+---
+
+## Remaining scope — detailed (2026-07-02)
+
+> Per REGISTRY.md, two items remain (date-range filtering shipped via PRD-chart-time-navigation.md; §5 sharing superseded by PRD-auth/household-sharing).
+
+### §3a/§3c — Trend regression / ideal weight band
+
+**Clinical-content constraint first:** an app-supplied "ideal weight band" is a clinical claim. Per CLAUDE.md, it requires a Tier 1 citation in `docs/research/weight-thresholds.md` **before** any threshold or band ships — no such citation exists today. The spec therefore splits:
+
+**(a) Simple trend line — non-clinical, implementable now.** Least-squares linear regression over the weight points in the chart's visible window, rendered as a dashed overlay on `WeightChart` with a purely descriptive caption ("↓ 0.12 lbs/week over the last 6 weeks"). No healthy/unhealthy framing, no alert coupling.
+- Sketch: new `shared/lib/trend.ts` (`linearRegression(points: {x,y}[]): { slope, intercept, r2 }`) — deliberately **outside** `healthMetrics.ts` to keep it free of clinical entanglement; tests in `shared/__tests__/trend.test.ts`. Render in `frontend/src/components/WeightChart.tsx` (Recharts `ReferenceLine`/second `Line`) and native `app/components/LineChart.tsx` (dashed overlay path). Convert slope through `shared/lib/preferences.ts` weight-unit helpers.
+- Edge cases: <4 points in window → no trend line; windowed vs All range → compute on visible points only; huge time gaps make slope/week misleading — caption states the actual span.
+- Acceptance: dashed line + caption appear with ≥4 in-window points; slope matches a hand-computed fixture; copy contains no clinical adjectives; parity web + iOS.
+
+**(b) Ideal weight band — blocked pending a decision.** Two paths, PO to choose:
+1. **Vet/user-entered target range (recommended):** optional `target_weight_min/max` fields on the cat edit form; chart shows a shaded band; copy stays neutral ("outside your target range" — the numbers are the vet's, not the app's, so no citation is needed, but the rendering copy still must avoid clinical claims).
+2. **App-derived default band:** requires Tier 1 sourcing (candidate: WSAVA/AAHA body-condition-score guidance) documented in `docs/research/weight-thresholds.md` and the full clinical-content process before implementation. Do not build without it.
+
+### "Due for weigh-in" badge
+
+Fully specified in **PRD-ux-redesign.md §3C → "Remaining scope — detailed (2026-07-02)"** (`reminder_interval_days` on cats, home badge/nudge, notifications-inbox `weigh_in_due` section, push-cron sent-marker). Implementing that item closes this one — do not duplicate the spec here.

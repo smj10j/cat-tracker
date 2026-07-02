@@ -177,3 +177,31 @@ The iOS/Expo app (`app/`) currently only supports dark mode with hardcoded hex v
 - Custom color themes / accent colors
 - High contrast mode (OS-level high contrast is handled separately by `prefers-contrast`)
 - Per-device settings without a D1 sync (Phase C handles cross-device)
+
+---
+
+## Remaining scope — detailed (2026-07-02)
+
+### Phase C — D1 `user_preferences` sync across devices
+
+**What/why:** All settings are device-local today — web localStorage (`cat-tracker-theme` mode, `cat-tracker-theme-family`, `cat-tracker-prefs` regional overrides in `frontend/src/contexts/{Theme,Preferences}Context.tsx`) and native AsyncStorage (`whisker-theme`, `themeFamily`, `cat-tracker-prefs` in `app/contexts/`). A user with iPhone + web reconfigures theme family and regional formats twice. Sync makes settings account-level. (This also unblocks PRD-visual-identity-v2's "localStorage-only until Phase C" note and PRD-localization-preferences Phase C.)
+
+**Schema:** `ALTER TABLE users ADD COLUMN preferences TEXT;` — one JSON blob:
+```json
+{ "theme": { "mode": "dark|light|system", "family": "lamplight|..." },
+  "regional": { "weightUnit": "...", "dateFormat": "...", "timeFormat": "..." },
+  "updated_at": "2026-07-02T18:00:00Z" }
+```
+Only *explicit overrides* are stored for regional (matching the current `cat-tracker-prefs` overrides model) so locale-derived defaults keep working on new devices.
+
+**API:** fold the blob into the `GET /api/auth/me` response (zero extra round-trips at startup) + a new `PUT /api/preferences` that replaces the blob. Add the method to `CatTrackerApi` in `shared/lib/apiTypes.ts` **first** so both clients get compile errors until implemented (`frontend/src/lib/api.ts`, `app/lib/api.ts`). Server-side validation: whitelist known keys/enum values, reject blobs > ~2 KB, never trust `updated_at` for auth purposes.
+
+**Conflict resolution — last-write-wins, whole blob:** each client stamps `updated_at` when the user changes any setting. On sign-in / app foreground: fetch server blob; if `server.updated_at > local.updated_at` → apply server values to local storage; else if local has a dirty flag → PUT local. On every settings change: apply locally immediately, then debounced (~2 s) best-effort PUT. Whole-blob LWW is deliberate — per-key merging isn't worth it for a handful of settings; simultaneous edits on two devices are resolved by whichever saves last. (Decision surfaced: confirm LWW granularity.)
+
+**Offline behavior:** local storage remains the render source of truth — the theme must keep applying synchronously before first paint exactly as today (no flash), with sync reconciling afterward. Failed PUTs set a `dirty` flag in local storage and retry on next start/foreground. Signed-out users keep working purely locally (theme works pre-auth).
+
+**Migration from localStorage/AsyncStorage:** on first sign-in after deploy, if the server blob is empty and local values exist → upload local (existing users keep their settings on their primary device, and it propagates). Keep reading/writing the existing storage keys — they become the local cache of the synced blob; no key renames.
+
+**Edge cases:** account deletion drops the blob with the users row; corrupted/unknown server blob → ignore, fall back to local, overwrite on next change; a device that was offline for weeks applies LWW like any other (its stale blob loses if the server is newer); `system` mode syncs the *preference*, not the resolved light/dark value.
+
+**Acceptance:** change theme family on device A → device B reflects it after next launch/sign-in; regional override syncs the same way; offline changes persist and sync on reconnect; no theme flash on cold start (verified on both platforms); worker tests for PUT validation + `auth/me` inclusion; both API clients conform to the updated `CatTrackerApi`.

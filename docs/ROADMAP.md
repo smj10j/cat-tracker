@@ -1,6 +1,6 @@
 # Cat Tracker — Delivery Roadmap
 
-> **Status:** Active. Created 2026-07-02 from a full-codebase bug audit + PRD registry review.
+> **Status:** Active. Created 2026-07-02 from a full-codebase bug audit + PRD registry review. Updated same day after a feature-ideation pass: 9 new Draft PRDs written, 6 existing Drafts deepened, all 7 Partial PRDs given detailed remaining-scope specs (see each PRD's "Remaining scope — detailed (2026-07-02)" section).
 > **How to use:** Each work package (WP) is sized for roughly one session. Work them in order unless the product owner reprioritizes. At the start of a session, pick the first WP with unchecked items, follow the CLAUDE.md Execution Loop (TODO.md phase entry → implement → test → deploy → commit → push), and check items off **here and in TODO.md**. iOS-visible changes additionally need a TestFlight build via `/deploy`.
 
 ---
@@ -65,14 +65,16 @@
 
 - [ ] 4a. PRN administration log — explicit "gave a dose now" timestamped record for as-needed items (existing follow-up from TODO Phase 60; in approved PRD-care-extensions scope).
 - [ ] 4b. Overdue follow-up notification: push fires once at the due hour (`notification_sent_at` guard, `index.ts:181`) and never again — add a single follow-up reminder (e.g., 24h later) with its own sent-marker. Within PRD-medication-reminders approved scope.
-- [ ] 4c. Snooze / "given late" affordances on dose rows (web + iOS).
-- [ ] 4d. PRD-medication-reminders Phase C: email fallback via Resend when no push token and dose goes overdue.
-- [ ] 4e. PRD-medication-reminders Phase D: refill stock tracking UI (`doses_remaining` management on edit form) — and decrement on mark-given if not already wired.
-- [ ] 4f. Phase B (web push/VAPID) — deprioritized; iOS push already exists. Confirm with product owner before building.
+- [ ] 4c. Snooze / "given late" affordances on dose rows (web + iOS). Superset specced in PRD-actionable-notifications (Draft) — if that PRD is approved, implement its Phase A instead of a one-off here.
+- [ ] 4d. PRD-medication-reminders Phase C: email fallback via Resend when no push token and dose goes overdue. Detailed spec now in the PRD (`email_sent_at` marker, 1-hour grace, 48-hour lookback cap).
+- [ ] 4e. PRD-medication-reminders Phase D: refill stock tracking. Audit finding (2026-07-02): the edit form and refill alerts already exist — the actual gap is that `POST /api/doses/:id/administer` never decrements `doses_remaining`. Spec in the PRD.
+- [ ] 4f. Phase B (web push/VAPID) — recommend **dropping**: iOS push exists and the Phase C email fallback covers web-only users far cheaper. Awaiting product-owner confirmation (see PRD).
 
 ---
 
 ## WP5 — Finish `Partial` PRDs (P2, ~2 sessions; already-approved scope)
+
+Every item below now has an implementation-level spec in its PRD's "Remaining scope — detailed (2026-07-02)" section — file paths, edge cases, acceptance criteria.
 
 - [ ] 5a. Household sharing Phase B remainder: invite reminder email (3 days), admin notification on accept, removed-member notification. (Dialogs handled in 3c.)
 - [ ] 5b. Accessibility Phase C: CompareChart stroke-dash differentiation; STATUS_LABEL text always beside STATUS_EMOJI in InsightsPanel.
@@ -92,17 +94,47 @@
 
 ---
 
-## WP7 — New features (P3, **gated on PRD approval — do not implement until REGISTRY.md says `Approved`**)
+## WP7 — PRD review queue (P3, **gated on approval — do not implement until REGISTRY.md says `Approved`**)
 
-Ordered by likely value; each needs the product owner to flip status in `docs/PRDs/REGISTRY.md` first:
+All Draft PRDs awaiting a product-owner decision, grouped by theme and ordered by recommended priority within each group. Every one was written or substantially deepened on 2026-07-02.
 
-- [ ] 7a. Health alert acknowledgment (PRD-alert-acknowledgment, `Draft`) — pairs naturally with WP1's overdue hygiene.
-- [ ] 7b. Behavioral trend charts (PRD-behavioral-trends, `Draft`).
-- [ ] 7c. Streak & consistency tracking (spec ready in PRD-ux-redesign §3B; needs status flip).
-- [ ] 7d. Weigh-in reminders (PRD-ux-redesign §3C) — reuses WP1's scheduling substrate.
-- [ ] 7e. Device integrations Tier 1 ingest API (PRD-device-integrations, `Draft`), then HA connector / Tuya connector child PRDs.
-- [ ] 7f. AI health narrative (needs its own PRD written first).
-- [ ] 7g. Household sharing Phase 2 (PRD-household-sharing-phase2, `Draft`): ownership transfer, delete household, audit feed.
+**Care & clinical depth (strongest fit with the chronic-care audience):**
+- [ ] 7a. PRD-actionable-notifications — mark-given/snooze on the push itself + daily digest + notification prefs. Directly attacks the forgot-to-mark failure mode behind WP1.
+- [ ] 7b. PRD-vet-visits — appointments, visit history, vaccine records with reminders; Phase B document attachments.
+- [ ] 7c. PRD-lab-results — bloodwork trend tracking for CKD/hyperthyroid/diabetic cats; zero interpretation, user-entered reference ranges.
+- [ ] 7d. PRD-body-condition — WSAVA 9-point BCS as a new measurement type via the generic pipeline; cheapest of the clinical trio.
+- [ ] 7e. PRD-alert-acknowledgment — severity-rank episode model specced; pairs with WP1 overdue hygiene.
+- [ ] 7f. PRD-notes-journal — free-text observations with photos and descriptive tags, interleaved into the history timeline and vet export.
+
+**Insights & engagement:**
+- [ ] 7g. PRD-behavioral-trends — web behavior-tab charts + ordinal-correct rendering both platforms (reframed 2026-07-02: iOS already has line charts; web has none).
+- [ ] 7h. Streak & consistency tracking (PRD-ux-redesign §3B — needs status decision; gaps filled 2026-07-02).
+- [ ] 7i. Weigh-in reminders (PRD-ux-redesign §3C — detailed 2026-07-02; reuses notification substrate).
+- [ ] 7j. PRD-onboarding — first-run carousel, guided first cat, empty-state CTAs, demo cat, what's-new sheet.
+- [ ] 7k. Trend line on weight chart (PRD-features-backlog — non-clinical version implementable now; "ideal weight band" needs the vet-entered-range decision).
+
+**Reach & platform:**
+- [ ] 7l. PRD-sitter-live-link — expiring tokenized live sitter URL; Phase B sitter check-off. First unauthenticated endpoint — security section mandatory reading.
+- [ ] 7m. PRD-android — Google Play release of the existing Expo app; FCM push + build pipeline.
+- [ ] 7n. PRD-ios-widgets — WidgetKit + App Intents; requires first native Swift target, go/no-go spike first.
+- [ ] 7o. PRD-device-integrations Phase A ingest API (Tier 1), then PRD-home-assistant-connector / PRD-tuya-connector children.
+
+**Household:**
+- [ ] 7p. PRD-household-sharing-phase2 — ownership transfer, lock-out recovery, household deletion, activity feed, administered_by.
+
+---
+
+## Parking lot (no PRD yet — promote only if the product owner asks)
+
+- Offline logging queue + sync (log measurements without connectivity, e.g. inside a vet clinic).
+- AI health narrative (PRD-killer-app P7 / ux-redesign 3D — needs its own PRD before any work).
+- Apple HealthKit bridge (PRD-device-integrations Tier 2 — spike first).
+- Shelter mode (PRD-killer-app P6).
+- Apple Watch app.
+- Vendor reverse-engineered cloud clients (PetLibro/PETKIT) — policy decision documented in PRD-device-integrations §10.6.
+- Web push / VAPID (PRD-medication-reminders Phase B) — recommend dropping; see WP4f.
+
+Note: PRD-killer-app (`Under Review`) is now largely superseded by this roadmap — its only unclaimed items are Shelter mode (P6) and the AI narrative (P7), both parked above.
 
 ---
 

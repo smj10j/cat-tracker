@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | `Draft` |
-| **Last updated** | 2026-04-17 |
+| **Last updated** | 2026-07-02 |
 | **Depends on** | PRD-device-integrations.md Phase A (ingest substrate, `measurements.source`, `external_id`, internal ingest pipeline) |
 | **Related** | PRD-security-phase2.md (credential storage patterns), PRD-api-versioning.md (feature flag for gradual rollout) |
 | **Origin** | Competitive research 2026-04-17 (see PRD-device-integrations.md §10) |
@@ -243,3 +243,60 @@ Account deletion and GDPR export must cover `ha_connections` and `ha_entity_mapp
 **Phase C — Entity inference improvements** (≈2 days, follow-up)
 14. Better auto-suggest for measurement-type mapping from entity name + unit
 15. "My vendor/device isn't listed, help me map it" flow
+
+---
+
+## 11. Addendum — implementation spec gaps (2026-07-02)
+
+Closes four gaps found on review: the entity picker was described but not specified, connection-health states lacked precise transitions, the §7.1 envelope format is internally inconsistent, and there were no engineering acceptance criteria. Nothing here changes scope.
+
+### 11.1 Entity-picker UX spec (completes §3.1 steps 4–5)
+
+- **Default view:** heuristic-matched sensors only, with a "Show all sensors" toggle pinned at the bottom (proposed default for §9 Q2; PO can still override there).
+- **List item contents:** friendly name (primary), `entity_id` (secondary, monospace), current state + `unit_of_measurement`, `last_changed` as relative time. Entities whose state is `unknown`/`unavailable`/`""` render greyed with a "stale" badge — selectable, but the user is warned no data will flow until the sensor reports.
+- **Search:** search-as-you-type over friendly name + `entity_id`, client-side (the full list is fetched once via `GET .../entities`). Server proxy caps the response at 2,000 `sensor.*` entities (typical HA instances have 100–800 total entities; the cap is a safety valve, and hitting it shows a "use search in HA to trim entities" notice).
+- **Empty state (zero heuristic matches):** "We didn't find any pet-looking sensors" + Show-all CTA + docs link ("what makes an entity pet-relevant?").
+- **Already-mapped entities** show a check badge; tapping opens edit-mapping rather than creating a duplicate (backed by `UNIQUE(connection_id, entity_id)`).
+- **Re-scan button** re-fetches `/api/states`; rate-limited to 6/min per connection via the existing `rate_limits` table.
+- **Save gating:** suggested type/unit chips are prefilled (§3.1), but cat and measurement type require explicit confirmation before Save enables — never silently default the cat.
+
+### 11.2 Connection-health state machine (consolidates §3.3 + §4.2 into precise transitions)
+
+| State | Entry condition | User-visible surface | Polling behavior |
+|---|---|---|---|
+| `healthy` | Last poll succeeded | Green badge | Normal `poll_interval_s` |
+| `degraded` | ≥ 1 consecutive failed poll (timeout/unreachable/tls/parse) | Yellow badge on settings row only; no email | From 3 consecutive failures: interval ×2 per failure, cap 3600 s (§4.2) |
+| `broken` (unreachable) | 24h of continuous failures | Email (once per outage, §3.3) + red badge | Keep polling at max backoff |
+| `broken` (unauthorized) | Any 401 | Immediate email + persistent in-app banner (§3.3) | **Stop polling immediately** — see note below |
+| recovery → `healthy` | Any successful poll | Badge clears; send a "reconnected" email only if an outage email was sent | Interval and backoff reset |
+
+- **401 hard-stop rationale:** HA counts failed auth attempts and, with `ip_ban_enabled`, can auto-ban the caller's IP — retrying a dead token can convert an auth problem into a permanent unreachable-host problem (and our egress IPs are shared Cloudflare ranges). Reconnect docs must mention checking HA's `ip_bans.yaml` if reconnection still fails.
+- Add per-connection ±10% jitter when scheduling due connections inside the 5-min cron sweep to avoid synchronized herds.
+- `timeout` folds into the existing `unreachable` error code; no enum change needed.
+
+### 11.3 Envelope encryption — normative storage format + rotation runbook (corrects §7.1)
+
+§7.1 lists the D1 contents as `{ciphertext, iv, authTag, key_version}` — this **omits the wrapped DEK**. Without it the scheme is direct KEK encryption and §7.5's "deleting the row revokes access" argument fails. Normative format:
+
+- `token_ciphertext` stores a compact JSON envelope: `{ v: 1, kv: <key_version>, dek_iv, dek_ct, iv, ct }` (all byte fields base64). WebCrypto AES-GCM appends the auth tag to the ciphertext, so no separate `authTag` field.
+- **DEK:** 256-bit random per connection (`crypto.getRandomValues`). Token encrypted AES-256-GCM under the DEK with `additionalData` (AAD) = `ha_connections.id` — prevents transplanting ciphertext between rows.
+- **DEK wrapping:** AES-256-GCM under the KEK, AAD = `'ha_dek:' + connection_id`.
+- **KEK provisioning:** 32 bytes, `openssl rand -base64 32`, set via `wrangler secret put HA_TOKEN_KEK_V1` (never in `wrangler.toml` or source, per SECURITY.md principle 7). Add to the SECURITY.md secrets list at implementation.
+- **Rotation runbook (makes the §7.1 plan concrete):** (1) `wrangler secret put HA_TOKEN_KEK_V2`; deploy code reading V1+V2, writing V2. (2) Sweep cron unwraps each DEK with V1 and re-wraps with V2 — the token ciphertext itself is untouched (that is the point of envelope encryption; rotation cost is per-row DEK re-wrap, not token re-encryption). (3) When `COUNT(*) WHERE token_key_version = 1` is zero, remove the V1 binding. The §8 "token-rotation drill" tests exactly this sequence.
+- Cross-reference note: §3.1 step 3 and §4.1 point at "§7.2" for the envelope; the scheme lives in §7.1 (left un-renumbered to keep this addendum additive).
+
+### 11.4 Phase A acceptance criteria
+
+- [ ] Setup flow (§3.1) completes end-to-end against a real Nabu Casa URL **and** a self-hosted TLS instance in under 2 minutes.
+- [ ] `http://` URL rejected at create; self-signed cert fails with the explicit error + docs link (§6).
+- [ ] No API route ever returns the token after creation (asserted by integration test across all §7.3 routes).
+- [ ] Envelope crypto unit tests: round-trip, AAD mismatch fails closed, KEK V1→V2 re-wrap leaves the token decryptable.
+- [ ] State mode and delta mode emit correct measurements; counter reset emits a reset event, never a negative delta (§4.2).
+- [ ] `unknown` / `unavailable` / `""` states are dropped and counted in the per-mapping log (§4.3).
+- [ ] Dedup: two polls over an unchanged `last_changed` produce exactly one measurement row.
+- [ ] 401 halts polling immediately; email + banner fire exactly once; reconnect restores `healthy` and clears surfaces.
+- [ ] 24h-unreachable email fires exactly once per outage; recovery sends the reconnected notice.
+- [ ] Household rule enforced at write time: mapping to a cat the connecting user no longer has Contributor+ on is rejected (§6).
+- [ ] GDPR export + account deletion cover `ha_connections` and `ha_entity_mappings`; deletion destroys ciphertext (§7.5).
+- [ ] Audit entries from §7.4 written and visible via `wrangler d1 execute`.
+- [ ] All 4 test suites pass; web + iOS settings UI both shipped per the CLAUDE.md cross-platform rule.

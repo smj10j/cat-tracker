@@ -7,6 +7,22 @@
 
 ---
 
+## Phase 62: PRD ideation + flesh-out pass (docs-only, 2026-07-02)
+
+Triggered by: user asked for new feature/QoL PRDs beyond the existing set, deeper specs for unimplemented PRDs, and an updated roadmap with an approval queue.
+
+- [x] Write 9 new Draft PRDs: vet-visits, lab-results, body-condition, notes-journal, actionable-notifications, onboarding, sitter-live-link, ios-widgets, android
+- [x] Deepen 6 existing Draft PRDs: alert-acknowledgment (episode-model ack identity), behavioral-trends (reframed — web has no chart, iOS does), household-sharing-phase2 (audit-log reuse decision, lock-out recovery), device-integrations + HA + Tuya connectors (implementation-spec addenda)
+- [x] Detail remaining scope in all 7 Partial PRDs: medication-reminders (found: administer never decrements doses_remaining), household-sharing (found: reminder email must rotate invite token), ux-redesign, accessibility, usability, app-settings, features-backlog
+- [x] REGISTRY.md: 9 new Draft rows + detail sections; date bumps on 13 updated PRDs
+- [x] README.md: add docs/ROADMAP.md to Documents table
+- [x] ROADMAP.md: WP7 rewritten as full PRD review queue; parking lot added
+- [x] Commit + push
+
+Awaiting: product-owner approval decisions on the WP7 queue (see docs/ROADMAP.md).
+
+---
+
 ## Phase 61: Bug audit + delivery roadmap (docs-only, 2026-07-02)
 
 Triggered by: user reported care-item date bugs (sub-q fluids every 3 days with a past start date → permanent overdue pileup) and asked for a comprehensive multi-session roadmap.

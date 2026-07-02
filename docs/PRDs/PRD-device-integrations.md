@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | `Draft` |
-| **Last updated** | 2026-04-15 |
+| **Last updated** | 2026-07-02 |
 | **Reviewers** | Principal PM + Senior Staff Engineer — 4 passes (2026-04-15) |
 | **Supersedes** | PRD-killer-app.md P8 (Smart scale integration) |
 | **Related** | PRD-api-versioning.md, PRD-security.md, PRD-household-sharing.md |
@@ -609,3 +609,114 @@ To avoid sprawl, the following surfaced during research but are **not** decompos
 25. **Approve spin-off of `PRD-home-assistant-connector.md` and `PRD-tuya-connector.md`?** Both depend on parent Phase A and can start drafting in parallel once parent is Approved. Recommended: yes.
 26. **Reverse the "no reverse-engineered clients server-side" posture (§10.6)?** Default: no (defer until Tier 1 data proves demand). Confirm.
 27. **Marketing line timing.** Add "works with cheap devices equally well" to public copy when the Tuya connector ships, or hold until Week-12 retention gates? Recommended: ship with the connector — it is a factual capability statement, not an aggregator boast, and shouldn't provoke vendor C&D.
+
+---
+
+## 11. Phase A implementation spec (addendum — 2026-07-02)
+
+This section consolidates the Phase A decisions scattered across §3, §6, and §9 into a normative spec an engineer can build against, and closes gaps found on review against the current codebase (`shared/lib/constants.ts`, `worker/src/db/schema.sql`, `docs/SECURITY.md`). Where this section is more specific than §3 prose, this section wins. Nothing here changes scope — it makes the existing scope buildable.
+
+### 11.1 Authentication & token lifecycle (normative)
+
+- **Scheme:** `Authorization: Bearer wht_live_<43 chars base64url>` (256 bits of `crypto.getRandomValues` randomness; prefix per §3). Server stores only `sha256(token)` in `user_api_tokens.token_hash` and looks up by hash — same pattern as household invite tokens (`household_members.invite_token_hash`). No plaintext at rest, ever.
+- Missing/malformed token → `401 { "code": "token_invalid" }`. Revoked → `401 { "code": "token_revoked" }` (structured code per §3; acceptable disclosure since possession is proven). Wrong scope → `403 { "code": "scope_insufficient" }`.
+- Deprecated tokens (72h rotation grace, §3) remain valid; every response carries `Warning: 299 - "token deprecated; rotate by <ISO date>"`.
+- `last_used_at` is written at most once per minute per token (avoid a hot-row D1 write on every request).
+
+**Token management API** — session-authenticated only (`requireAuth`); ingest tokens can never manage tokens (v1 scope is `ingest:measurements` only):
+
+| Route | Purpose |
+|---|---|
+| `POST /api/api-tokens` | Create. Body `{ label, scope? }`. Returns the raw token exactly once. 11th token → `400 token_limit_reached` (cap 10 per §3). |
+| `GET /api/api-tokens` | List: `id`, `label`, `scope`, `created_at`, `last_used_at`, `state` (`active`/`deprecated`/`revoked`), last 4 chars of token. |
+| `POST /api/api-tokens/:id/rotate` | Issue replacement; old token enters `deprecated` for 72h (§3 grace rule). |
+| `DELETE /api/api-tokens/:id` | Revoke immediately (no grace). |
+| `GET /api/api-tokens/:id/activity` | Last-7-days request counts, success/error rate, top error codes (powers §3 self-serve observability). |
+
+Rate limit token-admin routes via the existing `rate_limits` table (`action = 'api_token_admin'`, 30/hour/user). Audit log: `token_created`, `token_revoked`, `token_rotated` (extends the SEC-15 action list in `docs/SECURITY.md`).
+
+**UI location:** web `/settings/api-tokens` (§3); iOS `app/app/settings/api-tokens.tsx` (Settings → API Tokens). Both platforms ship in Phase A per §9 item 4 and the CLAUDE.md cross-platform rule.
+
+### 11.2 Ingest request/response (normative)
+
+`POST /api/ingest/measurements` — request field rules:
+
+| Field | Required | Rules |
+|---|---|---|
+| `cat_id` | yes¹ | Cat UUID or `microchip_id`, resolved against cats the token owner has Contributor+ role on (§6). Unresolved/ambiguous → per-item `cat_not_found` / `cat_ambiguous`. `temp-microchip-id-*` placeholders never match (they are excluded from `idx_cats_microchip`). |
+| `measurements[]` | yes | 1–100 items (`batch_too_large` above); body ≤ 1 MB (existing import limit). |
+| `[].type` | yes | Must be in `VALID_MEASUREMENT_TYPES` → else `invalid_type`. |
+| `[].value` | yes | Finite number; per-type sanity range (§11.4) → else `value_out_of_range`. |
+| `[].unit` | yes | Per-type allowlist (§11.4) → else `invalid_unit`. Ambiguous/missing units rejected (§6). |
+| `[].observed_at` | yes | ISO 8601 with explicit offset or `Z`; naive → `timestamp_invalid`. > 7 days future or > 2 years past → `observed_at_out_of_range` (§6). |
+| `[].source` | yes | 1–100 chars, `[a-z0-9:_-]`. |
+| `[].external_id` | yes | Required on **every** ingest-token request regardless of `source` value (§3 bypass-hole rule). ≤ 200 chars → else `external_id_too_long`; absent → `external_id_required`. |
+| `[].notes` | no | ≤ 1000 chars (existing measurement limit). |
+
+¹ If §8 Q13 lands on option C, `cat_id: null` + `disambiguation_hint` becomes legal — see the schema note in §11.4.
+
+**Response semantics:**
+- Envelope-level rejections (whole request): `400` (malformed JSON, `batch_too_large`), `401`/`403` (auth/scope), `413` (body > 1 MB), `429` (`rate_limited`, with `Retry-After` ± 20% jitter per §3).
+- Otherwise `200` with per-item results. Refines the §3 example shape (additive): `{ "accepted": 97, "duplicates": 1, "rejected": 2, "items": [...] }` where each item status is `created` | `duplicate` | `error` (+ `code`). `created` items echo the stored canonical `value` + `unit` (§3 unit-normalization echo). `duplicate` items echo the existing `measurement_id`.
+- The batch executes as a single D1 transaction (§3 approach (b)); p95 SLO per §3 (< 500 ms @ 10 items, < 1500 ms @ 100).
+
+**Error-code registry (single source of truth; superset of §3):** `token_invalid`, `token_revoked`, `scope_insufficient`, `rate_limited`, `batch_too_large`, `invalid_type`, `invalid_unit`, `value_out_of_range`, `timestamp_invalid`, `observed_at_out_of_range`, `external_id_required`, `external_id_too_long`, `cat_not_found`, `cat_ambiguous`, `token_limit_reached`. New codes are additive-only per PRD-api-versioning.
+
+### 11.3 Idempotency & dedup (normative)
+
+- Dedup key: unique partial index on `(user_id, source, external_id) WHERE external_id IS NOT NULL` (§9 item 2). A replayed item returns `duplicate` + the existing `measurement_id` and writes nothing.
+- **First write wins.** The same `external_id` with a *different* payload still returns `duplicate` — ingest is insert-only; corrections happen in-app. Document this loudly in `/docs/api`: integrators must mint a new `external_id` for corrected values.
+- Retried batches are therefore fully idempotent: any mix of new/replayed items yields the same end state.
+
+### 11.4 Measurement-type mapping rules
+
+| `type` | Accepted units | Canonical stored | Sanity range (abuse guard, not clinical — no `docs/research/` citation needed) |
+|---|---|---|---|
+| `weight` | `kg`, `g`, `lb`/`lbs`, `oz` | `kg` | > 0 and ≤ 200 after conversion (matches existing server rule) |
+| `food` | `g`, `oz` | `g` | > 0 and ≤ 2000 g/event |
+| `water` | `ml`, `fl_oz` | `ml` | > 0 and ≤ 2000 ml/event |
+| `litter`, `grooming`, `activity`, `vomiting` | `scale` | `scale` | integer 0–3 (existing behavioral rule) |
+
+**Implementation gap 1 — shared constants:** `shared/lib/constants.ts` currently has `VALID_UNITS = ['lbs','kg','scale']` and the worker validates against it (`docs/SECURITY.md` § Input Validation). Phase A must add the quantitative units above as a per-type allowlist (e.g. `INGEST_UNITS_BY_TYPE`) in `shared/lib/constants.ts` so web + iOS pick up rendering automatically, and update the SECURITY.md validation table in the same change.
+
+**Implementation gap 2 — unattributed events:** `measurements.cat_id` is `NOT NULL` in `worker/src/db/schema.sql`. §1.5 option C (`cat_id: null` events) therefore requires either relaxing the column to nullable (touches every downstream consumer) or a separate `ingest_events_unattributed` staging table drained by the future attribution UI. **Recommendation: staging table** — it preserves `measurements` invariants and matches the §6 rule that unconfirmed events are excluded from health alerts. Must be decided before the Phase A migration is written (see Q29).
+
+**Implementation gap 3 — event-count streams:** litter boxes and feeders emit visit/trigger *counts*, which do not fit the behavioral 0–3 `scale`. See Q28.
+
+### 11.5 Rate limits (normative summary)
+
+| Limit | Value | On breach |
+|---|---|---|
+| Per token per minute | 120 (§3 secondary cap) | `429` + `Retry-After` (±20% jitter) |
+| Per token per day | 5000 default, configurable (§3) | `429` + email to owner (max 1 email/day) |
+| Batch size | 100 items | `400 batch_too_large` |
+| Body size | 1 MB | `413` |
+| Backfill grace | First 24h after token creation: daily cap waived; per-minute cap still applies | (only if §8 Q10 approved) |
+
+Counter storage: evaluate KV/Durable Object per §3 second-pass concern; if D1 `rate_limits` is retained, extend it to support a per-token key and document the write-QPS ceiling.
+
+### 11.6 Phase A acceptance criteria
+
+Phase A is done when all of the following hold (in addition to §9 items 1–8):
+
+- [ ] Token CRUD routes live per §11.1; raw token displayed exactly once; 10-token cap enforced; audit rows written.
+- [ ] Ingest endpoint enforces every rule in §11.2–§11.5; an integration test exists for **each** error code in the registry.
+- [ ] Replaying a full batch (same `external_id`s) creates zero rows and returns per-item `duplicate` with existing ids.
+- [ ] Canonical-unit echo verified: POST `lb` → response and stored row in `kg`.
+- [ ] Naive timestamp rejected; +8-day-future and 2.5-year-past timestamps rejected.
+- [ ] 121st request in a minute → `429` with `Retry-After`; daily-cap breach emails once.
+- [ ] Cross-user probe fails closed: user B's token writing to user A's cat → per-item `cat_not_found` (never 403, per SECURITY.md fail-closed).
+- [ ] Revoked token rejected within 60 s; rotated token works for 72h with `Warning` header, then `401`.
+- [ ] GDPR export includes `source`, `external_id`, and `user_api_tokens` metadata (label/timestamps, never hashes); account deletion removes all of it (§6).
+- [ ] `wht_live_` prefix registered with GitHub secret scanning; `docs/API.md` ingest section + HA blueprint published.
+- [ ] Activation funnel instrumented from day one (§7): token-creation → first-successful-measurement.
+- [ ] All 4 test suites pass and both platforms deployed per CLAUDE.md.
+
+### 11.7 Consolidated open questions
+
+The full list is §8 Q1–Q24 plus §10.9 Q25–Q27, plus two new questions from this addendum:
+
+28. **Event-count unit for device streams.** Litter boxes/feeders emit visit counts, which don't map onto the behavioral 0–3 `scale`. Add a `count` unit for `litter`/`activity` ingest (aggregated to daily views in UI), or restrict v1 ingest to the quantitative types (weight/food/water)? Recommended: add `count` — restricting silently drops the litter-box use case §2.1 markets.
+29. **Unattributed-event storage (refines Q13).** If option C is approved: nullable `measurements.cat_id` vs. a separate staging table? Recommended: staging table (§11.4 gap 2).
+
+**Phase-A-blocking subset** — these must be answered before implementation starts; everything else can land later without rework: **Q1** (no-password stance), **Q5** (persona), **Q9** (species drop), **Q10** (backfill grace), **Q13 + Q29** (unattributed storage), **Q14** (canonical units), **Q23** (activation instrumentation), **Q28** (count unit). If Phase A+E ships in parallel, add **Q19–Q21** and **Q24**.

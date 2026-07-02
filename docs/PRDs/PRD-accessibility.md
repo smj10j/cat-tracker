@@ -167,3 +167,32 @@ The one legitimate exception is print-only content in `CatExportPage.tsx` where 
 - This PRD does not require a third-party accessibility audit
 - Does not require ARIA live region for chart updates (charts are supplementary; the text summary is the primary signal)
 - Does not require high-contrast mode (OS-level high contrast is respected by `prefers-contrast` media query — a future enhancement)
+
+---
+
+## Remaining scope — detailed (2026-07-02)
+
+> Phases A + B shipped (see REGISTRY.md). Two Phase C items remain. Item 9 (concern-preset "!" prefix) already shipped with Phase B.
+
+### C-10 — CompareChart stroke-dash patterns per cat
+
+**What/why:** Multi-cat lines are differentiated by color only (`frontend/src/pages/CompareChart.tsx` ~line 295: `stroke={lineColor}` from `CHART_LINE_COLORS`, no `strokeDasharray`). Deuteranopia/protanopia users can't tell cats apart.
+
+**Implementation sketch:**
+- Add `CHART_LINE_DASHES` beside `CHART_LINE_COLORS` in `shared/lib/constants.ts` (e.g. `[undefined, '6 3', '2 3', '8 3 2 3', '4 2']`), indexed by the same cat-array position `i` the color code uses (stable even when cats are toggled off).
+- Web: pass `strokeDasharray={CHART_LINE_DASHES[i % CHART_LINE_DASHES.length]}` on each `<Line>` in `CompareChart.tsx`; update the per-cat legend/toggle chips to render a small inline SVG line sample (color + dash) instead of a color-only swatch.
+- Native (cross-platform rule): `app/app/(tabs)/compare.tsx` uses `app/components/LineChart.tsx`, which supports `seriesColors` but not dashes — add a `seriesDashes?: Record<string, string>` prop applied to each SVG `<Path strokeDasharray>`, plus the same legend sample.
+
+**Edge cases:** status-emoji dots on weight lines are unaffected; first cat stays solid (`undefined`); dash spacing must remain legible at `strokeWidth 2.5`.
+
+**Acceptance:** with 2+ cats enabled, every line is distinguishable in a grayscale screenshot; legend shows the dash sample per cat; identical behavior web + iOS; shared constants test updated.
+
+### C-11 — STATUS_LABEL always beside STATUS_EMOJI in InsightsPanel
+
+**What/why:** The InsightsPanel health headline shows the status emoji + a color-tinted sentence but no `STATUS_LABEL` text badge (`frontend/src/components/InsightsPanel.tsx` ~lines 148–165; native `app/components/InsightsPanel.tsx:102` identical pattern). The tier name should be explicit text, not inferred from color/emoji.
+
+**Implementation sketch:** add a small pill rendering `STATUS_LABEL[status]` next to the status icon in the health headline on both platforms — reuse the pill styling already proven in the CatProfile hero (`frontend/src/pages/CatProfile.tsx` ~lines 397–401: label text on `${statusColor}25` background with `${statusColor}50` border). Mark the emoji `aria-hidden` so screen readers announce the label text once.
+
+**Edge cases:** long labels ("Concerning") at 375px — pill wraps below the icon rather than truncating; the ok-status panel hides the health headline entirely (no change needed there).
+
+**Acceptance:** every non-ok InsightsPanel headline shows the text label on web and iOS; VoiceOver reads the label; no horizontal overflow at 375px; component tests assert the label renders for each status tier.

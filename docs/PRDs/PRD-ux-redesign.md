@@ -419,3 +419,56 @@ Based on the analysis, several aspects of our design are already superior. Expli
 ---
 
 *This PRD is a Draft. Do not implement any items until the product owner reviews, selects which proposals to approve, and moves the status to Approved.*
+
+---
+
+## Remaining scope — detailed (2026-07-02)
+
+> Per REGISTRY.md the remaining items are 2E, 3B, 3C, 3D. Phases 1–2 and 3A shipped (hero, detail icons, Care Schedule, tab reorg, daily check-in).
+
+### 2E — Photo gallery / timeline (minimal viable version)
+
+**What/why:** One profile photo exists today; owners want a chronological gallery. Minimal version reuses the proven R2 pipeline: `PHOTOS` bucket binding (`cat-tracker-photos`), public base URL `PHOTOS_BASE` and the upload pattern in `worker/src/routes/cats.ts:259-300`, plus `CatAvatar`/crop patterns from PRD-cat-photos.
+
+**Implementation sketch:**
+- D1 table `cat_photos` (`id`, `cat_id` FK CASCADE, `url`, `caption TEXT NULL`, `taken_at TEXT`, `created_at`) — D1 metadata beats R2 `list()` for captions and ordering.
+- Worker (add methods to `shared/lib/apiTypes.ts` first): `POST /api/cats/:id/photos` (Editor role, multipart like the existing photo route; R2 key `cats/{id}/gallery/{uuid}.jpg`; reject the 21st photo with 400 per the 20-photo cap), `GET /api/cats/:id/photos` (any member), `DELETE /api/cats/:id/photos/:photoId` (Editor; delete R2 object + row).
+- Client: skip the square-crop modal for v1 — downscale longest edge to ~1200px, JPEG q0.85, same server-side size limit as the profile photo.
+- UI: 3-column grid section on the **About** tab (`frontend/src/pages/CatProfile.tsx`; native `app/app/cats/[id]/index.tsx`); tap → full-screen viewer with date/caption; delete from viewer; optional "Set as profile photo" action re-uses the existing profile-photo endpoint.
+- Cat deletion: gallery rows cascade, but R2 objects don't — extend the cat delete handler to remove `cats/{id}/gallery/*` objects.
+
+**Edge cases:** 20-photo cap needs clear UI messaging; deceased cats keep a read-only gallery (nice on the memorial page, not required for v1); concurrent uploads racing the cap (COUNT check is best-effort — acceptable).
+
+**Acceptance:** Editor can upload/caption/delete, Viewer can only view; 21st upload rejected with a clear error; photos render on both platforms; worker tests for all three routes.
+
+### 3B — Streak & consistency tracking (spec verification + gap fill)
+
+The §3B spec above is largely complete (definition, badges, summary card, heatmap, milestones). **Gaps found on verification, now filled:**
+
+1. **Per-cat vs per-user:** cat card badge = per-cat streak (distinct local calendar days with ≥1 measurement of *any* type for that cat). Home "Your streak" summary = per-user (≥1 measurement across any non-deceased cat that day).
+2. **Timezone / "logged today":** bucket `measurements.measured_at` into **device-local** calendar days using `parseLocalDate` from `shared/lib/dates.ts` (streaks are computed client-side; the device timezone is the honest frame for "did I log today"). A 23:50 entry counts for that day only; DST handled by native Date semantics — no manual offsets.
+3. **Shared lib (cross-platform rule):** implement `shared/lib/streaks.ts` — e.g. `computeStreak(localDays: string[], today: string): { current: number; longest: number; lastLoggedDaysAgo: number }` — with tests in `shared/__tests__/streaks.test.ts`; both `frontend/src/pages/Home.tsx` and `app/app/(tabs)/index.tsx` import it. No new API or DB (confirmed: computable from existing measurements).
+4. **Grace period (decision surfaced):** the "log double the next day" rule adds hidden-state complexity. Recommended simplification: no special rule — the check-in date picker already allows backfilling yesterday, and a backfilled day is simply no longer a gap. PO to confirm dropping the "double" mechanic.
+5. **Display surfaces:** Home cat cards + summary card (both platforms); milestone toast on the check-in confirmation; the 90-day heatmap in CatProfile Health tab is **optional/deferrable** if scope is tight.
+6. **Exclusions:** deceased cats excluded from badges and the user streak.
+
+**Acceptance:** streak values match hand-computed fixtures including a DST-boundary case; identical results web vs iOS; badge states (active fire vs "Last logged N days ago") render per spec; zero backend changes.
+
+### 3C — Weigh-in reminders (`reminder_interval_days`)
+
+**What/why:** Weight is the highest-value, highest-friction measurement; a per-cat cadence nudge closes the loop. Also closes PRD-features-backlog §3b and the "due for weigh-in" badge.
+
+**Implementation sketch:**
+- Migration: `ALTER TABLE cats ADD COLUMN reminder_interval_days INTEGER;` (NULL = off). UI presets 7/14/21/30 on the cat edit form (`frontend/src/pages/AddEditCat.tsx`, `app/app/cats/[id]/edit.tsx`). **Decision surfaced:** default NULL (opt-in, no surprise pushes for existing users — recommended) vs default 14 as §3C originally proposed.
+- Plumbing: add the field to `shared/lib/types.ts` `Cat`, and to GET/POST/PUT in `worker/src/routes/cats.ts`.
+- Overdue logic (shared helper, e.g. in `shared/lib/streaks.ts` or `formatting.ts`): overdue when `now - MAX(measured_at WHERE type='weight') > interval`; a cat with no weights ever anchors on `created_at`.
+- Surfaces: (a) Home nudge card + cat-card badge (client-side, both platforms); (b) check-in screen nudge ("It's been 16 days since you weighed Luna"); (c) **notifications inbox** — extend `GET /api/notifications` (`worker/src/routes/medications.ts`) with a `weigh_in_due` section (cats where interval set, not deceased, overdue) rendered in `NotificationsPage.tsx` / `app/app/notifications.tsx` with a "Log weight" CTA.
+- **Push cron:** in `worker/src/index.ts` `scheduled()` (hourly), send an Expo push to the owner's `device_tokens` when a cat becomes overdue. Needs a sent-marker to avoid hourly spam: `ALTER TABLE cats ADD COLUMN weigh_in_reminder_sent_at TEXT;` — re-notify only when the marker is older than `reminder_interval_days` (max one push per cat per interval). Clear the marker when a new weight measurement is posted (measurements route). Fire near the user's local morning using `users.timezone` (fallback: 17:00 UTC).
+
+**Edge cases:** deceased cats excluded everywhere; household cats notify `cats.user_id` owner only in v1 (matches medication push semantics); disabling the interval clears badges and stops pushes; interval shortened mid-cycle re-evaluates immediately.
+
+**Acceptance:** badge/inbox appear exactly when overdue and disappear after a weight is logged; at most one push per cat per interval; shared overdue helper unit-tested; worker inbox test updated.
+
+### 3D — AI Health Narrative
+
+**Not specified here.** Needs its own detailed PRD (prompt design, caching, cost controls, disclaimer/clinical-content review against `docs/research/` standards, and Claude API key management) before any implementation — consistent with REGISTRY.md's "Planned (no PRD written)" entry. Do not implement from this document.

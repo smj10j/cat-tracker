@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | `Draft` |
-| **Last updated** | 2026-04-17 |
+| **Last updated** | 2026-07-02 |
 | **Depends on** | PRD-device-integrations.md Phase A (ingest substrate), PRD-device-integrations.md §10.2 (Tuya OAuth2 reachability finding) |
 | **Related** | PRD-security-phase2.md (token lifecycle patterns), PRD-household-sharing.md (who writes to which cat) |
 | **Origin** | Competitive research 2026-04-17 (see PRD-device-integrations.md §10) |
@@ -252,3 +252,78 @@ Note: the audience for this connector **may not overlap** with the HA connector 
 17. Treater + cat-flap categories (if user demand appears)
 18. Optional: Pulsar message subscription for real-time events
 19. Per-cat scale attribution UI
+
+---
+
+## 11. Addendum — implementation spec gaps (2026-07-02)
+
+Closes four gaps found on review: the §3.3 category table omits litter boxes and hides a feeder unit ambiguity, the ~30-day re-auth moment was flagged as a risk but not specified as a flow, region selection lacked a recovery path, and there were no engineering acceptance criteria. Nothing here changes scope except the recommended litter-box promotion (flagged as new open question Q8).
+
+### 11.1 Category → measurement mapping completeness (corrects §3.3 / §4.4)
+
+- **Litter boxes are missing from §3.3 entirely.** Tuya has a smart litter box / "pet toilet" category (believed `msp` — confirm the exact category code and DP schema in the Tuya IoT console at implementation). Litter events (visit timestamps, and per-visit cat weight on some SKUs) map to `litter` and `weight`. This is the single highest-clinical-value Tuya device class — weight-per-visit is the same signal Petivity and Litter-Robot monetize — and it should ship in the v1 normalizer set alongside `cwwsq`/`cwy`/`qp`, or be explicitly deferred with rationale (**new Q8, §11.5**).
+- **Feeder portion ambiguity (`cwwsq`):** many firmwares report `feed_report` in *portions* (dispenser slots), not grams; grams-per-portion varies by hopper and kibble. The mapping UI must include a required "grams per portion" field whenever the DP reports portions (stored on the mapping row, e.g. `portion_grams REAL`); emitted `food` value = portions × factor. Assuming grams silently corrupts food trends.
+- **Scale (`qp`) transients:** pet scales emit transient readings while the animal settles. The normalizer takes the stabilized-weight DP where the device exposes one, else the last reading per weigh session; dedup by event timestamp.
+- **DP variance rule:** DP codes differ per firmware even within a category. Normalizers key on `(tuya_category, dp_code)`; unknown DPs are logged and surfaced in the debug UI (§4.4). Verify each launch category against ≥ 2 physical devices before ship — budget ≈ $150 of test hardware (one Tuya feeder, fountain, scale, litter box) as a Phase A line item.
+
+Revised v1 coverage (supplements §3.3):
+
+| Tuya category | Device | Measurement(s) | v1? |
+|---|---|---|---|
+| `cwwsq` | Feeder | `food` (g via portion factor) | yes |
+| `cwy` | Fountain | `water` (ml) only if a consumption DP exists (§4.4) | yes |
+| `qp` | Scale | `weight` (kg) | yes |
+| `msp` (verify code) | Litter box | `litter` event + per-visit `weight` (SKU-dependent) | **recommended yes** (Q8) |
+| `cwt` | Treater | `food` | v2 |
+| `mzj`/`bgl`, `tzc3`, `sp` | Flap, collar, camera | — | out of scope (§3.3) |
+
+### 11.2 Re-auth UX at refresh-token expiry (completes §4.5 / §6)
+
+**Timeline:**
+- **Day 25:** Resend email "Reconnect Smart Life in the next 5 days" with deep link (§6 mitigation, now concrete).
+- **Day 28:** push notification (existing `device_tokens` infra) + persistent in-app banner, web and iOS.
+- **Expiry or 3rd consecutive refresh failure:** `state = 'reauth_required'`; polling pauses; banner becomes "Reconnect now — data paused since ⟨date⟩".
+
+**Reconnect flow:**
+- The link opens the same OAuth consent flow (§4.1) carrying `reconnect=<connection_id>` in the `oauth_states` row.
+- On callback: if the returned `tuya_uid` matches the existing connection, swap tokens in place — mappings, device list, and measurement history are all preserved; audit `tuya_reconnected` (add to §7 list).
+- If the `tuya_uid` differs: error "This is a different Smart Life account", with a choice to cancel or create a new connection (the old one stays `reauth_required`).
+- **Gap recovery:** the first poll after reconnect fetches device logs from `last_ok_at` forward — within Tuya's 30–90-day retention (§3.4) a lapse of days loses nothing, and dedup makes replays safe.
+- Connections are **never auto-deleted** on expiry; they remain `reauth_required` until the user reconnects or disconnects. Nag emails cap at 2 per lapse (avoids the notification-fatigue failure mode in parent PRD §6).
+
+### 11.3 Regional DC selection UX (completes §4.1 step 2)
+
+- **Picker copy:** "Where did you create your Smart Life account? Usually the region you lived in when you first signed up — not where you are now." The likely option is pre-highlighted from device locale/timezone but the user always confirms — this reconciles §4.1 ("default inferred") with §6 ("user-chosen, not auto-inferred"): we infer the *default*, the user makes the *choice*.
+- **Region → endpoint table** (verify against current Tuya docs at implementation — the EU split in 2024 and endpoints have churned):
+
+| Picker option | `region` value | OpenAPI endpoint (verify) |
+|---|---|---|
+| United States (West) | `us` | `openapi.tuyaus.com` |
+| United States (East / Azure) | `us-east` | `openapi-ueaz.tuyaus.com` |
+| Central Europe | `eu-central` | `openapi.tuyaeu.com` |
+| Western Europe | `eu-west` | `openapi-weaz.tuyaeu.com` |
+| China | `cn` | `openapi.tuyacn.com` |
+| India | `in` | `openapi.tuyain.com` |
+| Singapore | `sg` | (verify current endpoint) |
+
+  Note the §4.2 schema enum lists 6 values while §3.2 counts 7 DCs (US East/West collapsed) — align the enum with the final endpoint list when the migration is written.
+- **Mismatch recovery:** when consent or the token exchange fails with a region error, show "We couldn't find your Smart Life account in ⟨region⟩ — try ⟨next most likely⟩?" with one-tap retry that cycles the remaining DCs, preserving the user's place in the flow. Log `tuya_region_mismatch` (already in §7).
+- `region` is immutable on a connection; changing region = disconnect + reconnect (document in settings copy).
+
+### 11.4 Phase A acceptance criteria
+
+- [ ] OAuth round-trip green against the Tuya sandbox on the US DC; `oauth_states` CSRF state consumed atomically (SECURITY.md pattern).
+- [ ] Tokens envelope-encrypted using the normative format in PRD-home-assistant-connector §11.3 (wrapped DEK, AAD = connection id, `TUYA_TOKEN_KEK_V1` via `wrangler secret put`); no route ever returns token material.
+- [ ] Access token refreshed when < 10 min to expiry; 3 consecutive refresh failures → `reauth_required` + email + banner (§4.5).
+- [ ] Re-auth flow preserves mappings and history; `tuya_uid` mismatch shows the correct error path (§11.2).
+- [ ] Post-reconnect backfill from `last_ok_at` works; replayed events dedup to zero new rows.
+- [ ] Normalizer unit tests per launch category, including portion-factor math and unknown-DP drop+log; each category verified against ≥ 2 physical devices.
+- [ ] Wrong-region flow surfaces the recovery UI and writes `tuya_region_mismatch`.
+- [ ] Request-budget telemetry live with the 60% alert (§6).
+- [ ] GDPR export + account deletion cover `tuya_connections` and `tuya_device_mappings`; disconnect best-effort revokes at Tuya (§7).
+- [ ] Legal memo + privacy policy update complete before public launch (§9 Q2).
+- [ ] All 4 test suites pass; web + iOS settings UI shipped, including the iOS OAuth deep-link callback (§4.6).
+
+### 11.5 New open question (append to §9)
+
+8. **Litter-box category in v1.** Promote the Tuya litter-box category (§11.1) into the v1 normalizer set (4 categories instead of 3, ≈ +2 days)? Recommended: yes — per-visit weight is the highest-clinical-value signal in the Tuya ecosystem and the strongest overlap with the chronic-care segment; shipping feeders/fountains without litter boxes underserves the exact audience §1 targets.

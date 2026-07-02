@@ -251,3 +251,39 @@ The most important single piece of information — the health status and any urg
 - Every disabled interactive element explains its prerequisite either inline or via adjacent help text
 - Every API error includes a suggested recovery action
 - The current health status and latest weight are visible on CatProfile Health tab without scrolling on a 375px screen
+
+---
+
+## Remaining scope — detailed (2026-07-02)
+
+> Phases A + B shipped (see REGISTRY.md). Three Phase C items remain.
+
+### C-8 — Shared `<LoadingShell>` component
+
+**What/why:** Loading is still ad hoc — `NotificationsPage.tsx` renders inline "Loading…" (~line 187), `CatProfile.tsx` has its own skeleton, other pages flash empty content. One component ends the inconsistency.
+
+**Implementation sketch:** create `frontend/src/components/LoadingShell.tsx` — centered spinner + optional label, `role="status" aria-live="polite"`, generous `py-16` so content doesn't jump when data lands. Replace the initial-load branches in `CatProfile.tsx`, `NotificationsPage.tsx`, `CatExportPage.tsx`, `DailyCheckin.tsx`, `HouseholdPage.tsx`, `SitterView.tsx`. Scope is web (this PRD predates the app); check the native equivalents use a consistent `ActivityIndicator` pattern and file a parity note if not.
+
+**Edge cases:** keep CatProfile's hero skeleton (it prevents a large layout shift) — LoadingShell is for pages without a bespoke skeleton; don't show LoadingShell during background refetches, only initial load.
+
+**Acceptance:** every data-fetching page shows LoadingShell (or an intentional skeleton) on initial load; `role="status"` present; no empty-card flash under network throttling.
+
+### C-9 — CatProfile empty-state CTA
+
+**What/why:** `CatProfile.tsx` ~line 512 shows plain text "No {chartTab} measurements yet" (and ~line 104 "No care items tracked yet.") with no action — a dead end for new users.
+
+**Implementation sketch:** replace with one-line explanation + a distinct, tappable CTA (min-h 44px): "No weight measurements yet — **+ Add first weight**", opening the existing add-measurement flow pre-set to the active tab's type; care section gets "**+ Add care item**" linking to the care item form. Apply the same pattern on native `app/app/cats/[id]/index.tsx` (cross-platform rule).
+
+**Edge cases:** Viewer-role household members can't add — show the explanation without the CTA; deceased cats (memorial context) show no CTA.
+
+**Acceptance:** each empty tab/section shows a styled CTA that opens the correct form with the type pre-selected; hidden for Viewer role; component test asserts CTA presence per tab.
+
+### C-10 — Health status visible without scrolling at 375px
+
+**What/why:** Status must be legible the instant the profile opens. Today the hero (42vh, max 380px — `CatProfile.tsx:277`) already contains a `STATUS_LABEL` pill (~lines 397–401), **but only when a latest weight exists and there are ≥2 weight measurements** — cats with 0–1 weights show no status at all, and the InsightsPanel below can push the chart under the fold.
+
+**Implementation sketch:** (a) always render a status chip in the hero whenever `assessHealth` yields an assessment — including "Stable"; cats with no weight data get a neutral "No weight data" chip (doubling as a nudge); (b) verify at 375×667 that hero + tab bar leave the chip fully visible with zero scroll (it's inside the hero, so this holds as long as the hero max-height stays ≤380px — add that constraint to the manual QA checklist); (c) confirm InsightsPanel patterns default to collapsed (PRD-profile-clarity behavior) so the Health tab's alert headline stays near the top.
+
+**Edge cases:** very long cat names truncate (already `truncate`) without pushing the chip off-screen; urgent pulse animation respects `prefers-reduced-motion` (already system-wide per Visual Identity v2).
+
+**Acceptance:** at 375×667, STATUS_LABEL (or the neutral chip) + latest weight are visible without any scrolling for every cat state (0, 1, ≥2 weight measurements); manual QA checklist entry added; jsdom test asserts the chip renders in all three data states.

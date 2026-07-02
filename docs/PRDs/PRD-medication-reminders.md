@@ -408,3 +408,45 @@ CREATE TABLE push_subscriptions (
 ### Phase D — Refill tracking
 1. Worker: refill alert logic in cron
 2. Frontend: doses_remaining management on medication edit form
+
+---
+
+## Remaining scope — detailed (2026-07-02)
+
+> Appended after code review. Phase A is live. The context has changed since this PRD was written: **native iOS push already ships** — the hourly cron (`worker/wrangler.toml` `crons = ["0 * * * *"]`, handler in `worker/src/index.ts` `scheduled()`) sends Expo push for doses due in the current hour via `worker/src/lib/push.ts`, using the `device_tokens` table and a `notification_sent_at` marker on `medication_doses`. The Phase B/C designs below are updated for that reality.
+
+### Phase B — Web Push (VAPID / service worker) — **recommend deferring**
+
+**What/why:** Browser push for users without the iOS app. Original rationale (no push channel at all) no longer holds: iOS users get native Expo push today. Web push would only serve Android-PWA and desktop-browser users, and Phase C email fallback covers reminder *delivery* for them at a fraction of the cost. **Assessment: not currently worth building.** Recommend implementing Phase C first and revisiting only if `version_log` / usage data shows meaningful web-only reminder users.
+
+**Sketch (if built):** Expo's push service does not deliver to browsers, so this is a parallel channel: VAPID keypair as Worker secrets + JWT signing via `crypto.subtle` in a new `worker/src/lib/webpush.ts`; `push_subscriptions` table (schema already in this PRD — note `device_tokens.platform` already allows `'web'` and SEC-14 validation anticipates web token formats, but the Web Push subscription object needs `endpoint/p256dh/auth`, so the dedicated table is still right); `worker/src/routes/push.ts` for `/api/push/*`; `frontend/src/sw.ts` service worker + permission flow; a second send branch in `scheduled()` beside the Expo branch.
+
+**Edge cases:** 404/410 from push service → delete subscription row; user with both native token and web subscription must not get duplicates (send web only when no iOS token, or dedupe by `notification_sent_at`); Safari desktop unsupported.
+
+**Acceptance:** dose due in current hour fires a browser notification on Android Chrome PWA; clicking opens `/notifications`; unsubscribe deletes the row; no double-notification for users who also have the iOS app.
+
+### Phase C — Email fallback via Resend
+
+**What/why:** Users with no push token (web-only users, or iOS users who declined notifications) currently discover overdue doses only by opening the app. Send a fallback email when a dose goes overdue and the owner has no push channel. Reuses `sendEmail()` in `worker/src/lib/email.ts` (Resend, `Whisker Health <noreply@01j.me>`).
+
+**Sketch:**
+- Migration (`worker/src/db/schema.sql`, idempotent): `ALTER TABLE medication_doses ADD COLUMN email_sent_at TEXT;` and `ALTER TABLE users ADD COLUMN email_reminders INTEGER NOT NULL DEFAULT 1;`
+- Cron (`worker/src/index.ts`, after the push block): select doses where `due_at < now - 1 hour` (grace so push gets first shot) `AND due_at > now - 48 hours` (cap lookback; prevents mass-mailing historic backlog on first deploy) `AND administered_at IS NULL AND skipped = 0 AND notification_sent_at IS NULL AND email_sent_at IS NULL AND m.is_active = 1`, join `users` on `m.user_id`; drop users who have any `device_tokens` row or `email_reminders = 0`; group into **one digest email per user per run** (cat • medication • was-due time, link to `/notifications`); set `email_sent_at` on all included doses only after a successful send.
+- Settings: "Email reminders" toggle on web `frontend/src/pages/SettingsPage.tsx` and native `app/app/settings.tsx`; API method added to `shared/lib/apiTypes.ts` first (or fold into the PRD-app-settings Phase C preferences blob — coordinate to avoid two prefs endpoints).
+
+**Edge cases:** deceased cats already excluded (`is_active = 1`; meds auto-deactivated); household sharing — email goes to `medications.user_id` only, matching current push behavior (household-wide notify is PRD-household-sharing-phase2 scope); Resend failure → `email_sent_at` stays NULL, retried next hour; user whose stale token was just pruned becomes email-eligible the following hour.
+
+**Acceptance:** overdue dose + no device token ⇒ exactly one digest email listing all newly overdue doses; never a second email for the same dose; no email when push was already sent (`notification_sent_at` set); opt-out honored; worker tests in `worker/src/__tests__/` cover digest grouping, grace window, and idempotency.
+
+### Phase D — Refill stock tracking
+
+**What/why — scope is smaller than the phase title suggests.** Verified 2026-07-02: the edit form **already** manages `doses_remaining` + `refill_alert_threshold` (`frontend/src/pages/MedicationFormPage.tsx:367,378` via `shared/lib/careItemForm.ts`; native parity in `app/app/cats/[id]/care-item.tsx`), and `GET /api/notifications` already returns `refill_alerts`. The actual gap: **`POST /api/doses/:id/administer` does not decrement `doses_remaining`** (`worker/src/routes/medications.ts` administer handler), so the counter is manual-only and drifts immediately.
+
+**Sketch:**
+- Worker administer handler: decrement only on the un-administered → administered transition (the handler already fetches the dose; check `administered_at IS NULL` before updating), then `UPDATE medications SET doses_remaining = MAX(doses_remaining - 1, 0) WHERE id = ? AND doses_remaining IS NOT NULL`. Skip must NOT decrement; re-administering an already-given dose must not double-decrement.
+- Refill quick action: "+ Add refill" on the care item form / medication section (web + native) that PUTs `doses_remaining = current + N` via the existing PUT endpoint — no new API.
+- Out-of-stock state: inbox refill query requires `doses_remaining > 0`; add a zero-stock variant ("Out of {name} — refill before the next dose") or change the bound to `>= 0` with distinct copy.
+
+**Edge cases:** PRN/`as_needed` items excluded (stock fields already nulled by `asNeeded` logic); a household Contributor marking given decrements the shared counter (correct — stock is per-medication, not per-user); decrement crossing the threshold surfaces the refill alert on next inbox fetch (no push for refill in this phase).
+
+**Acceptance:** marking given decrements by exactly 1, never below 0, never twice for one dose; skip leaves stock unchanged; refill alert appears at `doses_remaining <= refill_alert_threshold` and an out-of-stock message at 0; tests added to `worker/src/__tests__/routes/medications.test.ts`.

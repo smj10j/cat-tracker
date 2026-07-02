@@ -377,6 +377,7 @@ Thresholds follow [AAFP](https://aafponline.org) and [WSAVA](https://wsava.org) 
 | Document | Purpose |
 |---|---|
 | [`docs/PRDs/REGISTRY.md`](docs/PRDs/REGISTRY.md) | Canonical index of all product requirements |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | Delivery roadmap — prioritized work packages across sessions |
 | [`docs/TDD/README.md`](docs/TDD/README.md) | Technical design docs: web architecture and cross-platform plan |
 | [`docs/research/README.md`](docs/research/README.md) | Veterinary evidence base and sourcing standards |
 | [`docs/API.md`](docs/API.md) | Full API specification |

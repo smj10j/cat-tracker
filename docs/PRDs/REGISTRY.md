@@ -10,7 +10,7 @@
 | PRD File | Title | Status | Last Updated |
 |----------|-------|--------|--------------|
 | [PRD-mvp.md](PRD-mvp.md) | MVP: Cat Tracking Core | `Implemented` | 2026-03-06 20:05 |
-| [PRD-features-backlog.md](PRD-features-backlog.md) | Feature Backlog | `Partial` | 2026-03-06 20:05 |
+| [PRD-features-backlog.md](PRD-features-backlog.md) | Feature Backlog | `Partial` | 2026-07-02 |
 | [PRD-ux-simplification.md](PRD-ux-simplification.md) | UX Simplification | `Implemented` | 2026-03-06 21:15 |
 | [PRD-health-status-visuals.md](PRD-health-status-visuals.md) | Health Status Emoji Indicators | `Implemented` | 2026-03-06 21:42 |
 | [PRD-measurement-ux.md](PRD-measurement-ux.md) | Measurement UX Fixes | `Implemented` | 2026-03-06 21:42 |
@@ -26,32 +26,41 @@
 | [PRD-microchip-id.md](PRD-microchip-id.md) | Microchip ID as Cat Identifier | `Implemented` | 2026-03-07 10:25 |
 | [PRD-profile-clarity.md](PRD-profile-clarity.md) | Cat Profile — Insights Panel Clarity | `Implemented` | 2026-03-07 10:25 |
 | [PRD-security.md](PRD-security.md) | Security Hardening | `Implemented` | 2026-03-07 10:39 |
-| [PRD-medication-reminders.md](PRD-medication-reminders.md) | Medication Reminders | `Partial` | 2026-04-11 |
-| [PRD-household-sharing.md](PRD-household-sharing.md) | Household Sharing & Multi-User Access | `Partial` | 2026-04-11 |
-| [PRD-household-sharing-phase2.md](PRD-household-sharing-phase2.md) | Household Sharing — Phase 2 (lifecycle + audit) | `Draft` | 2026-03-07 13:00 |
+| [PRD-medication-reminders.md](PRD-medication-reminders.md) | Medication Reminders | `Partial` | 2026-07-02 |
+| [PRD-household-sharing.md](PRD-household-sharing.md) | Household Sharing & Multi-User Access | `Partial` | 2026-07-02 |
+| [PRD-household-sharing-phase2.md](PRD-household-sharing-phase2.md) | Household Sharing — Phase 2 (lifecycle + audit) | `Draft` | 2026-07-02 |
 | [PRD-cat-photos.md](PRD-cat-photos.md) | Cat Photo Uploads | `Implemented` | 2026-03-07 20:00 |
-| [PRD-ux-redesign.md](PRD-ux-redesign.md) | UX Redesign — Competitive Analysis & Next-Gen Features | `Partial` | 2026-04-11 |
+| [PRD-ux-redesign.md](PRD-ux-redesign.md) | UX Redesign — Competitive Analysis & Next-Gen Features | `Partial` | 2026-07-02 |
 | [PRD-daily-checkin.md](PRD-daily-checkin.md) | Daily Check-In — Multi-Measurement Entry Screen | `Implemented` | 2026-03-07 |
 | [PRD-evidence-base.md](PRD-evidence-base.md) | Veterinary Evidence Base — Sources, Citations, and Research Infrastructure | `Implemented` | 2026-03-07 |
-| [PRD-accessibility.md](PRD-accessibility.md) | Accessibility — Color Independence, Touch Targets, Screen Reader Support | `Partial` | 2026-03-07 |
-| [PRD-usability.md](PRD-usability.md) | Usability Polish — Scroll, Feedback, Disabled States, Delete Confirmation | `Partial` | 2026-03-07 |
-| [PRD-app-settings.md](PRD-app-settings.md) | App Settings — Dark/Light/System Mode Toggle | `Partial` | 2026-04-11 |
+| [PRD-accessibility.md](PRD-accessibility.md) | Accessibility — Color Independence, Touch Targets, Screen Reader Support | `Partial` | 2026-07-02 |
+| [PRD-usability.md](PRD-usability.md) | Usability Polish — Scroll, Feedback, Disabled States, Delete Confirmation | `Partial` | 2026-07-02 |
+| [PRD-app-settings.md](PRD-app-settings.md) | App Settings — Dark/Light/System Mode Toggle | `Partial` | 2026-07-02 |
 | [PRD-deceased-cat.md](PRD-deceased-cat.md) | In Memoriam — Marking a Cat as Deceased | `Implemented` | 2026-04-11 |
 | [PRD-weight-alert-sensitivity.md](PRD-weight-alert-sensitivity.md) | Weight Alert Sensitivity Review | `Implemented` | 2026-04-11 |
 | [PRD-ios-app-store.md](PRD-ios-app-store.md) | iOS App Store Deployment | `Implemented` | 2026-04-17 |
 | [PRD-api-versioning.md](PRD-api-versioning.md) | API Versioning & Backend-Driven Updates | `Implemented` | 2026-04-11 |
 | [PRD-security-phase2.md](PRD-security-phase2.md) | Security Hardening Phase 2 — Native App & Multi-Client | `Implemented` | 2026-04-11 |
 | [PRD-chart-time-navigation.md](PRD-chart-time-navigation.md) | Chart Time Range & Swipe Navigation | `Implemented` | 2026-04-11 |
-| [PRD-alert-acknowledgment.md](PRD-alert-acknowledgment.md) | Health Alert Acknowledgment | `Draft` | 2026-04-11 |
-| [PRD-behavioral-trends.md](PRD-behavioral-trends.md) | Behavioral Trend Charts | `Draft` | 2026-04-11 |
+| [PRD-alert-acknowledgment.md](PRD-alert-acknowledgment.md) | Health Alert Acknowledgment | `Draft` | 2026-07-02 |
+| [PRD-behavioral-trends.md](PRD-behavioral-trends.md) | Behavioral Trend Charts | `Draft` | 2026-07-02 |
 | [PRD-localization-preferences.md](PRD-localization-preferences.md) | Localization & Regional Preferences | `Implemented` | 2026-04-12 |
 | [PRD-landscape-charts.md](PRD-landscape-charts.md) | Landscape Mode — Full-Screen Chart Visualization | `Implemented` | 2026-04-12 |
 | [PRD-push-notifications.md](PRD-push-notifications.md) | Push Notifications (iOS Native) | `In Progress` | 2026-04-11 |
-| [PRD-device-integrations.md](PRD-device-integrations.md) | Smart Device Integrations (Auto-Ingest) | `Draft` | 2026-04-17 |
-| [PRD-home-assistant-connector.md](PRD-home-assistant-connector.md) | Home Assistant Direct Connector (pull-mode) | `Draft` | 2026-04-17 |
-| [PRD-tuya-connector.md](PRD-tuya-connector.md) | Tuya / Smart Life Cloud Connector (vendor OAuth2) | `Draft` | 2026-04-17 |
+| [PRD-device-integrations.md](PRD-device-integrations.md) | Smart Device Integrations (Auto-Ingest) | `Draft` | 2026-07-02 |
+| [PRD-home-assistant-connector.md](PRD-home-assistant-connector.md) | Home Assistant Direct Connector (pull-mode) | `Draft` | 2026-07-02 |
+| [PRD-tuya-connector.md](PRD-tuya-connector.md) | Tuya / Smart Life Cloud Connector (vendor OAuth2) | `Draft` | 2026-07-02 |
 | [PRD-visual-identity-v2.md](PRD-visual-identity-v2.md) | Visual Identity v2: Color, Type, Hierarchy & Feel | `In Progress` | 2026-04-15 |
 | [PRD-care-extensions.md](PRD-care-extensions.md) | Care Extensions — SubQ Fluids, As-Needed Items, Sitter View | `Approved` | 2026-05-05 |
+| [PRD-vet-visits.md](PRD-vet-visits.md) | Vet Visits & Medical Records | `Draft` | 2026-07-02 |
+| [PRD-lab-results.md](PRD-lab-results.md) | Lab Results Tracking | `Draft` | 2026-07-02 |
+| [PRD-body-condition.md](PRD-body-condition.md) | Body Condition Score (BCS) | `Draft` | 2026-07-02 |
+| [PRD-notes-journal.md](PRD-notes-journal.md) | Observations Journal | `Draft` | 2026-07-02 |
+| [PRD-actionable-notifications.md](PRD-actionable-notifications.md) | Actionable Notifications & Daily Digest | `Draft` | 2026-07-02 |
+| [PRD-onboarding.md](PRD-onboarding.md) | First-Run Onboarding & Empty-State Guidance | `Draft` | 2026-07-02 |
+| [PRD-sitter-live-link.md](PRD-sitter-live-link.md) | Sitter Live Share Link | `Draft` | 2026-07-02 |
+| [PRD-ios-widgets.md](PRD-ios-widgets.md) | iOS Widgets & Siri Shortcuts | `Draft` | 2026-07-02 |
+| [PRD-android.md](PRD-android.md) | Android Release (Google Play) | `Draft` | 2026-07-02 |
 
 ---
 
@@ -723,4 +732,159 @@ Nothing rejected yet.
 
 ---
 
-*Last updated: 2026-04-17*
+### PRD-vet-visits.md — Vet Visits & Medical Records
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-07-02 |
+
+**Problem:** The app tracks home care but nothing about the vet relationship — no appointment tracking, visit history, or vaccine records.
+
+**Proposed:** Additive `vet_visits`, `vaccinations`, and (Phase B) `vet_documents` tables; appointment and vaccine-due reminders reuse the existing notification inbox/push cron; visits surface on the Care tab and history timeline on both platforms plus a vet-export section; Phase B adds R2 document attachments following the cat-photos pattern. Vaccine next-due dates are always user-entered — the app computes no booster schedules until Tier 1 citations land in `docs/research/`.
+
+**Open questions:** attachment types/quota; cost tracking field; fixed vs configurable reminder lead times.
+
+**Do not implement** — Draft.
+
+---
+
+### PRD-lab-results.md — Lab Results Tracking
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-07-02 |
+
+**Problem:** Chronic-condition cats (CKD, hyperthyroid, diabetic — the sub-q fluids audience) get regular bloodwork; owners track values on paper/PDFs and can't see trends.
+
+**Proposed:** Additive `lab_results` table (analyte, value, unit, reference range transcribed from the user's own lab report — never hardcoded); panel-entry screen; per-analyte trend charts with the user-entered reference band; preset analyte list (names/units only); vet-export section. Zero interpretation — IRIS staging and evaluative copy are out of scope until cited per `docs/research/`; OCR import is a future idea only.
+
+**Open questions:** unit conversion (recommend store-as-printed, no conversion in v1); panel presets vs clinical framing; labs in InsightsPanel (recommend no in Phase A).
+
+**Do not implement** — Draft.
+
+---
+
+### PRD-body-condition.md — Body Condition Score (BCS)
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-07-02 |
+
+**Problem:** Weight alone can't distinguish healthy weight change from concerning change; body condition scoring is the standard veterinary companion metric.
+
+**Proposed:** `bcs` as a new measurement type via the existing generic pipeline (shared constants + 9-entry preset list; zero schema changes, zero new routes), targeting the WSAVA 9-point scale. Visual 1–9 picker and BCS-over-time chart on both platforms; per-score descriptive copy, ideal-range shading, and weight+BCS interpretation all gated on Tier 1 citations in `docs/research/`.
+
+**Open questions:** muscle condition score (Phase C) scope; integers-only vs half-points; staleness nudge.
+
+**Do not implement** — Draft.
+
+---
+
+### PRD-notes-journal.md — Observations Journal
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-07-02 |
+
+**Problem:** Not everything is a number — "hiding under the bed," "limping slightly," vet-call outcomes have nowhere to live, so context is lost by the next vet visit.
+
+**Proposed:** Per-cat journal entries (≤2000 chars, backdatable, optional R2 photo, preset descriptive-not-diagnostic tags); entries interleave into the day-grouped History timeline with tag filtering; quick-add from the check-in screen; "Owner observations" section in the vet export. Contributor+ can write; one new `journal_entries` table.
+
+**Open questions:** tag taxonomy; shared vs dedicated R2 bucket; promote-measurement-note-to-journal affordance.
+
+**Do not implement** — Draft.
+
+---
+
+### PRD-actionable-notifications.md — Actionable Notifications & Daily Digest
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-07-02 |
+| **Depends on** | PRD-medication-reminders.md (Partial), PRD-push-notifications.md (In Progress) |
+
+**Problem:** The push says "time to give Fluids" but acting on it requires opening the app and navigating; if the moment passes nothing follows up — directly feeding the overdue-pileup problem (ROADMAP WP1).
+
+**Proposed:** Phase A — "Mark given" / "Snooze 1h" actions on the iOS push via expo-notifications categories (administer endpoint exists; snooze specced as hybrid server `snoozed_until` + local notification). Phase B — opt-in morning digest push at a user-chosen time. Phase C — notification preferences screen (digest, quiet hours, per-item mute) backed by `notification_prefs` + `care_item_mutes`.
+
+**Open questions:** snooze mechanism (hybrid recommended); Android future-proofing now vs later; digest granularity.
+
+**Do not implement** — Draft.
+
+---
+
+### PRD-onboarding.md — First-Run Onboarding & Empty-State Guidance
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-07-02 |
+
+**Problem:** New users land on an empty Home screen; the app's differentiators are discoverable only by poking around; no guided path from install to first logged measurement.
+
+**Proposed:** Phase A — skippable welcome carousel, guided add-first-cat flow, contextual empty states with CTAs on major tabs. Phase B — optional clearly-labeled demo cat (`cats.is_demo`, one-tap removal, excluded from export/sitter/push). Phase C — KV-backed "What's new" sheet (folds in TODO Phase 58's deferred release-note row). Completion persists server-side (`users.onboarded_at`, backfilled) so returning users and invited household members never see it.
+
+**Open questions:** demo-data story; web/iOS carousel parity in Phase A; what's-new cadence.
+
+**Do not implement** — Draft.
+
+---
+
+### PRD-sitter-live-link.md — Sitter Live Share Link
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-07-02 |
+| **Related** | PRD-care-extensions.md (sitter view), docs/SECURITY.md |
+
+**Problem:** The sitter view is shared as a static screenshot/PDF; schedules change mid-trip and the sitter can't see what's already been given — risking missed or double doses.
+
+**Proposed:** Phase A — tokenized, expiring, revocable, no-login URL (`/sitter/<token>`) rendering the live sitter view for selected cats; `share_links` table stores SHA-256 token hashes (household-invite pattern). Phase B — opt-in sitter dose check-off with "given via sitter link" attribution. First unauthenticated data endpoint: rate limiting, enumeration resistance, strict no-PII payload are mandatory.
+
+**Open questions:** multi-cat default; Phase B per-dose undo window; microchip id in public payload.
+
+**Do not implement** — Draft.
+
+---
+
+### PRD-ios-widgets.md — iOS Widgets & Siri Shortcuts
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-07-02 |
+
+**Problem:** Checking what's due next requires opening the app; glanceability is the point of a care schedule.
+
+**Proposed:** Phase A — read-only WidgetKit home-screen widgets fed by an App Group snapshot the app writes. Phase B — iOS 17 interactive "mark given" buttons. Phase C — App Intents / Siri Shortcuts for dose and weight logging. Requires the repo's first native Swift extension target in the Expo-managed workflow — a go/no-go investigation spike (config plugin, EAS multi-target credentials, prebuild survivability) is the mandatory first task.
+
+**Open questions:** how much native Swift the repo absorbs; iOS version floor (15.1 + runtime gating vs 17); pull read-only Siri intent into Phase A.
+
+**Do not implement** — Draft.
+
+---
+
+### PRD-android.md — Android Release (Google Play)
+
+| | |
+|---|---|
+| **Status** | `Draft` |
+| **Last updated** | 2026-07-02 |
+
+**Problem:** The Expo codebase is Android-capable but unshipped; Android is roughly half the mobile audience and the web app is a poor substitute on Android phones.
+
+**Proposed:** Phase A (internal track) — iOS-only code-path audit (Apple sign-in → Google-primary, expo-print/sharing, safe areas, notification channels), FCM credentials + extend the Worker push cron beyond `platform = 'ios'`, eas.json android profiles, `build-android.sh`/`submit-play.sh` mirroring the iOS pipeline, Play Console record + data-safety form. Phase B — production listing (Lamplight screenshots), staged rollout, submission-log entries. No schema changes.
+
+**Open questions:** Google sign-in via existing web OAuth vs native; Apple-account continuity on Android; package name confirmation + Play new-account closed-testing requirement (gates Phase B timeline).
+
+**Do not implement** — Draft.
+
+---
+
+*Last updated: 2026-07-02*

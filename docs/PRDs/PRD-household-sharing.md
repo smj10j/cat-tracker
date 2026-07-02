@@ -466,3 +466,43 @@ All questions from the initial draft have been answered by the product owner.
 3. Move cats between households
 4. Activity feed / audit log
 5. Household-wide medication reminder notifications
+
+---
+
+## Remaining scope — detailed (2026-07-02)
+
+> Phase A is live. Phase B items B1/B2 (custom confirmation dialogs for role change and member removal) are **not re-specified here** — they are covered by `docs/ROADMAP.md` WP3c (shared in-app confirm dialog + toast, replacing `window.confirm()` in `HouseholdPage.tsx:110` and others). The three email items below remain. All reuse `sendEmail()` in `worker/src/lib/email.ts` (Resend, `noreply@01j.me`).
+
+### B3 — Invitation reminder email after 3 days
+
+**What/why:** Pending invites silently expire at 7 days; a single nudge at day 3 recovers invitees who missed the first email.
+
+**Implementation sketch:**
+- Migration: `ALTER TABLE household_members ADD COLUMN reminder_sent_at TEXT;`
+- Cron (`worker/src/index.ts` `scheduled()`, runs hourly — the invite-expiry step is already there): select rows with `status = 'pending' AND invited_at <= datetime('now', '-3 days') AND invite_expires_at > datetime('now') AND reminder_sent_at IS NULL`.
+- **Token constraint (decision surfaced):** the raw invite token is never stored — only its SHA-256 hash — so the original link *cannot* be re-sent. Recommended: **rotate** — generate a fresh 32-byte token, update `invite_token_hash`, keep `invite_expires_at` unchanged, and send the new link with copy "this replaces your earlier invitation link." The old link then fails with the existing "no longer valid" error, which is acceptable. (Alternative — storing the raw token encrypted — adds key management for marginal benefit; rejected.)
+- Reuse the invite email template in `worker/src/routes/household.ts` (~line 246) with subject `Reminder: {InviterName} invited you to {HouseholdName} on Cat Tracker`. Set `reminder_sent_at` only after a successful send. One reminder maximum per invite.
+
+**Edge cases:** invite accepted/revoked between select and send (re-check `status` per row before sending); Resend outage → marker stays NULL, retried next hour; re-invites after decline get a fresh `invited_at` so the 3-day clock restarts correctly.
+
+**Acceptance:** a pending invite older than 3 days receives exactly one reminder; the new link accepts successfully and the pre-rotation link shows "no longer valid"; accepted/revoked/expired invites never receive reminders; worker test simulates the cron pass.
+
+### B4 — Email to Admins when an invite is accepted
+
+**What/why:** Admins currently learn someone joined only by opening `/household`. Closing the loop confirms the invite worked and flags unexpected acceptances.
+
+**Implementation sketch:** in the `POST /api/household/invites/accept` handler (`worker/src/routes/household.ts:289`), after the row flips to `active`: query all `active` members of the household with `role = 'admin'` (plus the owner) excluding the acceptor, join `users` for emails, and send each a short email via `c.executionCtx.waitUntil(...)` — best-effort, never blocking the 200 response. Body: "{DisplayName} ({email}) accepted your invitation to {HouseholdName} as {Role}" + link to `/household`.
+
+**Edge cases:** dedupe recipients by user id (owner is also an admin member row); email failure is logged only — acceptance must still succeed; single-admin household where the admin is the inviter still gets the email (that is the point).
+
+**Acceptance:** each Admin except the acceptor receives exactly one email; acceptance succeeds with Resend down; worker test asserts one mocked Resend call per admin.
+
+### B5 — Email to a removed member
+
+**What/why:** Silent removal is confusing — the household's cats just vanish from the member's home screen. A neutral notification explains what happened.
+
+**Implementation sketch:** in the `DELETE /api/household/members/:userId` handler, after setting `status = 'removed'` for an **active** member: look up the removed user's email and send via `waitUntil`: "You've been removed from {HouseholdName} on Cat Tracker. Measurements and records you contributed remain with the household" (wording matches Resolved Decision 3). No reason field in v1; neutral tone; no reply-to.
+
+**Edge cases:** revoking a **pending** invite (`DELETE /api/household/invites/:id`) must NOT trigger this — only active members with a non-null `user_id`; owner removal is already blocked upstream; removal succeeds even if the email fails.
+
+**Acceptance:** removed active member gets exactly one email; revoked pending invite triggers none; removal API response is unchanged; worker test covers both paths.

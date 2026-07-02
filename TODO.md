@@ -7,6 +7,18 @@
 
 ---
 
+## Phase 61: Bug audit + delivery roadmap (docs-only, 2026-07-02)
+
+Triggered by: user reported care-item date bugs (sub-q fluids every 3 days with a past start date → permanent overdue pileup) and asked for a comprehensive multi-session roadmap.
+
+- [x] Full-codebase audit: care/dose scheduling, timezone handling, validation gaps, error-handling gaps, test coverage
+- [x] Write `docs/ROADMAP.md` — 7 work packages (WP1 care schedule correctness … WP7 PRD-gated features) with file:line evidence and a session plan
+- [x] Commit + push
+
+Follow-ups: execute WP1 next session (see docs/ROADMAP.md).
+
+---
+
 ## Phase 60: Care Extensions — SubQ fluids, PRN, Sitter View (PRD-care-extensions.md, 2026-05-05)
 
 Triggered by: user request — three improvements to the Care section. (1) add subcutaneous fluids as a preset, (2) support care items with no schedule that are given only as needed (no notifications), (3) make the Care section easy to share with a cat sitter via a single screenshot.

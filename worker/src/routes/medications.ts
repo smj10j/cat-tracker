@@ -190,6 +190,10 @@ medications.get('/medications', async (c) => {
   const catId = c.req.query('cat_id')
   const nowUTC = new Date().toISOString().replace('T', ' ').slice(0, 19)
 
+  // next_due_at is the earliest UNRESOLVED dose — including one already
+  // overdue. An overdue dose IS the next dose to give; skipping past it made
+  // rows read "due July 30 · overdue" while June 30 sat unresolved.
+
   const householdFilter = `(
       c.household_id IN (
         SELECT household_id FROM household_members WHERE user_id = ? AND status = 'active'
@@ -201,7 +205,6 @@ medications.get('/medications', async (c) => {
         `SELECT m.*,
            (SELECT due_at FROM medication_doses d
             WHERE d.medication_id = m.id AND d.administered_at IS NULL AND d.skipped = 0 AND d.missed = 0
-              AND d.due_at >= ?
             ORDER BY d.due_at ASC LIMIT 1) AS next_due_at,
            (SELECT COUNT(*) FROM medication_doses d
             WHERE d.medication_id = m.id AND d.administered_at IS NULL AND d.skipped = 0 AND d.missed = 0
@@ -212,12 +215,11 @@ medications.get('/medications', async (c) => {
          JOIN cats c ON c.id = m.cat_id
          WHERE ${householdFilter} AND m.cat_id = ? AND m.is_active = 1
          ORDER BY m.name ASC`
-      ).bind(nowUTC, nowUTC, userId, userId, catId).all()
+      ).bind(nowUTC, userId, userId, catId).all()
     : await c.env.DB.prepare(
         `SELECT m.*,
            (SELECT due_at FROM medication_doses d
             WHERE d.medication_id = m.id AND d.administered_at IS NULL AND d.skipped = 0 AND d.missed = 0
-              AND d.due_at >= ?
             ORDER BY d.due_at ASC LIMIT 1) AS next_due_at,
            (SELECT COUNT(*) FROM medication_doses d
             WHERE d.medication_id = m.id AND d.administered_at IS NULL AND d.skipped = 0 AND d.missed = 0
@@ -228,7 +230,7 @@ medications.get('/medications', async (c) => {
          JOIN cats c ON c.id = m.cat_id
          WHERE ${householdFilter} AND m.is_active = 1
          ORDER BY m.name ASC`
-      ).bind(nowUTC, nowUTC, userId, userId).all()
+      ).bind(nowUTC, userId, userId).all()
 
   return c.json(rows.results)
 })

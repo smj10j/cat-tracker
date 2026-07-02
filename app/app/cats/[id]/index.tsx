@@ -722,12 +722,20 @@ export default function CatProfileScreen() {
                             </View>
                           )}
                         </View>
-                        <Text style={{ fontSize: 12, color: colors.inkDim, marginTop: 2 }}>
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            color: !isAsNeeded(med.frequency) && (med.overdue_count ?? 0) > 0 ? colors.rose : colors.inkDim,
+                            marginTop: 2,
+                          }}
+                        >
                           {isAsNeeded(med.frequency)
                             ? [med.notes ? `Give if: ${med.notes}` : 'As needed',
                                med.last_given_at ? `last given ${formatDueAt(med.last_given_at, prefs)}` : null]
                                 .filter(Boolean).join(' \u00B7 ')
-                            : `${formatFreqShort(med.frequency, med.frequency_days)} \u00B7 ${formatNextDue(med.next_due_at, prefs)}`}
+                            : (med.overdue_count ?? 0) > 0 && med.next_due_at
+                              ? `${formatFreqShort(med.frequency, med.frequency_days)} \u00B7 overdue \u2014 was due ${formatDueAt(med.next_due_at, prefs)}`
+                              : `${formatFreqShort(med.frequency, med.frequency_days)} \u00B7 ${formatNextDue(med.next_due_at, prefs)}`}
                         </Text>
                       </View>
                       {isAsNeeded(med.frequency) && !isDeceased && (

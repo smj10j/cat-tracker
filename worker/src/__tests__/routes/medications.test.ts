@@ -638,3 +638,54 @@ describe('email_reminders preference', () => {
     expect(bad.status).toBe(400)
   })
 })
+
+describe('next_due_at points at the overdue dose (2026-07-02 regression)', () => {
+  beforeAll(async () => { await applySchema() })
+  beforeEach(async () => { await clearDb() })
+
+  it('a monthly item with an unresolved dose from 2 days ago shows THAT dose as next due', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const catId = await createCat(session)
+
+    // Monthly, anchored so one dose fell 2 days ago (June 30 in the report)
+    // and the next is 28 days out (July 30).
+    const startDate = new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10)
+    const res = await SELF.fetch('http://localhost/api/medications', {
+      method: 'POST',
+      headers: { ...authedHeaders(session), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cat_id: catId, name: 'Monthly Med', type: 'flea',
+        frequency: 'monthly', start_date: startDate, reminder_time: '09:00',
+      }),
+    })
+    const med = await res.json() as { id: string }
+
+    const list = await SELF.fetch(`http://localhost/api/medications?cat_id=${catId}`, {
+      headers: authedHeaders(session),
+    })
+    const meds = await list.json() as Array<{ next_due_at: string | null; overdue_count: number }>
+    expect(meds[0]!.overdue_count).toBe(1)
+    // next_due_at must be the overdue dose (2 days ago), NOT the one 28 days out
+    expect(meds[0]!.next_due_at).toBe(`${startDate} 09:00:00`)
+
+    // Once the overdue dose is resolved, next_due_at advances to the future dose
+    const overdue = await env.DB.prepare(
+      `SELECT id FROM medication_doses WHERE medication_id = ?
+       AND administered_at IS NULL ORDER BY due_at ASC LIMIT 1`
+    ).bind(med.id).first<{ id: string }>()
+    await SELF.fetch(`http://localhost/api/doses/${overdue!.id}/administer`, {
+      method: 'POST',
+      headers: { ...authedHeaders(session), 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    })
+
+    const after = await SELF.fetch(`http://localhost/api/medications?cat_id=${catId}`, {
+      headers: authedHeaders(session),
+    })
+    const medsAfter = await after.json() as Array<{ next_due_at: string | null; overdue_count: number }>
+    expect(medsAfter[0]!.overdue_count).toBe(0)
+    const expectedNext = new Date(Date.now() + 28 * 86400000).toISOString().slice(0, 10)
+    expect(medsAfter[0]!.next_due_at).toBe(`${expectedNext} 09:00:00`)
+  })
+})

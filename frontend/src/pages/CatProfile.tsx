@@ -60,6 +60,16 @@ function CareScheduleSection({ catId, meds, onRefresh }: { catId: string; meds: 
   }
 
   function renderMedRow(med: Medication, asNeededRow: boolean) {
+    // An overdue dose IS the next dose to give — say so, instead of showing
+    // the following occurrence next to a contradictory "overdue" badge.
+    const isOverdue = !asNeededRow && (med.overdue_count ?? 0) > 0
+    const subtitle = asNeededRow
+      ? [med.notes ? `Give if: ${med.notes}` : 'As needed',
+         med.last_given_at ? `last given ${formatDueAt(med.last_given_at, prefs)}` : null]
+          .filter(Boolean).join(' · ')
+      : isOverdue && med.next_due_at
+        ? `${formatFreqShort(med.frequency, med.frequency_days)} · overdue — was due ${formatDueAt(med.next_due_at, prefs)}`
+        : `${formatFreqShort(med.frequency, med.frequency_days)} · ${formatNextDue(med.next_due_at, prefs)}`
     return (
       <Link
         key={med.id}
@@ -79,12 +89,11 @@ function CareScheduleSection({ catId, meds, onRefresh }: { catId: string; meds: 
               </span>
             )}
           </div>
-          <p className="text-xs text-ink-dim mt-0.5 truncate">
-            {asNeededRow
-              ? [med.notes ? `Give if: ${med.notes}` : 'As needed',
-                 med.last_given_at ? `last given ${formatDueAt(med.last_given_at, prefs)}` : null]
-                  .filter(Boolean).join(' · ')
-              : `${formatFreqShort(med.frequency, med.frequency_days)} · ${formatNextDue(med.next_due_at, prefs)}`}
+          <p
+            className={`text-xs mt-0.5 truncate ${isOverdue ? '' : 'text-ink-dim'}`}
+            style={isOverdue ? { color: 'var(--color-health-rose)' } : undefined}
+          >
+            {subtitle}
           </p>
         </div>
         {asNeededRow && (

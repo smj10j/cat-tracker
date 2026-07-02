@@ -49,6 +49,12 @@ export function localToUTC(date: string, time: string, timezone: string): string
  * Convert a UTC datetime string to local date and time components.
  * Used client-side for display. Falls back to device timezone if none specified.
  *
+ * Assumes the input IS UTC. Dose rows created before a user's timezone was
+ * captured are stored as naive local time and will display offset by the UTC
+ * delta — this self-heals: both clients sync the device timezone on every
+ * sign-in (AuthContext → PUT /auth/me), which lazily regenerates future doses
+ * in UTC.
+ *
  * @param utcDatetime - 'YYYY-MM-DD HH:MM:00' or 'YYYY-MM-DD HH:MM:SS' (UTC, no Z suffix)
  * @param timezone - IANA timezone string (defaults to device timezone)
  * @returns { date: 'YYYY-MM-DD', time: 'HH:MM' } in local time
@@ -73,11 +79,15 @@ export function utcToLocal(
 
 /**
  * Calculate age from a birthdate string.
+ * Counts only completed months — the month ticks over on the birthdate's
+ * day-of-month, not on the 1st of the month.
  */
 export function catAge(birthdate: string): string {
   const birth = parseLocalDate(birthdate);
   const now = new Date();
-  const months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
+  let months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
+  if (now.getDate() < birth.getDate()) months--;
+  if (months < 0) months = 0;
   if (months < 12) return `${months} month${months !== 1 ? 's' : ''} old`;
   const years = Math.floor(months / 12);
   const rem = months % 12;

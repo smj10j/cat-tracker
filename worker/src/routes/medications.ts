@@ -115,7 +115,8 @@ export async function insertDoses(db: AppEnv['Bindings']['DB'], doses: DoseRow[]
   }
 }
 
-// 90 days from today as YYYY-MM-DD
+// 90 days from today as YYYY-MM-DD. Intentionally UTC-based: it only bounds
+// how far ahead doses are pre-generated, so a ±1-day skew is harmless.
 export function windowEnd90(): string {
   return new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10)
 }

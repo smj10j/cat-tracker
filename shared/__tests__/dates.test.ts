@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { parseLocalDate, formatLocalDate, catAge, localToUTC, utcToLocal } from '../lib/dates'
 
 describe('parseLocalDate', () => {
@@ -86,6 +86,38 @@ describe('catAge', () => {
     const age = catAge(birthdate)
     expect(age).toContain('3')
     expect(age).toContain('year')
+  })
+
+  it('counts only completed months (day-of-month not yet reached)', () => {
+    vi.useFakeTimers()
+    try {
+      // Born Sept 15 2024; on Sept 10 2025 the cat is 11 months, not 1 year.
+      vi.setSystemTime(new Date(2025, 8, 10, 12))
+      expect(catAge('2024-09-15')).toBe('11 months old')
+      // On the birthday itself it becomes 1 year.
+      vi.setSystemTime(new Date(2025, 8, 15, 12))
+      expect(catAge('2024-09-15')).toBe('1 year old')
+      // Day after: still 1 year.
+      vi.setSystemTime(new Date(2025, 8, 16, 12))
+      expect(catAge('2024-09-15')).toBe('1 year old')
+      // 1y 1mo only once Oct 15 arrives.
+      vi.setSystemTime(new Date(2025, 9, 14, 12))
+      expect(catAge('2024-09-15')).toBe('1 year old')
+      vi.setSystemTime(new Date(2025, 9, 15, 12))
+      expect(catAge('2024-09-15')).toBe('1y 1mo')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('clamps future birthdates to 0 months', () => {
+    vi.useFakeTimers()
+    try {
+      vi.setSystemTime(new Date(2025, 0, 10, 12))
+      expect(catAge('2025-02-01')).toBe('0 months old')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('does not shift birthdate across day boundary', () => {

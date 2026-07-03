@@ -198,11 +198,11 @@ Notes:
 - [ ] Worker tests: snooze endpoint validation, cron exclusion of snoozed doses, `notification_sent_at` reset; app tests for category registration and response handling.
 
 ### Phase B
-- [ ] Digest sends at most once per user-local day, within the hour of `digest_time`, only when items are due/overdue, only when `digest_enabled`.
-- [ ] Digest copy matches spec ("N care items due today for <cat(s)>" with per-item times); tap deep-links to the inbox.
+- [x] Digest sends at most once per user-local day (via `digest_last_sent_date`), from `digest_time` onward, only when items are due/overdue, only when `digest_enabled`.
+- [x] Digest copy matches spec ("N care items due today for <cat(s)>" with per-item times; "M overdue · …" prefix); tap deep-links to the inbox (`data.url = /notifications`).
 
 ### Phase C
-- [ ] Settings → Notifications exists on **both** platforms: digest toggle/time, quiet hours, muted items.
-- [ ] Quiet hours defer follow-ups/digests (never drop them) and handle midnight wrap; due-hour pushes for explicitly-scheduled times still fire.
-- [ ] Per-item mute silences that item's pushes for the muting user only; inbox and other members unaffected.
-- [ ] `notification_prefs` and `care_item_mutes` migrations are idempotent; `docs/API.md` updated.
+- [x] Settings → Notifications exists on **both** platforms: digest toggle/time, quiet hours, muted items.
+- [x] Quiet hours defer follow-ups/digests (never drop them) and handle midnight wrap (`inQuietHours`, unit-tested); due-hour pushes for explicitly-scheduled times still fire.
+- [x] Per-item mute silences that item's pushes for the muting user only; inbox and other members unaffected.
+- [x] `notification_prefs` and `care_item_mutes` migrations are idempotent (`CREATE TABLE IF NOT EXISTS`, prod-verified); `docs/API.md` updated.

@@ -10,9 +10,10 @@ vi.mock('../../lib/api', () => ({
   createMedication: vi.fn(),
   updateMedication: vi.fn(),
   archiveMedication: vi.fn(),
+  setMedicationMute: vi.fn(),
 }))
 
-import { getCat, createMedication } from '../../lib/api'
+import { getCat, getMedication, createMedication, setMedicationMute } from '../../lib/api'
 
 const mockCat = {
   id: 'cat-1',
@@ -31,6 +32,30 @@ const mockCat = {
   updated_at: '2020-01-01T00:00:00Z',
 } as never
 
+const mockMed = {
+  id: 'med-1',
+  cat_id: 'cat-1',
+  user_id: 'u-1',
+  name: 'Methimazole',
+  type: 'pill',
+  dose: '2.5mg',
+  frequency: 'twice_daily',
+  frequency_days: null,
+  reminder_time: '08:00',
+  start_date: '2020-01-01',
+  end_date: null,
+  doses_total: null,
+  notes: null,
+  is_active: 1,
+  doses_remaining: null,
+  refill_alert_threshold: null,
+  schedule_mode: 'fixed',
+  created_at: '2020-01-01T00:00:00Z',
+  updated_at: '2020-01-01T00:00:00Z',
+  muted: 0,
+  doses: [],
+} as never
+
 function renderCreate() {
   return render(
     <MemoryRouter initialEntries={['/cats/cat-1/medications/new']}>
@@ -42,10 +67,23 @@ function renderCreate() {
   )
 }
 
+function renderEdit() {
+  return render(
+    <MemoryRouter initialEntries={['/medications/med-1/edit']}>
+      <Routes>
+        <Route path="/medications/:medId/edit" element={<MedicationFormPage />} />
+        <Route path="/cats/:catId" element={<div>Cat profile</div>} />
+      </Routes>
+    </MemoryRouter>
+  )
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   vi.mocked(getCat).mockResolvedValue(mockCat)
+  vi.mocked(getMedication).mockResolvedValue(mockMed)
   vi.mocked(createMedication).mockResolvedValue({ id: 'med-1', cat_id: 'cat-1' } as never)
+  vi.mocked(setMedicationMute).mockResolvedValue({ muted: true })
 })
 
 describe('MedicationFormPage — schedule mode', () => {
@@ -139,5 +177,36 @@ describe('MedicationFormPage — past start date prompt', () => {
     await waitFor(() => expect(vi.mocked(createMedication)).toHaveBeenCalledTimes(1))
     const payload = vi.mocked(createMedication).mock.calls[0]![0] as Record<string, unknown>
     expect('first_dose_given' in payload).toBe(false)
+  })
+})
+
+describe('MedicationFormPage — mute reminders (edit view)', () => {
+  it('does not show the mute toggle when creating a new care item', async () => {
+    renderCreate()
+    await waitFor(() => expect(screen.getByText(/for Simba/)).toBeInTheDocument())
+    expect(screen.queryByRole('switch', { name: /mute reminders for me/i })).toBeNull()
+  })
+
+  it('shows the mute toggle initialized from the medication muted state', async () => {
+    vi.mocked(getMedication).mockResolvedValue({ ...(mockMed as object), muted: 1 } as never)
+    renderEdit()
+
+    const toggle = await screen.findByRole('switch', { name: /mute reminders for me/i })
+    expect(toggle).toHaveAttribute('aria-checked', 'true')
+  })
+
+  it('toggling mute calls setMedicationMute with the new state', async () => {
+    vi.mocked(getMedication).mockResolvedValue({ ...(mockMed as object), muted: 0 } as never)
+    renderEdit()
+
+    const toggle = await screen.findByRole('switch', { name: /mute reminders for me/i })
+    expect(toggle).toHaveAttribute('aria-checked', 'false')
+
+    fireEvent.click(toggle)
+
+    await waitFor(() =>
+      expect(vi.mocked(setMedicationMute)).toHaveBeenCalledWith('med-1', true)
+    )
+    expect(toggle).toHaveAttribute('aria-checked', 'true')
   })
 })

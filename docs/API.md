@@ -679,7 +679,7 @@ Date format: `M/D/YYYY`. Header row is skipped. First 5 columns are required; 6t
 **Query params:**
 - `cat_id` — optional; filter by cat
 
-Each medication includes computed fields `next_due_at` (next pending dose) and `overdue_count` (doses past due).
+Each medication includes computed fields `next_due_at` (next pending dose), `overdue_count` (doses past due), and `muted` (`1` if the requesting user has muted this item's reminders — see `PUT /api/medications/:id/mute`).
 
 **Response 200** — array of Medication objects
 
@@ -898,6 +898,57 @@ Each `DoseNotification` includes:
 ```
 
 Each `RefillAlert` includes full medication fields plus `cat_name` and `cat_id`.
+
+---
+
+### Notification preferences (PRD-actionable-notifications Phase B/C)
+
+#### `GET /api/notification-prefs`
+
+**Auth required.** Returns the caller's notification preferences, or defaults if none are saved yet.
+
+**Response 200**
+```ts
+{
+  digest_enabled: number          // 0 | 1 — morning daily digest on/off (default 0)
+  digest_time: string             // 'HH:MM' user-local (default '08:00')
+  digest_last_sent_date: string | null  // 'YYYY-MM-DD' user-local; server-managed idempotency guard
+  quiet_hours_start: string | null       // 'HH:MM' or null (off)
+  quiet_hours_end: string | null         // 'HH:MM' or null (off)
+}
+```
+
+#### `PUT /api/notification-prefs`
+
+**Auth required.** Partial upsert of the caller's prefs (row created lazily). `digest_last_sent_date` is server-managed and ignored if sent. Quiet-hours bounds accept an `'HH:MM'` string or `null`/`''` to clear.
+
+**Request body** (all optional)
+```ts
+{
+  digest_enabled?: boolean | number   // coerced to 0/1
+  digest_time?: string                 // 'HH:MM'
+  quiet_hours_start?: string | null    // 'HH:MM' or null
+  quiet_hours_end?: string | null      // 'HH:MM' or null
+}
+```
+
+**Response 200** — the updated prefs (same shape as GET)
+**Response 400** — a time field is not `HH:MM`
+
+**Behavior:** the hourly cron sends one digest per user-local day once local time reaches `digest_time` (deferred past quiet hours, never dropped), listing items due today plus a carried-over overdue count — silent when nothing is due. Quiet hours also defer the 24h overdue follow-up; explicitly-scheduled due-hour pushes still fire.
+
+#### `PUT /api/medications/:id/mute`
+
+**Auth required. Any member who can see the cat (Viewer+).** Mutes or unmutes push reminders for this care item **for the calling user only** — the schedule and other members' notifications are unaffected. Backed by `care_item_mutes`. The `muted` flag is surfaced per-caller on `GET /api/medications` and `GET /api/medications/:id`.
+
+**Request body**
+```ts
+{ muted: boolean }   // required
+```
+
+**Response 200** — `{ muted: boolean }`
+**Response 400** — `muted` missing or not a boolean
+**Response 404** — medication not found or no access
 
 ---
 

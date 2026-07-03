@@ -194,6 +194,21 @@ CREATE TABLE IF NOT EXISTS journal_entries (
   updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_journal_cat ON journal_entries(cat_id, occurred_at DESC);
+CREATE TABLE IF NOT EXISTS notification_prefs (
+  user_id                TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  digest_enabled         INTEGER NOT NULL DEFAULT 0,
+  digest_time            TEXT NOT NULL DEFAULT '08:00',
+  digest_last_sent_date  TEXT,
+  quiet_hours_start      TEXT,
+  quiet_hours_end        TEXT,
+  updated_at             TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS care_item_mutes (
+  user_id        TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  medication_id  TEXT NOT NULL REFERENCES medications(id) ON DELETE CASCADE,
+  created_at     TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (user_id, medication_id)
+);
 `
 
 /** Apply the full schema DDL to the test database (idempotent). */
@@ -215,6 +230,8 @@ export async function clearDb(): Promise<void> {
     DELETE FROM device_tokens;
     DELETE FROM alert_acknowledgments;
     DELETE FROM journal_entries;
+    DELETE FROM care_item_mutes;
+    DELETE FROM notification_prefs;
     DELETE FROM medication_doses;
     DELETE FROM medications;
     DELETE FROM measurements;

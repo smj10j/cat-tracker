@@ -98,6 +98,9 @@ export interface Medication {
   next_due_at?: string | null;
   overdue_count?: number;
   last_given_at?: string | null;
+  /** Per-caller push mute state (PRD-actionable-notifications Phase C). 1 = the
+   *  requesting user muted this item's reminders; 0/undefined = not muted. */
+  muted?: number;
 }
 
 export interface MedicationDose {
@@ -126,6 +129,20 @@ export interface NotificationInbox {
   due_today: DoseWithContext[];
   upcoming: DoseWithContext[];
   refill_alerts: (Medication & { cat_name: string })[];
+}
+
+/**
+ * Per-user notification preferences (PRD-actionable-notifications Phase B/C).
+ * `digest_enabled` is 0/1; times are 'HH:MM' user-local; a null quiet-hours
+ * bound means quiet hours are off. `digest_last_sent_date` is server-managed.
+ */
+export interface NotificationPrefs {
+  digest_enabled: number;
+  digest_time: string;
+  digest_last_sent_date: string | null;
+  quiet_hours_start: string | null;
+  quiet_hours_end: string | null;
+  updated_at?: string;
 }
 
 export interface HouseholdMember {

@@ -8,13 +8,17 @@ import cats from './routes/cats'
 import measurements from './routes/measurements'
 import importRoute from './routes/import'
 import journalRoute from './routes/journal'
+import notificationPrefsRoute from './routes/notificationPrefs'
 import medicationsRoute, {
   generateDoses, insertDoses, windowEnd90,
   generationWindowStart, effectiveAnchorStart, frequencyToDays,
+  userLocalToday, userLocalHM, addDays,
 } from './routes/medications'
 import householdRoute, { householdPublic } from './routes/household'
 import { sendExpoPushNotifications, getStaleTokens, type ExpoPushMessage } from './lib/push'
 import { sendEmail } from './lib/email'
+import { localToUTC, utcToLocal } from '../../shared/lib/dates'
+import { inQuietHours } from '../../shared/lib/notifications'
 
 const app = new Hono<AppEnv>()
 
@@ -80,6 +84,16 @@ app.use('/api/*', async (c, next) => {
   await next()
 })
 
+/** Format a 24h 'HH:MM' local time as a compact 12h label ("9 AM", "8:30 PM")
+ *  for digest push copy. Self-contained (no user prefs in the cron context). */
+function formatDigestTime(hm: string): string {
+  const h = parseInt(hm.slice(0, 2), 10)
+  const m = parseInt(hm.slice(3, 5), 10)
+  const ampm = h < 12 ? 'AM' : 'PM'
+  const h12 = h % 12 === 0 ? 12 : h % 12
+  return m === 0 ? `${h12} ${ampm}` : `${h12}:${String(m).padStart(2, '0')} ${ampm}`
+}
+
 /** Compare two semver strings. Returns -1 if a < b, 0 if equal, 1 if a > b. */
 function compareSemver(a: string, b: string): number {
   const pa = a.split('.').map(Number)
@@ -109,6 +123,7 @@ app.use('/api/import', requireAuth)
 app.use('/api/medications', requireAuth)
 app.use('/api/medications/*', requireAuth)
 app.use('/api/notifications', requireAuth)
+app.use('/api/notification-prefs', requireAuth)
 app.use('/api/doses/*', requireAuth)
 app.use('/api/journal/*', requireAuth)
 app.use('/api/household', requireAuth)
@@ -118,6 +133,7 @@ app.route('/api/cats', cats)
 app.route('/api', measurements)
 app.route('/api', importRoute)
 app.route('/api', journalRoute)
+app.route('/api', notificationPrefsRoute)
 app.route('/api', medicationsRoute)
 app.route('/api/household', householdRoute)
 
@@ -207,6 +223,10 @@ export default {
           AND d.missed = 0
           AND d.notification_sent_at IS NULL
           AND m.is_active = 1
+          AND NOT EXISTS (
+            SELECT 1 FROM care_item_mutes cm
+            WHERE cm.user_id = m.user_id AND cm.medication_id = m.id
+          )
           AND (
             (d.snoozed_until IS NULL AND d.due_at >= ? AND d.due_at < ?)
             OR (d.snoozed_until IS NOT NULL AND d.snoozed_until <= ?)
@@ -296,26 +316,42 @@ export default {
 
       // --- Single 24h follow-up push for still-unresolved doses (WP4b) ---
       // Fires once per dose (followup_sent_at marker); 48h lookback cap so a
-      // deploy never mass-notifies historic backlog.
+      // deploy never mass-notifies historic backlog. Excludes muted items and
+      // DEFERS (never drops) for users currently inside their quiet hours —
+      // deferred doses keep followup_sent_at NULL and re-attempt next hour.
       const followupStart = new Date(Date.now() - 48 * 3600000).toISOString().replace('T', ' ').slice(0, 19)
       const followupEnd = new Date(Date.now() - 24 * 3600000).toISOString().replace('T', ' ').slice(0, 19)
       const followupDoses = await env.DB.prepare(`
         SELECT d.id AS dose_id, m.name AS med_name, m.user_id,
-               c.name AS cat_name, c.id AS cat_id
+               c.name AS cat_name, c.id AS cat_id,
+               u.timezone, np.quiet_hours_start, np.quiet_hours_end
         FROM medication_doses d
         JOIN medications m ON m.id = d.medication_id
         JOIN cats c ON c.id = m.cat_id
+        JOIN users u ON u.id = m.user_id
+        LEFT JOIN notification_prefs np ON np.user_id = m.user_id
         WHERE d.due_at >= ? AND d.due_at < ?
           AND d.administered_at IS NULL AND d.skipped = 0 AND d.missed = 0
           AND d.notification_sent_at IS NOT NULL
           AND d.followup_sent_at IS NULL
           AND m.is_active = 1
+          AND NOT EXISTS (
+            SELECT 1 FROM care_item_mutes cm
+            WHERE cm.user_id = m.user_id AND cm.medication_id = m.id
+          )
       `).bind(followupStart, followupEnd).all<{
         dose_id: string; med_name: string; user_id: string; cat_name: string; cat_id: string
+        timezone: string | null; quiet_hours_start: string | null; quiet_hours_end: string | null
       }>()
 
-      if (followupDoses.results.length > 0) {
-        const fuUserIds = [...new Set(followupDoses.results.map(d => d.user_id))]
+      // Drop doses whose owner is inside quiet hours right now — leave them
+      // unmarked so a later (post-quiet-hours) pass delivers the follow-up.
+      const deliverableFollowups = followupDoses.results.filter(d =>
+        !inQuietHours(userLocalHM(d.timezone), d.quiet_hours_start, d.quiet_hours_end),
+      )
+
+      if (deliverableFollowups.length > 0) {
+        const fuUserIds = [...new Set(deliverableFollowups.map(d => d.user_id))]
         const fuTokenRows = await env.DB.prepare(
           `SELECT token, user_id FROM device_tokens WHERE platform = 'ios'`
         ).all<{ token: string; user_id: string }>()
@@ -327,7 +363,7 @@ export default {
 
         const fuMessages: ExpoPushMessage[] = []
         const fuDoseIds: string[] = []
-        for (const dose of followupDoses.results) {
+        for (const dose of deliverableFollowups) {
           const tokens = fuTokensByUser.get(dose.user_id)
           fuDoseIds.push(dose.dose_id) // mark even without tokens — one follow-up chance, then done
           if (!tokens) continue
@@ -349,6 +385,100 @@ export default {
             `UPDATE medication_doses SET followup_sent_at = datetime('now') WHERE id IN (${placeholders})`
           ).bind(...chunk).run()
         }
+      }
+
+      // --- Morning daily digest (opt-in) (PRD-actionable-notifications Phase B) ---
+      // For each user with the digest enabled and an iOS token, once their local
+      // clock reaches digest_time (and not during quiet hours), send ONE summary
+      // of items due today + carried-over overdue count. Silent when nothing's due.
+      const digestCandidates = await env.DB.prepare(`
+        SELECT np.user_id, np.digest_time, np.digest_last_sent_date,
+               np.quiet_hours_start, np.quiet_hours_end, u.timezone
+        FROM notification_prefs np
+        JOIN users u ON u.id = np.user_id
+        WHERE np.digest_enabled = 1
+          AND EXISTS (SELECT 1 FROM device_tokens t WHERE t.user_id = np.user_id AND t.platform = 'ios')
+      `).all<{
+        user_id: string; digest_time: string; digest_last_sent_date: string | null
+        quiet_hours_start: string | null; quiet_hours_end: string | null; timezone: string | null
+      }>()
+
+      for (const cand of digestCandidates.results) {
+        const localToday = userLocalToday(cand.timezone)
+        if (cand.digest_last_sent_date === localToday) continue          // already sent today
+        const localHM = userLocalHM(cand.timezone)
+        const digestHour = parseInt(cand.digest_time.slice(0, 2), 10)
+        const localHour = parseInt(localHM.slice(0, 2), 10)
+        if (localHour < digestHour) continue                            // not yet digest time
+        if (inQuietHours(localHM, cand.quiet_hours_start, cand.quiet_hours_end)) continue // defer
+
+        // Doses from before today (overdue) through end of today, unresolved,
+        // for this user's active meds, excluding muted items. One query splits
+        // overdue (before local-day start) from due-today.
+        const dayStartUTC = localToUTC(localToday, '00:00', cand.timezone ?? 'UTC')
+        const dayEndUTC = localToUTC(addDays(localToday, 1), '00:00', cand.timezone ?? 'UTC')
+        const items = await env.DB.prepare(`
+          SELECT d.due_at, m.name AS med_name, c.name AS cat_name,
+                 CASE WHEN d.due_at < ? THEN 1 ELSE 0 END AS is_overdue
+          FROM medication_doses d
+          JOIN medications m ON m.id = d.medication_id
+          JOIN cats c ON c.id = m.cat_id
+          WHERE m.user_id = ?
+            AND m.is_active = 1
+            AND d.administered_at IS NULL AND d.skipped = 0 AND d.missed = 0
+            AND d.due_at < ?
+            AND NOT EXISTS (
+              SELECT 1 FROM care_item_mutes cm
+              WHERE cm.user_id = m.user_id AND cm.medication_id = m.id
+            )
+          ORDER BY d.due_at ASC
+        `).bind(dayStartUTC, cand.user_id, dayEndUTC).all<{
+          due_at: string; med_name: string; cat_name: string; is_overdue: number
+        }>()
+
+        const dueToday = items.results.filter(r => r.is_overdue === 0)
+        const overdueCount = items.results.filter(r => r.is_overdue === 1).length
+        if (dueToday.length === 0 && overdueCount === 0) continue        // silence is the feature
+
+        // Cat names for the title: from due-today items, else from overdue.
+        const catSource = dueToday.length > 0 ? dueToday : items.results
+        const catNames = [...new Set(catSource.map(r => r.cat_name))]
+        const catsLabel = catNames.length === 1
+          ? catNames[0]!
+          : catNames.slice(0, -1).join(', ') + ' and ' + catNames[catNames.length - 1]!
+
+        let title: string
+        let body: string
+        if (dueToday.length > 0) {
+          title = `${dueToday.length} care item${dueToday.length > 1 ? 's' : ''} due today for ${catsLabel}`
+          const shown = dueToday.slice(0, 6).map(r => {
+            const t = utcToLocal(r.due_at, cand.timezone ?? 'UTC').time
+            return `${r.med_name} at ${formatDigestTime(t)}`
+          })
+          const itemLine = shown.join(' · ') + (dueToday.length > 6 ? ` · +${dueToday.length - 6} more` : '')
+          body = overdueCount > 0
+            ? `${overdueCount} overdue · ${itemLine}`
+            : itemLine
+        } else {
+          title = `${overdueCount} overdue care item${overdueCount > 1 ? 's' : ''} for ${catsLabel}`
+          body = 'Tap to review overdue items'
+        }
+
+        const digestTokens = await env.DB.prepare(
+          `SELECT token FROM device_tokens WHERE user_id = ? AND platform = 'ios'`
+        ).bind(cand.user_id).all<{ token: string }>()
+        const digestMessages: ExpoPushMessage[] = digestTokens.results.map(t => ({
+          to: t.token, title, body, sound: 'default',
+          data: { url: '/notifications' },
+        }))
+        if (digestMessages.length > 0) {
+          await sendExpoPushNotifications(digestMessages)
+        }
+        // Mark sent for this user-local day (idempotency guard) regardless of
+        // push-ticket outcome, so a cron retry within the hour can't double-send.
+        await env.DB.prepare(
+          `UPDATE notification_prefs SET digest_last_sent_date = ? WHERE user_id = ?`
+        ).bind(localToday, cand.user_id).run()
       }
 
       // --- Email fallback for users with no push channel (Phase C, WP4d) ---

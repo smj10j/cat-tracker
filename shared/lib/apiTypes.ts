@@ -12,7 +12,7 @@ import type {
   Cat, Measurement, User, Medication, MedicationDose,
   NotificationInbox, HouseholdResponse, HouseholdInfo, InvitePreview,
   HouseholdListItem, MedicationInput,
-  AckRecord, AckSeverity, AckDirection, JournalEntry,
+  AckRecord, AckSeverity, AckDirection, JournalEntry, NotificationPrefs,
 } from './types'
 
 // ---------------------------------------------------------------------------
@@ -75,6 +75,12 @@ export interface CatTrackerApi {
 
   // Notifications
   getNotifications(): Promise<NotificationInbox>
+
+  // Notification preferences (PRD-actionable-notifications Phase B/C)
+  getNotificationPrefs(): Promise<NotificationPrefs>
+  updateNotificationPrefs(data: Partial<Pick<NotificationPrefs,
+    'digest_enabled' | 'digest_time' | 'quiet_hours_start' | 'quiet_hours_end'>>): Promise<NotificationPrefs>
+  setMedicationMute(medicationId: string, muted: boolean): Promise<{ muted: boolean }>
 
   // Household
   getHousehold(): Promise<HouseholdResponse>

@@ -130,6 +130,18 @@ export function userLocalToday(timezone: string | null): string {
   }).format(now)
 }
 
+// Current wall-clock time (HH:MM, 24h) in the user's timezone; UTC when unset.
+// Used by the digest/quiet-hours cron logic (PRD-actionable-notifications).
+export function userLocalHM(timezone: string | null): string {
+  const now = new Date()
+  if (!timezone) return now.toISOString().slice(11, 16)
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(now)
+  const get = (t: string) => parts.find(p => p.type === t)?.value ?? '00'
+  return `${get('hour').padStart(2, '0')}:${get('minute').padStart(2, '0')}`
+}
+
 // Add days to a YYYY-MM-DD string (UTC arithmetic — date-only, no DST drift).
 export function addDays(dateStr: string, days: number): string {
   const ms = Date.UTC(
@@ -210,12 +222,13 @@ medications.get('/medications', async (c) => {
             WHERE d.medication_id = m.id AND d.administered_at IS NULL AND d.skipped = 0 AND d.missed = 0
               AND d.due_at < ?) AS overdue_count,
            (SELECT MAX(administered_at) FROM medication_doses d
-            WHERE d.medication_id = m.id AND d.administered_at IS NOT NULL) AS last_given_at
+            WHERE d.medication_id = m.id AND d.administered_at IS NOT NULL) AS last_given_at,
+           EXISTS (SELECT 1 FROM care_item_mutes cm WHERE cm.user_id = ? AND cm.medication_id = m.id) AS muted
          FROM medications m
          JOIN cats c ON c.id = m.cat_id
          WHERE ${householdFilter} AND m.cat_id = ? AND m.is_active = 1
          ORDER BY m.name ASC`
-      ).bind(nowUTC, userId, userId, catId).all()
+      ).bind(nowUTC, userId, userId, userId, catId).all()
     : await c.env.DB.prepare(
         `SELECT m.*,
            (SELECT due_at FROM medication_doses d
@@ -225,12 +238,13 @@ medications.get('/medications', async (c) => {
             WHERE d.medication_id = m.id AND d.administered_at IS NULL AND d.skipped = 0 AND d.missed = 0
               AND d.due_at < ?) AS overdue_count,
            (SELECT MAX(administered_at) FROM medication_doses d
-            WHERE d.medication_id = m.id AND d.administered_at IS NOT NULL) AS last_given_at
+            WHERE d.medication_id = m.id AND d.administered_at IS NOT NULL) AS last_given_at,
+           EXISTS (SELECT 1 FROM care_item_mutes cm WHERE cm.user_id = ? AND cm.medication_id = m.id) AS muted
          FROM medications m
          JOIN cats c ON c.id = m.cat_id
          WHERE ${householdFilter} AND m.is_active = 1
          ORDER BY m.name ASC`
-      ).bind(nowUTC, userId, userId).all()
+      ).bind(nowUTC, userId, userId, userId).all()
 
   return c.json(rows.results)
 })
@@ -336,7 +350,11 @@ medications.get('/medications/:id', async (c) => {
   const userId = c.get('userId')
   const id = c.req.param('id')
 
-  const med = await c.env.DB.prepare('SELECT * FROM medications WHERE id = ?').bind(id).first<{ cat_id: string }>()
+  const med = await c.env.DB.prepare(
+    `SELECT m.*,
+       EXISTS (SELECT 1 FROM care_item_mutes cm WHERE cm.user_id = ? AND cm.medication_id = m.id) AS muted
+     FROM medications m WHERE m.id = ?`
+  ).bind(userId, id).first<{ cat_id: string }>()
   if (!med) return c.json({ error: 'Not found' }, 404)
   const medRole = await getCatRole(c.env.DB, med.cat_id, userId)
   if (!medRole) return c.json({ error: 'Not found' }, 404)
@@ -743,6 +761,37 @@ medications.post('/doses/:id/snooze', async (c) => {
   ).bind(snoozedUntil, doseId).run()
 
   return c.json({ snoozed_until: snoozedUntil })
+})
+
+// PUT /api/medications/:id/mute — per-user push mute for a care item
+// (PRD-actionable-notifications Phase C). Mutes reminders for the CALLER only;
+// schedule and other members' notifications are untouched. Any household member
+// who can see the cat can mute it for themselves (Viewer+).
+medications.put('/medications/:id/mute', async (c) => {
+  const userId = c.get('userId')
+  const medId = c.req.param('id')
+  const body = await c.req.json<{ muted?: unknown }>().catch(() => ({} as { muted?: unknown }))
+  if (typeof body.muted !== 'boolean') {
+    return c.json({ error: 'muted (boolean) is required' }, 400)
+  }
+
+  const med = await c.env.DB.prepare('SELECT cat_id FROM medications WHERE id = ?')
+    .bind(medId).first<{ cat_id: string }>()
+  if (!med) return c.json({ error: 'Not found' }, 404)
+  const role = await getCatRole(c.env.DB, med.cat_id, userId)
+  if (!role) return c.json({ error: 'Not found' }, 404)
+
+  if (body.muted) {
+    await c.env.DB.prepare(
+      `INSERT INTO care_item_mutes (user_id, medication_id) VALUES (?, ?)
+       ON CONFLICT (user_id, medication_id) DO NOTHING`
+    ).bind(userId, medId).run()
+  } else {
+    await c.env.DB.prepare(
+      `DELETE FROM care_item_mutes WHERE user_id = ? AND medication_id = ?`
+    ).bind(userId, medId).run()
+  }
+  return c.json({ muted: body.muted })
 })
 
 // POST /api/doses/bulk — bulk administer/skip, used by "Mark all given" /

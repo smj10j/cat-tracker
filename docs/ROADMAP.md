@@ -101,7 +101,7 @@ Every item below now has an implementation-level spec in its PRD's "Remaining sc
 All Draft PRDs awaiting a product-owner decision, grouped by theme and ordered by recommended priority within each group. Every one was written or substantially deepened on 2026-07-02.
 
 **Care & clinical depth (strongest fit with the chronic-care audience):**
-- [ ] 7a. PRD-actionable-notifications — **Approved 2026-07-02.** Phase A lands with WP4 (item 4g); Phases B/C (digest + prefs) scheduled after WP4.
+- [x] 7a. PRD-actionable-notifications — **Implemented 2026-07-02.** Phase A shipped with WP4 (item 4g); Phases B/C shipped in Session 6b — cron morning digest, quiet-hours deferral (digest + follow-up), per-item mute, and Settings → Notifications on both platforms (`notification_prefs` + `care_item_mutes`).
 - [ ] 7b. PRD-vet-visits — appointments, visit history, vaccine records with reminders; Phase B document attachments. (Draft — not approved.)
 - [ ] 7c. PRD-lab-results — bloodwork trend tracking for CKD/hyperthyroid/diabetic cats; zero interpretation, user-entered reference ranges. (Draft — not approved.)
 - [x] 7d. PRD-body-condition — **Implemented 2026-07-02.** WSAVA 9-point BCS via the generic measurement pipeline (integers-only v1); per-type scale validation, verbatim-cited 1–9 picker + fixed-axis chart both platforms. No interpretation (Phase B/C citation-gated).

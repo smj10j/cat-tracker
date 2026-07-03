@@ -1,9 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTheme, type ThemeMode } from '../contexts/ThemeContext'
 import { useAuth } from '../contexts/AuthContext'
-import { updateMe } from '../lib/api'
+import {
+  updateMe, getCats, getMedications,
+  getNotificationPrefs, updateNotificationPrefs, setMedicationMute,
+  type Medication, type NotificationPrefs,
+} from '../lib/api'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { useGoBack } from '../hooks/useGoBack'
+import { isValidHM } from '@shared/lib/notifications'
 import { THEME_FAMILIES, type ThemeFamily } from '@shared/lib/themeTokens'
 import type { DateFormat, TimeFormat, WeightUnit } from '@shared/lib/preferences'
 
@@ -153,6 +158,34 @@ function ThemeFamilyPicker({ value, onChange, currentMode }: { value: ThemeFamil
   )
 }
 
+function Switch({ checked, onChange, disabled, label }: {
+  checked: boolean
+  onChange: () => void
+  disabled?: boolean
+  label: string
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onChange}
+      className="relative w-12 h-7 rounded-full transition-all shrink-0"
+      style={{
+        background: checked ? 'var(--color-brand)' : 'rgba(255,255,255,0.12)',
+        opacity: disabled ? 0.6 : 1,
+      }}
+    >
+      <span
+        className="absolute top-1 w-5 h-5 rounded-full transition-all"
+        style={{ left: checked ? 'calc(100% - 24px)' : '4px', background: '#fff' }}
+      />
+    </button>
+  )
+}
+
 export default function SettingsPage() {
   const goBack = useGoBack('/')
   const { mode, setMode, family, setFamily } = useTheme()
@@ -160,6 +193,56 @@ export default function SettingsPage() {
   const { user, refresh } = useAuth()
   const [emailReminders, setEmailReminders] = useState<number>(user?.email_reminders ?? 1)
   const [savingEmail, setSavingEmail] = useState(false)
+
+  // Notification preferences + per-item mute (PRD-actionable-notifications Phase C)
+  const [notifPrefs, setNotifPrefs] = useState<NotificationPrefs | null>(null)
+  const [mutedMeds, setMutedMeds] = useState<Medication[]>([])
+  const [catNames, setCatNames] = useState<Record<string, string>>({})
+  const [notifError, setNotifError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    Promise.all([getNotificationPrefs(), getMedications(), getCats('all')])
+      .then(([p, meds, cats]) => {
+        if (cancelled) return
+        setNotifPrefs(p)
+        setCatNames(Object.fromEntries(cats.map(c => [c.id, c.name])))
+        setMutedMeds(meds.filter(m => m.muted))
+      })
+      .catch(() => { if (!cancelled) setNotifError('Could not load notification settings.') })
+    return () => { cancelled = true }
+  }, [])
+
+  // Optimistic-but-safe: apply locally, persist, revert on error.
+  async function patchPrefs(
+    patch: Partial<Pick<NotificationPrefs, 'digest_enabled' | 'digest_time' | 'quiet_hours_start' | 'quiet_hours_end'>>,
+  ) {
+    if (!notifPrefs) return
+    const prev = notifPrefs
+    setNotifPrefs({ ...notifPrefs, ...patch })
+    setNotifError(null)
+    try {
+      const updated = await updateNotificationPrefs(patch)
+      setNotifPrefs(updated)
+    } catch {
+      setNotifPrefs(prev)
+      setNotifError('Could not save notification settings.')
+    }
+  }
+
+  async function unmute(medId: string) {
+    const prev = mutedMeds
+    setMutedMeds(prev.filter(m => m.id !== medId))
+    setNotifError(null)
+    try {
+      await setMedicationMute(medId, false)
+    } catch {
+      setMutedMeds(prev)
+      setNotifError('Could not unmute this item.')
+    }
+  }
+
+  const digestEnabled = notifPrefs?.digest_enabled === 1
 
   async function toggleEmailReminders() {
     const next = emailReminders === 1 ? 0 : 1
@@ -266,8 +349,12 @@ export default function SettingsPage() {
       </section>
 
       {/* Notifications */}
-      <section className="glass-card p-5 space-y-3 mt-4">
+      <section className="glass-card p-5 space-y-5 mt-4">
         <h2 className="text-xs font-semibold text-ink-mid uppercase tracking-wider">Notifications</h2>
+
+        <p className="text-xs text-ink-dim -mt-2">These settings control notifications on the iOS app.</p>
+
+        {/* Email reminders */}
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-ink">Email reminders</p>
@@ -294,6 +381,99 @@ export default function SettingsPage() {
             />
           </button>
         </div>
+
+        {/* Daily digest */}
+        <div>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-ink">Daily digest</p>
+              <p className="text-xs text-ink-dim mt-0.5">Morning summary of the day's care items.</p>
+            </div>
+            <Switch
+              label="Daily digest"
+              checked={digestEnabled}
+              disabled={!notifPrefs}
+              onChange={() => patchPrefs({ digest_enabled: digestEnabled ? 0 : 1 })}
+            />
+          </div>
+          {digestEnabled && notifPrefs && (
+            <div className="flex items-center justify-between gap-4 mt-3">
+              <label htmlFor="digest-time" className="text-sm text-ink-mid">Time</label>
+              <input
+                id="digest-time"
+                type="time"
+                value={notifPrefs.digest_time}
+                onChange={e => { const v = e.target.value; if (isValidHM(v)) patchPrefs({ digest_time: v }) }}
+                className="input-dark px-3 py-2 text-sm"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Quiet hours */}
+        <div>
+          <p className="text-sm font-medium text-ink mb-2">Quiet hours</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="quiet-start" className="block text-xs font-semibold text-ink-mid mb-1.5 uppercase tracking-wider">Start</label>
+              <input
+                id="quiet-start"
+                type="time"
+                value={notifPrefs?.quiet_hours_start ?? ''}
+                disabled={!notifPrefs}
+                onChange={e => { const v = e.target.value; patchPrefs({ quiet_hours_start: v && isValidHM(v) ? v : null }) }}
+                className="input-dark w-full px-3 py-2.5 text-sm"
+              />
+            </div>
+            <div>
+              <label htmlFor="quiet-end" className="block text-xs font-semibold text-ink-mid mb-1.5 uppercase tracking-wider">End</label>
+              <input
+                id="quiet-end"
+                type="time"
+                value={notifPrefs?.quiet_hours_end ?? ''}
+                disabled={!notifPrefs}
+                onChange={e => { const v = e.target.value; patchPrefs({ quiet_hours_end: v && isValidHM(v) ? v : null }) }}
+                className="input-dark w-full px-3 py-2.5 text-sm"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-ink-dim mt-2">
+            Follow-up reminders and digests wait until quiet hours end. Doses you scheduled inside these hours still notify at their time.
+          </p>
+        </div>
+
+        {/* Muted care items */}
+        <div>
+          <p className="text-sm font-medium text-ink mb-2">Muted care items</p>
+          {mutedMeds.length === 0 ? (
+            <p className="text-xs text-ink-dim">No muted items.</p>
+          ) : (
+            <div className="space-y-2">
+              {mutedMeds.map(m => (
+                <div key={m.id} className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm text-ink truncate">{m.name}</p>
+                    {catNames[m.cat_id] && (
+                      <p className="text-xs text-ink-dim truncate">{catNames[m.cat_id]}</p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => unmute(m.id)}
+                    className="shrink-0 px-3 py-2 rounded-lg text-xs font-semibold transition-all"
+                    style={{ color: 'var(--color-brand)', background: 'var(--color-brand-glow)', border: '1px solid var(--color-brand)' }}
+                  >
+                    Unmute
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {notifError && (
+          <p className="text-xs text-rose">{notifError}</p>
+        )}
       </section>
     </div>
   )

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import {
-  getCat, getMedication, createMedication, updateMedication, archiveMedication,
+  getCat, getMedication, createMedication, updateMedication, archiveMedication, setMedicationMute,
   type Cat,
 } from '../lib/api'
 import { useGoBack } from '../hooks/useGoBack'
@@ -84,6 +84,8 @@ export default function MedicationFormPage() {
   const [error, setError] = useState<string | null>(null)
   const [showPresets, setShowPresets] = useState(false)
   const [firstDoseGiven, setFirstDoseGiven] = useState(true)
+  // Per-caller push mute (PRD-actionable-notifications Phase C), edit view only
+  const [muted, setMuted] = useState(false)
 
   const setField = <K extends keyof CareItemFields>(key: K, value: CareItemFields[K]) =>
     setFields(prev => ({ ...prev, [key]: value }))
@@ -106,6 +108,7 @@ export default function MedicationFormPage() {
           const med = await getMedication(medId)
           setFields(hydrateFromMedication(med))
           setDoses(med.doses ?? [])
+          setMuted(Boolean(med.muted))
           const c = await getCat(med.cat_id)
           setCat(c)
         } else if (catId) {
@@ -161,6 +164,18 @@ export default function MedicationFormPage() {
       showError((e as Error).message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function toggleMute() {
+    if (!medId) return
+    const next = !muted
+    setMuted(next) // optimistic
+    try {
+      await setMedicationMute(medId, next)
+    } catch (e: unknown) {
+      setMuted(!next) // revert
+      showError((e as Error).message)
     }
   }
 
@@ -505,6 +520,36 @@ export default function MedicationFormPage() {
                   </div>
                 )
               })}
+            </div>
+          </div>
+        )}
+
+        {isEdit && (
+          <div
+            className="rounded-2xl p-5"
+            style={{ background: 'rgba(192,132,252,0.04)', border: '1px solid rgba(192,132,252,0.12)' }}
+          >
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-ink">Mute reminders for me</p>
+                <p className="text-xs text-ink-dim mt-0.5">
+                  Silences this item's reminders for you only — the schedule and other members are unaffected.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={muted}
+                aria-label="Mute reminders for me"
+                onClick={toggleMute}
+                className="relative w-12 h-7 rounded-full transition-all shrink-0"
+                style={{ background: muted ? 'var(--color-brand)' : 'rgba(255,255,255,0.12)' }}
+              >
+                <span
+                  className="absolute top-1 w-5 h-5 rounded-full transition-all"
+                  style={{ left: muted ? 'calc(100% - 24px)' : '4px', background: '#fff' }}
+                />
+              </button>
             </div>
           </div>
         )}

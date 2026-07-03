@@ -56,7 +56,7 @@
 | [PRD-lab-results.md](PRD-lab-results.md) | Lab Results Tracking | `Draft` | 2026-07-02 |
 | [PRD-body-condition.md](PRD-body-condition.md) | Body Condition Score (BCS) | `Implemented` | 2026-07-02 |
 | [PRD-notes-journal.md](PRD-notes-journal.md) | Observations Journal | `Implemented` | 2026-07-02 |
-| [PRD-actionable-notifications.md](PRD-actionable-notifications.md) | Actionable Notifications & Daily Digest | `Approved` | 2026-07-02 |
+| [PRD-actionable-notifications.md](PRD-actionable-notifications.md) | Actionable Notifications & Daily Digest | `Implemented` | 2026-07-02 |
 | [PRD-onboarding.md](PRD-onboarding.md) | First-Run Onboarding & Empty-State Guidance | `Draft` | 2026-07-02 |
 | [PRD-sitter-live-link.md](PRD-sitter-live-link.md) | Sitter Live Share Link | `Draft` | 2026-07-02 |
 | [PRD-ios-widgets.md](PRD-ios-widgets.md) | iOS Widgets & Siri Shortcuts | `Draft` | 2026-07-02 |
@@ -807,7 +807,7 @@ Nothing rejected yet.
 
 | | |
 |---|---|
-| **Status** | `Approved` |
+| **Status** | `Implemented` |
 | **Last updated** | 2026-07-02 |
 | **Depends on** | PRD-medication-reminders.md (Partial), PRD-push-notifications.md (In Progress) |
 
@@ -816,6 +816,8 @@ Nothing rejected yet.
 **Proposed:** Phase A — "Mark given" / "Snooze 1h" actions on the iOS push via expo-notifications categories (administer endpoint exists; snooze specced as hybrid server `snoozed_until` + local notification). Phase B — opt-in morning digest push at a user-chosen time. Phase C — notification preferences screen (digest, quiet hours, per-item mute) backed by `notification_prefs` + `care_item_mutes`.
 
 **Approved 2026-07-02.** Snooze: hybrid (server `snoozed_until` is source of truth + exact local notification on the acting device). Phase A implements alongside ROADMAP WP4.
+
+**Implemented 2026-07-02.** Phase A shipped in WP4g/Session 5a (actionable push + `snoozed_until` + web/iOS snooze). **Phases B + C shipped in Session 6b:** `notification_prefs` + `care_item_mutes` tables (prod-migrated); `GET/PUT /api/notification-prefs` and `PUT /api/medications/:id/mute` (per-caller `muted` flag on medications); hourly-cron morning digest (once per user-local day past `digest_time`, items-due-today + overdue count, silent when empty); quiet-hours deferral of digest + 24h follow-up (midnight-wrap safe); per-(user,item) mute exclusion across due-hour push, follow-up, and digest; Settings → Notifications section (digest toggle + time, quiet hours, muted-items list) and a per-item "Mute reminders for me" toggle on both platforms. Pure timing logic (`inQuietHours`/`isValidHM`) unit-tested in `shared/`; cron digest + endpoints integration-tested in the worker.
 
 ---
 

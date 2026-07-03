@@ -9,6 +9,7 @@ import {
   Platform,
   ActivityIndicator,
   KeyboardAvoidingView,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -78,6 +79,10 @@ export default function CareItemScreen() {
   const [showPresets, setShowPresets] = useState(false);
   const [firstDoseGiven, setFirstDoseGiven] = useState(true);
 
+  // Per-user push mute (PRD-actionable-notifications Phase C) — edit mode only
+  const [muted, setMuted] = useState(false);
+  const [savingMute, setSavingMute] = useState(false);
+
   // Date/time picker state
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
@@ -95,6 +100,7 @@ export default function CareItemScreen() {
         if (isEdit && medId) {
           const med = await api.getMedication(medId);
           setFields(hydrateFromMedication(med));
+          setMuted(med.muted === 1);
           setDoses(med.doses ?? []);
           const c = await api.getCat(med.cat_id);
           setCat(c);
@@ -174,6 +180,20 @@ export default function CareItemScreen() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Archive', style: 'destructive', onPress: doArchive },
     ]);
+  }
+
+  async function toggleMute(next: boolean) {
+    if (!medId) return;
+    setMuted(next); // reflect immediately
+    setSavingMute(true);
+    try {
+      await api.setMedicationMute(medId, next);
+    } catch (e: unknown) {
+      setMuted(!next); // revert on failure
+      showError((e as Error).message);
+    } finally {
+      setSavingMute(false);
+    }
   }
 
   async function doArchive() {
@@ -594,6 +614,27 @@ export default function CareItemScreen() {
             </View>
           </View>
         </SectionCard>
+        )}
+
+        {/* Mute reminders — edit mode only, per-user push mute */}
+        {isEdit && (
+          <SectionCard title="Reminders">
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.ink, fontSize: 14, fontWeight: '500' }}>Mute reminders for me</Text>
+                <Text style={{ color: colors.inkDim, fontSize: 12, marginTop: 2 }}>
+                  Silences this item's reminders for you only — the schedule and other members are unaffected.
+                </Text>
+              </View>
+              <Switch
+                value={muted}
+                onValueChange={toggleMute}
+                disabled={savingMute}
+                trackColor={{ true: colors.lavender, false: colors.surface }}
+                accessibilityLabel="Mute reminders for me"
+              />
+            </View>
+          </SectionCard>
         )}
 
         {/* Dose history — resolved doses (given / skipped / missed), edit mode only */}

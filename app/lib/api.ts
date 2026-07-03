@@ -5,7 +5,7 @@ import * as Device from 'expo-device';
 // Types re-exported from shared — single source of truth
 export type {
   Cat, Measurement, User, Medication, MedicationDose, DoseWithContext,
-  NotificationInbox, HouseholdMember, PendingInvite, HouseholdInfo,
+  NotificationInbox, NotificationPrefs, HouseholdMember, PendingInvite, HouseholdInfo,
   InvitePreview, HouseholdResponse, MedicationInput, HouseholdListItem, DayGroup,
   AckRecord, AckSeverity, AckDirection, JournalEntry, TimelineItem, TimelineDayGroup,
 } from '@shared/lib/types';
@@ -13,7 +13,7 @@ export { CARE_TYPE_ICONS } from '@shared/lib/types';
 
 import type {
   Cat, Measurement, User, Medication, MedicationDose,
-  NotificationInbox, HouseholdResponse, HouseholdInfo, InvitePreview,
+  NotificationInbox, NotificationPrefs, HouseholdResponse, HouseholdInfo, InvitePreview,
   HouseholdListItem, AckRecord, AckSeverity, AckDirection, JournalEntry,
 } from '@shared/lib/types';
 import type { CatTrackerNativeApi } from '@shared/lib/apiTypes';
@@ -383,6 +383,30 @@ export const api: CatTrackerNativeApi = {
   async getNotifications(): Promise<NotificationInbox> {
     const res = await apiFetch('/api/notifications');
     return res.json() as Promise<NotificationInbox>;
+  },
+
+  // Notification preferences (PRD-actionable-notifications Phase B/C)
+  async getNotificationPrefs(): Promise<NotificationPrefs> {
+    const res = await apiFetch('/api/notification-prefs');
+    return res.json() as Promise<NotificationPrefs>;
+  },
+
+  async updateNotificationPrefs(
+    data: Partial<Pick<NotificationPrefs, 'digest_enabled' | 'digest_time' | 'quiet_hours_start' | 'quiet_hours_end'>>,
+  ): Promise<NotificationPrefs> {
+    const res = await apiFetch('/api/notification-prefs', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return res.json() as Promise<NotificationPrefs>;
+  },
+
+  async setMedicationMute(medicationId: string, muted: boolean): Promise<{ muted: boolean }> {
+    const res = await apiFetch(`/api/medications/${medicationId}/mute`, {
+      method: 'PUT',
+      body: JSON.stringify({ muted }),
+    });
+    return res.json() as Promise<{ muted: boolean }>;
   },
 
   // Household

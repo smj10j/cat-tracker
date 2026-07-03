@@ -256,3 +256,27 @@ CREATE TABLE IF NOT EXISTS journal_entries (
   updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_journal_cat ON journal_entries(cat_id, occurred_at DESC);
+
+-- Per-user notification preferences (PRD-actionable-notifications Phase B/C).
+-- One row per user, created lazily on first PUT. Kept off `users` to keep that
+-- table lean. Migration (2026-07-02): CREATE TABLE IF NOT EXISTS is a new table,
+-- so `db:migrate:remote` creates it directly — no ALTER needed.
+CREATE TABLE IF NOT EXISTS notification_prefs (
+  user_id                TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  digest_enabled         INTEGER NOT NULL DEFAULT 0,
+  digest_time            TEXT NOT NULL DEFAULT '08:00',   -- HH:MM, user-local
+  digest_last_sent_date  TEXT,                            -- YYYY-MM-DD user-local; idempotency guard
+  quiet_hours_start      TEXT,                            -- HH:MM; null = no quiet hours
+  quiet_hours_end        TEXT,
+  updated_at             TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Per-user, per-care-item push mute (PRD-actionable-notifications Phase C).
+-- Silences that item's pushes for the muting user only; schedule and other
+-- members' notifications are untouched. Multi-row by nature, hence its own table.
+CREATE TABLE IF NOT EXISTS care_item_mutes (
+  user_id        TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  medication_id  TEXT NOT NULL REFERENCES medications(id) ON DELETE CASCADE,
+  created_at     TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (user_id, medication_id)
+);

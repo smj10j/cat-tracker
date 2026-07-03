@@ -1,7 +1,7 @@
 // Types — re-exported from shared single source of truth
 export type {
   Cat, Measurement, User, Medication, MedicationDose, DoseWithContext,
-  NotificationInbox, HouseholdMember, PendingInvite, HouseholdInfo,
+  NotificationInbox, NotificationPrefs, HouseholdMember, PendingInvite, HouseholdInfo,
   InvitePreview, HouseholdResponse, MedicationInput, HouseholdListItem, DayGroup,
   AckRecord, AckSeverity, AckDirection, JournalEntry, TimelineItem, TimelineDayGroup,
 } from '@shared/lib/types'
@@ -9,7 +9,7 @@ export { CARE_TYPE_ICONS } from '@shared/lib/types'
 
 import type {
   Cat, Measurement, User, Medication, MedicationDose, MedicationInput,
-  NotificationInbox, HouseholdResponse, HouseholdInfo, InvitePreview, HouseholdListItem,
+  NotificationInbox, NotificationPrefs, HouseholdResponse, HouseholdInfo, InvitePreview, HouseholdListItem,
   AckRecord, AckSeverity, AckDirection, JournalEntry,
 } from '@shared/lib/types'
 import type { CatTrackerWebApi } from '@shared/lib/apiTypes'
@@ -214,6 +214,14 @@ export const archiveMedication = async (id: string): Promise<void> => {
 
 export const getNotifications = () => request<NotificationInbox>('/notifications')
 
+// Notification preferences (PRD-actionable-notifications Phase B/C)
+export const getNotificationPrefs = () => request<NotificationPrefs>('/notification-prefs')
+export const updateNotificationPrefs = (
+  data: Partial<Pick<NotificationPrefs, 'digest_enabled' | 'digest_time' | 'quiet_hours_start' | 'quiet_hours_end'>>,
+) => request<NotificationPrefs>('/notification-prefs', { method: 'PUT', body: JSON.stringify(data) })
+export const setMedicationMute = (medicationId: string, muted: boolean) =>
+  request<{ muted: boolean }>(`/medications/${medicationId}/mute`, { method: 'PUT', body: JSON.stringify({ muted }) })
+
 // Household
 export const getHousehold = () => request<HouseholdResponse>('/household')
 export const getHouseholdList = () => request<HouseholdListItem[]>('/household/list')
@@ -275,6 +283,7 @@ const _typeCheck: CatTrackerWebApi = {
   getMedications, getMedication, createMedication, updateMedication, archiveMedication, logPrnDose,
   administerDose, skipDose, snoozeDose, bulkDoseAction,
   getNotifications,
+  getNotificationPrefs, updateNotificationPrefs, setMedicationMute,
   getHousehold, getHouseholdList, renameHousehold,
   sendInvite, revokeInvite, changeMemberRole, removeMember,
   getInvitePreview, acceptInvite, declineInvite,

@@ -2,9 +2,10 @@ import { View, Text, Pressable, ScrollView, Alert, Platform, Switch } from 'reac
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from 'nativewind';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { File, Paths } from 'expo-file-system/next';
 import * as Sharing from 'expo-sharing';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme, ThemePreference } from '../contexts/ThemeContext';
 import { usePreferences } from '../contexts/PreferencesContext';
@@ -12,8 +13,29 @@ import { useThemeColors } from '../hooks/useThemeColors';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import { ResponsiveContainer } from '../components/ResponsiveContainer';
 import { api } from '../lib/api';
+import type { NotificationPrefs, Medication } from '../lib/api';
 import { THEME_FAMILIES, type ThemeFamily } from '@shared/lib/themeTokens';
+import { formatTimeFromParts } from '@shared/lib/formatting';
 import type { DateFormat, TimeFormat, WeightUnit } from '@shared/lib/preferences';
+
+// 'HH:MM' 24h string <-> Date, converted only at the DateTimePicker edge.
+function hmToDate(hm: string): Date {
+  const [h, m] = hm.split(':');
+  const d = new Date();
+  d.setHours(parseInt(h ?? '0', 10), parseInt(m ?? '0', 10), 0, 0);
+  return d;
+}
+function dateToHM(d: Date): string {
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+const DEFAULT_NOTIF_PREFS: NotificationPrefs = {
+  digest_enabled: 0,
+  digest_time: '08:00',
+  digest_last_sent_date: null,
+  quiet_hours_start: null,
+  quiet_hours_end: null,
+};
 
 const DATE_OPTIONS: { value: DateFormat; label: string }[] = [
   { value: 'MDY', label: 'MM/DD' },
@@ -82,6 +104,66 @@ export default function SettingsScreen() {
       setSavingEmail(false);
     }
   }
+
+  // Notification preferences (PRD-actionable-notifications Phase C)
+  const [notifPrefs, setNotifPrefs] = useState<NotificationPrefs>(DEFAULT_NOTIF_PREFS);
+  const [mutedMeds, setMutedMeds] = useState<Medication[]>([]);
+  const [catNames, setCatNames] = useState<Record<string, string>>({});
+  const [savingNotif, setSavingNotif] = useState(false);
+  const [showDigestPicker, setShowDigestPicker] = useState(false);
+  const [showQhStartPicker, setShowQhStartPicker] = useState(false);
+  const [showQhEndPicker, setShowQhEndPicker] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [p, meds, cats] = await Promise.all([
+          api.getNotificationPrefs(),
+          api.getMedications(),
+          api.getCats(),
+        ]);
+        if (cancelled) return;
+        setNotifPrefs(p);
+        setMutedMeds(meds.filter((m) => m.muted));
+        const map: Record<string, string> = {};
+        for (const c of cats) map[c.id] = c.name;
+        setCatNames(map);
+      } catch {
+        // Leave defaults in place; controls stay usable.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  async function saveNotifPrefs(
+    patch: Partial<Pick<NotificationPrefs, 'digest_enabled' | 'digest_time' | 'quiet_hours_start' | 'quiet_hours_end'>>,
+  ) {
+    const prev = notifPrefs;
+    setNotifPrefs({ ...notifPrefs, ...patch }); // reflect immediately
+    setSavingNotif(true);
+    try {
+      const updated = await api.updateNotificationPrefs(patch);
+      setNotifPrefs(updated);
+    } catch {
+      setNotifPrefs(prev); // revert on failure
+      if (Platform.OS !== 'web') Alert.alert('Error', 'Couldn’t save notification settings.');
+    } finally {
+      setSavingNotif(false);
+    }
+  }
+
+  async function unmuteMed(medId: string) {
+    const prev = mutedMeds;
+    setMutedMeds((list) => list.filter((m) => m.id !== medId)); // reflect immediately
+    try {
+      await api.setMedicationMute(medId, false);
+    } catch {
+      setMutedMeds(prev); // revert on failure
+      if (Platform.OS !== 'web') Alert.alert('Error', 'Couldn’t unmute this item.');
+    }
+  }
+
   const { theme, setTheme, family, setFamily } = useTheme();
   const { prefs, setPref, resetToLocale, isOverridden } = usePreferences();
   const colors = useThemeColors();
@@ -332,6 +414,8 @@ export default function SettingsScreen() {
           <Text style={{ color: colors.inkMid, fontSize: rv(10, 12), fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>
             Notifications
           </Text>
+
+          {/* Email reminders */}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <View style={{ flex: 1 }}>
               <Text style={{ color: colors.ink, fontSize: 14, fontWeight: '500' }}>Email reminders</Text>
@@ -347,6 +431,127 @@ export default function SettingsScreen() {
               accessibilityLabel="Email reminders"
             />
           </View>
+
+          <View style={{ height: 1, backgroundColor: colors.rim, marginVertical: 14 }} />
+
+          {/* Daily digest */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.ink, fontSize: 14, fontWeight: '500' }}>Daily digest</Text>
+              <Text style={{ color: colors.inkDim, fontSize: 12, marginTop: 2 }}>
+                Morning summary of the day's care items.
+              </Text>
+            </View>
+            <Switch
+              value={notifPrefs.digest_enabled === 1}
+              onValueChange={(v) => saveNotifPrefs({ digest_enabled: v ? 1 : 0 })}
+              disabled={savingNotif}
+              trackColor={{ true: colors.lavender, false: colors.surfaceHi }}
+              accessibilityLabel="Daily digest"
+            />
+          </View>
+          {notifPrefs.digest_enabled === 1 && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 10 }}>
+              <Text style={{ color: colors.inkMid, fontSize: 13 }}>Send at</Text>
+              <View style={{ flex: 1, maxWidth: 200 }}>
+                <TimeField
+                  value={notifPrefs.digest_time}
+                  fallback="08:00"
+                  show={showDigestPicker}
+                  disabled={savingNotif}
+                  onToggle={() => setShowDigestPicker((v) => !v)}
+                  onChange={(hm) => saveNotifPrefs({ digest_time: hm })}
+                />
+              </View>
+            </View>
+          )}
+
+          <View style={{ height: 1, backgroundColor: colors.rim, marginVertical: 14 }} />
+
+          {/* Quiet hours */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <Text style={{ color: colors.ink, fontSize: 14, fontWeight: '500' }}>Quiet hours</Text>
+            {(notifPrefs.quiet_hours_start || notifPrefs.quiet_hours_end) ? (
+              <Pressable
+                onPress={() => saveNotifPrefs({ quiet_hours_start: null, quiet_hours_end: null })}
+                disabled={savingNotif}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={{ color: colors.inkDim, fontSize: 13 }}>Clear</Text>
+              </Pressable>
+            ) : null}
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.inkDim, fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Start</Text>
+              <TimeField
+                value={notifPrefs.quiet_hours_start}
+                fallback="22:00"
+                placeholder="Off"
+                show={showQhStartPicker}
+                disabled={savingNotif}
+                onToggle={() => setShowQhStartPicker((v) => !v)}
+                onChange={(hm) => saveNotifPrefs({ quiet_hours_start: hm })}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.inkDim, fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>End</Text>
+              <TimeField
+                value={notifPrefs.quiet_hours_end}
+                fallback="07:00"
+                placeholder="Off"
+                show={showQhEndPicker}
+                disabled={savingNotif}
+                onToggle={() => setShowQhEndPicker((v) => !v)}
+                onChange={(hm) => saveNotifPrefs({ quiet_hours_end: hm })}
+              />
+            </View>
+          </View>
+          <Text style={{ color: colors.inkDim, fontSize: 12, marginTop: 8 }}>
+            Follow-up reminders and digests wait until quiet hours end. Doses you scheduled inside these hours still notify at their time.
+          </Text>
+
+          <View style={{ height: 1, backgroundColor: colors.rim, marginVertical: 14 }} />
+
+          {/* Muted care items */}
+          <Text style={{ color: colors.ink, fontSize: 14, fontWeight: '500', marginBottom: 8 }}>Muted care items</Text>
+          {mutedMeds.length === 0 ? (
+            <Text style={{ color: colors.inkDim, fontSize: 13 }}>No muted items.</Text>
+          ) : (
+            <View style={{ gap: 8 }}>
+              {mutedMeds.map((m) => (
+                <View
+                  key={m.id}
+                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}
+                >
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={{ color: colors.ink, fontSize: 14 }} numberOfLines={1}>{m.name}</Text>
+                    {catNames[m.cat_id] ? (
+                      <Text style={{ color: colors.inkDim, fontSize: 12, marginTop: 1 }} numberOfLines={1}>
+                        {catNames[m.cat_id]}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <Pressable
+                    onPress={() => unmuteMed(m.id)}
+                    style={{
+                      paddingHorizontal: 14,
+                      paddingVertical: 8,
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: colors.rim,
+                      backgroundColor: colors.surfaceHi,
+                      minHeight: 36,
+                      justifyContent: 'center',
+                    }}
+                    accessibilityLabel={`Unmute ${m.name}`}
+                  >
+                    <Text style={{ color: colors.lavender, fontSize: 13, fontWeight: '600' }}>Unmute</Text>
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* Household settings */}
@@ -400,5 +605,68 @@ export default function SettingsScreen() {
         </ResponsiveContainer>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+/**
+ * Inline 'HH:MM' time picker. Shows the formatted time (respecting the 12h/24h
+ * preference) and reveals a native DateTimePicker in time mode. `value` may be
+ * null (quiet hours off) — `fallback` seeds the picker in that case.
+ */
+function TimeField({
+  value,
+  fallback,
+  placeholder,
+  show,
+  disabled,
+  onToggle,
+  onChange,
+}: {
+  value: string | null;
+  fallback: string;
+  placeholder?: string;
+  show: boolean;
+  disabled?: boolean;
+  onToggle: () => void;
+  onChange: (hm: string) => void;
+}) {
+  const colors = useThemeColors();
+  const { prefs } = usePreferences();
+  const { colorScheme } = useColorScheme();
+
+  return (
+    <View>
+      <Pressable
+        onPress={onToggle}
+        disabled={disabled}
+        style={{
+          backgroundColor: colors.card,
+          borderWidth: 1,
+          borderColor: show ? colors.lavender : colors.rim,
+          borderRadius: 12,
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          minHeight: 44,
+          justifyContent: 'center',
+        }}
+      >
+        <Text style={{ color: value ? colors.ink : colors.inkDim, fontSize: 14 }}>
+          {value ? formatTimeFromParts(value, prefs) : (placeholder ?? 'Select time')}
+        </Text>
+      </Pressable>
+      {show && (
+        <DateTimePicker
+          value={hmToDate(value ?? fallback)}
+          mode="time"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          themeVariant={colorScheme === 'light' ? 'light' : 'dark'}
+          onChange={(_event, selected) => {
+            if (Platform.OS === 'android') onToggle();
+            if (selected) onChange(dateToHM(selected));
+          }}
+          style={{ marginTop: 4 }}
+        />
+      )}
+    </View>
   );
 }

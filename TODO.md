@@ -40,12 +40,12 @@ Triggered by: owner asked to implement ROADMAP WP4g plus session-plan Sessions 5
 - [x] Web + iOS: `BcsPicker` (nine 1–9 segments, verbatim copy) + fixed 1–9 axis stepped "Condition" chart tab; history/export via getScaleValueLabel
 - [x] Tests (worker +5, shared +helpers, web +2 files, app +2) + check-shared-drift clean, deploy web+worker, commit, push. No interpretive copy (Phase B/C citation-gated).
 
-### Session 6b — Notification digest + preferences (PRD-actionable-notifications Phases B/C)
-- [ ] Schema: `notification_prefs` + `care_item_mutes` tables (prod migration)
-- [ ] Worker: digest cron (once/user-local-day, digest_time guard); quiet-hours defer; mute exclusion; prefs GET/PUT; mute PUT
-- [ ] Shared: apiTypes methods; NotificationPrefs type
-- [ ] Web + iOS: Settings → Notifications section (digest, quiet hours, muted items); care-item "Mute reminders for me" toggle
-- [ ] Tests, migrate remote, deploy, commit, push
+### Session 6b — Notification digest + preferences (PRD-actionable-notifications Phases B/C) ✅
+- [x] Schema: `notification_prefs` + `care_item_mutes` tables (prod migration verified)
+- [x] Worker: digest cron (≥digest_time guard, once/user-local-day via digest_last_sent_date, silent when empty); quiet-hours defer for digest + 24h follow-up (midnight-wrap safe); per-(user,item) mute exclusion across due-hour push + follow-up + digest; `GET/PUT /api/notification-prefs`; `PUT /api/medications/:id/mute` + per-caller `muted` flag on medications
+- [x] Shared: apiTypes methods (getNotificationPrefs/updateNotificationPrefs/setMedicationMute); NotificationPrefs type; pure `inQuietHours`/`isValidHM` (unit-tested)
+- [x] Web + iOS: Settings → Notifications section (digest toggle+time, quiet hours, muted-items list); care-item "Mute reminders for me" toggle
+- [x] Tests (worker prefs+mute+cron-digest 10, shared notifications 5), migrate remote, deploy web+worker, commit, push
 
 ### Ship
 - [ ] Bump app version 1.0.4 → 1.0.5; `/deploy` (all suites → web+worker → local IPA → TestFlight submit + log)

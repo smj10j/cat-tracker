@@ -3,12 +3,19 @@ import { Link } from 'react-router-dom'
 import {
   ComposedChart, Line, XAxis, YAxis, ResponsiveContainer,
 } from 'recharts'
-import type { Cat, Measurement } from '../lib/api'
-import { STATUS_COLORS } from '@shared/lib/healthMetrics'
+import type { Cat, Measurement, AckRecord, AckSeverity } from '../lib/api'
+import { STATUS_COLORS, STATUS_EMOJI, STATUS_LABEL } from '@shared/lib/healthMetrics'
 import type { HealthAssessment } from '@shared/lib/healthMetrics'
 import { detectCorrelations, describeCorrelation, detectConfluence, bucketByWeek, normalize } from '@shared/lib/correlations'
 import type { CorrelationResult } from '@shared/lib/correlations'
+import { applyAcknowledgment, assessmentDirection } from '@shared/lib/alertAck'
+import { LIMITS } from '@shared/lib/constants'
+import { usePreferences } from '../contexts/PreferencesContext'
+import { formatDate } from '@shared/lib/preferences'
 import CorrelationChart from './CorrelationChart'
+
+// SQLite 'YYYY-MM-DD HH:MM:SS' (UTC) -> ISO the Date constructor treats as UTC.
+const toIso = (s: string) => (s.includes('T') ? s : s.replace(' ', 'T') + 'Z')
 
 const STATUS_ICON: Record<string, string> = {
   watch: '👀', concerning: '⚠️', urgent: '🚨',
@@ -80,18 +87,44 @@ interface Props {
   measurementsByType: Record<string, Measurement[]>
   availableTypes: string[]
   hasWeightData: boolean
+  // Health-alert acknowledgment (PRD-alert-acknowledgment)
+  acknowledgment?: AckRecord | null
+  latestMeasuredAt: string
+  onAcknowledge: (severity: AckSeverity, direction: 'loss' | 'gain', note: string) => Promise<void> | void
+  onWithdraw: () => Promise<void> | void
 }
 
 export default function InsightsPanel({
   cat, status, health, measurementsByType, availableTypes, hasWeightData,
+  acknowledgment, onAcknowledge, onWithdraw,
 }: Props) {
+  const { prefs } = usePreferences()
   const [patternsOpen, setPatternsOpen] = useState(false)
   const [exploreOpen, setExploreOpen] = useState(false)
+  const [ackExpanded, setAckExpanded] = useState(false)
+  const [ackNote, setAckNote] = useState('')
+  const [ackSubmitting, setAckSubmitting] = useState(false)
 
   const isUrgent = status === 'urgent'
   const isConcerning = status === 'concerning'
   const isWatch = status === 'watch'
   const showHealthAlert = (isUrgent || isConcerning || isWatch) && hasWeightData
+
+  // Suppression: when true, render the muted "acknowledged" state instead of the
+  // full-intensity alert. A superseded/expired ack yields suppressed=false.
+  const ackApplied = applyAcknowledgment(health, acknowledgment)
+  const suppressed = ackApplied.suppressed
+
+  async function handleConfirmAck() {
+    setAckSubmitting(true)
+    try {
+      await onAcknowledge(status as AckSeverity, assessmentDirection(health), ackNote.trim())
+      setAckExpanded(false)
+      setAckNote('')
+    } finally {
+      setAckSubmitting(false)
+    }
+  }
 
   const correlations = availableTypes.length >= 2
     ? detectCorrelations(measurementsByType).filter((r) => r.strength !== 'none')
@@ -108,7 +141,10 @@ export default function InsightsPanel({
 
   const statusColor = STATUS_COLORS[status as keyof typeof STATUS_COLORS] ?? 'var(--color-brand)'
 
-  const panelBg = isUrgent
+  // When the alert is acknowledged, drop all tint/glow to a neutral surface.
+  const panelBg = suppressed
+    ? 'var(--color-card)'
+    : isUrgent
     ? 'rgba(248,113,113,0.08)'
     : isConcerning
     ? 'rgba(249,115,22,0.07)'
@@ -116,7 +152,9 @@ export default function InsightsPanel({
     ? 'rgba(251,191,36,0.07)'
     : 'rgba(192,132,252,0.06)'
 
-  const panelBorder = isUrgent
+  const panelBorder = suppressed
+    ? '1px solid var(--color-rim)'
+    : isUrgent
     ? '2px solid rgba(248,113,113,0.5)'
     : isConcerning
     ? '1.5px solid rgba(249,115,22,0.45)'
@@ -124,7 +162,9 @@ export default function InsightsPanel({
     ? '1.5px solid rgba(251,191,36,0.35)'
     : '1px solid rgba(192,132,252,0.2)'
 
-  const dividerColor = isUrgent
+  const dividerColor = suppressed
+    ? 'var(--color-rim)'
+    : isUrgent
     ? 'rgba(248,113,113,0.15)'
     : isConcerning
     ? 'rgba(249,115,22,0.15)'
@@ -142,10 +182,45 @@ export default function InsightsPanel({
   return (
     <div
       className="rounded-2xl overflow-hidden"
-      style={{ background: panelBg, border: panelBorder, boxShadow: isUrgent ? '0 0 32px rgba(248,113,113,0.15)' : undefined }}
+      style={{ background: panelBg, border: panelBorder, boxShadow: isUrgent && !suppressed ? '0 0 32px rgba(248,113,113,0.15)' : undefined }}
     >
-      {/* Health headline */}
-      {showHealthAlert && (
+      {/* Health headline — acknowledged (muted) state */}
+      {showHealthAlert && suppressed && acknowledgment && (
+        <div className="px-4 pt-4 pb-3">
+          <div className="flex items-start gap-3">
+            <span className="text-xl shrink-0 mt-0.5 opacity-70">{STATUS_EMOJI[status as keyof typeof STATUS_EMOJI]}</span>
+            <div className="flex-1">
+              <p className="font-bold text-sm leading-snug mb-1 text-ink-mid">
+                {STATUS_LABEL[status as keyof typeof STATUS_LABEL]}
+                {health.peakLossPct > 0 && ` — ${health.peakLossPct}% below recent weight`}
+              </p>
+              <p className="text-ink-dim text-sm">{health.summary}</p>
+            </div>
+          </div>
+
+          <div className="mt-3 flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-ink-dim">
+                {'\u{1F440}'} Acknowledged by {acknowledgment.acknowledged_by_name ?? 'a household member'}
+                {' · '}{formatDate(toIso(acknowledgment.created_at), prefs)}
+              </p>
+              {acknowledgment.note && (
+                <p className="text-xs text-ink-dim italic mt-0.5">&ldquo;{acknowledgment.note}&rdquo;</p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => onWithdraw()}
+              className="text-xs text-ink-dim underline shrink-0 py-1"
+            >
+              Undo
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Health headline — full alert */}
+      {showHealthAlert && !suppressed && (
         <div className="px-4 pt-4 pb-3">
           <div className="flex items-start gap-3">
             <span className={`text-xl shrink-0 mt-0.5 ${isUrgent ? 'animate-pulse' : ''}`}>
@@ -163,6 +238,48 @@ export default function InsightsPanel({
               <p className="text-ink-mid text-sm">{health.summary}</p>
             </div>
           </div>
+
+          {/* "I'm on it" — acknowledge this alert */}
+          {!ackExpanded ? (
+            <button
+              type="button"
+              onClick={() => setAckExpanded(true)}
+              className="mt-3 text-xs font-semibold px-3 py-2 rounded-xl transition-all"
+              style={{ color: statusColor, background: `${statusColor}12`, border: `1px solid ${statusColor}30` }}
+            >
+              {'\u{1F440}'} I&apos;m on it
+            </button>
+          ) : (
+            <div className="mt-3 space-y-2">
+              <textarea
+                value={ackNote}
+                onChange={(e) => setAckNote(e.target.value)}
+                maxLength={LIMITS.ACK_NOTE}
+                rows={2}
+                placeholder="Add a note (optional) — what you're doing about it"
+                className="w-full text-sm rounded-xl px-3 py-2 resize-none"
+                style={{ background: 'var(--color-card)', border: '1px solid var(--color-rim)', color: 'var(--color-ink)' }}
+              />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleConfirmAck}
+                  disabled={ackSubmitting}
+                  className="text-xs font-semibold px-3 py-2 rounded-xl transition-all"
+                  style={{ color: '#fff', background: statusColor, opacity: ackSubmitting ? 0.6 : 1 }}
+                >
+                  {ackSubmitting ? 'Saving…' : 'Confirm'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setAckExpanded(false); setAckNote('') }}
+                  className="text-xs font-semibold px-3 py-2 rounded-xl text-ink-dim"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* CTA → health guidance page */}
           <Link

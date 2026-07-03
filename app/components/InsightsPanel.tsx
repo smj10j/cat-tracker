@@ -1,15 +1,19 @@
 import { useState } from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, Pressable, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
-import type { Cat, Measurement } from '../lib/api';
+import type { Cat, Measurement, AckRecord, AckSeverity, AckDirection } from '../lib/api';
 import { STATUS_COLORS } from '@shared/lib/healthMetrics';
 import type { HealthAssessment } from '@shared/lib/healthMetrics';
 import { detectCorrelations, describeCorrelation, detectConfluence } from '@shared/lib/correlations';
 import type { CorrelationResult } from '@shared/lib/correlations';
 import { getPresetLabel } from '@shared/lib/measurementPresets';
+import { applyAcknowledgment, assessmentDirection } from '@shared/lib/alertAck';
+import { LIMITS } from '@shared/lib/constants';
+import { formatDateShort } from '@shared/lib/preferences';
 import LineChart from './LineChart';
 import { ErrorBoundary } from './ErrorBoundary';
 import { useThemeColors } from '../hooks/useThemeColors';
+import { usePreferences } from '../contexts/PreferencesContext';
 
 const STATUS_ICON: Record<string, string> = {
   watch: '\uD83D\uDC40',
@@ -29,19 +33,34 @@ interface Props {
   measurementsByType: Record<string, Measurement[]>;
   availableTypes: string[];
   hasWeightData: boolean;
+  acknowledgment?: AckRecord | null;
+  onAcknowledge: (severity: AckSeverity, direction: AckDirection, note: string) => Promise<void> | void;
+  onWithdraw: () => Promise<void> | void;
+  latestMeasuredAt: string;
 }
 
 export default function InsightsPanel({
   cat, status, health, measurementsByType, availableTypes, hasWeightData,
+  acknowledgment, onAcknowledge, onWithdraw,
 }: Props) {
   const colors = useThemeColors();
   const router = useRouter();
+  const { prefs } = usePreferences();
   const [patternsOpen, setPatternsOpen] = useState(false);
+  const [ackExpanded, setAckExpanded] = useState(false);
+  const [ackNote, setAckNote] = useState('');
+  const [ackSubmitting, setAckSubmitting] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
 
   const isUrgent = status === 'urgent';
   const isConcerning = status === 'concerning';
   const isWatch = status === 'watch';
-  const showHealthAlert = (isUrgent || isConcerning || isWatch) && hasWeightData;
+  const alertWorthy = (isUrgent || isConcerning || isWatch) && hasWeightData;
+
+  // Acknowledgment suppression — superseded/expired acks yield suppressed=false.
+  const suppressed = applyAcknowledgment(health, acknowledgment).suppressed && alertWorthy;
+  const showFullAlert = alertWorthy && !suppressed;
+  const showAckMuted = alertWorthy && suppressed;
 
   const correlations = availableTypes.length >= 2
     ? detectCorrelations(measurementsByType).filter((r) => r.strength !== 'none')
@@ -52,13 +71,44 @@ export default function InsightsPanel({
     : null;
 
   const hasPatterns = availableTypes.length >= 2;
-  const hasInsights = showHealthAlert || hasPatterns;
+  const hasInsights = alertWorthy || hasPatterns;
 
   if (!hasInsights) return null;
 
   const statusColor = STATUS_COLORS[status as keyof typeof STATUS_COLORS] ?? colors.lavender;
 
-  const panelBg = isUrgent
+  const ackDateShort = acknowledgment ? formatDateShort(acknowledgment.created_at.slice(0, 10), prefs) : '';
+
+  async function handleConfirmAck() {
+    if (ackSubmitting) return;
+    setAckSubmitting(true);
+    try {
+      await onAcknowledge(status as AckSeverity, assessmentDirection(health), ackNote.trim());
+      setAckExpanded(false);
+      setAckNote('');
+    } catch {
+      // Leave the input open so the user can retry.
+    } finally {
+      setAckSubmitting(false);
+    }
+  }
+
+  async function handleWithdraw() {
+    if (withdrawing) return;
+    setWithdrawing(true);
+    try {
+      await onWithdraw();
+    } catch {
+      // no-op — parent surfaces refresh failures
+    } finally {
+      setWithdrawing(false);
+    }
+  }
+
+  // When acknowledged, mute the whole panel to a neutral card (no accent rim).
+  const panelBg = suppressed
+    ? colors.surface
+    : isUrgent
     ? 'rgba(248,113,113,0.08)'
     : isConcerning
     ? 'rgba(249,115,22,0.07)'
@@ -66,7 +116,9 @@ export default function InsightsPanel({
     ? 'rgba(251,191,36,0.07)'
     : 'rgba(192,132,252,0.06)';
 
-  const panelBorderColor = isUrgent
+  const panelBorderColor = suppressed
+    ? colors.rim
+    : isUrgent
     ? 'rgba(248,113,113,0.5)'
     : isConcerning
     ? 'rgba(249,115,22,0.45)'
@@ -74,9 +126,11 @@ export default function InsightsPanel({
     ? 'rgba(251,191,36,0.35)'
     : 'rgba(192,132,252,0.2)';
 
-  const panelBorderWidth = isUrgent ? 2 : isConcerning ? 1.5 : isWatch ? 1.5 : 1;
+  const panelBorderWidth = suppressed ? 1 : isUrgent ? 2 : isConcerning ? 1.5 : isWatch ? 1.5 : 1;
 
-  const dividerColor = isUrgent
+  const dividerColor = suppressed
+    ? colors.rim
+    : isUrgent
     ? 'rgba(248,113,113,0.15)'
     : isConcerning
     ? 'rgba(249,115,22,0.15)'
@@ -95,7 +149,7 @@ export default function InsightsPanel({
       }}
     >
       {/* Health headline */}
-      {showHealthAlert && (
+      {showFullAlert && (
         <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
             <Text style={{ fontSize: 20, flexShrink: 0, marginTop: 2 }}>
@@ -113,6 +167,92 @@ export default function InsightsPanel({
               <Text style={{ color: colors.inkMid, fontSize: 14 }}>{health.summary}</Text>
             </View>
           </View>
+
+          {/* "I'm on it" \u2014 acknowledge this alert */}
+          {!ackExpanded ? (
+            <Pressable
+              onPress={() => setAckExpanded(true)}
+              style={{
+                marginTop: 12,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                borderRadius: 12,
+                backgroundColor: `${statusColor}12`,
+                borderWidth: 1,
+                borderColor: `${statusColor}35`,
+                minHeight: 48,
+              }}
+            >
+              <Text style={{ fontSize: 14 }}>{'\ud83d\udc40'}</Text>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: statusColor }}>
+                I{'\u2019'}m on it
+              </Text>
+            </Pressable>
+          ) : (
+            <View style={{ marginTop: 12, gap: 8 }}>
+              <TextInput
+                value={ackNote}
+                onChangeText={setAckNote}
+                placeholder="Add a note for your household (optional)"
+                placeholderTextColor={colors.inkDim}
+                multiline
+                maxLength={LIMITS.ACK_NOTE}
+                editable={!ackSubmitting}
+                style={{
+                  minHeight: 64,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: colors.rim,
+                  backgroundColor: colors.surface,
+                  color: colors.ink,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  fontSize: 14,
+                  textAlignVertical: 'top',
+                }}
+              />
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <Pressable
+                  onPress={() => { setAckExpanded(false); setAckNote(''); }}
+                  disabled={ackSubmitting}
+                  style={{
+                    minHeight: 44,
+                    paddingHorizontal: 16,
+                    justifyContent: 'center',
+                    borderRadius: 12,
+                    backgroundColor: colors.card,
+                    borderWidth: 1,
+                    borderColor: colors.rim,
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: colors.inkDim }}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleConfirmAck}
+                  disabled={ackSubmitting}
+                  style={{
+                    flex: 1,
+                    minHeight: 44,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    borderRadius: 12,
+                    backgroundColor: `${statusColor}20`,
+                    borderWidth: 1,
+                    borderColor: `${statusColor}50`,
+                    opacity: ackSubmitting ? 0.6 : 1,
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: statusColor }}>
+                    {ackSubmitting ? 'Saving\u2026' : 'Confirm'}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
 
           {/* CTA */}
           <Pressable
@@ -166,6 +306,88 @@ export default function InsightsPanel({
               </Text>
             </View>
             <Text style={{ fontSize: 14, color: colors.lavender }}>{'\u2192'}</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {/* Acknowledged (muted) \u2014 keeps the real status but tones down the alert */}
+      {showAckMuted && (
+        <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+            <Text style={{ fontSize: 20, flexShrink: 0, marginTop: 2, opacity: 0.7 }}>
+              {STATUS_ICON[status]}
+            </Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: '700', fontSize: 14, lineHeight: 20, marginBottom: 4, color: colors.inkMid }}>
+                {isUrgent
+                  ? `${cat.name}'s weight needs immediate attention`
+                  : isConcerning
+                  ? `${cat.name}'s weight trend is concerning`
+                  : `${cat.name}'s weight is worth watching`}
+                {health.peakLossPct > 0 ? ` \u2014 ${health.peakLossPct}% below recent weight` : ''}
+              </Text>
+              <Text style={{ color: colors.inkMid, fontSize: 14 }}>{health.summary}</Text>
+            </View>
+          </View>
+
+          {/* Acknowledgment receipt */}
+          <View
+            style={{
+              marginTop: 12,
+              padding: 12,
+              borderRadius: 12,
+              backgroundColor: colors.card,
+              borderWidth: 1,
+              borderColor: colors.rim,
+            }}
+          >
+            <Text style={{ fontSize: 12, color: colors.inkDim }}>
+              {'\ud83d\udc40'} Acknowledged by {acknowledgment?.acknowledged_by_name ?? 'a household member'}
+              {ackDateShort ? ` \u00b7 ${ackDateShort}` : ''}
+            </Text>
+            {acknowledgment?.note ? (
+              <Text style={{ fontSize: 13, color: colors.inkMid, marginTop: 6, fontStyle: 'italic' }}>
+                {`\u201c${acknowledgment.note}\u201d`}
+              </Text>
+            ) : null}
+            <Pressable
+              onPress={handleWithdraw}
+              disabled={withdrawing}
+              style={{ marginTop: 8, minHeight: 44, justifyContent: 'center' }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.lavender }}>
+                {withdrawing ? 'Undoing\u2026' : 'Undo'}
+              </Text>
+            </Pressable>
+          </View>
+
+          {/* CTA \u2014 still available while acknowledged */}
+          <Pressable
+            onPress={() => router.push(`/cats/${cat.id}/health` as never)}
+            style={{
+              marginTop: 12,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              borderRadius: 12,
+              backgroundColor: colors.card,
+              borderWidth: 1,
+              borderColor: colors.rim,
+              minHeight: 48,
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.inkMid }}>
+                What to watch for & when to go to the vet
+              </Text>
+              <Text style={{ fontSize: 12, color: colors.inkDim, marginTop: 2 }}>
+                Behavioral signs, vet thresholds, and what this means
+              </Text>
+            </View>
+            <Text style={{ fontSize: 14, marginLeft: 12, color: colors.inkMid }}>{'\u2192'}</Text>
           </Pressable>
         </View>
       )}

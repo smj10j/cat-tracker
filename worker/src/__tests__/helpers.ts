@@ -162,6 +162,25 @@ CREATE TABLE IF NOT EXISTS audit_log (
   metadata    TEXT,
   created_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS alert_acknowledgments (
+  id                     TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  cat_id                 TEXT NOT NULL REFERENCES cats(id) ON DELETE CASCADE,
+  alert_kind             TEXT NOT NULL DEFAULT 'weight',
+  acknowledged_severity  TEXT NOT NULL,
+  direction              TEXT NOT NULL,
+  acknowledged_by        TEXT REFERENCES users(id) ON DELETE SET NULL,
+  note                   TEXT,
+  latest_measured_at     TEXT NOT NULL,
+  context                TEXT,
+  status                 TEXT NOT NULL DEFAULT 'active',
+  expires_at             TEXT,
+  created_at             TEXT NOT NULL DEFAULT (datetime('now')),
+  ended_at               TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ack_active
+  ON alert_acknowledgments(cat_id, alert_kind) WHERE status = 'active';
+CREATE INDEX IF NOT EXISTS idx_ack_cat ON alert_acknowledgments(cat_id, created_at DESC);
 `
 
 /** Apply the full schema DDL to the test database (idempotent). */
@@ -181,6 +200,7 @@ export async function clearDb(): Promise<void> {
     DELETE FROM rate_limits;
     DELETE FROM apple_token_cache;
     DELETE FROM device_tokens;
+    DELETE FROM alert_acknowledgments;
     DELETE FROM medication_doses;
     DELETE FROM medications;
     DELETE FROM measurements;

@@ -105,7 +105,7 @@ All Draft PRDs awaiting a product-owner decision, grouped by theme and ordered b
 - [ ] 7b. PRD-vet-visits — appointments, visit history, vaccine records with reminders; Phase B document attachments. (Draft — not approved.)
 - [ ] 7c. PRD-lab-results — bloodwork trend tracking for CKD/hyperthyroid/diabetic cats; zero interpretation, user-entered reference ranges. (Draft — not approved.)
 - [ ] 7d. PRD-body-condition — **Approved 2026-07-02.** WSAVA 9-point BCS via the generic measurement pipeline; integers-only v1. Requires the docs/research/ citation step first.
-- [ ] 7e. PRD-alert-acknowledgment — **Approved 2026-07-02.** Severity-rank episode model; pairs with WP1 overdue hygiene.
+- [x] 7e. PRD-alert-acknowledgment — **Implemented 2026-07-02.** Severity-rank episode model; shared `alertAck.ts` suppression; `alert_acknowledgments` table; web + iOS muted state + vet-export transparency.
 - [ ] 7f. PRD-notes-journal — **Approved 2026-07-02.** Journal entries + photos + descriptive tags in timeline and vet export.
 
 **Insights & engagement:**

@@ -8,6 +8,7 @@ import type { Cat, Measurement } from '../../lib/api';
 import CatAvatar from '../../components/CatAvatar';
 import { assessHealth, STATUS_COLORS, STATUS_LABEL } from '@shared/lib/healthMetrics';
 import type { HealthStatus } from '@shared/lib/healthMetrics';
+import { applyAcknowledgment } from '@shared/lib/alertAck';
 import { detectCorrelations, getHomeBadge } from '@shared/lib/correlations';
 import { catAge, formatLocalDate } from '@shared/lib/dates';
 import { useThemeColors } from '../../hooks/useThemeColors';
@@ -22,6 +23,7 @@ interface CatCardData {
   latestWeight: number | null;
   latestUnit: string;
   healthStatus: string;
+  ackSuppressed: boolean;
   correlationBadge: string | null;
 }
 
@@ -61,19 +63,23 @@ export default function HomeScreen() {
             }
             const correlations = detectCorrelations(byType);
             const correlationBadge = getHomeBadge(correlations);
+            const ackSuppressed = applyAcknowledgment(health, cat.acknowledgment).suppressed;
             return {
               cat,
               latestWeight: sorted[0]?.value ?? null,
               latestUnit: sorted[0]?.unit ?? 'lbs',
               healthStatus: health.overallStatus,
+              ackSuppressed,
               correlationBadge,
             };
           } catch {
-            return { cat, latestWeight: null, latestUnit: 'lbs', healthStatus: 'ok', correlationBadge: null };
+            return { cat, latestWeight: null, latestUnit: 'lbs', healthStatus: 'ok', ackSuppressed: false, correlationBadge: null };
           }
         })
       );
-      enriched.sort((a, b) => (STATUS_RANK[b.healthStatus] ?? 0) - (STATUS_RANK[a.healthStatus] ?? 0));
+      // Acknowledged alerts sort as ok (they no longer demand attention).
+      const effRank = (d: CatCardData) => (d.ackSuppressed ? 0 : (STATUS_RANK[d.healthStatus] ?? 0));
+      enriched.sort((a, b) => effRank(b) - effRank(a));
       setCatData(enriched);
     } catch (e: unknown) {
       setError((e as Error).message);
@@ -153,11 +159,13 @@ export default function HomeScreen() {
   };
 
   function renderCatCard({ item }: { item: CatCardData }) {
-    const { cat, latestWeight, latestUnit, healthStatus, correlationBadge } = item;
-    const isOk = healthStatus === 'ok';
-    const statusColor = STATUS_COLORS[healthStatus as HealthStatus] ?? colors.jade;
-    const isUrgent = healthStatus === 'urgent';
-    const isConcerning = healthStatus === 'concerning';
+    const { cat, latestWeight, latestUnit, healthStatus, ackSuppressed, correlationBadge } = item;
+    // When acknowledged, the card renders in the neutral (ok) treatment.
+    const effStatus = ackSuppressed ? 'ok' : healthStatus;
+    const isOk = effStatus === 'ok';
+    const statusColor = STATUS_COLORS[effStatus as HealthStatus] ?? colors.jade;
+    const isUrgent = effStatus === 'urgent';
+    const isConcerning = effStatus === 'concerning';
 
     return (
       <Pressable
@@ -168,9 +176,9 @@ export default function HomeScreen() {
           gap: rv(16, 20),
           padding: rv(20, 24),
           borderRadius: 20,
-          backgroundColor: CARD_BG[healthStatus] ?? CARD_BG.ok,
-          borderWidth: healthStatus === 'urgent' ? 2 : healthStatus === 'ok' ? 1 : 1.5,
-          borderColor: CARD_BORDER[healthStatus] ?? CARD_BORDER.ok,
+          backgroundColor: CARD_BG[effStatus] ?? CARD_BG.ok,
+          borderWidth: effStatus === 'urgent' ? 2 : effStatus === 'ok' ? 1 : 1.5,
+          borderColor: CARD_BORDER[effStatus] ?? CARD_BORDER.ok,
         }}
       >
         <View
@@ -181,9 +189,9 @@ export default function HomeScreen() {
             alignItems: 'center',
             justifyContent: 'center',
             overflow: 'hidden',
-            backgroundColor: AVATAR_BG[healthStatus] ?? AVATAR_BG.ok,
-            borderWidth: healthStatus === 'ok' ? 1 : 2,
-            borderColor: AVATAR_BORDER[healthStatus] ?? AVATAR_BORDER.ok,
+            backgroundColor: AVATAR_BG[effStatus] ?? AVATAR_BG.ok,
+            borderWidth: effStatus === 'ok' ? 1 : 2,
+            borderColor: AVATAR_BORDER[effStatus] ?? AVATAR_BORDER.ok,
           }}
         >
           <CatAvatar photoUrl={cat.photo_url} name={cat.name} size={rv(56, 68)} />
@@ -194,7 +202,22 @@ export default function HomeScreen() {
             <Text style={{ fontWeight: '700', color: colors.ink, fontSize: rv(16, 18) }} numberOfLines={1}>
               {cat.name}
             </Text>
-            {!isOk && (
+            {ackSuppressed ? (
+              <View
+                style={{
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  borderRadius: 999,
+                  backgroundColor: colors.card,
+                  borderWidth: 1,
+                  borderColor: colors.rim,
+                }}
+              >
+                <Text style={{ color: colors.inkDim, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>
+                  {'\uD83D\uDC40'} Acknowledged
+                </Text>
+              </View>
+            ) : !isOk ? (
               <View
                 style={{
                   paddingHorizontal: 8,
@@ -210,7 +233,7 @@ export default function HomeScreen() {
                   {STATUS_LABEL[healthStatus as HealthStatus]}
                 </Text>
               </View>
-            )}
+            ) : null}
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 }}>
             <Text style={{ color: colors.inkMid, fontSize: rv(12, 14) }}>{catAge(cat.birthdate)}</Text>

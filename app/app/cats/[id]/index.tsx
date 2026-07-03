@@ -10,6 +10,7 @@ import InsightsPanel from '../../../components/InsightsPanel';
 import MeasurementForm from '../../../components/MeasurementForm';
 import { assessHealth, STATUS_COLORS, STATUS_LABEL, STATUS_EMOJI } from '@shared/lib/healthMetrics';
 import type { HealthStatus } from '@shared/lib/healthMetrics';
+import { applyAcknowledgment } from '@shared/lib/alertAck';
 import { getPresetLabel } from '@shared/lib/measurementPresets';
 import { catAge, formatLocalDate } from '@shared/lib/dates';
 import LineChart from '../../../components/LineChart';
@@ -101,6 +102,16 @@ export default function CatProfileScreen() {
     }, [id, loading]),
   );
 
+  // Auto-resolve an active acknowledgment once weight returns to ok (fire-and-forget, once).
+  useEffect(() => {
+    const ack = cat?.acknowledgment;
+    if (!id || !ack || ack.status !== 'active') return;
+    const weightMs = measurements.filter((m) => m.type === 'weight');
+    if (assessHealth(weightMs).overallStatus !== 'ok') return;
+    api.resolveAcknowledgment(id).catch(() => { /* non-fatal */ });
+    setCat((c) => (c ? { ...c, acknowledgment: null } : c));
+  }, [id, cat, measurements]);
+
   // All hooks must be called before any early returns (Rules of Hooks).
   const availableChartTypes = useMemo(() => {
     const types = new Set(measurements.map(m => m.type));
@@ -153,6 +164,8 @@ export default function CatProfileScreen() {
   const health = assessHealth(weightMeasurements);
   const status = health.overallStatus;
   const statusColor = STATUS_COLORS[status];
+  const ackSuppressed = applyAcknowledgment(health, cat.acknowledgment).suppressed;
+  const heroStatusColor = ackSuppressed ? colors.inkDim : statusColor;
 
   const measurementsByType: Record<string, Measurement[]> = {};
   for (const m of measurements) {
@@ -169,7 +182,7 @@ export default function CatProfileScreen() {
   const visibleGroups = showOlderHistory ? allDayGroups : defaultGroups;
   const olderCount = olderGroups.reduce((sum, g) => sum + g.items.length, 0);
 
-  const isUrgent = status === 'urgent';
+  const isUrgent = status === 'urgent' && !ackSuppressed;
   const hasRealMicrochip = cat.microchip_id && !cat.microchip_id.startsWith('temp-microchip-id-');
 
   return (
@@ -277,7 +290,7 @@ export default function CatProfileScreen() {
             </View>
             {latestWeight && !isDeceased && (
               <View style={{ alignItems: 'flex-end', flexShrink: 0 }}>
-                <Text style={{ fontWeight: '700', fontSize: 24, color: status !== 'ok' ? statusColor : colors.amber }}>
+                <Text style={{ fontWeight: '700', fontSize: 24, color: (status !== 'ok' && !ackSuppressed) ? statusColor : colors.amber }}>
                   {latestWeight.value}{' '}
                   <Text style={{ fontSize: 14, fontWeight: '400', color: 'rgba(255,255,255,0.4)' }}>{latestWeight.unit}</Text>
                 </Text>
@@ -286,12 +299,12 @@ export default function CatProfileScreen() {
                     marginTop: 4,
                     paddingHorizontal: 8, paddingVertical: 2,
                     borderRadius: 999,
-                    backgroundColor: `${statusColor}25`,
+                    backgroundColor: `${heroStatusColor}25`,
                     borderWidth: 1,
-                    borderColor: `${statusColor}50`,
+                    borderColor: `${heroStatusColor}50`,
                   }}>
-                    <Text style={{ color: statusColor, fontSize: 11, fontWeight: '700' }}>
-                      {STATUS_LABEL[status]}
+                    <Text style={{ color: heroStatusColor, fontSize: 11, fontWeight: '700' }}>
+                      {ackSuppressed ? 'Acknowledged' : STATUS_LABEL[status]}
                     </Text>
                   </View>
                 )}
@@ -363,6 +376,23 @@ export default function CatProfileScreen() {
                 measurementsByType={measurementsByType}
                 availableTypes={availableTypes}
                 hasWeightData={weightMeasurements.length >= 2}
+                acknowledgment={cat.acknowledgment}
+                latestMeasuredAt={latestWeight?.measured_at ?? ''}
+                onAcknowledge={async (severity, direction, note) => {
+                  if (!latestWeight) return;
+                  const ack = await api.acknowledgeAlert(cat.id, {
+                    severity,
+                    direction,
+                    note: note || null,
+                    latest_measured_at: latestWeight.measured_at,
+                    context: JSON.stringify({ peakLossPct: health.peakLossPct, summary: health.summary }),
+                  });
+                  setCat((c) => (c ? { ...c, acknowledgment: ack } : c));
+                }}
+                onWithdraw={async () => {
+                  await api.withdrawAcknowledgment(cat.id);
+                  setCat((c) => (c ? { ...c, acknowledgment: null } : c));
+                }}
               />
             )}
 

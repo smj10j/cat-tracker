@@ -12,6 +12,7 @@ import type {
   Cat, Measurement, User, Medication, MedicationDose,
   NotificationInbox, HouseholdResponse, HouseholdInfo, InvitePreview,
   HouseholdListItem, MedicationInput,
+  AckRecord, AckSeverity, AckDirection,
 } from './types'
 
 // ---------------------------------------------------------------------------
@@ -33,6 +34,14 @@ export interface CatTrackerApi {
   markDeceased(id: string, deceasedAt: string, memorialNote?: string): Promise<void>
   markAlive(id: string): Promise<void>
   deleteCat(id: string): Promise<void>
+
+  // Health alert acknowledgment (PRD-alert-acknowledgment)
+  acknowledgeAlert(catId: string, data: {
+    kind?: string; severity: AckSeverity; direction: AckDirection
+    note?: string | null; latest_measured_at: string; context?: string | null
+  }): Promise<AckRecord>
+  withdrawAcknowledgment(catId: string, kind?: string): Promise<void>
+  resolveAcknowledgment(catId: string, kind?: string): Promise<void>
 
   // Cat photos — upload signature is platform-specific (Blob on web, URI on native)
   deleteCatPhoto(id: string): Promise<void>

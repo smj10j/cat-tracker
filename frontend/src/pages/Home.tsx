@@ -4,6 +4,7 @@ import { getCats, getMeasurements, claimCats, getNotifications, type Cat, type M
 import CatAvatar from '../components/CatAvatar'
 import HeroStat from '../components/HeroStat'
 import { assessHealth, STATUS_COLORS, STATUS_LABEL } from '@shared/lib/healthMetrics'
+import { applyAcknowledgment } from '@shared/lib/alertAck'
 import { detectCorrelations, getHomeBadge } from '@shared/lib/correlations'
 import { useAuth } from '../contexts/AuthContext'
 import { usePreferences } from '../contexts/PreferencesContext'
@@ -70,7 +71,7 @@ export default function Home() {
   const { user, logout, refresh: refreshUser } = useAuth()
   const { prefs } = usePreferences()
   const navigate = useNavigate()
-  const [catData, setCatData] = useState<{ cat: Cat; latestWeight: number | null; latestUnit: string; healthStatus: string; correlationBadge: string | null }[]>([])
+  const [catData, setCatData] = useState<{ cat: Cat; latestWeight: number | null; latestUnit: string; healthStatus: string; correlationBadge: string | null; suppressed: boolean }[]>([])
   const [memorialCats, setMemorialCats] = useState<Cat[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -107,13 +108,16 @@ export default function Home() {
             }
             const correlations = detectCorrelations(byType)
             const correlationBadge = getHomeBadge(correlations)
-            return { cat, latestWeight: sorted[0]?.value ?? null, latestUnit: sorted[0]?.unit ?? 'lbs', healthStatus: health.overallStatus, correlationBadge }
+            const suppressed = applyAcknowledgment(health, cat.acknowledgment).suppressed
+            return { cat, latestWeight: sorted[0]?.value ?? null, latestUnit: sorted[0]?.unit ?? 'lbs', healthStatus: health.overallStatus, correlationBadge, suppressed }
           } catch {
-            return { cat, latestWeight: null, latestUnit: 'lbs', healthStatus: 'ok', correlationBadge: null }
+            return { cat, latestWeight: null, latestUnit: 'lbs', healthStatus: 'ok', correlationBadge: null, suppressed: false }
           }
         })
       )
-      enriched.sort((a, b) => (STATUS_RANK[b.healthStatus] ?? 0) - (STATUS_RANK[a.healthStatus] ?? 0))
+      // Acknowledged cats sort as 'ok' so they fall below un-acknowledged same-status cats.
+      const sortRank = (d: { healthStatus: string; suppressed: boolean }) => d.suppressed ? 0 : (STATUS_RANK[d.healthStatus] ?? 0)
+      enriched.sort((a, b) => sortRank(b) - sortRank(a))
       setCatData(enriched)
     } catch (e: unknown) {
       setError((e as Error).message)
@@ -266,14 +270,16 @@ export default function Home() {
           <><SkeletonCard /><SkeletonCard /><SkeletonCard /></>
         ) : (
           <>
-            {catData.map(({ cat, latestWeight, latestUnit, healthStatus, correlationBadge }, i) => {
+            {catData.map(({ cat, latestWeight, latestUnit, healthStatus, correlationBadge, suppressed }, i) => {
               const stagger = i < 5 ? `stagger-${i + 1}` : ''
-              const isOk = healthStatus === 'ok'
-              const statusColor = STATUS_COLORS[healthStatus as keyof typeof STATUS_COLORS] ?? 'var(--color-health-jade)'
-              const cardStyle = CARD_STYLE[healthStatus] ?? CARD_STYLE.ok
-              const avatarStyle = AVATAR_STYLE[healthStatus] ?? AVATAR_STYLE.ok
-              const isUrgent = healthStatus === 'urgent'
-              const isConcerning = healthStatus === 'concerning'
+              // Acknowledged cats render with neutral ('ok') chrome.
+              const effStatus = suppressed ? 'ok' : healthStatus
+              const isOk = effStatus === 'ok'
+              const statusColor = STATUS_COLORS[effStatus as keyof typeof STATUS_COLORS] ?? 'var(--color-health-jade)'
+              const cardStyle = CARD_STYLE[effStatus] ?? CARD_STYLE.ok
+              const avatarStyle = AVATAR_STYLE[effStatus] ?? AVATAR_STYLE.ok
+              const isUrgent = effStatus === 'urgent'
+              const isConcerning = effStatus === 'concerning'
 
               return (
                 <Link
@@ -292,7 +298,18 @@ export default function Home() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-display font-bold text-ink text-base truncate">{cat.name}</span>
-                      {!isOk && (
+                      {suppressed ? (
+                        <span
+                          className="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0"
+                          style={{
+                            color: 'var(--color-ink-dim)',
+                            background: 'var(--color-card)',
+                            border: '1px solid var(--color-rim)',
+                          }}
+                        >
+                          {'\u{1F440}'} Acknowledged
+                        </span>
+                      ) : !isOk && (
                         <span
                           className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${isUrgent ? 'animate-pulse' : ''}`}
                           style={{

@@ -2,9 +2,35 @@ import { Hono } from 'hono'
 import type { AppEnv } from '../types'
 import { ensureHousehold, getCatRole, hasRole } from '../lib/household'
 import { logAudit } from '../lib/audit'
-import { LIMITS } from '../../../shared/lib/constants'
+import {
+  LIMITS, VALID_ACK_SEVERITIES, VALID_ACK_DIRECTIONS, VALID_ACK_KINDS, ACK_EXPIRY_DAYS,
+} from '../../../shared/lib/constants'
 
 const cats = new Hono<AppEnv>()
+
+/**
+ * Load active, non-expired health-alert acknowledgments for a set of cats,
+ * keyed by cat_id. Read-side expiry: an ack past `expires_at` is treated as gone
+ * even before a write flips its row, so clients converge on the full alert.
+ */
+async function activeAckForCats(
+  db: AppEnv['Bindings']['DB'],
+  catIds: string[],
+): Promise<Map<string, Record<string, unknown>>> {
+  const map = new Map<string, Record<string, unknown>>()
+  if (catIds.length === 0) return map
+  const placeholders = catIds.map(() => '?').join(',')
+  const rows = await db.prepare(
+    `SELECT a.*, u.display_name AS acknowledged_by_name
+     FROM alert_acknowledgments a
+     LEFT JOIN users u ON u.id = a.acknowledged_by
+     WHERE a.status = 'active'
+       AND (a.expires_at IS NULL OR a.expires_at > datetime('now'))
+       AND a.cat_id IN (${placeholders})`
+  ).bind(...catIds).all<Record<string, unknown> & { cat_id: string }>()
+  for (const r of rows.results) map.set(r.cat_id, r)
+  return map
+}
 
 // SEC-04: Field length limits (from shared/lib/constants.ts)
 const MAX_NAME = LIMITS.CAT_NAME
@@ -65,8 +91,11 @@ cats.get('/', async (c) => {
     )
     ${statusFilter}
     ORDER BY c.name ASC
-  `).bind(userId, userId).all()
-  return c.json(result.results)
+  `).bind(userId, userId).all<Record<string, unknown> & { id: string }>()
+
+  // Embed active acknowledgment per cat (one batched query, no N+1).
+  const ackMap = await activeAckForCats(c.env.DB, result.results.map(r => r.id))
+  return c.json(result.results.map(cat => ({ ...cat, acknowledgment: ackMap.get(cat.id) ?? null })))
 })
 
 cats.post('/', async (c) => {
@@ -142,7 +171,9 @@ cats.get('/:id', async (c) => {
     `SELECT c.*, h.name as household_name FROM cats c
      LEFT JOIN households h ON h.id = c.household_id WHERE c.id = ?`,
   ).bind(catId).first()
-  return c.json(cat)
+  if (!cat) return c.json({ error: 'Not found' }, 404)
+  const ackMap = await activeAckForCats(c.env.DB, [catId])
+  return c.json({ ...cat, acknowledgment: ackMap.get(catId) ?? null })
 })
 
 cats.put('/:id', async (c) => {
@@ -299,6 +330,91 @@ cats.delete('/:id/photo', async (c) => {
     .bind(id).run()
 
   return c.json({ ok: true })
+})
+
+// ---------------------------------------------------------------------------
+// Health alert acknowledgment (PRD-alert-acknowledgment)
+// ---------------------------------------------------------------------------
+
+// PUT /api/cats/:id/acknowledgment — Contributor+. Upsert: supersede any active
+// ack for (cat, kind), insert a new active row. The server stores the claimed
+// severity/direction verbatim (it never computes health); suppression is a
+// client-side comparison via shared/lib/alertAck.ts.
+cats.put('/:id/acknowledgment', async (c) => {
+  const userId = c.get('userId')
+  const catId = c.req.param('id')
+  const role = await getCatRole(c.env.DB, catId, userId)
+  if (!role) return c.json({ error: 'Not found' }, 404)
+  if (!hasRole(role, 'contributor')) return c.json({ error: 'Contributor access required' }, 403)
+
+  const body = await c.req.json<{
+    kind?: string; severity?: string; direction?: string
+    note?: string | null; latest_measured_at?: string; context?: string | null
+  }>().catch(() => ({} as Record<string, never>))
+
+  const kind = body.kind ?? 'weight'
+  if (!(VALID_ACK_KINDS as readonly string[]).includes(kind)) return c.json({ error: 'invalid kind' }, 400)
+  if (!body.severity || !(VALID_ACK_SEVERITIES as readonly string[]).includes(body.severity)) return c.json({ error: 'invalid severity' }, 400)
+  if (!body.direction || !(VALID_ACK_DIRECTIONS as readonly string[]).includes(body.direction)) return c.json({ error: 'invalid direction' }, 400)
+  if (!body.latest_measured_at) return c.json({ error: 'latest_measured_at required' }, 400)
+  const note = body.note?.trim().slice(0, LIMITS.ACK_NOTE) || null
+  const context = typeof body.context === 'string' ? body.context.slice(0, 2000) : null
+  const expiresAt = new Date(Date.now() + ACK_EXPIRY_DAYS * 86400000)
+    .toISOString().replace('T', ' ').slice(0, 19)
+
+  // Supersede any existing active ack for this (cat, kind) — the partial unique
+  // index guarantees at most one active row.
+  await c.env.DB.prepare(
+    `UPDATE alert_acknowledgments SET status = 'superseded', ended_at = datetime('now')
+     WHERE cat_id = ? AND alert_kind = ? AND status = 'active'`
+  ).bind(catId, kind).run()
+
+  const inserted = await c.env.DB.prepare(
+    `INSERT INTO alert_acknowledgments
+       (cat_id, alert_kind, acknowledged_severity, direction, acknowledged_by, note, latest_measured_at, context, status, expires_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)
+     RETURNING *`
+  ).bind(catId, kind, body.severity, body.direction, userId, note, body.latest_measured_at, context, expiresAt)
+    .first<Record<string, unknown>>()
+
+  const me = await c.env.DB.prepare('SELECT display_name FROM users WHERE id = ?')
+    .bind(userId).first<{ display_name: string | null }>()
+  return c.json({ ...inserted, acknowledged_by_name: me?.display_name ?? null })
+})
+
+// DELETE /api/cats/:id/acknowledgment?kind=weight — Contributor+ withdraws the
+// active ack; the full alert returns. 404 if none active.
+cats.delete('/:id/acknowledgment', async (c) => {
+  const userId = c.get('userId')
+  const catId = c.req.param('id')
+  const kind = c.req.query('kind') ?? 'weight'
+  const role = await getCatRole(c.env.DB, catId, userId)
+  if (!role) return c.json({ error: 'Not found' }, 404)
+  if (!hasRole(role, 'contributor')) return c.json({ error: 'Contributor access required' }, 403)
+
+  const res = await c.env.DB.prepare(
+    `UPDATE alert_acknowledgments SET status = 'withdrawn', ended_at = datetime('now')
+     WHERE cat_id = ? AND alert_kind = ? AND status = 'active'`
+  ).bind(catId, kind).run()
+  if ((res.meta.changes ?? 0) === 0) return c.json({ error: 'No active acknowledgment' }, 404)
+  return c.json({ success: true })
+})
+
+// POST /api/cats/:id/acknowledgment/resolve — fire-and-forget from clients when
+// they render 'ok' (episode over). Idempotent: 200 whether or not one was active.
+cats.post('/:id/acknowledgment/resolve', async (c) => {
+  const userId = c.get('userId')
+  const catId = c.req.param('id')
+  const kind = c.req.query('kind') ?? 'weight'
+  const role = await getCatRole(c.env.DB, catId, userId)
+  if (!role) return c.json({ error: 'Not found' }, 404)
+  if (!hasRole(role, 'contributor')) return c.json({ error: 'Contributor access required' }, 403)
+
+  await c.env.DB.prepare(
+    `UPDATE alert_acknowledgments SET status = 'resolved', ended_at = datetime('now')
+     WHERE cat_id = ? AND alert_kind = ? AND status = 'active'`
+  ).bind(catId, kind).run()
+  return c.json({ success: true })
 })
 
 export default cats

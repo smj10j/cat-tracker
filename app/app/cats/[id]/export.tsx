@@ -85,6 +85,12 @@ function buildShareText(
       }
       lines.push(`Trend: ${health.summary}`);
     }
+    if (cat.acknowledgment) {
+      const ackDate = formatDatePref(cat.acknowledgment.created_at.slice(0, 10), prefs);
+      lines.push(
+        `Owner acknowledged this status on ${ackDate}${cat.acknowledgment.note ? `: "${cat.acknowledgment.note}"` : ''}`,
+      );
+    }
     lines.push('');
     lines.push('Date | Weight | Change');
     for (let i = 0; i < Math.min(15, weightMs.length); i++) {
@@ -304,6 +310,12 @@ export default function CatExportScreen() {
                   )}
                   <InfoRow label="Trend" value={health.summary} />
                 </>
+              )}
+              {cat.acknowledgment && (
+                <InfoRow
+                  label="Acknowledged"
+                  value={`${formatDatePref(cat.acknowledgment.created_at.slice(0, 10), prefs)}${cat.acknowledgment.note ? `: "${cat.acknowledgment.note}"` : ''}`}
+                />
               )}
             </View>
 

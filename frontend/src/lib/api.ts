@@ -3,12 +3,14 @@ export type {
   Cat, Measurement, User, Medication, MedicationDose, DoseWithContext,
   NotificationInbox, HouseholdMember, PendingInvite, HouseholdInfo,
   InvitePreview, HouseholdResponse, MedicationInput, HouseholdListItem, DayGroup,
+  AckRecord, AckSeverity, AckDirection,
 } from '@shared/lib/types'
 export { CARE_TYPE_ICONS } from '@shared/lib/types'
 
 import type {
   Cat, Measurement, User, Medication, MedicationDose, MedicationInput,
   NotificationInbox, HouseholdResponse, HouseholdInfo, InvitePreview, HouseholdListItem,
+  AckRecord, AckSeverity, AckDirection,
 } from '@shared/lib/types'
 import type { CatTrackerWebApi } from '@shared/lib/apiTypes'
 
@@ -51,6 +53,16 @@ export const markDeceased = async (id: string, deceasedAt: string, memorialNote?
 }
 export const markAlive = async (id: string): Promise<void> => {
   await request(`/cats/${id}`, { method: 'PUT', body: JSON.stringify({ deceased_at: null }) })
+}
+export const acknowledgeAlert = (catId: string, data: {
+  kind?: string; severity: AckSeverity; direction: AckDirection
+  note?: string | null; latest_measured_at: string; context?: string | null
+}) => request<AckRecord>(`/cats/${catId}/acknowledgment`, { method: 'PUT', body: JSON.stringify(data) })
+export const withdrawAcknowledgment = async (catId: string, kind = 'weight'): Promise<void> => {
+  await request(`/cats/${catId}/acknowledgment?kind=${kind}`, { method: 'DELETE' })
+}
+export const resolveAcknowledgment = async (catId: string, kind = 'weight'): Promise<void> => {
+  await request(`/cats/${catId}/acknowledgment/resolve?kind=${kind}`, { method: 'POST' })
 }
 export const deleteCat = async (id: string): Promise<void> => {
   await request(`/cats/${id}`, { method: 'DELETE' })
@@ -237,6 +249,7 @@ export const logPrnDose = (medicationId: string, data?: { given_at?: string; not
 const _typeCheck: CatTrackerWebApi = {
   getMe, updateMe, logout, claimCats,
   getCats, getCat, createCat, updateCat, markDeceased, markAlive, deleteCat,
+  acknowledgeAlert, withdrawAcknowledgment, resolveAcknowledgment,
   uploadCatPhoto, deleteCatPhoto,
   getMeasurements, createMeasurement, deleteMeasurement,
   getMedications, getMedication, createMedication, updateMedication, archiveMedication, logPrnDose,

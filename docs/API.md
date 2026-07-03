@@ -487,6 +487,44 @@ The photo is stored at `cats/{id}/photo.jpg` in R2 (overwrites any existing phot
 
 ---
 
+#### Health alert acknowledgment (PRD-alert-acknowledgment)
+
+`GET /api/cats` and `GET /api/cats/:id` embed an `acknowledgment: AckRecord | null` field per cat — the active, non-expired ack (read-side expiry: an ack past `expires_at` is treated as gone). Health status is computed client-side; the suppression decision is made client-side via `shared/lib/alertAck.ts` `applyAcknowledgment(assessment, ack)`. The server stores the claimed severity/direction verbatim and never validates it against a computed status (enum validation only).
+
+`AckRecord`: `{ id, cat_id, alert_kind, acknowledged_severity, direction, acknowledged_by, acknowledged_by_name, note, latest_measured_at, context, status, expires_at, created_at, ended_at }`.
+
+#### `PUT /api/cats/:id/acknowledgment`
+
+**Auth required. Contributor role required.** Acknowledge a health alert. Upsert: marks any existing active ack for `(cat, kind)` as `superseded`, inserts a new `active` row with `expires_at = now + 30 days`.
+
+**Request body**
+```ts
+{
+  kind?: string           // default 'weight' (only 'weight' in v1)
+  severity: 'watch' | 'concerning' | 'urgent'
+  direction: 'loss' | 'gain'
+  note?: string | null    // <= 280 chars
+  latest_measured_at: string
+  context?: string | null // JSON snapshot for export/history
+}
+```
+
+**Response 200** — the created `AckRecord` (with `acknowledged_by_name`).
+**Response 400** — invalid kind/severity/direction or missing `latest_measured_at`.
+**Response 403** — insufficient role (Viewer). **Response 404** — cat not found or no access.
+
+#### `DELETE /api/cats/:id/acknowledgment?kind=weight`
+
+**Auth required. Contributor role required.** Withdraw ("Undo") the active ack → status `withdrawn`; full alert returns.
+
+**Response 200** `{ "success": true }` — **404** if no active ack (or no access).
+
+#### `POST /api/cats/:id/acknowledgment/resolve?kind=weight`
+
+**Auth required. Contributor role required.** Fire-and-forget from clients when they render `ok` (episode over): active ack → `resolved`. Idempotent — 200 whether or not one was active.
+
+---
+
 ### Measurements
 
 #### `GET /api/cats/:id/measurements`

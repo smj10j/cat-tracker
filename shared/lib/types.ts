@@ -22,6 +22,34 @@ export interface Cat {
   memorial_note: string | null;
   created_at: string;
   updated_at: string;
+  // Active health-alert acknowledgment for this cat, embedded in cat responses
+  // (PRD-alert-acknowledgment). null when there is none.
+  acknowledgment?: AckRecord | null;
+}
+
+// ---------------------------------------------------------------------------
+// Health alert acknowledgment (PRD-alert-acknowledgment)
+// ---------------------------------------------------------------------------
+
+export type AckSeverity = 'watch' | 'concerning' | 'urgent';
+export type AckDirection = 'loss' | 'gain';
+export type AckStatus = 'active' | 'superseded' | 'resolved' | 'expired' | 'withdrawn';
+
+export interface AckRecord {
+  id: string;
+  cat_id: string;
+  alert_kind: string;                    // 'weight' in v1
+  acknowledged_severity: AckSeverity;    // severity the user acknowledged
+  direction: AckDirection;               // loss vs gain — a different clinical concern
+  acknowledged_by: string | null;        // user id (SET NULL if the user is deleted)
+  acknowledged_by_name: string | null;   // joined display name for UI
+  note: string | null;                   // <= 280 chars
+  latest_measured_at: string;            // newest weight measurement at ack time (display/debug)
+  context: string | null;                // JSON snapshot { peakLossPct, summary } for export
+  status: AckStatus;
+  expires_at: string | null;             // created_at + N days; null = no expiry
+  created_at: string;
+  ended_at: string | null;               // when status left 'active'
 }
 
 export interface Measurement {

@@ -68,7 +68,15 @@ export const LIMITS = {
   MED_TYPE: 50,
   MED_DOSE: 100,
   MED_NOTES: 1000,
+  ACK_NOTE: 280,
 } as const;
+
+/** Health alert acknowledgment enums (PRD-alert-acknowledgment). */
+export const VALID_ACK_SEVERITIES = ['watch', 'concerning', 'urgent'] as const;
+export const VALID_ACK_DIRECTIONS = ['loss', 'gain'] as const;
+export const VALID_ACK_KINDS = ['weight'] as const;   // v1: weight alert only
+/** Days before an acknowledgment force-expires and the full alert returns. */
+export const ACK_EXPIRY_DAYS = 30;
 
 /** Household role hierarchy (ascending privilege) */
 export const ROLE_LEVEL: Record<string, number> = {

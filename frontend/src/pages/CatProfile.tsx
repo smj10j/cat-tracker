@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
 import { useGoBack } from '../hooks/useGoBack'
-import { getCat, getMeasurements, deleteMeasurement, getMedications, uploadCatPhoto, deleteCatPhoto, logPrnDose, CARE_TYPE_ICONS, type Cat, type Measurement, type Medication } from '../lib/api'
+import { getCat, getMeasurements, deleteMeasurement, getMedications, uploadCatPhoto, deleteCatPhoto, logPrnDose, acknowledgeAlert, withdrawAcknowledgment, resolveAcknowledgment, CARE_TYPE_ICONS, type Cat, type Measurement, type Medication } from '../lib/api'
+import { applyAcknowledgment } from '@shared/lib/alertAck'
 import CatAvatar from '../components/CatAvatar'
 import HeroStat from '../components/HeroStat'
 
@@ -214,6 +215,16 @@ export default function CatProfile() {
   useEffect(() => { setShowOlderHistory(false) }, [chartTab])
   useEffect(() => { setPendingDeleteId(null) }, [profileTab, chartTab])
 
+  // Auto-resolve an active acknowledgment once the episode is over (status back to ok).
+  useEffect(() => {
+    if (!id || !cat || cat.acknowledgment?.status !== 'active') return
+    const h = assessHealth(measurements.filter((m) => m.type === 'weight'))
+    if (h.overallStatus === 'ok') {
+      resolveAcknowledgment(id).catch(() => {})
+      setCat((c) => c ? { ...c, acknowledgment: null } : c)
+    }
+  }, [id, cat, measurements])
+
   async function executeDeleteMeasurement(id: string) {
     try {
       await deleteMeasurement(id)
@@ -305,6 +316,7 @@ export default function CatProfile() {
 
   const isUrgent = status === 'urgent'
   const isConcerning = status === 'concerning'
+  const ackSuppressed = applyAcknowledgment(health, cat.acknowledgment).suppressed
 
   // Always use a dark overlay regardless of theme — the hero is a photo area
   // and the text (white) must be readable over any photo content.
@@ -443,14 +455,16 @@ export default function CatProfile() {
                   value={String(latestWeight.value)}
                   unit={latestWeight.unit}
                   size={28}
-                  color={status !== 'ok' ? statusColor : undefined}
+                  color={status !== 'ok' && !ackSuppressed ? statusColor : undefined}
                 />
                 {weightMeasurements.length >= 2 && (
                   <div
-                    className={`text-xs font-bold px-2 py-0.5 rounded-full inline-block mt-0.5 ${isUrgent ? 'animate-pulse' : ''}`}
-                    style={{ color: statusColor, background: `${statusColor}25`, border: `1px solid ${statusColor}50` }}
+                    className={`text-xs font-bold px-2 py-0.5 rounded-full inline-block mt-0.5 ${isUrgent && !ackSuppressed ? 'animate-pulse' : ''}`}
+                    style={ackSuppressed
+                      ? { color: 'rgba(255,255,255,0.85)', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)' }
+                      : { color: statusColor, background: `${statusColor}25`, border: `1px solid ${statusColor}50` }}
                   >
-                    {STATUS_LABEL[status]}
+                    {ackSuppressed ? `${'\u{1F440}'} Acknowledged` : STATUS_LABEL[status]}
                   </div>
                 )}
               </div>
@@ -493,6 +507,22 @@ export default function CatProfile() {
             measurementsByType={measurementsByType}
             availableTypes={availableTypes}
             hasWeightData={weightMeasurements.length >= 2}
+            acknowledgment={cat.acknowledgment}
+            latestMeasuredAt={latestWeight?.measured_at ?? ''}
+            onAcknowledge={async (severity, direction, note) => {
+              const ack = await acknowledgeAlert(cat.id, {
+                severity,
+                direction,
+                note: note || null,
+                latest_measured_at: latestWeight?.measured_at ?? new Date().toISOString(),
+                context: JSON.stringify({ peakLossPct: health.peakLossPct, summary: health.summary }),
+              })
+              setCat((c) => c ? { ...c, acknowledgment: ack } : c)
+            }}
+            onWithdraw={async () => {
+              await withdrawAcknowledgment(cat.id)
+              setCat((c) => c ? { ...c, acknowledgment: null } : c)
+            }}
           />
 
           {/* Chart */}

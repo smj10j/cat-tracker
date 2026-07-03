@@ -7,13 +7,14 @@ export type {
   Cat, Measurement, User, Medication, MedicationDose, DoseWithContext,
   NotificationInbox, HouseholdMember, PendingInvite, HouseholdInfo,
   InvitePreview, HouseholdResponse, MedicationInput, HouseholdListItem, DayGroup,
+  AckRecord, AckSeverity, AckDirection,
 } from '@shared/lib/types';
 export { CARE_TYPE_ICONS } from '@shared/lib/types';
 
 import type {
   Cat, Measurement, User, Medication, MedicationDose,
   NotificationInbox, HouseholdResponse, HouseholdInfo, InvitePreview,
-  HouseholdListItem,
+  HouseholdListItem, AckRecord, AckSeverity, AckDirection,
 } from '@shared/lib/types';
 import type { CatTrackerNativeApi } from '@shared/lib/apiTypes';
 
@@ -159,6 +160,25 @@ export const api: CatTrackerNativeApi = {
 
   async deleteCat(id: string): Promise<void> {
     await apiFetch(`/api/cats/${id}`, { method: 'DELETE' });
+  },
+
+  async acknowledgeAlert(catId: string, data: {
+    kind?: string; severity: AckSeverity; direction: AckDirection;
+    note?: string | null; latest_measured_at: string; context?: string | null;
+  }): Promise<AckRecord> {
+    const res = await apiFetch(`/api/cats/${catId}/acknowledgment`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return res.json() as Promise<AckRecord>;
+  },
+
+  async withdrawAcknowledgment(catId: string, kind = 'weight'): Promise<void> {
+    await apiFetch(`/api/cats/${catId}/acknowledgment?kind=${kind}`, { method: 'DELETE' });
+  },
+
+  async resolveAcknowledgment(catId: string, kind = 'weight'): Promise<void> {
+    await apiFetch(`/api/cats/${catId}/acknowledgment/resolve?kind=${kind}`, { method: 'POST' });
   },
 
   async uploadCatPhoto(id: string, uri: string): Promise<{ photo_url: string }> {

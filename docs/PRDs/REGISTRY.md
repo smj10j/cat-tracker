@@ -42,7 +42,7 @@
 | [PRD-api-versioning.md](PRD-api-versioning.md) | API Versioning & Backend-Driven Updates | `Implemented` | 2026-04-11 |
 | [PRD-security-phase2.md](PRD-security-phase2.md) | Security Hardening Phase 2 — Native App & Multi-Client | `Implemented` | 2026-04-11 |
 | [PRD-chart-time-navigation.md](PRD-chart-time-navigation.md) | Chart Time Range & Swipe Navigation | `Implemented` | 2026-04-11 |
-| [PRD-alert-acknowledgment.md](PRD-alert-acknowledgment.md) | Health Alert Acknowledgment | `Approved` | 2026-07-02 |
+| [PRD-alert-acknowledgment.md](PRD-alert-acknowledgment.md) | Health Alert Acknowledgment | `Implemented` | 2026-07-02 |
 | [PRD-behavioral-trends.md](PRD-behavioral-trends.md) | Behavioral Trend Charts | `Draft` | 2026-07-02 |
 | [PRD-localization-preferences.md](PRD-localization-preferences.md) | Localization & Regional Preferences | `Implemented` | 2026-04-12 |
 | [PRD-landscape-charts.md](PRD-landscape-charts.md) | Landscape Mode — Full-Screen Chart Visualization | `Implemented` | 2026-04-12 |

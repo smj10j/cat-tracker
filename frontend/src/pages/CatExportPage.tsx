@@ -9,6 +9,9 @@ import { catAge } from '@shared/lib/dates'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { formatDate as fmtDate, formatDateTime as fmtDateTime } from '@shared/lib/preferences'
 
+// SQLite 'YYYY-MM-DD HH:MM:SS' (UTC) -> ISO the Date constructor treats as UTC.
+const toIso = (s: string) => (s.includes('T') ? s : s.replace(' ', 'T') + 'Z')
+
 const TYPE_LABELS: Record<string, string> = {
   weight: 'Weight', food: 'Food intake', water: 'Water intake',
   grooming: 'Grooming', play: 'Play', activity: 'Activity level',
@@ -170,6 +173,14 @@ export default function CatExportPage() {
                       <span className="font-medium">Trend: </span>{health.summary}
                     </div>
                   </>
+                )}
+                {/* Export always shows the real computed status; note the owner's acknowledgment. */}
+                {cat.acknowledgment && (
+                  <div className="col-span-2" style={{ color: '#6b7280' }}>
+                    <span className="font-medium">Owner acknowledged this status on </span>
+                    {fmtDate(toIso(cat.acknowledgment.created_at), prefs)}
+                    {cat.acknowledgment.note ? `: "${cat.acknowledgment.note}"` : ''}
+                  </div>
                 )}
               </div>
 

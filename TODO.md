@@ -19,12 +19,12 @@ Triggered by: owner asked to implement ROADMAP WP4g plus session-plan Sessions 5
 - [x] Web: inline Snooze on NotificationsPage rows + snoozed-state rendering ("💤 Snoozed until …")
 - [x] Tests: 6 snooze endpoint tests; all 4 suites green (shared 335, worker 178, frontend 78, app 173); fixed 2 pre-existing flaky catAge tests + app User.email_reminders type gap; db migrate remote+local; deployed web+worker
 
-### Session 5a — Health alert acknowledgment (PRD-alert-acknowledgment)
-- [ ] Schema: `alert_acknowledgments` table (prod migration)
-- [ ] Worker: PUT/DELETE/resolve `/api/cats/:id/acknowledgment`; embed `acknowledgment` in GET /api/cats(/:id); Contributor+ gating; note ≤280
-- [ ] Shared: `alertAck.ts` suppression logic + tests; LIMITS.ACK_NOTE; apiTypes methods; AckRecord type
-- [ ] Web + iOS: InsightsPanel "I'm on it" + muted state; Home card muted pill; vet export transparency line
-- [ ] Tests, migrate remote, deploy, commit, push
+### Session 5a — Health alert acknowledgment (PRD-alert-acknowledgment) ✅
+- [x] Schema: `alert_acknowledgments` table (prod + local migrated + verified)
+- [x] Worker: PUT/DELETE/resolve `/api/cats/:id/acknowledgment`; embed active non-expired `acknowledgment` in GET /api/cats(/:id) (batched, no N+1); Contributor+ gating; note ≤280; read-side expiry
+- [x] Shared: `alertAck.ts` (`applyAcknowledgment` + `assessmentDirection`, 14 tests); LIMITS.ACK_NOTE + VALID_ACK_* + ACK_EXPIRY_DAYS; apiTypes methods; AckRecord type; Cat.acknowledgment
+- [x] Web + iOS: InsightsPanel "I'm on it" + inline note + muted acknowledged state (keeps real status, adds "Acknowledged by … · date" + Undo); Home card muted pill + ok-rank sort; hero mute; vet export transparency line (never muted); auto-resolve on return-to-ok
+- [x] Tests (shared 349, worker 184, frontend 78, app 173; drift clean); migrate remote; deployed web+worker
 
 ### Session 5b — Observations journal (PRD-notes-journal)
 - [ ] Schema: `journal_entries` table (prod migration)

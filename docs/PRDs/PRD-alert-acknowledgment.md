@@ -1,6 +1,6 @@
 # PRD: Health Alert Acknowledgment
 
-> **Status:** Approved
+> **Status:** Implemented (2026-07-02 — severity-rank episode model; shared `alertAck.ts` suppression; web + iOS)
 > **Created:** 2026-04-11
 > **Last updated:** 2026-07-02
 

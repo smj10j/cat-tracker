@@ -287,3 +287,121 @@ describe('DELETE /api/cats/:id', () => {
     expect(getRes.status).toBe(404)
   })
 })
+
+describe('Health alert acknowledgment', () => {
+  beforeAll(async () => { await applySchema() })
+  beforeEach(async () => { await clearDb() })
+
+  async function makeCat(session: string, name = 'Luna'): Promise<string> {
+    const res = await SELF.fetch('http://localhost/api/cats', {
+      method: 'POST',
+      headers: { ...authedHeaders(session), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, birthdate: '2020-01-01' }),
+    })
+    return (await res.json() as { id: string }).id
+  }
+
+  const ackBody = {
+    severity: 'watch', direction: 'loss',
+    note: 'Vet visit Thursday', latest_measured_at: '2026-07-01 00:00:00',
+  }
+  const ackHeaders = (session: string) => ({ ...authedHeaders(session), 'Content-Type': 'application/json' })
+
+  it('acknowledges an alert and embeds it in GET /api/cats/:id and the list', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const catId = await makeCat(session)
+
+    const putRes = await SELF.fetch(`http://localhost/api/cats/${catId}/acknowledgment`, {
+      method: 'PUT', headers: ackHeaders(session), body: JSON.stringify(ackBody),
+    })
+    expect(putRes.status).toBe(200)
+    const ack = await putRes.json() as { acknowledged_severity: string; status: string; acknowledged_by_name: string | null }
+    expect(ack.acknowledged_severity).toBe('watch')
+    expect(ack.status).toBe('active')
+
+    const getRes = await SELF.fetch(`http://localhost/api/cats/${catId}`, { headers: authedHeaders(session) })
+    const cat = await getRes.json() as { acknowledgment: { acknowledged_severity: string; note: string } | null }
+    expect(cat.acknowledgment).not.toBeNull()
+    expect(cat.acknowledgment!.acknowledged_severity).toBe('watch')
+    expect(cat.acknowledgment!.note).toBe('Vet visit Thursday')
+
+    const listRes = await SELF.fetch('http://localhost/api/cats', { headers: authedHeaders(session) })
+    const list = await listRes.json() as Array<{ id: string; acknowledgment: unknown }>
+    expect(list.find(c => c.id === catId)!.acknowledgment).not.toBeNull()
+  })
+
+  it('re-acknowledging supersedes the previous active ack (one active row)', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const catId = await makeCat(session)
+
+    await SELF.fetch(`http://localhost/api/cats/${catId}/acknowledgment`, {
+      method: 'PUT', headers: ackHeaders(session), body: JSON.stringify(ackBody),
+    })
+    await SELF.fetch(`http://localhost/api/cats/${catId}/acknowledgment`, {
+      method: 'PUT', headers: ackHeaders(session), body: JSON.stringify({ ...ackBody, severity: 'concerning' }),
+    })
+    const active = await env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM alert_acknowledgments WHERE cat_id = ? AND status = 'active'`
+    ).bind(catId).first<{ n: number }>()
+    expect(active!.n).toBe(1)
+    const superseded = await env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM alert_acknowledgments WHERE cat_id = ? AND status = 'superseded'`
+    ).bind(catId).first<{ n: number }>()
+    expect(superseded!.n).toBe(1)
+  })
+
+  it('withdraw clears the active ack (embed null); 404 on second withdraw', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const catId = await makeCat(session)
+    await SELF.fetch(`http://localhost/api/cats/${catId}/acknowledgment`, {
+      method: 'PUT', headers: ackHeaders(session), body: JSON.stringify(ackBody),
+    })
+    const del = await SELF.fetch(`http://localhost/api/cats/${catId}/acknowledgment?kind=weight`, {
+      method: 'DELETE', headers: authedHeaders(session),
+    })
+    expect(del.status).toBe(200)
+    const getRes = await SELF.fetch(`http://localhost/api/cats/${catId}`, { headers: authedHeaders(session) })
+    expect((await getRes.json() as { acknowledgment: unknown }).acknowledgment).toBeNull()
+    const del2 = await SELF.fetch(`http://localhost/api/cats/${catId}/acknowledgment?kind=weight`, {
+      method: 'DELETE', headers: authedHeaders(session),
+    })
+    expect(del2.status).toBe(404)
+  })
+
+  it('resolve is idempotent (200 with no active ack)', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const catId = await makeCat(session)
+    const res = await SELF.fetch(`http://localhost/api/cats/${catId}/acknowledgment/resolve`, {
+      method: 'POST', headers: authedHeaders(session),
+    })
+    expect(res.status).toBe(200)
+  })
+
+  it('rejects invalid severity with 400', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const catId = await makeCat(session)
+    const res = await SELF.fetch(`http://localhost/api/cats/${catId}/acknowledgment`, {
+      method: 'PUT', headers: ackHeaders(session),
+      body: JSON.stringify({ severity: 'catastrophic', direction: 'loss', latest_measured_at: '2026-07-01 00:00:00' }),
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it("rejects another household's cat with 404", async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const catId = await makeCat(session)
+
+    const stranger = await seedUser({ id: 'user-2', email: 'stranger@example.com', oauth_id: 'google-456' })
+    const strangerSession = await seedSession(stranger.id, 'session-2')
+    const res = await SELF.fetch(`http://localhost/api/cats/${catId}/acknowledgment`, {
+      method: 'PUT', headers: ackHeaders(strangerSession), body: JSON.stringify(ackBody),
+    })
+    expect(res.status).toBe(404)
+  })
+})

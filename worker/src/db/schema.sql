@@ -217,3 +217,25 @@ CREATE TABLE IF NOT EXISTS audit_log (
 );
 
 CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_log(user_id, created_at DESC);
+
+-- Health alert acknowledgments (PRD-alert-acknowledgment, 2026-07-02)
+-- Keyed by (cat_id, alert_kind, acknowledged_severity, direction); at most one
+-- active row per (cat, kind). Full history retained for the vet export.
+CREATE TABLE IF NOT EXISTS alert_acknowledgments (
+  id                     TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  cat_id                 TEXT NOT NULL REFERENCES cats(id) ON DELETE CASCADE,
+  alert_kind             TEXT NOT NULL DEFAULT 'weight',   -- future: 'behavioral', 'confluence'
+  acknowledged_severity  TEXT NOT NULL,                    -- 'watch' | 'concerning' | 'urgent'
+  direction              TEXT NOT NULL,                    -- 'loss' | 'gain'
+  acknowledged_by        TEXT REFERENCES users(id) ON DELETE SET NULL,
+  note                   TEXT,                             -- <= 280 chars
+  latest_measured_at     TEXT NOT NULL,                    -- newest weight measurement at ack time
+  context                TEXT,                             -- JSON snapshot for export/history
+  status                 TEXT NOT NULL DEFAULT 'active',   -- 'active'|'superseded'|'resolved'|'expired'|'withdrawn'
+  expires_at             TEXT,                             -- created_at + N days; null = no expiry
+  created_at             TEXT NOT NULL DEFAULT (datetime('now')),
+  ended_at               TEXT                              -- when status left 'active'
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ack_active
+  ON alert_acknowledgments(cat_id, alert_kind) WHERE status = 'active';
+CREATE INDEX IF NOT EXISTS idx_ack_cat ON alert_acknowledgments(cat_id, created_at DESC);

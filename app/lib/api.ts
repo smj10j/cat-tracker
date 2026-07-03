@@ -7,14 +7,14 @@ export type {
   Cat, Measurement, User, Medication, MedicationDose, DoseWithContext,
   NotificationInbox, HouseholdMember, PendingInvite, HouseholdInfo,
   InvitePreview, HouseholdResponse, MedicationInput, HouseholdListItem, DayGroup,
-  AckRecord, AckSeverity, AckDirection,
+  AckRecord, AckSeverity, AckDirection, JournalEntry, TimelineItem, TimelineDayGroup,
 } from '@shared/lib/types';
 export { CARE_TYPE_ICONS } from '@shared/lib/types';
 
 import type {
   Cat, Measurement, User, Medication, MedicationDose,
   NotificationInbox, HouseholdResponse, HouseholdInfo, InvitePreview,
-  HouseholdListItem, AckRecord, AckSeverity, AckDirection,
+  HouseholdListItem, AckRecord, AckSeverity, AckDirection, JournalEntry,
 } from '@shared/lib/types';
 import type { CatTrackerNativeApi } from '@shared/lib/apiTypes';
 
@@ -179,6 +179,32 @@ export const api: CatTrackerNativeApi = {
 
   async resolveAcknowledgment(catId: string, kind = 'weight'): Promise<void> {
     await apiFetch(`/api/cats/${catId}/acknowledgment/resolve?kind=${kind}`, { method: 'POST' });
+  },
+
+  async getJournal(catId: string, opts?: { tag?: string; from?: string; to?: string; limit?: number; offset?: number }): Promise<JournalEntry[]> {
+    const params = new URLSearchParams();
+    if (opts?.tag) params.set('tag', opts.tag);
+    if (opts?.from) params.set('from', opts.from);
+    if (opts?.to) params.set('to', opts.to);
+    if (opts?.limit != null) params.set('limit', String(opts.limit));
+    if (opts?.offset != null) params.set('offset', String(opts.offset));
+    const qs = params.toString();
+    const res = await apiFetch(`/api/cats/${catId}/journal${qs ? `?${qs}` : ''}`);
+    return res.json() as Promise<JournalEntry[]>;
+  },
+
+  async createJournalEntry(catId: string, data: { occurred_at: string; text: string; tags?: string[] | null }): Promise<JournalEntry> {
+    const res = await apiFetch(`/api/cats/${catId}/journal`, { method: 'POST', body: JSON.stringify(data) });
+    return res.json() as Promise<JournalEntry>;
+  },
+
+  async updateJournalEntry(entryId: string, data: { occurred_at?: string; text?: string; tags?: string[] | null }): Promise<JournalEntry> {
+    const res = await apiFetch(`/api/journal/${entryId}`, { method: 'PUT', body: JSON.stringify(data) });
+    return res.json() as Promise<JournalEntry>;
+  },
+
+  async deleteJournalEntry(entryId: string): Promise<void> {
+    await apiFetch(`/api/journal/${entryId}`, { method: 'DELETE' });
   },
 
   async uploadCatPhoto(id: string, uri: string): Promise<{ photo_url: string }> {

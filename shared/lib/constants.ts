@@ -38,6 +38,38 @@ export const BEHAVIORAL_TYPE_SET = new Set(BEHAVIORAL_TYPES.map(t => t.key))
 /** Behavioral types shown under the "behavior" chart tab (excludes food/water which have own tabs) */
 export const BEHAVIOR_CHART_TYPES = new Set(['grooming', 'play', 'activity', 'vomiting', 'litter'])
 
+/**
+ * Observations-journal preset tags (PRD-notes-journal). Descriptive, never
+ * diagnostic — we record what the owner observed ("hiding"), not an
+ * interpretation ("depression"), mirroring the behavioral-measurement discipline
+ * in docs/research/behavioral-indicators.md. The Worker rejects any tag not in
+ * this list so the taxonomy can't drift into clinical language.
+ */
+export const VALID_JOURNAL_TAGS = [
+  'hiding', 'limping', 'low_energy', 'restless', 'vocalizing', 'sneezing',
+  'coughing', 'overgrooming', 'scratching', 'eating_less', 'eating_more',
+  'drinking_more', 'litter_change', 'vet_visit', 'good_day',
+] as const
+export type JournalTag = typeof VALID_JOURNAL_TAGS[number]
+
+export const JOURNAL_TAG_LABELS: Record<string, string> = {
+  hiding: 'Hiding',
+  limping: 'Limping',
+  low_energy: 'Low energy',
+  restless: 'Restless',
+  vocalizing: 'Vocalizing more',
+  sneezing: 'Sneezing',
+  coughing: 'Coughing',
+  overgrooming: 'Overgrooming',
+  scratching: 'Scratching',
+  eating_less: 'Eating less',
+  eating_more: 'Eating more',
+  drinking_more: 'Drinking more',
+  litter_change: 'Litter box change',
+  vet_visit: 'Vet visit / call',
+  good_day: 'Good day',
+}
+
 /** Chart line colors — canonical palette for multi-series charts */
 export const CHART_LINE_COLORS = ['#c084fc', '#4ade80', '#f97316', '#fbbf24', '#fb923c', '#f87171'] as const
 
@@ -69,6 +101,7 @@ export const LIMITS = {
   MED_DOSE: 100,
   MED_NOTES: 1000,
   ACK_NOTE: 280,
+  JOURNAL_TEXT: 2000,
 } as const;
 
 /** Health alert acknowledgment enums (PRD-alert-acknowledgment). */

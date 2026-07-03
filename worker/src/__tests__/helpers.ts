@@ -181,6 +181,19 @@ CREATE TABLE IF NOT EXISTS alert_acknowledgments (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_ack_active
   ON alert_acknowledgments(cat_id, alert_kind) WHERE status = 'active';
 CREATE INDEX IF NOT EXISTS idx_ack_cat ON alert_acknowledgments(cat_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS journal_entries (
+  id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  cat_id      TEXT NOT NULL REFERENCES cats(id) ON DELETE CASCADE,
+  user_id     TEXT NOT NULL REFERENCES users(id),
+  occurred_at TEXT NOT NULL,
+  text        TEXT NOT NULL,
+  tags        TEXT,
+  photo_url   TEXT,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_journal_cat ON journal_entries(cat_id, occurred_at DESC);
 `
 
 /** Apply the full schema DDL to the test database (idempotent). */
@@ -201,6 +214,7 @@ export async function clearDb(): Promise<void> {
     DELETE FROM apple_token_cache;
     DELETE FROM device_tokens;
     DELETE FROM alert_acknowledgments;
+    DELETE FROM journal_entries;
     DELETE FROM medication_doses;
     DELETE FROM medications;
     DELETE FROM measurements;

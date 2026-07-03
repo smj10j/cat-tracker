@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useGoBack } from '../hooks/useGoBack'
-import { createMeasurement, getCats, type Cat } from '../lib/api'
+import { createMeasurement, createJournalEntry, getCats, type Cat } from '../lib/api'
 import { PRESETS } from '@shared/lib/measurementPresets'
 import { usePreferences } from '../contexts/PreferencesContext'
 import type { WeightUnit } from '@shared/lib/preferences'
 import { todayLocalDate, buildMeasuredAt, formatHour, currentHour } from '@shared/lib/formatting'
-import { BEHAVIORAL_TYPES } from '@shared/lib/constants'
+import { BEHAVIORAL_TYPES, LIMITS } from '@shared/lib/constants'
+import JournalTagChips from '../components/JournalTagChips'
 
 type Selections = Partial<Record<string, number>>
 
@@ -19,6 +20,9 @@ export default function DailyCheckin() {
   const [weightValue, setWeightValue] = useState('')
   const [weightUnit, setWeightUnit] = useState<WeightUnit>(prefs.weightUnit)
   const [selections, setSelections] = useState<Selections>({})
+  const [noteOpen, setNoteOpen] = useState(false)
+  const [noteText, setNoteText] = useState('')
+  const [noteTags, setNoteTags] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -35,7 +39,13 @@ export default function DailyCheckin() {
   const weightValid = weightValue.trim() !== '' && !isNaN(parseFloat(weightValue)) && parseFloat(weightValue) > 0
   const measurementCount =
     (weightValid ? 1 : 0) + Object.keys(selections).filter((k) => selections[k] !== undefined).length
-  const canSubmit = selectedCatId !== '' && measurementCount > 0
+  const noteFilled = noteText.trim().length > 0
+  // The note is independent — it can be logged even with no measurement rows selected.
+  const canSubmit = selectedCatId !== '' && (measurementCount > 0 || noteFilled)
+
+  function toggleNoteTag(tag: string) {
+    setNoteTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]))
+  }
 
   function handlePreset(type: string, value: number) {
     setSelections((prev) => {
@@ -52,6 +62,9 @@ export default function DailyCheckin() {
   function reset() {
     setWeightValue('')
     setSelections({})
+    setNoteText('')
+    setNoteTags([])
+    setNoteOpen(false)
     setDate(todayLocalDate())
     setHour(currentHour())
   }
@@ -74,18 +87,24 @@ export default function DailyCheckin() {
       }
     }
 
+    const note = noteText.trim()
+
     try {
       await Promise.all(
         toCreate.map((m) =>
           createMeasurement(selectedCatId, { ...m, measured_at, notes: null })
         )
       )
+      // The note saves independently of measurements — same datetime as the check-in.
+      if (note) {
+        await createJournalEntry(selectedCatId, { occurred_at: measured_at, text: note, tags: noteTags })
+      }
       window.dispatchEvent(new CustomEvent('measurementAdded'))
       setSaved(true)
       reset()
       setTimeout(() => setSaved(false), 2000)
     } catch {
-      setError('Some measurements could not be saved. Please try again.')
+      setError('Some entries could not be saved. Please try again.')
     } finally {
       setSaving(false)
     }
@@ -288,11 +307,55 @@ export default function DailyCheckin() {
           })}
         </div>
 
+        {/* Add a note (observations journal quick-add) */}
+        <div
+          className="rounded-2xl px-4 py-3"
+          style={{ background: 'var(--color-section-bg)', border: '1px solid var(--color-section-border)' }}
+        >
+          {!noteOpen ? (
+            <button
+              type="button"
+              onClick={() => setNoteOpen(true)}
+              className="flex items-center gap-2 w-full text-sm font-semibold text-ink-mid"
+            >
+              <span>📝</span> Add a note
+              <span className="ml-auto text-xs text-ink-dim">optional</span>
+            </button>
+          ) : (
+            <>
+              <label htmlFor="checkin-note" className="block text-xs font-semibold text-ink-mid uppercase tracking-wider mb-2">
+                📝 Note
+              </label>
+              <textarea
+                id="checkin-note"
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                maxLength={LIMITS.JOURNAL_TEXT}
+                rows={3}
+                placeholder="What did you notice? e.g., 'Hiding under the bed since this morning.'"
+                className="input-dark w-full px-3 py-2.5 text-sm resize-none"
+              />
+              {noteText.trim().length > 1800 && (
+                <p
+                  className="text-xs mt-1 text-right tabular-nums"
+                  style={{ color: noteText.trim().length > LIMITS.JOURNAL_TEXT ? 'var(--color-health-rose)' : 'var(--color-ink-dim)' }}
+                >
+                  {noteText.trim().length} / {LIMITS.JOURNAL_TEXT}
+                </p>
+              )}
+              <div className="mt-3">
+                <JournalTagChips selected={noteTags} onToggle={toggleNoteTag} disabled={saving} />
+              </div>
+            </>
+          )}
+        </div>
+
         {/* Submit */}
         <div className="pt-1">
-          {measurementCount > 0 && selectedCatId && (
+          {(measurementCount > 0 || noteFilled) && selectedCatId && (
             <p className="text-center text-xs text-ink-mid mb-3">
-              Logging {measurementCount} measurement{measurementCount !== 1 ? 's' : ''} for{' '}
+              Logging {measurementCount > 0 ? `${measurementCount} measurement${measurementCount !== 1 ? 's' : ''}` : ''}
+              {measurementCount > 0 && noteFilled ? ' + a note' : noteFilled ? 'a note' : ''} for{' '}
               <span className="text-ink font-semibold">{selectedCat?.name ?? '…'}</span>
             </p>
           )}
@@ -309,7 +372,7 @@ export default function DailyCheckin() {
             <p className="text-center text-xs mt-2 text-ink-dim">
               {!selectedCatId
                 ? 'Select a cat above to continue'
-                : 'Select at least one measurement above to log'}
+                : 'Select a measurement or add a note to log'}
             </p>
           )}
         </div>

@@ -201,6 +201,34 @@ export interface DayGroup {
   items: Measurement[];
 }
 
+// ---------------------------------------------------------------------------
+// Observations journal (PRD-notes-journal)
+// ---------------------------------------------------------------------------
+
+export interface JournalEntry {
+  id: string;
+  cat_id: string;
+  user_id: string;              // author
+  author_name?: string | null;  // joined display name for multi-member households
+  occurred_at: string;          // when observed (backdatable), ISO datetime
+  text: string;                 // 1..2000 chars
+  tags: string[] | null;        // preset tag keys (JOURNAL_TAG_LABELS); null = untagged
+  photo_url: string | null;     // Phase B; null = no photo
+  created_at: string;
+  updated_at: string;
+}
+
+/** A History-timeline item — measurements and journal entries interleaved. */
+export type TimelineItem =
+  | { kind: 'measurement'; at: string; measurement: Measurement }
+  | { kind: 'journal'; at: string; entry: JournalEntry };
+
+export interface TimelineDayGroup {
+  dateStr: string;
+  label: string;
+  items: TimelineItem[];
+}
+
 export const CARE_TYPE_ICONS: Record<string, string> = {
   flea: '🦟',
   heartworm: '❤️',

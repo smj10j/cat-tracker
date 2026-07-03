@@ -26,12 +26,12 @@ Triggered by: owner asked to implement ROADMAP WP4g plus session-plan Sessions 5
 - [x] Web + iOS: InsightsPanel "I'm on it" + inline note + muted acknowledged state (keeps real status, adds "Acknowledged by … · date" + Undo); Home card muted pill + ok-rank sort; hero mute; vet export transparency line (never muted); auto-resolve on return-to-ok
 - [x] Tests (shared 349, worker 184, frontend 78, app 173; drift clean); migrate remote; deployed web+worker
 
-### Session 5b — Observations journal (PRD-notes-journal)
-- [ ] Schema: `journal_entries` table (prod migration)
-- [ ] Worker: CRUD routes + photo routes (R2 `journal/` prefix); tag validation; deceased 403; cat-delete R2 sweep
-- [ ] Shared: VALID_JOURNAL_TAGS + labels; apiTypes methods; JournalEntry type
-- [ ] Web + iOS: entry form, timeline interleave + tag filter, check-in quick-add, vet export "Owner observations"
-- [ ] Tests, migrate remote, deploy, commit, push
+### Session 5b — Observations journal (PRD-notes-journal) ✅
+- [x] Schema: `journal_entries` table (prod migration verified)
+- [x] Worker: CRUD routes (`GET/POST /cats/:id/journal`, `PUT/DELETE /journal/:id`); tag validation; deceased 403; cat-delete R2 sweep. **Phase B photo upload deferred** — R2 `journal/` delete-sweep wired, upload UI not
+- [x] Shared: VALID_JOURNAL_TAGS (15) + labels; apiTypes methods; JournalEntry + TimelineItem types; `groupTimelineByDay`
+- [x] Web + iOS: entry form, timeline interleave + tag filter, check-in quick-add, vet export "Owner observations" (cap 30)
+- [x] Tests (worker journal 10, shared timeline 4), migrate remote, deploy web+worker, commit, push
 
 ### Session 6a — Body Condition Score (PRD-body-condition)
 - [ ] docs/research: WSAVA 9-point BCS citation FIRST (gates descriptive copy)

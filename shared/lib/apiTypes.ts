@@ -12,7 +12,7 @@ import type {
   Cat, Measurement, User, Medication, MedicationDose,
   NotificationInbox, HouseholdResponse, HouseholdInfo, InvitePreview,
   HouseholdListItem, MedicationInput,
-  AckRecord, AckSeverity, AckDirection,
+  AckRecord, AckSeverity, AckDirection, JournalEntry,
 } from './types'
 
 // ---------------------------------------------------------------------------
@@ -45,6 +45,12 @@ export interface CatTrackerApi {
 
   // Cat photos — upload signature is platform-specific (Blob on web, URI on native)
   deleteCatPhoto(id: string): Promise<void>
+
+  // Observations journal (PRD-notes-journal)
+  getJournal(catId: string, opts?: { tag?: string; from?: string; to?: string; limit?: number; offset?: number }): Promise<JournalEntry[]>
+  createJournalEntry(catId: string, data: { occurred_at: string; text: string; tags?: string[] | null }): Promise<JournalEntry>
+  updateJournalEntry(entryId: string, data: { occurred_at?: string; text?: string; tags?: string[] | null }): Promise<JournalEntry>
+  deleteJournalEntry(entryId: string): Promise<void>
 
   // Measurements
   getMeasurements(catId: string, type?: string): Promise<Measurement[]>

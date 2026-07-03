@@ -7,6 +7,7 @@ import DailyCheckin from '../../pages/DailyCheckin'
 vi.mock('../../lib/api', () => ({
   getCats: vi.fn(),
   createMeasurement: vi.fn(),
+  createJournalEntry: vi.fn(),
 }))
 
 import { getCats, createMeasurement } from '../../lib/api'

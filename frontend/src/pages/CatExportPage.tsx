@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useGoBack } from '../hooks/useGoBack'
-import { getCat, getMeasurements, type Cat, type Measurement } from '../lib/api'
+import { getCat, getMeasurements, getJournal, type Cat, type Measurement, type JournalEntry } from '../lib/api'
 import { assessHealth } from '@shared/lib/healthMetrics'
 import { detectCorrelations, describeCorrelation, detectConfluence } from '@shared/lib/correlations'
 import { getPresetLabel, PRESET_TYPES } from '@shared/lib/measurementPresets'
 import { catAge } from '@shared/lib/dates'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { formatDate as fmtDate, formatDateTime as fmtDateTime } from '@shared/lib/preferences'
+import { JOURNAL_TAG_LABELS } from '@shared/lib/constants'
 
 // SQLite 'YYYY-MM-DD HH:MM:SS' (UTC) -> ISO the Date constructor treats as UTC.
 const toIso = (s: string) => (s.includes('T') ? s : s.replace(' ', 'T') + 'Z')
@@ -35,13 +36,14 @@ export default function CatExportPage() {
 
   const [cat, setCat] = useState<Cat | null>(null)
   const [measurements, setMeasurements] = useState<Measurement[]>([])
+  const [journal, setJournal] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
-    Promise.all([getCat(id), getMeasurements(id)])
-      .then(([c, m]) => { setCat(c); setMeasurements(m) })
+    Promise.all([getCat(id), getMeasurements(id), getJournal(id)])
+      .then(([c, m, j]) => { setCat(c); setMeasurements(m); setJournal(j) })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
   }, [id])
@@ -261,6 +263,34 @@ export default function CatExportPage() {
               </section>
             )
           })}
+
+          {/* Owner observations (PRD-notes-journal, Phase C) */}
+          {journal.length > 0 && (() => {
+            const sorted = [...journal].sort((a, b) => b.occurred_at.localeCompare(a.occurred_at))
+            const shown = sorted.slice(0, 30)
+            return (
+              <section>
+                <h2 className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: '#6b7280' }}>Owner observations</h2>
+                <ul className="space-y-2">
+                  {shown.map((e) => (
+                    <li key={e.id} className="text-sm leading-snug" style={{ color: '#374151', breakInside: 'avoid' }}>
+                      <span className="font-medium">{fmtDate(e.occurred_at, prefs)}</span>
+                      {' — '}
+                      {e.text}
+                      {e.tags && e.tags.length > 0 && (
+                        <span style={{ color: '#6b7280' }}> ({e.tags.map((t) => JOURNAL_TAG_LABELS[t] ?? t).join(', ')})</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                {sorted.length > shown.length && (
+                  <p className="text-xs mt-1" style={{ color: '#9ca3af' }}>
+                    …and {sorted.length - shown.length} earlier observations not shown
+                  </p>
+                )}
+              </section>
+            )
+          })()}
 
           {/* Observed patterns (vet-mode: clinical language + differentials) */}
           {correlations.length > 0 && (

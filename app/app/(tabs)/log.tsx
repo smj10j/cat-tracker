@@ -14,7 +14,7 @@ import { ResponsiveContainer } from '../../components/ResponsiveContainer';
 import { usePreferences } from '../../contexts/PreferencesContext';
 import { todayLocalDate, buildMeasuredAt, formatHour, formatDayLabel, currentHour } from '@shared/lib/formatting';
 import { parseDate, formatDateStr } from '../../lib/dateHelpers';
-import { BEHAVIORAL_TYPES } from '@shared/lib/constants';
+import { BEHAVIORAL_TYPES, VALID_JOURNAL_TAGS, JOURNAL_TAG_LABELS, LIMITS } from '@shared/lib/constants';
 import type { WeightUnit } from '@shared/lib/preferences';
 
 type Selections = Partial<Record<string, number>>;
@@ -33,6 +33,8 @@ export default function LogScreen() {
   const [weightValue, setWeightValue] = useState('');
   const [weightUnit, setWeightUnit] = useState<WeightUnit>(prefs.weightUnit);
   const [selections, setSelections] = useState<Selections>({});
+  const [noteText, setNoteText] = useState('');
+  const [noteTags, setNoteTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,9 +50,10 @@ export default function LogScreen() {
   const selectedCat = cats.find((c) => c.id === selectedCatId) ?? null;
 
   const weightValid = weightValue.trim() !== '' && !isNaN(parseFloat(weightValue)) && parseFloat(weightValue) > 0;
+  const noteValid = noteText.trim().length > 0;
   const measurementCount =
     (weightValid ? 1 : 0) + Object.keys(selections).filter((k) => selections[k] !== undefined).length;
-  const canSubmit = selectedCatId !== '' && measurementCount > 0;
+  const canSubmit = selectedCatId !== '' && (measurementCount > 0 || noteValid);
 
   function handlePreset(type: string, value: number) {
     setSelections((prev) => {
@@ -66,9 +69,15 @@ export default function LogScreen() {
   function reset() {
     setWeightValue('');
     setSelections({});
+    setNoteText('');
+    setNoteTags([]);
     setDate(todayLocalDate());
     setHour(currentHour());
     setShowDatePicker(false);
+  }
+
+  function toggleNoteTag(tag: string) {
+    setNoteTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
   }
 
   async function handleSubmit() {
@@ -90,16 +99,25 @@ export default function LogScreen() {
     }
 
     try {
-      await Promise.all(
-        toCreate.map((m) =>
-          api.createMeasurement(selectedCatId, { ...m, measured_at, notes: null })
-        )
+      const ops: Promise<unknown>[] = toCreate.map((m) =>
+        api.createMeasurement(selectedCatId, { ...m, measured_at, notes: null })
       );
+      // An observation note is independent of the measurement rows — log it too.
+      if (noteValid) {
+        ops.push(
+          api.createJournalEntry(selectedCatId, {
+            occurred_at: measured_at,
+            text: noteText.trim(),
+            tags: noteTags.length > 0 ? noteTags : null,
+          })
+        );
+      }
+      await Promise.all(ops);
       setSaved(true);
       reset();
       setTimeout(() => setSaved(false), 2000);
     } catch {
-      setError('Some measurements could not be saved. Please try again.');
+      setError('Some entries could not be saved. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -385,6 +403,58 @@ export default function LogScreen() {
                   </View>
                 );
               })}
+            </View>
+
+            {/* Note (observations journal) */}
+            <View style={{
+              borderRadius: 16, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16,
+              backgroundColor: colors.card,
+              borderWidth: 1, borderColor: colors.rim,
+            }}>
+              <Text style={{ fontSize: 11, fontWeight: '600', color: colors.inkMid, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                📝 Add a note {'—'} optional
+              </Text>
+              <TextInput
+                value={noteText}
+                onChangeText={setNoteText}
+                placeholder="Anything you noticed today?"
+                placeholderTextColor={colors.inkDim}
+                multiline
+                maxLength={LIMITS.JOURNAL_TEXT}
+                textAlignVertical="top"
+                style={{
+                  minHeight: 72,
+                  backgroundColor: colors.surface,
+                  borderWidth: 1, borderColor: colors.rim,
+                  borderRadius: 12,
+                  paddingHorizontal: 12, paddingVertical: 10,
+                  color: colors.ink, fontSize: 15, lineHeight: 21,
+                }}
+              />
+              {noteValid && (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+                  {VALID_JOURNAL_TAGS.map((tag) => {
+                    const selected = noteTags.includes(tag);
+                    return (
+                      <Pressable
+                        key={tag}
+                        onPress={() => toggleNoteTag(tag)}
+                        style={{
+                          paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
+                          minHeight: 34, justifyContent: 'center',
+                          backgroundColor: selected ? 'rgba(192,132,252,0.18)' : colors.surface,
+                          borderWidth: 1,
+                          borderColor: selected ? 'rgba(192,132,252,0.4)' : 'rgba(255,255,255,0.07)',
+                        }}
+                      >
+                        <Text style={{ fontSize: 12, fontWeight: selected ? '700' : '500', color: selected ? colors.lavender : colors.inkDim }}>
+                          {JOURNAL_TAG_LABELS[tag] ?? tag}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
             </View>
 
             {/* Submit */}

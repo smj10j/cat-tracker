@@ -55,7 +55,7 @@
 | [PRD-vet-visits.md](PRD-vet-visits.md) | Vet Visits & Medical Records | `Draft` | 2026-07-02 |
 | [PRD-lab-results.md](PRD-lab-results.md) | Lab Results Tracking | `Draft` | 2026-07-02 |
 | [PRD-body-condition.md](PRD-body-condition.md) | Body Condition Score (BCS) | `Approved` | 2026-07-02 |
-| [PRD-notes-journal.md](PRD-notes-journal.md) | Observations Journal | `Approved` | 2026-07-02 |
+| [PRD-notes-journal.md](PRD-notes-journal.md) | Observations Journal | `Implemented` | 2026-07-02 |
 | [PRD-actionable-notifications.md](PRD-actionable-notifications.md) | Actionable Notifications & Daily Digest | `Approved` | 2026-07-02 |
 | [PRD-onboarding.md](PRD-onboarding.md) | First-Run Onboarding & Empty-State Guidance | `Draft` | 2026-07-02 |
 | [PRD-sitter-live-link.md](PRD-sitter-live-link.md) | Sitter Live Share Link | `Draft` | 2026-07-02 |
@@ -788,7 +788,7 @@ Nothing rejected yet.
 
 | | |
 |---|---|
-| **Status** | `Approved` |
+| **Status** | `Implemented` |
 | **Last updated** | 2026-07-02 |
 
 **Problem:** Not everything is a number — "hiding under the bed," "limping slightly," vet-call outcomes have nowhere to live, so context is lost by the next vet visit.
@@ -796,6 +796,8 @@ Nothing rejected yet.
 **Proposed:** Per-cat journal entries (≤2000 chars, backdatable, optional R2 photo, preset descriptive-not-diagnostic tags); entries interleave into the day-grouped History timeline with tag filtering; quick-add from the check-in screen; "Owner observations" section in the vet export. Contributor+ can write; one new `journal_entries` table.
 
 **Approved 2026-07-02.** Shared R2 bucket under a `journal/` prefix; tag taxonomy stays descriptive-only per the clinical-content rule.
+
+**Implemented 2026-07-02 (Session 5b).** `journal_entries` table + `GET/POST /api/cats/:id/journal` and `PUT/DELETE /api/journal/:id`; 15-tag descriptive taxonomy (`VALID_JOURNAL_TAGS`); `groupTimelineByDay` interleaves entries with measurements in the day-grouped History (both platforms) with a tag filter bar; quick-add note on the check-in/log screen; "Owner observations" section (cap 30) in the vet export. **Phase B (photo attachments) deferred** — text + tags shipped; the R2 `journal/` delete-sweep is wired, upload UI is not.
 
 ---
 

@@ -4,10 +4,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { api, CARE_TYPE_ICONS } from '../../../lib/api';
-import type { Cat, Measurement, Medication } from '../../../lib/api';
+import type { Cat, Measurement, Medication, JournalEntry } from '../../../lib/api';
 import CatAvatar from '../../../components/CatAvatar';
 import InsightsPanel from '../../../components/InsightsPanel';
 import MeasurementForm from '../../../components/MeasurementForm';
+import JournalForm from '../../../components/JournalForm';
+import JournalRow from '../../../components/JournalRow';
 import { assessHealth, STATUS_COLORS, STATUS_LABEL, STATUS_EMOJI } from '@shared/lib/healthMetrics';
 import type { HealthStatus } from '@shared/lib/healthMetrics';
 import { applyAcknowledgment } from '@shared/lib/alertAck';
@@ -26,8 +28,8 @@ import {
   formatTime as formatTimePref,
   formatDateShort,
 } from '@shared/lib/preferences';
-import { groupByDay, formatFreqShort, formatNextDue, formatDueAt, formatSexNeuter } from '@shared/lib/formatting';
-import { isAsNeeded } from '@shared/lib/constants';
+import { groupByDay, groupTimelineByDay, formatFreqShort, formatNextDue, formatDueAt, formatSexNeuter } from '@shared/lib/formatting';
+import { isAsNeeded, VALID_JOURNAL_TAGS, JOURNAL_TAG_LABELS } from '@shared/lib/constants';
 import { MEASUREMENT_TYPE_LABELS as MEAS_TYPE_LABELS, BEHAVIOR_CHART_TYPES as BEHAVIORAL_TYPES } from '@shared/lib/constants';
 
 type ProfileTab = 'health' | 'care' | 'about';
@@ -60,6 +62,10 @@ export default function CatProfileScreen() {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [expandedChart, setExpandedChart] = useState<string | null>(null);
   const [measurementFormOpen, setMeasurementFormOpen] = useState(false);
+  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  const [journalTagFilter, setJournalTagFilter] = useState<string | null>(null);
+  const [noteFormOpen, setNoteFormOpen] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
 
   // Auto-expand chart when device rotates to landscape (Phase B)
   useAutoLandscape({
@@ -71,10 +77,14 @@ export default function CatProfileScreen() {
 
   useEffect(() => {
     if (!id) return;
-    Promise.all([api.getCat(id), api.getMeasurements(id), api.getMedications(id)])
-      .then(([c, m, mds]) => { setCat(c); setMeasurements(m); setMeds(mds); })
+    Promise.all([api.getCat(id), api.getMeasurements(id), api.getMedications(id), api.getJournal(id)])
+      .then(([c, m, mds, j]) => { setCat(c); setMeasurements(m); setMeds(mds); setJournalEntries(j); })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
+  }, [id]);
+
+  const refreshJournal = useCallback(() => {
+    if (id) api.getJournal(id).then(setJournalEntries).catch(() => { /* stale-data banner covers refresh failures */ });
   }, [id]);
 
   async function handleLogPrnDose(medId: string) {
@@ -96,6 +106,7 @@ export default function CatProfileScreen() {
         api.getCat(id).then(setCat),
         api.getMeasurements(id).then(setMeasurements),
         api.getMedications(id).then(setMeds),
+        api.getJournal(id).then(setJournalEntries),
       ]).then((results) => {
         setRefreshFailed(results.some((r) => r.status === 'rejected'));
       });
@@ -123,6 +134,13 @@ export default function CatProfileScreen() {
       result.push({ key: 'behavior', label: 'Behavior' });
     return result;
   }, [measurements]);
+
+  // Tags actually present on this cat's entries, in canonical order (for the filter bar).
+  const journalTags = useMemo(() => {
+    const present = new Set<string>();
+    for (const e of journalEntries) for (const t of e.tags ?? []) present.add(t);
+    return VALID_JOURNAL_TAGS.filter((t) => present.has(t));
+  }, [journalEntries]);
 
   async function executeDeleteMeasurement(measId: string) {
     try {
@@ -590,19 +608,101 @@ export default function CatProfileScreen() {
             {/* Measurement form */}
             {id && !isDeceased && <MeasurementForm catId={id} onAdded={handleMeasurementAdded} />}
 
-            {/* History */}
+            {/* Add a note (observations journal) */}
+            {id && !isDeceased && (
+              noteFormOpen ? (
+                <JournalForm
+                  mode="create"
+                  catId={id}
+                  onSaved={() => { setNoteFormOpen(false); refreshJournal(); }}
+                  onCancel={() => setNoteFormOpen(false)}
+                />
+              ) : (
+                <Pressable
+                  onPress={() => setNoteFormOpen(true)}
+                  style={{
+                    borderWidth: 1.5,
+                    borderStyle: 'dashed',
+                    borderColor: 'rgba(192,132,252,0.3)',
+                    borderRadius: 16,
+                    paddingVertical: 14,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ color: colors.lavender, fontWeight: '600', fontSize: 14 }}>📝 Add note</Text>
+                </Pressable>
+              )
+            )}
+
+            {/* Tag filter bar — only when the cat has tagged observations */}
+            {journalTags.length > 0 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                {journalTags.map((tag) => {
+                  const active = journalTagFilter === tag;
+                  return (
+                    <Pressable
+                      key={tag}
+                      onPress={() => setJournalTagFilter(active ? null : tag)}
+                      style={{
+                        paddingHorizontal: 14,
+                        paddingVertical: 8,
+                        borderRadius: 999,
+                        minHeight: 40,
+                        justifyContent: 'center',
+                        backgroundColor: active ? 'rgba(192,132,252,0.2)' : colors.card,
+                        borderWidth: 1,
+                        borderColor: active ? 'rgba(192,132,252,0.45)' : colors.rim,
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: active ? '700' : '500', color: active ? colors.lavender : colors.inkDim }}>
+                        {JOURNAL_TAG_LABELS[tag] ?? tag}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+                {journalTagFilter && (
+                  <Pressable
+                    onPress={() => setJournalTagFilter(null)}
+                    style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, minHeight: 40, justifyContent: 'center' }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: colors.inkMid }}>Clear filter</Text>
+                  </Pressable>
+                )}
+              </ScrollView>
+            )}
+
+            {/* History — measurements + observations interleaved */}
             {(() => {
               const behaviorTypeSet = new Set(['grooming', 'activity', 'litter', 'vomiting']);
-              const filteredMeasurements = chartTab === 'behavior'
-                ? measurements.filter(m => behaviorTypeSet.has(m.type))
-                : measurements.filter(m => m.type === chartTab);
-              const filteredDayGroups = groupByDay(filteredMeasurements, prefs);
-              const filteredRecentGroups = filteredDayGroups.filter(g => g.dateStr >= cutoff);
-              const filteredOlderGroups = filteredDayGroups.filter(g => g.dateStr < cutoff);
-              const filteredDefaultGroups = filteredRecentGroups.length > 0 ? filteredRecentGroups : filteredDayGroups.slice(0, 3);
-              const filteredVisibleGroups = showOlderHistory ? filteredDayGroups : filteredDefaultGroups;
-              const filteredOlderCount = filteredOlderGroups.reduce((sum, g) => sum + g.items.length, 0);
-              return filteredMeasurements.length > 0 && (
+              // When a tag filter is active, show only matching journal entries (no measurements).
+              const timelineMeasurements = journalTagFilter
+                ? []
+                : chartTab === 'behavior'
+                  ? measurements.filter(m => behaviorTypeSet.has(m.type))
+                  : measurements.filter(m => m.type === chartTab);
+              const timelineEntries = journalTagFilter
+                ? journalEntries.filter(e => (e.tags ?? []).includes(journalTagFilter))
+                : journalEntries;
+
+              const timelineGroups = groupTimelineByDay(timelineMeasurements, timelineEntries, prefs);
+              const recentGroups = timelineGroups.filter(g => g.dateStr >= cutoff);
+              const olderGroups = timelineGroups.filter(g => g.dateStr < cutoff);
+              const defaultGroups = recentGroups.length > 0 ? recentGroups : timelineGroups.slice(0, 3);
+              const visibleGroups = showOlderHistory ? timelineGroups : defaultGroups;
+              const olderItemCount = olderGroups.reduce((sum, g) => sum + g.items.length, 0);
+
+              const hasContent = timelineMeasurements.length > 0 || timelineEntries.length > 0;
+              if (!hasContent) {
+                return journalTagFilter ? (
+                  <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 20, borderWidth: 1, borderColor: colors.rim, alignItems: 'center' }}>
+                    <Text style={{ color: colors.inkDim, fontSize: 13 }}>
+                      No observations tagged "{JOURNAL_TAG_LABELS[journalTagFilter] ?? journalTagFilter}"
+                    </Text>
+                  </View>
+                ) : null;
+              }
+
+              return (
               <View style={{
                 backgroundColor: colors.surface,
                 borderRadius: 16,
@@ -614,7 +714,7 @@ export default function CatProfileScreen() {
                   History
                 </Text>
 
-                {filteredVisibleGroups.map((group) => (
+                {visibleGroups.map((group) => (
                   <View key={group.dateStr} style={{ marginBottom: 20 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                       <Text style={{ fontSize: 12, fontWeight: '700', color: colors.inkDim }}>{group.label}</Text>
@@ -624,7 +724,36 @@ export default function CatProfileScreen() {
                       <View style={{ flex: 1, height: 1, backgroundColor: colors.rim }} />
                     </View>
 
-                    {group.items.map((m, idx) => (
+                    {group.items.map((item, idx) => {
+                      const showBorder = idx < group.items.length - 1;
+
+                      if (item.kind === 'journal') {
+                        const entry = item.entry;
+                        if (editingEntryId === entry.id) {
+                          return (
+                            <View key={entry.id} style={{ paddingVertical: 8 }}>
+                              <JournalForm
+                                mode="edit"
+                                entry={entry}
+                                onSaved={() => { setEditingEntryId(null); refreshJournal(); }}
+                                onDeleted={() => { setEditingEntryId(null); refreshJournal(); }}
+                                onCancel={() => setEditingEntryId(null)}
+                              />
+                            </View>
+                          );
+                        }
+                        return (
+                          <JournalRow
+                            key={entry.id}
+                            entry={entry}
+                            showBorder={showBorder}
+                            onPress={() => setEditingEntryId(entry.id)}
+                          />
+                        );
+                      }
+
+                      const m = item.measurement;
+                      return (
                       <View
                         key={m.id}
                         style={{
@@ -632,7 +761,7 @@ export default function CatProfileScreen() {
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           paddingVertical: 10,
-                          borderBottomWidth: idx < group.items.length - 1 ? 1 : 0,
+                          borderBottomWidth: showBorder ? 1 : 0,
                           borderBottomColor: colors.card,
                         }}
                       >
@@ -678,11 +807,12 @@ export default function CatProfileScreen() {
                           )
                         )}
                       </View>
-                    ))}
+                      );
+                    })}
                   </View>
                 ))}
 
-                {!showOlderHistory && filteredOlderGroups.length > 0 && (
+                {!showOlderHistory && olderGroups.length > 0 && (
                   <Pressable
                     onPress={() => setShowOlderHistory(true)}
                     style={{
@@ -695,7 +825,7 @@ export default function CatProfileScreen() {
                     }}
                   >
                     <Text style={{ fontSize: 12, fontWeight: '600', color: colors.inkDim }}>
-                      View {filteredOlderCount} older {filteredOlderCount === 1 ? 'entry' : 'entries'}
+                      View {olderItemCount} older {olderItemCount === 1 ? 'entry' : 'entries'}
                     </Text>
                   </Pressable>
                 )}

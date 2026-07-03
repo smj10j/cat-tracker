@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable, Platform, Alert, Share } from 'react
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { api } from '../../../lib/api';
-import type { Cat, Measurement } from '../../../lib/api';
+import type { Cat, Measurement, JournalEntry } from '../../../lib/api';
 import { assessHealth, STATUS_LABEL } from '@shared/lib/healthMetrics';
 import type { HealthStatus } from '@shared/lib/healthMetrics';
 import {
@@ -12,6 +12,7 @@ import {
   detectConfluence,
 } from '@shared/lib/correlations';
 import { getPresetLabel, PRESET_TYPES } from '@shared/lib/measurementPresets';
+import { JOURNAL_TAG_LABELS } from '@shared/lib/constants';
 import { catAge } from '@shared/lib/dates';
 import { useThemeColors } from '../../../hooks/useThemeColors';
 import { useResponsiveLayout } from '../../../hooks/useResponsiveLayout';
@@ -19,6 +20,7 @@ import { ResponsiveContainer } from '../../../components/ResponsiveContainer';
 import { usePreferences } from '../../../contexts/PreferencesContext';
 import {
   formatDate as formatDatePref,
+  formatDateShort as formatDateShortPref,
   formatDateTime as formatDateTimePref,
   formatWeight,
 } from '@shared/lib/preferences';
@@ -61,6 +63,7 @@ function buildShareText(
   health: ReturnType<typeof assessHealth>,
   byType: Record<string, Measurement[]>,
   correlations: ReturnType<typeof detectCorrelations>,
+  entries: JournalEntry[],
   generatedAt: string,
   prefs: import('../../../../shared/lib/preferences').UserPreferences,
 ): string {
@@ -121,6 +124,22 @@ function buildShareText(
     }
   }
 
+  if (entries.length > 0) {
+    const sorted = [...entries].sort((a, b) => b.occurred_at.localeCompare(a.occurred_at));
+    const shown = sorted.slice(0, 30);
+    lines.push('');
+    lines.push('OWNER OBSERVATIONS');
+    for (const e of shown) {
+      const tagStr = e.tags && e.tags.length > 0
+        ? ` (${e.tags.map((t) => JOURNAL_TAG_LABELS[t] ?? t).join(', ')})`
+        : '';
+      lines.push(`${formatDateShortPref(e.occurred_at, prefs)} — ${e.text}${tagStr}`);
+    }
+    if (sorted.length > shown.length) {
+      lines.push(`…and ${sorted.length - shown.length} earlier not shown`);
+    }
+  }
+
   if (correlations.length > 0) {
     lines.push('');
     lines.push('OBSERVED PATTERNS');
@@ -143,15 +162,17 @@ export default function CatExportScreen() {
 
   const [cat, setCat] = useState<Cat | null>(null);
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
+  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
-    Promise.all([api.getCat(id), api.getMeasurements(id)])
-      .then(([c, m]) => {
+    Promise.all([api.getCat(id), api.getMeasurements(id), api.getJournal(id)])
+      .then(([c, m, j]) => {
         setCat(c);
         setMeasurements(m);
+        setJournalEntries(j);
       })
       .catch((e: unknown) => setError((e as Error).message))
       .finally(() => setLoading(false));
@@ -201,7 +222,7 @@ export default function CatExportScreen() {
 
   function handleShare() {
     if (!cat) return;
-    const text = buildShareText(cat, weightMs, health, byType, correlations, generatedAt, prefs);
+    const text = buildShareText(cat, weightMs, health, byType, correlations, journalEntries, generatedAt, prefs);
     if (Platform.OS === 'web') {
       window.print();
     } else {
@@ -539,6 +560,53 @@ export default function CatExportScreen() {
               </View>
             );
           })}
+
+        {/* Owner observations (observations journal, Phase C) */}
+        {journalEntries.length > 0 && (() => {
+          const sorted = [...journalEntries].sort((a, b) => b.occurred_at.localeCompare(a.occurred_at));
+          const shown = sorted.slice(0, 30);
+          return (
+            <View style={{ marginBottom: 20 }}>
+              <SectionHeader title="Owner observations" />
+              <Text style={{ fontSize: 11, color: colors.inkDim, marginBottom: 8, marginTop: -8 }}>
+                Dated notes recorded by the household.
+              </Text>
+              <View style={{ backgroundColor: colors.surface, borderRadius: 12, borderWidth: 1, borderColor: colors.rim, overflow: 'hidden' }}>
+                {shown.map((e, i) => (
+                  <View
+                    key={e.id}
+                    style={{
+                      paddingVertical: 8,
+                      paddingHorizontal: 12,
+                      borderBottomWidth: i < shown.length - 1 ? 1 : 0,
+                      borderBottomColor: colors.rim,
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, fontWeight: '600', color: colors.inkDim, marginBottom: 2 }}>
+                      {formatDateShortPref(e.occurred_at, prefs)}
+                      {e.author_name ? ` · ${e.author_name}` : ''}
+                    </Text>
+                    <Text style={{ fontSize: 13, color: colors.inkMid, lineHeight: 18 }}>{e.text}</Text>
+                    {e.tags && e.tags.length > 0 && (
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                        {e.tags.map((t) => (
+                          <View key={t} style={{ paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, backgroundColor: 'rgba(192,132,252,0.12)' }}>
+                            <Text style={{ fontSize: 10, color: colors.lavender }}>{JOURNAL_TAG_LABELS[t] ?? t}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </View>
+              {sorted.length > shown.length && (
+                <Text style={{ fontSize: 11, color: colors.inkDim, marginTop: 4 }}>
+                  {'…'}and {sorted.length - shown.length} earlier not shown
+                </Text>
+              )}
+            </View>
+          );
+        })()}
 
         {/* Correlations / Observed patterns */}
         {correlations.length > 0 && (

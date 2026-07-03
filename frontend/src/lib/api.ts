@@ -3,14 +3,14 @@ export type {
   Cat, Measurement, User, Medication, MedicationDose, DoseWithContext,
   NotificationInbox, HouseholdMember, PendingInvite, HouseholdInfo,
   InvitePreview, HouseholdResponse, MedicationInput, HouseholdListItem, DayGroup,
-  AckRecord, AckSeverity, AckDirection,
+  AckRecord, AckSeverity, AckDirection, JournalEntry, TimelineItem, TimelineDayGroup,
 } from '@shared/lib/types'
 export { CARE_TYPE_ICONS } from '@shared/lib/types'
 
 import type {
   Cat, Measurement, User, Medication, MedicationDose, MedicationInput,
   NotificationInbox, HouseholdResponse, HouseholdInfo, InvitePreview, HouseholdListItem,
-  AckRecord, AckSeverity, AckDirection,
+  AckRecord, AckSeverity, AckDirection, JournalEntry,
 } from '@shared/lib/types'
 import type { CatTrackerWebApi } from '@shared/lib/apiTypes'
 
@@ -63,6 +63,25 @@ export const withdrawAcknowledgment = async (catId: string, kind = 'weight'): Pr
 }
 export const resolveAcknowledgment = async (catId: string, kind = 'weight'): Promise<void> => {
   await request(`/cats/${catId}/acknowledgment/resolve?kind=${kind}`, { method: 'POST' })
+}
+
+// Observations journal (PRD-notes-journal)
+export const getJournal = (catId: string, opts?: { tag?: string; from?: string; to?: string; limit?: number; offset?: number }) => {
+  const params = new URLSearchParams()
+  if (opts?.tag) params.set('tag', opts.tag)
+  if (opts?.from) params.set('from', opts.from)
+  if (opts?.to) params.set('to', opts.to)
+  if (opts?.limit != null) params.set('limit', String(opts.limit))
+  if (opts?.offset != null) params.set('offset', String(opts.offset))
+  const qs = params.toString()
+  return request<JournalEntry[]>(`/cats/${catId}/journal${qs ? `?${qs}` : ''}`)
+}
+export const createJournalEntry = (catId: string, data: { occurred_at: string; text: string; tags?: string[] | null }) =>
+  request<JournalEntry>(`/cats/${catId}/journal`, { method: 'POST', body: JSON.stringify(data) })
+export const updateJournalEntry = (entryId: string, data: { occurred_at?: string; text?: string; tags?: string[] | null }) =>
+  request<JournalEntry>(`/journal/${entryId}`, { method: 'PUT', body: JSON.stringify(data) })
+export const deleteJournalEntry = async (entryId: string): Promise<void> => {
+  await request(`/journal/${entryId}`, { method: 'DELETE' })
 }
 export const deleteCat = async (id: string): Promise<void> => {
   await request(`/cats/${id}`, { method: 'DELETE' })
@@ -250,6 +269,7 @@ const _typeCheck: CatTrackerWebApi = {
   getMe, updateMe, logout, claimCats,
   getCats, getCat, createCat, updateCat, markDeceased, markAlive, deleteCat,
   acknowledgeAlert, withdrawAcknowledgment, resolveAcknowledgment,
+  getJournal, createJournalEntry, updateJournalEntry, deleteJournalEntry,
   uploadCatPhoto, deleteCatPhoto,
   getMeasurements, createMeasurement, deleteMeasurement,
   getMedications, getMedication, createMedication, updateMedication, archiveMedication, logPrnDose,

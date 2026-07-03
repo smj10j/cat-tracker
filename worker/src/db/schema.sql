@@ -239,3 +239,20 @@ CREATE TABLE IF NOT EXISTS alert_acknowledgments (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_ack_active
   ON alert_acknowledgments(cat_id, alert_kind) WHERE status = 'active';
 CREATE INDEX IF NOT EXISTS idx_ack_cat ON alert_acknowledgments(cat_id, created_at DESC);
+
+-- Observations journal (PRD-notes-journal, 2026-07-02)
+-- Dated free-text notes per cat, with preset descriptive tags; interleave into
+-- the History timeline. Tags stored as a JSON array; validated against
+-- VALID_JOURNAL_TAGS in the Worker.
+CREATE TABLE IF NOT EXISTS journal_entries (
+  id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  cat_id      TEXT NOT NULL REFERENCES cats(id) ON DELETE CASCADE,
+  user_id     TEXT NOT NULL REFERENCES users(id),   -- author (no cascade: entries outlive a departing member)
+  occurred_at TEXT NOT NULL,                          -- when observed (backdatable), ISO datetime
+  text        TEXT NOT NULL,                          -- 1..2000 chars (enforced in Worker)
+  tags        TEXT,                                   -- JSON array of preset tag keys; null = untagged
+  photo_url   TEXT,                                   -- Phase B; null = no photo
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_journal_cat ON journal_entries(cat_id, occurred_at DESC);

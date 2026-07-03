@@ -6,7 +6,7 @@
  */
 
 import type { UserPreferences } from './preferences'
-import type { Measurement, DayGroup } from './types'
+import type { Measurement, DayGroup, JournalEntry, TimelineItem, TimelineDayGroup } from './types'
 import { formatDateShort, formatDateWithWeekday } from './preferences'
 import { utcToLocal } from './dates'
 
@@ -113,6 +113,37 @@ export function groupByDay(measurements: Measurement[], prefs: UserPreferences):
       dateStr,
       label: formatDayLabel(dateStr, prefs),
       items: items.sort((a, b) => b.measured_at.localeCompare(a.measured_at)),
+    }))
+}
+
+/**
+ * Group measurements AND journal entries into one day-grouped timeline
+ * (PRD-notes-journal). Measurements sort by `measured_at`, journal entries by
+ * `occurred_at`; within a day, newest first. Used by the History view so
+ * observations interleave with measurements.
+ */
+export function groupTimelineByDay(
+  measurements: Measurement[],
+  entries: JournalEntry[],
+  prefs: UserPreferences,
+): TimelineDayGroup[] {
+  const items: TimelineItem[] = [
+    ...measurements.map((m): TimelineItem => ({ kind: 'measurement', at: m.measured_at, measurement: m })),
+    ...entries.map((e): TimelineItem => ({ kind: 'journal', at: e.occurred_at, entry: e })),
+  ]
+  const map = new Map<string, TimelineItem[]>()
+  for (const it of items) {
+    const dateStr = new Date(it.at).toLocaleDateString('en-CA')
+    const bucket = map.get(dateStr) ?? []
+    bucket.push(it)
+    map.set(dateStr, bucket)
+  }
+  return [...map.entries()]
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([dateStr, its]) => ({
+      dateStr,
+      label: formatDayLabel(dateStr, prefs),
+      items: its.sort((a, b) => b.at.localeCompare(a.at)),
     }))
 }
 

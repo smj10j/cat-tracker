@@ -7,6 +7,7 @@ import configRoutes from './routes/config'
 import cats from './routes/cats'
 import measurements from './routes/measurements'
 import importRoute from './routes/import'
+import journalRoute from './routes/journal'
 import medicationsRoute, {
   generateDoses, insertDoses, windowEnd90,
   generationWindowStart, effectiveAnchorStart, frequencyToDays,
@@ -109,12 +110,14 @@ app.use('/api/medications', requireAuth)
 app.use('/api/medications/*', requireAuth)
 app.use('/api/notifications', requireAuth)
 app.use('/api/doses/*', requireAuth)
+app.use('/api/journal/*', requireAuth)
 app.use('/api/household', requireAuth)
 app.use('/api/household/*', requireAuth)
 
 app.route('/api/cats', cats)
 app.route('/api', measurements)
 app.route('/api', importRoute)
+app.route('/api', journalRoute)
 app.route('/api', medicationsRoute)
 app.route('/api/household', householdRoute)
 

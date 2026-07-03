@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
 import { useGoBack } from '../hooks/useGoBack'
-import { getCat, getMeasurements, deleteMeasurement, getMedications, uploadCatPhoto, deleteCatPhoto, logPrnDose, acknowledgeAlert, withdrawAcknowledgment, resolveAcknowledgment, CARE_TYPE_ICONS, type Cat, type Measurement, type Medication } from '../lib/api'
+import { getCat, getMeasurements, deleteMeasurement, getMedications, getJournal, uploadCatPhoto, deleteCatPhoto, logPrnDose, acknowledgeAlert, withdrawAcknowledgment, resolveAcknowledgment, CARE_TYPE_ICONS, type Cat, type Measurement, type Medication, type JournalEntry } from '../lib/api'
 import { applyAcknowledgment } from '@shared/lib/alertAck'
 import CatAvatar from '../components/CatAvatar'
 import HeroStat from '../components/HeroStat'
@@ -14,12 +14,14 @@ import MeasurementForm from '../components/MeasurementForm'
 import MeasurementChart from '../components/MeasurementChart'
 import FullScreenReady from '../components/FullScreenReady'
 import InsightsPanel from '../components/InsightsPanel'
+import JournalRow from '../components/JournalRow'
+import JournalEntryForm from '../components/JournalEntryForm'
 import { getPresetLabel } from '@shared/lib/measurementPresets'
 import { catAge } from '@shared/lib/dates'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { formatTime as fmtTime, formatWeight as fmtWeight } from '@shared/lib/preferences'
-import { groupByDay, formatFreqShort, formatNextDue, formatDueAt, formatSexNeuter } from '@shared/lib/formatting'
-import { MEASUREMENT_TYPE_LABELS as MEAS_TYPE_LABELS, BEHAVIOR_CHART_TYPES as BEHAVIORAL_TYPES, isAsNeeded } from '@shared/lib/constants'
+import { groupTimelineByDay, formatFreqShort, formatNextDue, formatDueAt, formatSexNeuter } from '@shared/lib/formatting'
+import { MEASUREMENT_TYPE_LABELS as MEAS_TYPE_LABELS, BEHAVIOR_CHART_TYPES as BEHAVIORAL_TYPES, isAsNeeded, VALID_JOURNAL_TAGS, JOURNAL_TAG_LABELS } from '@shared/lib/constants'
 
 type ChartTab = 'weight' | 'food' | 'water' | 'behavior' | 'all'
 type ProfileTab = 'health' | 'care' | 'about'
@@ -191,6 +193,10 @@ export default function CatProfile() {
   const [cat, setCat] = useState<Cat | null>(null)
   const [measurements, setMeasurements] = useState<Measurement[]>([])
   const [meds, setMeds] = useState<Medication[]>([])
+  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([])
+  const [activeTag, setActiveTag] = useState<string | null>(null)
+  const [showAddNote, setShowAddNote] = useState(false)
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
   const [profileTab, setProfileTab] = useState<ProfileTab>(
     initialTab === 'care' || initialTab === 'about' ? initialTab : 'health'
   )
@@ -206,14 +212,23 @@ export default function CatProfile() {
 
   useEffect(() => {
     if (!id) return
-    Promise.all([getCat(id), getMeasurements(id), getMedications(id)])
-      .then(([c, m, mds]) => { setCat(c); setMeasurements(m); setMeds(mds) })
+    Promise.all([getCat(id), getMeasurements(id), getMedications(id), getJournal(id)])
+      .then(([c, m, mds, j]) => { setCat(c); setMeasurements(m); setMeds(mds); setJournalEntries(j) })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
   }, [id])
 
+  function refreshJournal() {
+    if (id) getJournal(id).then(setJournalEntries).catch(() => {})
+  }
+
   useEffect(() => { setShowOlderHistory(false) }, [chartTab])
-  useEffect(() => { setPendingDeleteId(null) }, [profileTab, chartTab])
+  useEffect(() => {
+    setPendingDeleteId(null)
+    setEditingEntryId(null)
+    setShowAddNote(false)
+    setActiveTag(null)
+  }, [profileTab, chartTab])
 
   // Auto-resolve an active acknowledgment once the episode is over (status back to ok).
   useEffect(() => {
@@ -298,7 +313,15 @@ export default function CatProfile() {
     return measurements.filter((m) => m.type === chartTab)
   })()
 
-  const allDayGroups = groupByDay(chartTabMeasurements, prefs)
+  // Journal timeline: distinct tags present, author heuristic, and tag filtering.
+  const presentTags = VALID_JOURNAL_TAGS.filter((t) => journalEntries.some((e) => e.tags?.includes(t)))
+  const authorNames = new Set(journalEntries.map((e) => e.author_name).filter(Boolean))
+  const showAuthor = authorNames.size > 1
+  const filteredJournal = activeTag ? journalEntries.filter((e) => e.tags?.includes(activeTag)) : journalEntries
+  // A tag filter is a journal filter — hide measurements while it's active.
+  const timelineMeasurements = activeTag ? [] : chartTabMeasurements
+
+  const allDayGroups = groupTimelineByDay(timelineMeasurements, filteredJournal, prefs)
   const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toLocaleDateString('en-CA')
   const recentGroups = allDayGroups.filter((g) => g.dateStr >= cutoff)
   const olderGroups = allDayGroups.filter((g) => g.dateStr < cutoff)
@@ -567,32 +590,86 @@ export default function CatProfile() {
           {id && <MeasurementForm catId={id} onAdded={handleMeasurementAdded} />}
 
           {/* History */}
-          {measurements.length > 0 && (
+          {(measurements.length > 0 || journalEntries.length > 0) && (
             <div className="glass-card p-5">
-              <h3 className="font-display font-semibold text-ink mb-4">History</h3>
-
-              {/* Chart/history type filter tabs */}
-              <div role="tablist" aria-label="Measurement type" className="flex gap-1 mb-5 p-1 rounded-xl" style={{ background: 'var(--color-tab-bar)' }}>
-                {chartTabs.map(({ key, label }) => (
-                  <button
-                    key={key}
-                    role="tab"
-                    aria-selected={chartTab === key}
-                    onClick={() => setChartTab(key)}
-                    className="flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all"
-                    style={{
-                      background: chartTab === key ? 'rgba(192,132,252,0.15)' : 'transparent',
-                      color: chartTab === key ? 'var(--color-brand)' : 'var(--color-ink-dim)',
-                      border: chartTab === key ? '1px solid rgba(192,132,252,0.25)' : '1px solid transparent',
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-display font-semibold text-ink">History</h3>
+                <button
+                  onClick={() => { setShowAddNote((v) => !v); setEditingEntryId(null) }}
+                  className="text-xs font-semibold transition-colors"
+                  style={{ color: 'var(--color-brand)' }}
+                >
+                  {showAddNote ? 'Cancel' : '📝 Add note'}
+                </button>
               </div>
 
-              {chartTabMeasurements.length === 0 ? (
-                <p className="text-ink-dim text-sm text-center py-6">No {chartTab} measurements yet</p>
+              {/* Inline add-note form */}
+              {showAddNote && id && (
+                <div className="mb-5">
+                  <JournalEntryForm
+                    catId={id}
+                    onSaved={() => { setShowAddNote(false); refreshJournal() }}
+                    onCancel={() => setShowAddNote(false)}
+                  />
+                </div>
+              )}
+
+              {/* Chart/history type filter tabs */}
+              {measurements.length > 0 && (
+                <div role="tablist" aria-label="Measurement type" className="flex gap-1 mb-4 p-1 rounded-xl" style={{ background: 'var(--color-tab-bar)' }}>
+                  {chartTabs.map(({ key, label }) => (
+                    <button
+                      key={key}
+                      role="tab"
+                      aria-selected={chartTab === key}
+                      onClick={() => setChartTab(key)}
+                      className="flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all"
+                      style={{
+                        background: chartTab === key ? 'rgba(192,132,252,0.15)' : 'transparent',
+                        color: chartTab === key ? 'var(--color-brand)' : 'var(--color-ink-dim)',
+                        border: chartTab === key ? '1px solid rgba(192,132,252,0.25)' : '1px solid transparent',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Tag filter bar */}
+              {presentTags.length > 0 && (
+                <div className="mb-4">
+                  {activeTag ? (
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span className="text-xs text-ink-mid">
+                        Showing notes tagged{' '}
+                        <span className="font-semibold text-ink">'{JOURNAL_TAG_LABELS[activeTag] ?? activeTag}'</span>
+                      </span>
+                      <button onClick={() => setActiveTag(null)} className="text-xs font-semibold" style={{ color: 'var(--color-brand)' }}>
+                        Clear
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {presentTags.map((tag) => (
+                        <button
+                          key={tag}
+                          onClick={() => setActiveTag(tag)}
+                          className="text-xs font-medium px-2.5 py-1 rounded-full transition-all"
+                          style={{ background: 'var(--color-card)', border: '1px solid var(--color-rim)', color: 'var(--color-ink-dim)' }}
+                        >
+                          {JOURNAL_TAG_LABELS[tag] ?? tag}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {allDayGroups.length === 0 ? (
+                <p className="text-ink-dim text-sm text-center py-6">
+                  {activeTag ? `No notes tagged '${JOURNAL_TAG_LABELS[activeTag] ?? activeTag}'` : `No ${chartTab} measurements yet`}
+                </p>
               ) : (
                 <div className="space-y-5">
                   {visibleGroups.map((group) => (
@@ -605,54 +682,83 @@ export default function CatProfile() {
                         <div className="flex-1 h-px" style={{ background: 'var(--color-rim)' }} />
                       </div>
                       <div className="space-y-0.5">
-                        {group.items.map((m) => (
-                          <div
-                            key={m.id}
-                            className="flex items-center justify-between py-2.5 border-b last:border-0"
-                            style={{ borderColor: 'var(--color-tab-bar)' }}
-                          >
-                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                              <span className="text-ink-dim text-xs w-16 shrink-0 tabular-nums">{fmtTime(m.measured_at, prefs)}</span>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-semibold text-sm text-ink tabular-nums">
-                                  {m.unit === 'scale' ? getPresetLabel(m.type, m.value) : fmtWeight(m.value, m.unit, prefs)}
-                                </span>
-                                {(chartTab === 'all' || chartTab === 'behavior') && (
-                                  <span className="text-xs px-1.5 py-0.5 rounded-full text-ink-dim"
-                                    style={{ background: 'var(--color-card)' }}>
-                                    {MEAS_TYPE_LABELS[m.type] ?? m.type}
+                        {group.items.map((item) => {
+                          if (item.kind === 'journal') {
+                            const entry = item.entry
+                            if (editingEntryId === entry.id && id) {
+                              return (
+                                <div key={entry.id} className="py-2">
+                                  <JournalEntryForm
+                                    catId={id}
+                                    entry={entry}
+                                    onSaved={() => { setEditingEntryId(null); refreshJournal() }}
+                                    onDeleted={() => { setEditingEntryId(null); refreshJournal() }}
+                                    onCancel={() => setEditingEntryId(null)}
+                                  />
+                                </div>
+                              )
+                            }
+                            return (
+                              <JournalRow
+                                key={entry.id}
+                                entry={entry}
+                                prefs={prefs}
+                                showAuthor={showAuthor}
+                                onClick={() => { setEditingEntryId(entry.id); setShowAddNote(false) }}
+                              />
+                            )
+                          }
+
+                          const m = item.measurement
+                          return (
+                            <div
+                              key={m.id}
+                              className="flex items-center justify-between py-2.5 border-b last:border-0"
+                              style={{ borderColor: 'var(--color-tab-bar)' }}
+                            >
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <span className="text-ink-dim text-xs w-16 shrink-0 tabular-nums">{fmtTime(m.measured_at, prefs)}</span>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-semibold text-sm text-ink tabular-nums">
+                                    {m.unit === 'scale' ? getPresetLabel(m.type, m.value) : fmtWeight(m.value, m.unit, prefs)}
                                   </span>
-                                )}
-                                {m.notes && <span className="text-xs text-ink-dim">— {m.notes}</span>}
+                                  {(chartTab === 'all' || chartTab === 'behavior') && (
+                                    <span className="text-xs px-1.5 py-0.5 rounded-full text-ink-dim"
+                                      style={{ background: 'var(--color-card)' }}>
+                                      {MEAS_TYPE_LABELS[m.type] ?? m.type}
+                                    </span>
+                                  )}
+                                  {m.notes && <span className="text-xs text-ink-dim">— {m.notes}</span>}
+                                </div>
                               </div>
-                            </div>
-                            {pendingDeleteId === m.id ? (
-                              <div className="flex items-center gap-1 ml-3 shrink-0">
+                              {pendingDeleteId === m.id ? (
+                                <div className="flex items-center gap-1 ml-3 shrink-0">
+                                  <button
+                                    onClick={() => setPendingDeleteId(null)}
+                                    className="text-xs px-2 py-1 rounded-lg transition-colors"
+                                    style={{ color: 'var(--color-ink-dim)', background: 'var(--color-card)' }}
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    onClick={() => executeDeleteMeasurement(m.id)}
+                                    className="text-xs px-2 py-1 rounded-lg transition-colors font-semibold"
+                                    style={{ color: 'var(--color-health-rose)', background: 'rgba(248,113,113,0.1)' }}
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              ) : (
                                 <button
-                                  onClick={() => setPendingDeleteId(null)}
-                                  className="text-xs px-2 py-1 rounded-lg transition-colors"
-                                  style={{ color: 'var(--color-ink-dim)', background: 'var(--color-card)' }}
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  onClick={() => executeDeleteMeasurement(m.id)}
-                                  className="text-xs px-2 py-1 rounded-lg transition-colors font-semibold"
-                                  style={{ color: 'var(--color-health-rose)', background: 'rgba(248,113,113,0.1)' }}
+                                  onClick={() => setPendingDeleteId(m.id)}
+                                  className="text-xs text-rose/60 hover:text-rose transition-colors ml-3 shrink-0"
                                 >
                                   Delete
                                 </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => setPendingDeleteId(m.id)}
-                                className="text-xs text-rose/60 hover:text-rose transition-colors ml-3 shrink-0"
-                              >
-                                Delete
-                              </button>
-                            )}
-                          </div>
-                        ))}
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
                     </div>
                   ))}

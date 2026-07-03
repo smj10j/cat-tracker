@@ -592,6 +592,52 @@ Measurements are ordered by `measured_at ASC`.
 
 ---
 
+### Observations Journal (PRD-notes-journal)
+
+Dated free-text observations per cat (≤2000 chars, backdatable, preset descriptive tags), interleaved into the History timeline. Tags are validated against `VALID_JOURNAL_TAGS` (shared) — unknown tags are rejected. `tags` is returned as a parsed `string[] | null`. `author_name` is the joined display name.
+
+`JournalEntry`: `{ id, cat_id, user_id, author_name, occurred_at, text, tags: string[]|null, photo_url, created_at, updated_at }`.
+
+#### `GET /api/cats/:id/journal`
+
+**Auth required. Any household role (Viewer+).** Lists entries for a cat, newest `occurred_at` first.
+
+**Query params:** `tag` (preset key), `from` / `to` (ISO datetime bounds on `occurred_at`), `limit` (default 200, max 500), `offset`.
+
+**Response 200** — array of `JournalEntry`. **404** — cat not found or no access.
+
+#### `POST /api/cats/:id/journal`
+
+**Auth required. Contributor role required.** Creates an entry.
+
+**Request body**
+```ts
+{
+  occurred_at: string        // ISO datetime; must not be in the future
+  text: string               // 1..2000 chars (Unicode code points)
+  tags?: string[] | null     // preset keys only
+}
+```
+
+**Response 201** — the created `JournalEntry`.
+**400** — empty/oversized text, future `occurred_at`, or unknown tag.
+**403** — Viewer role, or the cat is deceased (`deceased_at` set).
+**404** — cat not found or no access.
+
+#### `PUT /api/journal/:entryId`
+
+**Auth required. Author, or Admin of the cat's household.** Updates `occurred_at`, `text`, and/or `tags` (PATCH semantics). Same validation as create.
+
+**Response 200** — updated `JournalEntry`. **403** — not author/admin. **404** — entry not found or no access.
+
+#### `DELETE /api/journal/:entryId`
+
+**Auth required. Author or Admin.** Deletes the entry (and its R2 photo object if present).
+
+**Response 200** `{ "success": true }`. **403** — not author/admin. **404** — entry not found or no access.
+
+---
+
 ### Import
 
 #### `POST /api/import`

@@ -4,6 +4,7 @@ import { PRESETS, PRESET_TYPES } from '@shared/lib/measurementPresets'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { toLocalDatetimeString } from '@shared/lib/formatting'
 import { VALID_MEASUREMENT_TYPES, MEASUREMENT_TYPE_LABELS } from '@shared/lib/constants'
+import BcsPicker from './BcsPicker'
 
 interface Props {
   open: boolean
@@ -46,7 +47,8 @@ export default function QuickAdd({ open, onClose }: Props) {
 
   function handleTypeChange(type: string) {
     setSelectedPreset(null)
-    setForm((f) => ({ ...f, type, value: '', unit: (PRESET_TYPES.has(type) ? 'scale' : prefs.weightUnit) as typeof f.unit }))
+    const scaleUnit = PRESET_TYPES.has(type) || type === 'bcs'
+    setForm((f) => ({ ...f, type, value: '', unit: (scaleUnit ? 'scale' : prefs.weightUnit) as typeof f.unit }))
   }
 
   function handleCatChange(catId: string) {
@@ -86,6 +88,7 @@ export default function QuickAdd({ open, onClose }: Props) {
   }
 
   const isPresetType = PRESET_TYPES.has(form.type)
+  const isBcsType = form.type === 'bcs'
   const presets = PRESETS[form.type] ?? []
 
   if (!open) return null
@@ -157,7 +160,26 @@ export default function QuickAdd({ open, onClose }: Props) {
             </div>
 
             {/* Input area */}
-            {isPresetType ? (
+            {isBcsType ? (
+              /* BCS 1–9 picker (select-then-save so the description is readable) */
+              <div>
+                <BcsPicker
+                  value={selectedPreset}
+                  onChange={(v) => { setSelectedPreset(v); setError(null) }}
+                  disabled={saving}
+                />
+                {selectedPreset !== null && (
+                  <button
+                    type="button"
+                    onClick={() => submitMeasurement(selectedPreset, 'scale')}
+                    disabled={saving}
+                    className="btn-primary w-full py-3.5 text-sm mt-3"
+                  >
+                    {saving ? 'Saving…' : 'Save Body Condition'}
+                  </button>
+                )}
+              </div>
+            ) : isPresetType ? (
               /* Preset tap buttons */
               <div>
                 <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Observation</label>

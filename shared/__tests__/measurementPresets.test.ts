@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { getPresetLabel, getPresetTicks, PRESET_TYPES, PRESETS } from '../lib/measurementPresets'
+import { getPresetLabel, getPresetTicks, PRESET_TYPES, PRESETS, BCS_PRESETS, getBcsPreset, getScaleValueLabel } from '../lib/measurementPresets'
+import { scaleRange } from '../lib/constants'
 
 describe('PRESET_TYPES', () => {
   it('includes all behavioral measurement types', () => {
@@ -81,5 +82,51 @@ describe('getPresetTicks', () => {
     const ticks = getPresetTicks('weight')
     expect(Array.isArray(ticks)).toBe(true)
     expect(ticks).toEqual(['0', '1', '2', '3'])
+  })
+})
+
+describe('BCS_PRESETS', () => {
+  it('has all 9 scores exactly once, in order', () => {
+    expect(BCS_PRESETS.map((p) => p.value)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9])
+  })
+
+  it('bands the scores per the WSAVA chart (1–4 under, 5 ideal, 6–9 over)', () => {
+    expect(getBcsPreset(1)!.band).toBe('under')
+    expect(getBcsPreset(4)!.band).toBe('under')
+    expect(getBcsPreset(5)!.band).toBe('ideal')
+    expect(getBcsPreset(6)!.band).toBe('over')
+    expect(getBcsPreset(9)!.band).toBe('over')
+  })
+
+  it('carries a verbatim description for every score and the 6/9 footnote', () => {
+    for (const p of BCS_PRESETS) expect(p.description.length).toBeGreaterThan(20)
+    expect(getBcsPreset(6)!.note).toContain('older cats')
+  })
+
+  it('getBcsPreset is undefined outside 1–9', () => {
+    expect(getBcsPreset(0)).toBeUndefined()
+    expect(getBcsPreset(10)).toBeUndefined()
+  })
+
+  it('is NOT registered as a behavioral 0–3 preset type', () => {
+    expect(PRESET_TYPES.has('bcs')).toBe(false)
+  })
+})
+
+describe('getScaleValueLabel', () => {
+  it('renders BCS as N/9', () => {
+    expect(getScaleValueLabel('bcs', 6)).toBe('6/9')
+  })
+
+  it('renders behavioral scales with their preset word', () => {
+    expect(getScaleValueLabel('activity', 2)).toBe('Normal')
+  })
+})
+
+describe('scaleRange', () => {
+  it('is 1–9 for bcs and 0–3 for behavioral types', () => {
+    expect(scaleRange('bcs')).toEqual({ min: 1, max: 9 })
+    expect(scaleRange('food')).toEqual({ min: 0, max: 3 })
+    expect(scaleRange('grooming')).toEqual({ min: 0, max: 3 })
   })
 })

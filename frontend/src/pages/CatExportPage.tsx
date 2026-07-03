@@ -4,7 +4,7 @@ import { useGoBack } from '../hooks/useGoBack'
 import { getCat, getMeasurements, getJournal, type Cat, type Measurement, type JournalEntry } from '../lib/api'
 import { assessHealth } from '@shared/lib/healthMetrics'
 import { detectCorrelations, describeCorrelation, detectConfluence } from '@shared/lib/correlations'
-import { getPresetLabel, PRESET_TYPES } from '@shared/lib/measurementPresets'
+import { getScaleValueLabel, PRESET_TYPES } from '@shared/lib/measurementPresets'
 import { catAge } from '@shared/lib/dates'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { formatDate as fmtDate, formatDateTime as fmtDateTime } from '@shared/lib/preferences'
@@ -16,7 +16,7 @@ const toIso = (s: string) => (s.includes('T') ? s : s.replace(' ', 'T') + 'Z')
 const TYPE_LABELS: Record<string, string> = {
   weight: 'Weight', food: 'Food intake', water: 'Water intake',
   grooming: 'Grooming', play: 'Play', activity: 'Activity level',
-  vomiting: 'Vomiting', litter: 'Litter box',
+  vomiting: 'Vomiting', litter: 'Litter box', bcs: 'Body Condition Score',
 }
 
 const TYPE_UNIT_LABEL: Record<string, string> = {
@@ -27,6 +27,7 @@ const TYPE_UNIT_LABEL: Record<string, string> = {
   activity: '(scale: Lethargic / Low / Normal / Active)',
   vomiting: '(scale: None / Once / A few times / Many times)',
   litter: '(scale: Not used / Straining / Loose / Normal)',
+  bcs: '(9-point body condition scale, 1–9)',
 }
 
 export default function CatExportPage() {
@@ -223,8 +224,8 @@ export default function CatExportPage() {
             </section>
           )}
 
-          {/* Behavioral measurements */}
-          {allTypes.filter((t) => t !== 'weight' && PRESET_TYPES.has(t)).map((type) => {
+          {/* Scale measurements (behavioral 0–3 + body condition 1–9) */}
+          {allTypes.filter((t) => t !== 'weight' && (PRESET_TYPES.has(t) || t === 'bcs')).map((type) => {
             const ms = (byType[type] ?? []).sort((a, b) => b.measured_at.localeCompare(a.measured_at))
             // Last 4 weeks of entries
             const cutoff = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString()
@@ -250,7 +251,7 @@ export default function CatExportPage() {
                       <tr key={m.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                         <td className="py-1.5">{fmtDateTime(m.measured_at, prefs)}</td>
                         <td className="py-1.5 text-right font-medium">
-                          {getPresetLabel(m.type, m.value)}
+                          {getScaleValueLabel(m.type, m.value)}
                           {m.notes && <span className="font-normal" style={{ color: '#6b7280' }}> — {m.notes}</span>}
                         </td>
                       </tr>

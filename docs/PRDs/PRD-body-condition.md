@@ -161,11 +161,11 @@ Authorization: unchanged — whoever can log a weight can log a BCS (Contributor
 
 ## Acceptance criteria
 
-- [ ] `'bcs'` is a valid measurement type via shared constants; both platforms offer "Body Condition" in measurement entry with **no schema change and no new API routes** (verified: schema.sql diff is empty for this feature).
-- [ ] Worker accepts integer values 1–9 for `bcs` and continues to enforce 0–3 for behavioral types (regression tests included).
-- [ ] Visual 1–9 picker ships on web and iOS with identical scoring semantics; per-score descriptive copy appears **only if** the WSAVA citation is documented in `docs/research/` first (PR link between the research doc and the copy).
-- [ ] BCS chart renders with fixed 1–9 axis, handles sparse data cleanly, and appears as its own tab beside Weight on both platforms.
-- [ ] BCS entries appear in measurement history and the vet export with no interpretive copy anywhere (no "ideal/overweight/underweight" strings in the codebase for this feature pre-citation).
-- [ ] BCS is excluded from daily check-in, `BEHAVIORAL_TYPES`, and behavioral correlation surfaces.
-- [ ] (Phase B) InsightsPanel weight+BCS pairing is purely factual (values + dates); evaluative copy is demonstrably absent pre-citation.
-- [ ] All four test suites pass; `./scripts/check-shared-drift.sh` clean.
+- [x] `'bcs'` is a valid measurement type via shared constants; both platforms offer "Body Condition" in measurement entry with **no schema change and no new API routes** (verified: schema.sql diff is empty for this feature).
+- [x] Worker accepts integer values 1–9 for `bcs` and continues to enforce 0–3 for behavioral types (regression tests included).
+- [x] Visual 1–9 picker ships on web and iOS with identical scoring semantics; per-score descriptive copy is the WSAVA-verbatim text cited in `docs/research/body-condition.md` (source → research doc → code comment → copy).
+- [x] BCS chart renders with fixed 1–9 axis, handles sparse data cleanly, and appears as its own tab ("Condition") beside Weight on both platforms.
+- [x] BCS entries appear in measurement history and the vet export with no interpretive copy anywhere (grep confirms no "ideal/overweight/underweight/too heavy/too thin" judgment strings for this feature; band labels are the WSAVA chart's own transcribed text).
+- [x] BCS is excluded from daily check-in, `BEHAVIORAL_TYPES`, and behavioral correlation surfaces.
+- [ ] (Phase B) InsightsPanel weight+BCS pairing is purely factual (values + dates); evaluative copy is demonstrably absent pre-citation. *(Phase B not shipped — deferred.)*
+- [x] All four test suites pass; `./scripts/check-shared-drift.sh` clean.

@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../types'
 import { getCatRole, hasRole } from '../lib/household'
-import { VALID_MEASUREMENT_TYPES, VALID_UNITS as VALID_UNITS_ARRAY, LIMITS } from '../../../shared/lib/constants'
+import { VALID_MEASUREMENT_TYPES, VALID_UNITS as VALID_UNITS_ARRAY, LIMITS, scaleRange } from '../../../shared/lib/constants'
 
 const measurements = new Hono<AppEnv>()
 
@@ -57,9 +57,16 @@ measurements.post('/cats/:id/measurements', async (c) => {
   if (!VALID_UNITS.has(body.unit)) {
     return c.json({ error: `unit must be one of: ${[...VALID_UNITS].join(', ')}` }, 400)
   }
+  // BCS is a 'scale' measurement (1–9); reject a non-scale unit so it can't slip
+  // into the numeric branch and bypass the 1–9 range check.
+  if (body.type === 'bcs' && body.unit !== 'scale') {
+    return c.json({ error: "bcs must use unit 'scale'" }, 400)
+  }
   if (body.unit === 'scale') {
-    if (!Number.isInteger(body.value) || body.value < 0 || body.value > 3) {
-      return c.json({ error: 'scale value must be an integer 0–3' }, 400)
+    // Scale range is per-TYPE, not per-unit: bcs is 1–9, behavioral scales are 0–3.
+    const { min, max } = scaleRange(body.type)
+    if (!Number.isInteger(body.value) || body.value < min || body.value > max) {
+      return c.json({ error: `scale value must be an integer ${min}–${max}` }, 400)
     }
   } else {
     if (typeof body.value !== 'number' || body.value <= 0 || body.value > 200) {

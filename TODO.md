@@ -33,12 +33,12 @@ Triggered by: owner asked to implement ROADMAP WP4g plus session-plan Sessions 5
 - [x] Web + iOS: entry form, timeline interleave + tag filter, check-in quick-add, vet export "Owner observations" (cap 30)
 - [x] Tests (worker journal 10, shared timeline 4), migrate remote, deploy web+worker, commit, push
 
-### Session 6a — Body Condition Score (PRD-body-condition)
-- [ ] docs/research: WSAVA 9-point BCS citation FIRST (gates descriptive copy)
-- [ ] Shared: `bcs` in VALID_MEASUREMENT_TYPES + labels; BCS_PRESETS; NOT behavioral, NOT in check-in
-- [ ] Worker: per-type value validation (bcs 1–9, behavioral 0–3)
-- [ ] Web + iOS: 1–9 picker + fixed 1–9 axis chart tab
-- [ ] Tests + check-shared-drift, deploy, commit, push
+### Session 6a — Body Condition Score (PRD-body-condition) ✅
+- [x] docs/research: WSAVA 9-point BCS citation FIRST (verified Tier 1 — `docs/research/body-condition.md` already in HEAD; verbatim descriptions + 4–5/9 band cited to JSAP 2011)
+- [x] Shared: `bcs` in VALID_MEASUREMENT_TYPES + labels; `BCS_PRESETS` (verbatim WSAVA) + `getBcsPreset`/`getScaleValueLabel`; `scaleRange`; NOT behavioral, NOT in check-in
+- [x] Worker: per-type value validation (bcs 1–9, behavioral 0–3) in measurements + import routes; bcs must use unit 'scale'
+- [x] Web + iOS: `BcsPicker` (nine 1–9 segments, verbatim copy) + fixed 1–9 axis stepped "Condition" chart tab; history/export via getScaleValueLabel
+- [x] Tests (worker +5, shared +helpers, web +2 files, app +2) + check-shared-drift clean, deploy web+worker, commit, push. No interpretive copy (Phase B/C citation-gated).
 
 ### Session 6b — Notification digest + preferences (PRD-actionable-notifications Phases B/C)
 - [ ] Schema: `notification_prefs` + `care_item_mutes` tables (prod migration)

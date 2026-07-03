@@ -13,7 +13,7 @@ import JournalRow from '../../../components/JournalRow';
 import { assessHealth, STATUS_COLORS, STATUS_LABEL, STATUS_EMOJI } from '@shared/lib/healthMetrics';
 import type { HealthStatus } from '@shared/lib/healthMetrics';
 import { applyAcknowledgment } from '@shared/lib/alertAck';
-import { getPresetLabel } from '@shared/lib/measurementPresets';
+import { getPresetLabel, getScaleValueLabel } from '@shared/lib/measurementPresets';
 import { catAge, formatLocalDate } from '@shared/lib/dates';
 import LineChart from '../../../components/LineChart';
 import { ErrorBoundary } from '../../../components/ErrorBoundary';
@@ -30,7 +30,7 @@ import {
 } from '@shared/lib/preferences';
 import { groupByDay, groupTimelineByDay, formatFreqShort, formatNextDue, formatDueAt, formatSexNeuter } from '@shared/lib/formatting';
 import { isAsNeeded, VALID_JOURNAL_TAGS, JOURNAL_TAG_LABELS } from '@shared/lib/constants';
-import { MEASUREMENT_TYPE_LABELS as MEAS_TYPE_LABELS, BEHAVIOR_CHART_TYPES as BEHAVIORAL_TYPES } from '@shared/lib/constants';
+import { MEASUREMENT_TYPE_LABELS as MEAS_TYPE_LABELS, BEHAVIOR_CHART_TYPES as BEHAVIORAL_TYPES, BCS_MIN, BCS_MAX } from '@shared/lib/constants';
 
 type ProfileTab = 'health' | 'care' | 'about';
 
@@ -128,6 +128,7 @@ export default function CatProfileScreen() {
     const types = new Set(measurements.map(m => m.type));
     const result: { key: string; label: string }[] = [];
     if (types.has('weight')) result.push({ key: 'weight', label: 'Weight' });
+    if (types.has('bcs')) result.push({ key: 'bcs', label: 'Condition' });
     if (types.has('food')) result.push({ key: 'food', label: 'Food' });
     if (types.has('water')) result.push({ key: 'water', label: 'Water' });
     if (types.has('grooming') || types.has('activity') || types.has('litter') || types.has('vomiting'))
@@ -507,6 +508,55 @@ export default function CatProfileScreen() {
               </View>
             )}
 
+            {/* Body condition chart — fixed 1–9 axis, stepped line, no zone shading (Phase A) */}
+            {chartTab === 'bcs' && (() => {
+              const bcsData = measurements
+                .filter(m => m.type === 'bcs')
+                .sort((a, b) => a.measured_at.localeCompare(b.measured_at))
+                .map(m => ({ date: new Date(m.measured_at).getTime(), value: m.value }));
+              const bcsChart = (chartHeight: number) => (
+                <LineChart
+                  data={bcsData}
+                  seriesKeys={['value']}
+                  seriesLabels={{ value: cat.name }}
+                  seriesColors={{ value: colors.lavender }}
+                  height={chartHeight}
+                  yDomain={[BCS_MIN, BCS_MAX]}
+                  yTickValues={[1, 2, 3, 4, 5, 6, 7, 8, 9]}
+                  stepped
+                  formatY={(v) => String(Math.round(v))}
+                  formatTooltip={(v) => getScaleValueLabel('bcs', v)}
+                  formatX={formatChartDate}
+                />
+              );
+              return (
+                <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.rim }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
+                    <Text style={{ fontWeight: '600', fontSize: 14, color: colors.inkMid }}>Body Condition Over Time</Text>
+                    <Text style={{ fontSize: 11, color: colors.inkDim, flexShrink: 0 }}>9-point scale</Text>
+                  </View>
+                  <View style={{ position: 'relative' }}>
+                    <ChartExpandButton onPress={() => setExpandedChart('bcs')} visible={bcsData.length > 0} />
+                    <ErrorBoundary>
+                      {bcsChart(rv(180, 260))}
+                    </ErrorBoundary>
+                  </View>
+                  <FullScreenChartModal
+                    visible={expandedChart === 'bcs'}
+                    title={cat.name}
+                    subtitle="Body Condition"
+                    onClose={() => setExpandedChart(null)}
+                  >
+                    {({ height }) => (
+                      <ErrorBoundary>
+                        {bcsChart(height - 16)}
+                      </ErrorBoundary>
+                    )}
+                  </FullScreenChartModal>
+                </View>
+              );
+            })()}
+
             {/* Food chart */}
             {chartTab === 'food' && (() => {
               const foodMeasurements = measurements.filter(m => m.type === 'food');
@@ -771,7 +821,7 @@ export default function CatProfileScreen() {
                           </Text>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', flex: 1 }}>
                             <Text style={{ fontWeight: '600', fontSize: 14, color: colors.ink }}>
-                              {m.unit === 'scale' ? getPresetLabel(m.type, m.value) : `${m.value} ${m.unit}`}
+                              {m.unit === 'scale' ? getScaleValueLabel(m.type, m.value) : `${m.value} ${m.unit}`}
                             </Text>
                             <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999, backgroundColor: colors.surface }}>
                               <Text style={{ fontSize: 11, color: colors.inkDim }}>

@@ -149,6 +149,62 @@ describe('POST /api/cats/:id/measurements', () => {
     }
   })
 
+  it('creates a BCS measurement across the full 1–9 range', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const catId = await createCat(session)
+
+    for (const val of [1, 5, 9]) {
+      const res = await SELF.fetch(`http://localhost/api/cats/${catId}/measurements`, {
+        method: 'POST',
+        headers: { ...authedHeaders(session), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'bcs', value: val, unit: 'scale', measured_at: '2026-01-01T12:00:00Z' }),
+      })
+      expect(res.status).toBe(201)
+    }
+  })
+
+  it('returns 400 when BCS is out of the 1–9 range (0, 10, and non-integers)', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const catId = await createCat(session)
+
+    for (const badVal of [0, 10, 5.5, -1]) {
+      const res = await SELF.fetch(`http://localhost/api/cats/${catId}/measurements`, {
+        method: 'POST',
+        headers: { ...authedHeaders(session), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'bcs', value: badVal, unit: 'scale', measured_at: '2026-01-01T12:00:00Z' }),
+      })
+      expect(res.status).toBe(400)
+    }
+  })
+
+  it('rejects BCS with a non-scale unit', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const catId = await createCat(session)
+
+    const res = await SELF.fetch(`http://localhost/api/cats/${catId}/measurements`, {
+      method: 'POST',
+      headers: { ...authedHeaders(session), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'bcs', value: 5, unit: 'lbs', measured_at: '2026-01-01T12:00:00Z' }),
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it('still rejects behavioral scale values above 3 after the per-type BCS split', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const catId = await createCat(session)
+
+    const res = await SELF.fetch(`http://localhost/api/cats/${catId}/measurements`, {
+      method: 'POST',
+      headers: { ...authedHeaders(session), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'food', value: 9, unit: 'scale', measured_at: '2026-01-01T12:00:00Z' }),
+    })
+    expect(res.status).toBe(400)
+  })
+
   it('returns 400 when weight value is non-positive or exceeds 200', async () => {
     const user = await seedUser()
     const session = await seedSession(user.id)

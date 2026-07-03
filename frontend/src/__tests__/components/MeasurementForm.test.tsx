@@ -147,4 +147,65 @@ describe('MeasurementForm', () => {
       expect(await screen.findByRole('status')).toHaveTextContent('Saved')
     })
   })
+
+  describe('body condition score (bcs) type', () => {
+    function openBcsType() {
+      renderForm()
+      fireEvent.click(screen.getByRole('button', { name: '+ Add Measurement' }))
+      fireEvent.change(screen.getByLabelText(/type/i), { target: { value: 'bcs' } })
+    }
+
+    it('renders a 1–9 picker (nine score segments) instead of the weight input', () => {
+      openBcsType()
+      for (let n = 1; n <= 9; n++) {
+        expect(screen.getByRole('button', { name: `Score ${n} of 9` })).toBeInTheDocument()
+      }
+      // No numeric weight field for bcs
+      expect(screen.queryByRole('button', { name: /save weight/i })).toBeNull()
+    })
+
+    it('does NOT save immediately on score tap — no API call, no Save button until selected', () => {
+      openBcsType()
+      expect(screen.queryByRole('button', { name: /save body condition/i })).toBeNull()
+      fireEvent.click(screen.getByRole('button', { name: 'Score 6 of 9' }))
+      expect(api.createMeasurement).not.toHaveBeenCalled()
+      expect(screen.getByRole('button', { name: /save body condition/i })).toBeInTheDocument()
+    })
+
+    it('marks the selected score aria-pressed and shows its WSAVA band label + description', () => {
+      openBcsType()
+      const six = screen.getByRole('button', { name: 'Score 6 of 9' })
+      fireEvent.click(six)
+      expect(six).toHaveAttribute('aria-pressed', 'true')
+      // Transcribed band label + score-6 footnote appear
+      expect(screen.getByText('Over ideal')).toBeInTheDocument()
+      expect(screen.getByText('6/9')).toBeInTheDocument()
+      expect(screen.getByText(/may be acceptable in some cats/i)).toBeInTheDocument()
+    })
+
+    it('saves the selected score as type=bcs, unit=scale', async () => {
+      vi.mocked(api.createMeasurement).mockResolvedValue({ ...mockMeasurement, type: 'bcs', value: 6 })
+      const onAdded = vi.fn()
+      render(<MeasurementForm catId="cat-1" onAdded={onAdded} />)
+      fireEvent.click(screen.getByRole('button', { name: '+ Add Measurement' }))
+      fireEvent.change(screen.getByLabelText(/type/i), { target: { value: 'bcs' } })
+
+      fireEvent.click(screen.getByRole('button', { name: 'Score 6 of 9' }))
+      fireEvent.click(screen.getByRole('button', { name: /save body condition/i }))
+
+      await waitFor(() => expect(api.createMeasurement).toHaveBeenCalledWith(
+        'cat-1',
+        expect.objectContaining({ type: 'bcs', value: 6, unit: 'scale' }),
+      ))
+      expect(onAdded).toHaveBeenCalled()
+    })
+
+    it('re-tapping a different score changes the selection (not a toggle)', () => {
+      openBcsType()
+      fireEvent.click(screen.getByRole('button', { name: 'Score 3 of 9' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Score 7 of 9' }))
+      expect(screen.getByRole('button', { name: 'Score 3 of 9' })).toHaveAttribute('aria-pressed', 'false')
+      expect(screen.getByRole('button', { name: 'Score 7 of 9' })).toHaveAttribute('aria-pressed', 'true')
+    })
+  })
 })

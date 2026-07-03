@@ -3,6 +3,7 @@ import { View, Text, Pressable, TextInput, ScrollView } from 'react-native';
 import { api } from '../lib/api';
 import type { Measurement } from '../lib/api';
 import { PRESETS, PRESET_TYPES } from '@shared/lib/measurementPresets';
+import BcsPicker from './BcsPicker';
 import { useThemeColors } from '../hooks/useThemeColors';
 import { usePreferences } from '../contexts/PreferencesContext';
 import { VALID_MEASUREMENT_TYPES, MEASUREMENT_TYPE_LABELS_LONG } from '@shared/lib/constants';
@@ -70,7 +71,14 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
     setError(null);
   }
 
+  // BCS is a 1–9 score pick (not a toggle) — tapping a new segment re-selects.
+  function handleBcsSelect(value: number) {
+    setSelectedPreset(value);
+    setError(null);
+  }
+
   const isPresetType = PRESET_TYPES.has(type);
+  const isBcs = type === 'bcs';
   const presets = PRESETS[type] ?? [];
   const typeLabel = TYPE_OPTIONS.find((o) => o.value === type)?.label ?? type;
 
@@ -160,7 +168,29 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
       </View>
 
       {/* Input area */}
-      {isPresetType ? (
+      {isBcs ? (
+        <View>
+          <BcsPicker value={selectedPreset} onChange={handleBcsSelect} disabled={saving} />
+          {selectedPreset !== null && (
+            <Pressable
+              onPress={handlePresetSave}
+              disabled={saving}
+              style={{
+                marginTop: 12,
+                backgroundColor: colors.lavender,
+                borderRadius: 12,
+                paddingVertical: 12,
+                alignItems: 'center',
+                opacity: saving ? 0.6 : 1,
+              }}
+            >
+              <Text style={{ color: '#fff', fontWeight: '600', fontSize: 14 }}>
+                {saving ? 'Saving…' : 'Save Body Condition'}
+              </Text>
+            </Pressable>
+          )}
+        </View>
+      ) : isPresetType ? (
         <View>
           <Text style={{ fontSize: 11, fontWeight: '600', color: colors.inkMid, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
             Observation

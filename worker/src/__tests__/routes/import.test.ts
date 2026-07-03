@@ -115,6 +115,15 @@ describe('POST /api/import — measurement validation parity (WP3a)', () => {
     expect(result.errors.some(e => e.includes('integer 0–3'))).toBe(true)
   })
 
+  it('imports BCS on the 1–9 scale and rejects out-of-range BCS with a 1–9 message', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    // value 7 is valid BCS (would be rejected under the old 0–3 rule); 10 is not.
+    const result = await importCsv(session, '1/15/2026,Luna,bcs,7,scale\n1/16/2026,Luna,bcs,10,scale')
+    expect(result.imported).toBe(1)
+    expect(result.errors.some(e => e.includes('integer 1–9'))).toBe(true)
+  })
+
   it('imports valid rows while rejecting invalid ones in the same file', async () => {
     const user = await seedUser()
     const session = await seedSession(user.id)

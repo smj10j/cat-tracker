@@ -4,6 +4,7 @@ import { PRESETS, PRESET_TYPES } from '@shared/lib/measurementPresets'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { todayLocalDate, formatHour, buildMeasuredAt, currentHour } from '@shared/lib/formatting'
 import { VALID_MEASUREMENT_TYPES, MEASUREMENT_TYPE_LABELS_LONG } from '@shared/lib/constants'
+import BcsPicker from './BcsPicker'
 
 interface Props {
   catId: string
@@ -72,7 +73,14 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
     setError(null)
   }
 
+  // BCS is a 1–9 score pick (not a toggle) — tapping a new segment re-selects.
+  function handleBcsSelect(value: number) {
+    setSelectedPreset(value)
+    setError(null)
+  }
+
   const isPresetType = PRESET_TYPES.has(type)
+  const isBcsType = type === 'bcs'
   const presets = PRESETS[type] ?? []
   const typeLabel = TYPE_OPTIONS.find((o) => o.value === type)?.label ?? type
 
@@ -153,8 +161,23 @@ export default function MeasurementForm({ catId, onAdded }: Props) {
         </div>
       </div>
 
-      {/* Input: presets for behavioral types, numeric for weight */}
-      {isPresetType ? (
+      {/* Input: BCS 1–9 picker, presets for behavioral types, numeric for weight */}
+      {isBcsType ? (
+        <div>
+          <BcsPicker value={selectedPreset} onChange={handleBcsSelect} disabled={saving} />
+          {selectedPreset !== null && (
+            <button
+              type="button"
+              onClick={handlePresetSave}
+              disabled={saving}
+              aria-busy={saving}
+              className="btn-primary w-full py-3 text-sm mt-3"
+            >
+              {saving ? 'Saving…' : 'Save Body Condition'}
+            </button>
+          )}
+        </div>
+      ) : isPresetType ? (
         <div>
           <label className="block text-xs font-semibold text-ink-mid mb-2 uppercase tracking-wider">Observation</label>
           <div className="grid grid-cols-2 gap-2">

@@ -54,7 +54,7 @@
 | [PRD-care-extensions.md](PRD-care-extensions.md) | Care Extensions — SubQ Fluids, As-Needed Items, Sitter View | `Approved` | 2026-05-05 |
 | [PRD-vet-visits.md](PRD-vet-visits.md) | Vet Visits & Medical Records | `Draft` | 2026-07-02 |
 | [PRD-lab-results.md](PRD-lab-results.md) | Lab Results Tracking | `Draft` | 2026-07-02 |
-| [PRD-body-condition.md](PRD-body-condition.md) | Body Condition Score (BCS) | `Approved` | 2026-07-02 |
+| [PRD-body-condition.md](PRD-body-condition.md) | Body Condition Score (BCS) | `Implemented` | 2026-07-02 |
 | [PRD-notes-journal.md](PRD-notes-journal.md) | Observations Journal | `Implemented` | 2026-07-02 |
 | [PRD-actionable-notifications.md](PRD-actionable-notifications.md) | Actionable Notifications & Daily Digest | `Approved` | 2026-07-02 |
 | [PRD-onboarding.md](PRD-onboarding.md) | First-Run Onboarding & Empty-State Guidance | `Draft` | 2026-07-02 |
@@ -773,7 +773,7 @@ Nothing rejected yet.
 
 | | |
 |---|---|
-| **Status** | `Approved` |
+| **Status** | `Implemented` |
 | **Last updated** | 2026-07-02 |
 
 **Problem:** Weight alone can't distinguish healthy weight change from concerning change; body condition scoring is the standard veterinary companion metric.
@@ -781,6 +781,8 @@ Nothing rejected yet.
 **Proposed:** `bcs` as a new measurement type via the existing generic pipeline (shared constants + 9-entry preset list; zero schema changes, zero new routes), targeting the WSAVA 9-point scale. Visual 1–9 picker and BCS-over-time chart on both platforms; per-score descriptive copy, ideal-range shading, and weight+BCS interpretation all gated on Tier 1 citations in `docs/research/`.
 
 **Approved 2026-07-02.** Integers-only in v1; muscle condition score stays a Phase C open question.
+
+**Implemented 2026-07-02 (Session 6a).** Phase A shipped: `bcs` in `VALID_MEASUREMENT_TYPES` (zero schema changes, zero new routes); worker scale validation now branches per-type (`scaleRange`: bcs 1–9, behavioral 0–3) in both the measurements and import routes; `BCS_PRESETS` carries the WSAVA-verbatim per-score descriptions + band labels (cited to `docs/research/body-condition.md`); nine-segment 1–9 picker (`BcsPicker`) and a fixed-axis 1–9 stepped "Condition" chart on both platforms; history + vet export render "6/9" via `getScaleValueLabel`; excluded from daily check-in / behavioral correlations. **No interpretive copy** (no ideal-range shading, no weight+BCS evaluation) — Phase B/C remain citation-gated.
 
 ---
 

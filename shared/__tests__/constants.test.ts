@@ -18,7 +18,8 @@ describe('VALID_MEASUREMENT_TYPES', () => {
     expect(VALID_MEASUREMENT_TYPES).toContain('grooming')
     expect(VALID_MEASUREMENT_TYPES).toContain('activity')
     expect(VALID_MEASUREMENT_TYPES).toContain('vomiting')
-    expect(VALID_MEASUREMENT_TYPES).toHaveLength(7)
+    expect(VALID_MEASUREMENT_TYPES).toContain('bcs')
+    expect(VALID_MEASUREMENT_TYPES).toHaveLength(8)
   })
 })
 

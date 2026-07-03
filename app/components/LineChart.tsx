@@ -54,6 +54,14 @@ interface LineChartProps {
   yLabel?: string;
   formatY?: (v: number) => string;
   formatX?: (timestamp: number) => string;
+  /** Fixed Y-axis domain [min, max]. When set, disables auto-scaling + 10% padding (e.g. BCS 1–9). */
+  yDomain?: [number, number];
+  /** Explicit Y-axis tick values. Overrides the auto "nice" ticks (e.g. BCS integer ticks 1–9). */
+  yTickValues?: number[];
+  /** Stepped line for sparse/ordinal series (e.g. BCS) — avoids implying smooth continuity. */
+  stepped?: boolean;
+  /** Value formatter for the tooltip + single-point summary. Defaults to formatY (e.g. BCS shows "6/9"). */
+  formatTooltip?: (v: number) => string;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -133,6 +141,16 @@ function monotonePath(pts: { x: number; y: number }[]): string {
   return d;
 }
 
+/** Step-after path: hold the previous y until the next x, then step to the new y. */
+function stepPath(pts: { x: number; y: number }[]): string {
+  if (pts.length === 0) return '';
+  let d = `M${pts[0]!.x},${pts[0]!.y}`;
+  for (let i = 1; i < pts.length; i++) {
+    d += `L${pts[i]!.x},${pts[i - 1]!.y}L${pts[i]!.x},${pts[i]!.y}`;
+  }
+  return d;
+}
+
 function formatShortDateDefault(ts: number): string {
   const d = new Date(ts);
   return `${d.getMonth() + 1}/${d.getDate()}`;
@@ -152,8 +170,13 @@ export default function LineChart({
   yLabel,
   formatY = (v) => String(Math.round(v * 10) / 10),
   formatX = formatShortDateDefault,
+  yDomain,
+  yTickValues,
+  stepped = false,
+  formatTooltip,
 }: LineChartProps) {
   const colors = useThemeColors();
+  const fmtTip = formatTooltip ?? formatY;
   const { screenWidth, contentMaxWidth } = useResponsiveLayout();
   const [containerWidth, setContainerWidth] = useState(
     Math.min(screenWidth, contentMaxWidth ?? screenWidth) - 32,
@@ -199,7 +222,7 @@ export default function LineChart({
           const label = seriesLabels?.[key] ?? key;
           return (
             <Text key={key} style={{ color, fontSize: 16, fontWeight: '600' }}>
-              {label}: {formatY(val)} {yLabel ?? ''}
+              {label}: {fmtTip(val)} {yLabel ?? ''}
             </Text>
           );
         })}
@@ -218,31 +241,40 @@ export default function LineChart({
   const xMax = cleanData[cleanData.length - 1]!.date;
   const xRange = xMax - xMin || 1;
 
-  let yMin = Infinity;
-  let yMax = -Infinity;
+  let dataMin = Infinity;
+  let dataMax = -Infinity;
   for (const pt of cleanData) {
     for (const k of seriesKeys) {
       const v = pt[k];
       if (v !== undefined && v !== null && !Number.isNaN(v)) {
-        if (v < yMin) yMin = v;
-        if (v > yMax) yMax = v;
+        if (v < dataMin) dataMin = v;
+        if (v > dataMax) dataMax = v;
       }
     }
   }
-  if (yMin === yMax) {
-    yMin -= 1;
-    yMax += 1;
+
+  let yMin: number;
+  let yMax: number;
+  let yTicks: number[];
+  if (yDomain) {
+    // Fixed axis (e.g. BCS 1–9): no auto-scaling, no padding, explicit integer ticks.
+    [yMin, yMax] = yDomain;
+    yTicks = yTickValues ?? niceScale(yMin, yMax, 5);
+  } else {
+    if (dataMin === dataMax) {
+      dataMin -= 1;
+      dataMax += 1;
+    }
+    // Add 10% padding around the data range.
+    const yPad = (dataMax - dataMin) * 0.1;
+    yMin = dataMin - yPad;
+    yMax = dataMax + yPad;
+    yTicks = niceScale(dataMin, dataMax, 5);
   }
-  // Add 10% padding
-  const yPad = (yMax - yMin) * 0.1;
-  yMin -= yPad;
-  yMax += yPad;
-  const yRange = yMax - yMin;
+  const yRange = yMax - yMin || 1;
 
   const xScale = (ts: number) => MARGIN.left + ((ts - xMin) / xRange) * plotW;
   const yScale = (v: number) => MARGIN.top + (1 - (v - yMin) / yRange) * plotH;
-
-  const yTicks = niceScale(yMin + yPad, yMax - yPad, 5);
   const xTickCount = Math.min(cleanData.length, 5);
   const xTickStep = Math.max(1, Math.floor(cleanData.length / xTickCount));
   const xTicks: number[] = [];
@@ -265,7 +297,7 @@ export default function LineChart({
         return { x: xScale(pt.date), y: yScale(v), idx, value: v };
       })
       .filter(Boolean) as { x: number; y: number; idx: number; value: number }[];
-    const linePath = monotonePath(pts);
+    const linePath = stepped ? stepPath(pts) : monotonePath(pts);
     // Area path: line + drop to bottom + close
     const areaPath =
       pts.length >= 2
@@ -365,7 +397,7 @@ export default function LineChart({
                 />
                 <Text style={{ color: colors.ink, fontSize: 12, fontWeight: '600' }}>
                   {seriesKeys.length > 1 ? `${label}: ` : ''}
-                  {formatY(v)}
+                  {fmtTip(v)}
                   {yLabel ? ` ${yLabel}` : ''}
                 </Text>
               </View>

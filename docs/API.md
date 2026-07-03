@@ -532,7 +532,7 @@ The photo is stored at `cats/{id}/photo.jpg` in R2 (overwrites any existing phot
 **Auth required.** Returns measurements for a cat. Accessible if the user has any household role for this cat.
 
 **Query params:**
-- `type` — optional filter (e.g. `weight`, `food`, `water`, `litter`, `grooming`, `activity`, `vomiting`)
+- `type` — optional filter (e.g. `weight`, `food`, `water`, `litter`, `grooming`, `activity`, `vomiting`, `bcs`)
 
 Measurements are ordered by `measured_at ASC`.
 
@@ -564,9 +564,9 @@ Measurements are ordered by `measured_at ASC`.
 **Request body**
 ```ts
 {
-  type: string         // required; one of: weight, food, water, litter, grooming, activity, vomiting
-  value: number        // required; for scale: integer 0-3; for weight: positive number <= 200
-  unit: string         // required; one of: lbs, kg, scale
+  type: string         // required; one of: weight, food, water, litter, grooming, activity, vomiting, bcs
+  value: number        // required; scale range is per-type — bcs: integer 1-9; other scale types (behavioral): integer 0-3; weight: positive number <= 200
+  unit: string         // required; one of: lbs, kg, scale (bcs must use 'scale')
   measured_at: string  // required; ISO datetime
   notes?: string       // max 2000 chars
 }

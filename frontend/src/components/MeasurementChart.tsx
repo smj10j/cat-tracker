@@ -3,7 +3,8 @@ import {
   ResponsiveContainer, Area, AreaChart,
 } from 'recharts'
 import type { Measurement } from '../lib/api'
-import { getPresetLabel, getPresetTicks } from '@shared/lib/measurementPresets'
+import { getScaleValueLabel, getPresetTicks } from '@shared/lib/measurementPresets'
+import { MEASUREMENT_TYPE_LABELS, BCS_MIN, BCS_MAX } from '@shared/lib/constants'
 import { useChartWindow, getTickFormatter, type TimeRange } from '../lib/useChartWindow'
 import { usePreferences } from '../contexts/PreferencesContext'
 import ChartRangeSelector from './ChartRangeSelector'
@@ -34,7 +35,7 @@ function CustomTooltip({ active, payload, label, type }: {
       fontSize: 12,
     }}>
       <div style={{ color: 'var(--color-ink-mid)', marginBottom: 4, fontSize: 11 }}>{label}</div>
-      <div style={{ color: 'var(--color-ink)', fontWeight: 700, fontSize: 15 }}>{getPresetLabel(type, value)}</div>
+      <div style={{ color: 'var(--color-ink)', fontWeight: 700, fontSize: 15 }}>{getScaleValueLabel(type, value)}</div>
     </div>
   )
 }
@@ -44,14 +45,21 @@ export default function MeasurementChart({ measurements, type, showRangeSelector
   const { range, setRange, filteredData, navigate, hasOlderData, hasNewerData } = useChartWindow(measurements)
   const tickFormatter = getTickFormatter(range, prefs)
 
+  const typeLabel = (MEASUREMENT_TYPE_LABELS[type] ?? type).toLowerCase()
+
   if (measurements.length === 0) {
     return (
       <div className="text-center py-12 text-ink-dim text-sm">
-        No {type} measurements yet — add one below
+        No {typeLabel} measurements yet — add one below
       </div>
     )
   }
 
+  // BCS rides the generic scale pipeline but uses the WSAVA 1–9 axis with integer
+  // ticks and a stepped line (it is sparse and ordinal — a smooth curve would
+  // imply continuity it doesn't have). No band/zone shading (Phase A: on-chart
+  // interpretation is citation-gated).
+  const isBcs = type === 'bcs'
   const ticks = getPresetTicks(type)
   const data = filteredData.map((m) => ({
     date: tickFormatter(m.measured_at),
@@ -90,23 +98,24 @@ export default function MeasurementChart({ measurements, type, showRangeSelector
             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-grid)" vertical={false} />
             <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--color-ink-dim)' }} tickLine={false} axisLine={false} />
             <YAxis
-              domain={[0, 3]}
-              ticks={[0, 1, 2, 3]}
+              domain={isBcs ? [BCS_MIN, BCS_MAX] : [0, 3]}
+              ticks={isBcs ? [1, 2, 3, 4, 5, 6, 7, 8, 9] : [0, 1, 2, 3]}
+              interval={0}
               tick={{ fontSize: 10, fill: 'var(--color-ink-dim)' }}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(v: number) => ticks[v] ?? String(v)}
-              width={56}
+              tickFormatter={(v: number) => isBcs ? String(v) : (ticks[v] ?? String(v))}
+              width={isBcs ? 28 : 56}
             />
             <Tooltip content={<CustomTooltip type={type} />} />
             <Area
-              type="monotone"
+              type={isBcs ? 'stepAfter' : 'monotone'}
               dataKey="value"
               stroke="url(#scaleLineGrad)"
               strokeWidth={2.5}
               fill="url(#scaleAreaGrad)"
               dot={(props: { cx?: number; cy?: number; index?: number }) => (
-                <circle key={`dot-${props.index}`} cx={props.cx} cy={props.cy} r={4} fill="var(--color-brand)" style={{ stroke: 'var(--color-dot-ring)', strokeWidth: 2 }} />
+                <circle key={`dot-${props.index}`} cx={props.cx} cy={props.cy} r={isBcs ? 5 : 4} fill="var(--color-brand)" style={{ stroke: 'var(--color-dot-ring)', strokeWidth: 2 }} />
               )}
               activeDot={(props: { cx?: number; cy?: number }) => (
                 <circle cx={props.cx} cy={props.cy} r={7} fill="var(--color-brand)" style={{ stroke: 'var(--color-dot-ring)', strokeWidth: 2 }} />

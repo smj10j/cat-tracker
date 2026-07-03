@@ -11,7 +11,7 @@ import {
   describeCorrelation,
   detectConfluence,
 } from '@shared/lib/correlations';
-import { getPresetLabel, PRESET_TYPES } from '@shared/lib/measurementPresets';
+import { getScaleValueLabel, PRESET_TYPES } from '@shared/lib/measurementPresets';
 import { JOURNAL_TAG_LABELS } from '@shared/lib/constants';
 import { catAge } from '@shared/lib/dates';
 import { useThemeColors } from '../../../hooks/useThemeColors';
@@ -34,6 +34,7 @@ const TYPE_LABELS: Record<string, string> = {
   activity: 'Activity level',
   vomiting: 'Vomiting',
   litter: 'Litter box',
+  bcs: 'Body condition',
 };
 
 const TYPE_UNIT_LABEL: Record<string, string> = {
@@ -44,7 +45,13 @@ const TYPE_UNIT_LABEL: Record<string, string> = {
   activity: '(scale: Lethargic / Low / Normal / Active)',
   vomiting: '(scale: None / Once / A few times / Many times)',
   litter: '(scale: Not used / Straining / Loose / Normal)',
+  bcs: '(9-point body condition scale, 1–9)',
 };
+
+/** Types rendered as tabular scale sections in the export (behavioral 0–3 + BCS 1–9). */
+function isScaleSectionType(type: string): boolean {
+  return type !== 'weight' && (PRESET_TYPES.has(type) || type === 'bcs');
+}
 
 const statusExplained: Record<string, string> = {
   ok: 'Stable — weight trend within normal range',
@@ -106,9 +113,7 @@ function buildShareText(
     }
   }
 
-  const behavTypes = Object.keys(byType).filter(
-    (t) => t !== 'weight' && PRESET_TYPES.has(t),
-  );
+  const behavTypes = Object.keys(byType).filter(isScaleSectionType);
   for (const type of behavTypes) {
     const ms = (byType[type] ?? []).sort((a, b) =>
       b.measured_at.localeCompare(a.measured_at),
@@ -120,7 +125,7 @@ function buildShareText(
     lines.push('');
     lines.push((TYPE_LABELS[type] ?? type).toUpperCase());
     for (const m of shown) {
-      lines.push(`${formatDateTimePref(m.measured_at, prefs)} | ${getPresetLabel(m.type, m.value)}`);
+      lines.push(`${formatDateTimePref(m.measured_at, prefs)} | ${getScaleValueLabel(m.type, m.value)}`);
     }
   }
 
@@ -463,9 +468,9 @@ export default function CatExportScreen() {
           </>
         )}
 
-        {/* Behavioral measurements */}
+        {/* Behavioral measurements + body condition (scale sections) */}
         {allTypes
-          .filter((t) => t !== 'weight' && PRESET_TYPES.has(t))
+          .filter(isScaleSectionType)
           .map((type) => {
             const ms = (byType[type] ?? []).sort((a, b) =>
               b.measured_at.localeCompare(a.measured_at),
@@ -547,7 +552,7 @@ export default function CatExportScreen() {
                           textAlign: 'right',
                         }}
                       >
-                        {getPresetLabel(m.type, m.value)}
+                        {getScaleValueLabel(m.type, m.value)}
                       </Text>
                     </View>
                   ))}

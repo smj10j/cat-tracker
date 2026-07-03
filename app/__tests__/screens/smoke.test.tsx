@@ -62,6 +62,44 @@ describe('CatProfile screen', () => {
   });
 });
 
+describe('CatProfile — Body Condition (BCS)', () => {
+  let CatProfile: React.ComponentType<any>;
+
+  beforeAll(async () => {
+    CatProfile = (await import('../../app/cats/[id]/index')).default;
+  });
+
+  it('renders the "Condition" chart tab and the BCS chart when selected', async () => {
+    await renderScreen(CatProfile);
+    await waitFor(() => expect(screen.getByText('Condition')).toBeTruthy());
+    await act(async () => {
+      fireEvent.click(screen.getByText('Condition'));
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Body Condition Over Time')).toBeTruthy();
+      expect(screen.getByText('9-point scale')).toBeTruthy();
+    });
+  });
+
+  it('shows the 1–9 Body Condition picker after selecting the BCS type in the form', async () => {
+    await renderScreen(CatProfile);
+    await waitFor(() => expect(screen.getByText('+ Add Measurement')).toBeTruthy());
+    await act(async () => {
+      fireEvent.click(screen.getByText('+ Add Measurement'));
+    });
+    await waitFor(() => expect(screen.getByText('Body Condition Score')).toBeTruthy());
+    await act(async () => {
+      fireEvent.click(screen.getByText('Body Condition Score'));
+    });
+    await waitFor(() => {
+      // Picker caption + all nine score segments render (no interpretive copy).
+      expect(screen.getByText('9-point body condition scale')).toBeTruthy();
+      expect(screen.getByText('1')).toBeTruthy();
+      expect(screen.getByText('9')).toBeTruthy();
+    });
+  });
+});
+
 describe('Home screen', () => {
   let HomeScreen: React.ComponentType<any>;
 

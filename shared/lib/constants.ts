@@ -5,7 +5,7 @@
  */
 
 /** Allowed measurement types */
-export const VALID_MEASUREMENT_TYPES = ['weight', 'food', 'water', 'litter', 'grooming', 'activity', 'vomiting'] as const;
+export const VALID_MEASUREMENT_TYPES = ['weight', 'food', 'water', 'litter', 'grooming', 'activity', 'vomiting', 'bcs'] as const;
 export type MeasurementType = typeof VALID_MEASUREMENT_TYPES[number];
 
 /** Display labels for measurement types (short form) */
@@ -13,6 +13,7 @@ export const MEASUREMENT_TYPE_LABELS: Record<string, string> = {
   weight: 'Weight', food: 'Food', water: 'Water',
   litter: 'Litter Box', grooming: 'Grooming',
   activity: 'Activity', vomiting: 'Vomiting',
+  bcs: 'Body Condition',
   play: 'Play',
 }
 
@@ -20,6 +21,21 @@ export const MEASUREMENT_TYPE_LABELS: Record<string, string> = {
 export const MEASUREMENT_TYPE_LABELS_LONG: Record<string, string> = {
   ...MEASUREMENT_TYPE_LABELS,
   food: 'Food Intake', water: 'Water Intake',
+  bcs: 'Body Condition Score',
+}
+
+/**
+ * Body condition score is a WSAVA 9-point scale (1–9); behavioral scales are 0–3.
+ * BCS rides the generic measurements table (type='bcs', unit='scale') but its
+ * valid range differs, so scale validation must branch on TYPE, not unit.
+ * See docs/research/body-condition.md (WSAVA Global Nutrition Committee cat BCS chart).
+ */
+export const BCS_MIN = 1
+export const BCS_MAX = 9
+
+/** Valid [min, max] integer range for a 'scale'-unit measurement, keyed by type. */
+export function scaleRange(type: string): { min: number; max: number } {
+  return type === 'bcs' ? { min: BCS_MIN, max: BCS_MAX } : { min: 0, max: 3 }
 }
 
 /** Behavioral (non-weight) measurement types — ordered list with labels */

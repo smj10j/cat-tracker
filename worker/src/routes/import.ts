@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../types'
 import { ensureHousehold } from '../lib/household'
-import { LIMITS, VALID_MEASUREMENT_TYPES, VALID_UNITS as VALID_UNITS_ARRAY } from '../../../shared/lib/constants'
+import { LIMITS, VALID_MEASUREMENT_TYPES, VALID_UNITS as VALID_UNITS_ARRAY, scaleRange } from '../../../shared/lib/constants'
 
 const importRoute = new Hono<AppEnv>()
 
@@ -103,9 +103,15 @@ importRoute.post('/import', async (c) => {
       errors.push(`Row ${rowNum}: unit must be one of: ${[...VALID_UNITS].join(', ')}`)
       continue
     }
+    if (type === 'bcs' && unit !== 'scale') {
+      errors.push(`Row ${rowNum}: bcs must use unit 'scale'`)
+      continue
+    }
     if (unit === 'scale') {
-      if (!Number.isInteger(value) || value < 0 || value > 3) {
-        errors.push(`Row ${rowNum}: scale value must be an integer 0–3`)
+      // Scale range is per-TYPE: bcs is 1–9, behavioral scales are 0–3.
+      const { min, max } = scaleRange(type ?? '')
+      if (!Number.isInteger(value) || value < min || value > max) {
+        errors.push(`Row ${rowNum}: scale value must be an integer ${min}–${max}`)
         continue
       }
     } else if (value <= 0 || value > 200) {

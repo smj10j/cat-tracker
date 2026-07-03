@@ -16,14 +16,14 @@ import FullScreenReady from '../components/FullScreenReady'
 import InsightsPanel from '../components/InsightsPanel'
 import JournalRow from '../components/JournalRow'
 import JournalEntryForm from '../components/JournalEntryForm'
-import { getPresetLabel } from '@shared/lib/measurementPresets'
+import { getScaleValueLabel } from '@shared/lib/measurementPresets'
 import { catAge } from '@shared/lib/dates'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { formatTime as fmtTime, formatWeight as fmtWeight } from '@shared/lib/preferences'
 import { groupTimelineByDay, formatFreqShort, formatNextDue, formatDueAt, formatSexNeuter } from '@shared/lib/formatting'
 import { MEASUREMENT_TYPE_LABELS as MEAS_TYPE_LABELS, BEHAVIOR_CHART_TYPES as BEHAVIORAL_TYPES, isAsNeeded, VALID_JOURNAL_TAGS, JOURNAL_TAG_LABELS } from '@shared/lib/constants'
 
-type ChartTab = 'weight' | 'food' | 'water' | 'behavior' | 'all'
+type ChartTab = 'weight' | 'bcs' | 'food' | 'water' | 'behavior' | 'all'
 type ProfileTab = 'health' | 'care' | 'about'
 
 function SkeletonProfile() {
@@ -331,6 +331,7 @@ export default function CatProfile() {
 
   const chartTabs: { key: ChartTab; label: string }[] = [
     { key: 'weight', label: 'Weight' },
+    ...(typeSet.has('bcs') ? [{ key: 'bcs' as ChartTab, label: 'Condition' }] : []),
     ...(typeSet.has('food') ? [{ key: 'food' as ChartTab, label: 'Food' }] : []),
     ...(typeSet.has('water') ? [{ key: 'water' as ChartTab, label: 'Water' }] : []),
     ...(hasBehavior ? [{ key: 'behavior' as ChartTab, label: 'Behavior' }] : []),
@@ -549,7 +550,7 @@ export default function CatProfile() {
           />
 
           {/* Chart */}
-          {(chartTab === 'weight' || chartTab === 'food' || chartTab === 'water') && (
+          {(chartTab === 'weight' || chartTab === 'bcs' || chartTab === 'food' || chartTab === 'water') && (
             <div className="glass-card p-5 animate-slide-up opacity-0" style={{ animationDelay: '60ms', animationFillMode: 'forwards' }}>
               {chartTab === 'weight' ? (
                 <>
@@ -565,6 +566,22 @@ export default function CatProfile() {
                   </div>
                   <FullScreenReady title={cat?.name ?? 'Weight'} subtitle={prefs.weightUnit} hasData={weightMeasurements.length > 0}>
                     {(fs) => <WeightChart measurements={weightMeasurements} fullScreen={fs} />}
+                  </FullScreenReady>
+                </>
+              ) : chartTab === 'bcs' ? (
+                <>
+                  <div className="flex items-baseline justify-between gap-2 mb-4">
+                    <h3 className="font-display font-semibold text-ink">Body Condition Over Time</h3>
+                    <span className="text-[11px] text-ink-dim shrink-0">9-point scale</span>
+                  </div>
+                  <FullScreenReady title={cat?.name ?? ''} subtitle="Body Condition" hasData={measurements.filter((m) => m.type === 'bcs').length > 0}>
+                    {(fs) => (
+                      <MeasurementChart
+                        measurements={measurements.filter((m) => m.type === 'bcs').sort((a, b) => a.measured_at.localeCompare(b.measured_at))}
+                        type="bcs"
+                        fullScreen={fs}
+                      />
+                    )}
                   </FullScreenReady>
                 </>
               ) : (
@@ -668,7 +685,7 @@ export default function CatProfile() {
 
               {allDayGroups.length === 0 ? (
                 <p className="text-ink-dim text-sm text-center py-6">
-                  {activeTag ? `No notes tagged '${JOURNAL_TAG_LABELS[activeTag] ?? activeTag}'` : `No ${chartTab} measurements yet`}
+                  {activeTag ? `No notes tagged '${JOURNAL_TAG_LABELS[activeTag] ?? activeTag}'` : `No ${(MEAS_TYPE_LABELS[chartTab] ?? chartTab).toLowerCase()} measurements yet`}
                 </p>
               ) : (
                 <div className="space-y-5">
@@ -720,7 +737,7 @@ export default function CatProfile() {
                                 <span className="text-ink-dim text-xs w-16 shrink-0 tabular-nums">{fmtTime(m.measured_at, prefs)}</span>
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span className="font-semibold text-sm text-ink tabular-nums">
-                                    {m.unit === 'scale' ? getPresetLabel(m.type, m.value) : fmtWeight(m.value, m.unit, prefs)}
+                                    {m.unit === 'scale' ? getScaleValueLabel(m.type, m.value) : fmtWeight(m.value, m.unit, prefs)}
                                   </span>
                                   {(chartTab === 'all' || chartTab === 'behavior') && (
                                     <span className="text-xs px-1.5 py-0.5 rounded-full text-ink-dim"

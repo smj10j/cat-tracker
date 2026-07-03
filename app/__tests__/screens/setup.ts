@@ -533,6 +533,8 @@ export const fixtures = {
     { id: 'm2', cat_id: 'test-cat-123', type: 'weight', value: 9.6, unit: 'lbs', measured_at: '2026-03-15T12:00:00Z', notes: null, created_at: '2026-03-15T12:00:00Z' },
     { id: 'm3', cat_id: 'test-cat-123', type: 'weight', value: 9.8, unit: 'lbs', measured_at: '2026-03-01T12:00:00Z', notes: null, created_at: '2026-03-01T12:00:00Z' },
     { id: 'm4', cat_id: 'test-cat-123', type: 'food', value: 2, unit: 'scale', measured_at: '2026-04-01T12:00:00Z', notes: null, created_at: '2026-04-01T12:00:00Z' },
+    { id: 'm5', cat_id: 'test-cat-123', type: 'bcs', value: 6, unit: 'scale', measured_at: '2026-04-01T12:00:00Z', notes: null, created_at: '2026-04-01T12:00:00Z' },
+    { id: 'm6', cat_id: 'test-cat-123', type: 'bcs', value: 5, unit: 'scale', measured_at: '2026-03-01T12:00:00Z', notes: null, created_at: '2026-03-01T12:00:00Z' },
   ] as any[],
 
   medications: [

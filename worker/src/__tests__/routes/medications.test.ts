@@ -485,6 +485,120 @@ describe('POST /api/doses/bulk', () => {
   })
 })
 
+describe('POST /api/doses/:id/snooze', () => {
+  beforeAll(async () => { await applySchema() })
+  beforeEach(async () => { await clearDb() })
+
+  async function seedDose(session: string, catId: string): Promise<string> {
+    const startDate = new Date().toISOString().slice(0, 10)
+    const res = await SELF.fetch('http://localhost/api/medications', {
+      method: 'POST',
+      headers: { ...authedHeaders(session), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cat_id: catId, name: 'Fluids', type: 'subq_fluids',
+        frequency: 'daily', start_date: startDate, reminder_time: '09:00',
+      }),
+    })
+    const med = await res.json() as { id: string }
+    const dose = await env.DB.prepare(
+      'SELECT id FROM medication_doses WHERE medication_id = ? ORDER BY due_at ASC LIMIT 1'
+    ).bind(med.id).first<{ id: string }>()
+    return dose!.id
+  }
+
+  const minutesUntil = (snoozedUntil: string) =>
+    (new Date(snoozedUntil.replace(' ', 'T') + 'Z').getTime() - Date.now()) / 60000
+
+  it('sets a future snoozed_until and clears notification_sent_at', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const catId = await createCat(session)
+    const doseId = await seedDose(session, catId)
+    // Pretend the cron already pushed for this dose.
+    await env.DB.prepare(
+      `UPDATE medication_doses SET notification_sent_at = datetime('now') WHERE id = ?`
+    ).bind(doseId).run()
+
+    const res = await SELF.fetch(`http://localhost/api/doses/${doseId}/snooze`, {
+      method: 'POST',
+      headers: { ...authedHeaders(session), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ minutes: 60 }),
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json() as { snoozed_until: string }
+    expect(body.snoozed_until).toBeTruthy()
+
+    const row = await env.DB.prepare(
+      'SELECT snoozed_until, notification_sent_at FROM medication_doses WHERE id = ?'
+    ).bind(doseId).first<{ snoozed_until: string | null; notification_sent_at: string | null }>()
+    expect(row!.notification_sent_at).toBeNull()
+    expect(minutesUntil(row!.snoozed_until!)).toBeGreaterThan(50)
+    expect(minutesUntil(row!.snoozed_until!)).toBeLessThan(70)
+  })
+
+  it('defaults to 60 minutes when no minutes are provided', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const catId = await createCat(session)
+    const doseId = await seedDose(session, catId)
+
+    const res = await SELF.fetch(`http://localhost/api/doses/${doseId}/snooze`, {
+      method: 'POST',
+      headers: { ...authedHeaders(session), 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json() as { snoozed_until: string }
+    expect(minutesUntil(body.snoozed_until)).toBeGreaterThan(50)
+    expect(minutesUntil(body.snoozed_until)).toBeLessThan(70)
+  })
+
+  it('clamps snooze to a 24h maximum', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const catId = await createCat(session)
+    const doseId = await seedDose(session, catId)
+
+    const res = await SELF.fetch(`http://localhost/api/doses/${doseId}/snooze`, {
+      method: 'POST',
+      headers: { ...authedHeaders(session), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ minutes: 99999 }),
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json() as { snoozed_until: string }
+    expect(minutesUntil(body.snoozed_until)).toBeGreaterThan(23 * 60)
+    expect(minutesUntil(body.snoozed_until)).toBeLessThanOrEqual(24 * 60 + 1)
+  })
+
+  it('returns 409 for an already-administered dose', async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const catId = await createCat(session)
+    const doseId = await seedDose(session, catId)
+    await SELF.fetch(`http://localhost/api/doses/${doseId}/administer`, {
+      method: 'POST', headers: { ...authedHeaders(session), 'Content-Type': 'application/json' }, body: '{}',
+    })
+    const res = await SELF.fetch(`http://localhost/api/doses/${doseId}/snooze`, {
+      method: 'POST', headers: { ...authedHeaders(session), 'Content-Type': 'application/json' }, body: '{}',
+    })
+    expect(res.status).toBe(409)
+  })
+
+  it("rejects another user's dose with 404", async () => {
+    const user = await seedUser()
+    const session = await seedSession(user.id)
+    const catId = await createCat(session)
+    const doseId = await seedDose(session, catId)
+
+    const stranger = await seedUser({ id: 'user-2', email: 'stranger@example.com', oauth_id: 'google-456' })
+    const strangerSession = await seedSession(stranger.id, 'session-2')
+    const res = await SELF.fetch(`http://localhost/api/doses/${doseId}/snooze`, {
+      method: 'POST', headers: { ...authedHeaders(strangerSession), 'Content-Type': 'application/json' }, body: '{}',
+    })
+    expect(res.status).toBe(404)
+  })
+})
+
 describe('Missed-dose exclusion', () => {
   beforeAll(async () => { await applySchema() })
   beforeEach(async () => { await clearDb() })

@@ -71,21 +71,30 @@ describe('formatLocalDate', () => {
 
 describe('catAge', () => {
   it('returns months for cats under 1 year', () => {
-    const sixMonthsAgo = new Date()
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
-    const birthdate = sixMonthsAgo.toISOString().slice(0, 10)
-    const age = catAge(birthdate)
-    expect(age).toContain('6')
-    expect(age).toContain('month')
+    // Fixed clock + fixed birthdate: relative-date arithmetic through
+    // toISOString() shifts the day-of-month across the UTC boundary, which the
+    // day-aware catAge then reads as one month short (flaky by local timezone).
+    vi.useFakeTimers()
+    try {
+      vi.setSystemTime(new Date(2026, 6, 15, 12)) // Jul 15 2026 local
+      const age = catAge('2026-01-15')
+      expect(age).toContain('6')
+      expect(age).toContain('month')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('returns years for older cats', () => {
-    const threeYearsAgo = new Date()
-    threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3)
-    const birthdate = threeYearsAgo.toISOString().slice(0, 10)
-    const age = catAge(birthdate)
-    expect(age).toContain('3')
-    expect(age).toContain('year')
+    vi.useFakeTimers()
+    try {
+      vi.setSystemTime(new Date(2026, 6, 15, 12)) // Jul 15 2026 local
+      const age = catAge('2023-07-15')
+      expect(age).toContain('3')
+      expect(age).toContain('year')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('counts only completed months (day-of-month not yet reached)', () => {

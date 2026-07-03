@@ -134,6 +134,7 @@ CREATE TABLE IF NOT EXISTS medication_doses (
   missed               INTEGER NOT NULL DEFAULT 0,
   followup_sent_at     TEXT,
   email_sent_at        TEXT,
+  snoozed_until        TEXT,
   created_at           TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(medication_id, due_at)
 );

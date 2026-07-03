@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useGoBack } from '../hooks/useGoBack'
 import { useConfirmDialog } from '../components/ConfirmDialog'
-import { getNotifications, administerDose, skipDose, bulkDoseAction, CARE_TYPE_ICONS, type NotificationInbox, type DoseWithContext, type Medication } from '../lib/api'
+import { getNotifications, administerDose, skipDose, snoozeDose, bulkDoseAction, CARE_TYPE_ICONS, type NotificationInbox, type DoseWithContext, type Medication } from '../lib/api'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { formatDueAt, formatFutureDueAt } from '@shared/lib/formatting'
 import type { UserPreferences } from '@shared/lib/preferences'
@@ -12,24 +12,41 @@ interface DoseCardProps {
   variant: 'overdue' | 'today' | 'upcoming'
   onAdminister: (id: string) => void
   onSkip: (id: string) => void
+  onSnooze: (id: string) => void
   acting: string | null
   prefs: UserPreferences
 }
 
-function DoseCard({ dose, variant, onAdminister, onSkip, acting, prefs }: DoseCardProps) {
+function DoseCard({ dose, variant, onAdminister, onSkip, onSnooze, acting, prefs }: DoseCardProps) {
   const isActing = acting === dose.id
+  // snoozed_until is stored UTC ('YYYY-MM-DD HH:MM:SS'); a future value means the
+  // dose is currently snoozed and shouldn't wear the alarming overdue treatment.
+  const snoozedUntilMs = dose.snoozed_until
+    ? new Date(dose.snoozed_until.replace(' ', 'T') + 'Z').getTime()
+    : 0
+  const isSnoozed = snoozedUntilMs > Date.now()
 
-  const borderColor = variant === 'overdue'
+  const borderColor = isSnoozed
+    ? 'var(--color-rim)'
+    : variant === 'overdue'
     ? 'var(--color-overdue-border)'
     : variant === 'today'
     ? 'var(--color-due-today-border)'
     : 'var(--color-rim)'
 
-  const bg = variant === 'overdue'
+  const bg = isSnoozed || variant === 'upcoming'
+    ? 'var(--color-card)'
+    : variant === 'overdue'
     ? 'var(--color-overdue-bg)'
     : variant === 'today'
     ? 'var(--color-due-today-bg)'
     : 'var(--color-card)'
+
+  const ghostBtn = {
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    color: 'var(--color-ink-dim)',
+  }
 
   return (
     <div
@@ -47,12 +64,18 @@ function DoseCard({ dose, variant, onAdminister, onSkip, acting, prefs }: DoseCa
           {dose.dose && (
             <p className="text-xs text-ink-dim mt-0.5">{dose.dose}</p>
           )}
-          <p className="text-xs mt-1" style={{
-            color: variant === 'overdue' ? 'var(--color-overdue-muted)' : variant === 'today' ? 'var(--color-due-today-muted)' : 'var(--color-ink-dim)',
-          }}>
-            {variant === 'overdue' ? 'Was due: ' : 'Due: '}
-            {variant === 'upcoming' ? formatFutureDueAt(dose.due_at, prefs) : formatDueAt(dose.due_at, prefs)}
-          </p>
+          {isSnoozed ? (
+            <p className="text-xs mt-1 text-ink-dim">
+              {'\u{1F4A4}'} Snoozed until {formatDueAt(dose.snoozed_until!, prefs)}
+            </p>
+          ) : (
+            <p className="text-xs mt-1" style={{
+              color: variant === 'overdue' ? 'var(--color-overdue-muted)' : variant === 'today' ? 'var(--color-due-today-muted)' : 'var(--color-ink-dim)',
+            }}>
+              {variant === 'overdue' ? 'Was due: ' : 'Due: '}
+              {variant === 'upcoming' ? formatFutureDueAt(dose.due_at, prefs) : formatDueAt(dose.due_at, prefs)}
+            </p>
+          )}
         </div>
         <Link
           to={`/cats/${dose.cat_id}?tab=care`}
@@ -76,15 +99,21 @@ function DoseCard({ dose, variant, onAdminister, onSkip, acting, prefs }: DoseCa
           >
             {isActing ? '…' : 'Mark Given'}
           </button>
+          {!isSnoozed && (
+            <button
+              onClick={() => onSnooze(dose.id)}
+              disabled={isActing}
+              className="py-2 px-3 rounded-xl text-xs font-semibold transition-all"
+              style={ghostBtn}
+            >
+              Snooze 1h
+            </button>
+          )}
           <button
             onClick={() => onSkip(dose.id)}
             disabled={isActing}
             className="py-2 px-4 rounded-xl text-xs font-semibold transition-all"
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              color: 'var(--color-ink-dim)',
-            }}
+            style={ghostBtn}
           >
             Skip
           </button>
@@ -174,6 +203,16 @@ export default function NotificationsPage() {
     }
   }
 
+  async function handleSnooze(doseId: string) {
+    setActing(doseId)
+    try {
+      await snoozeDose(doseId, 60)
+      await loadInbox()
+    } finally {
+      setActing(null)
+    }
+  }
+
   async function handleBulk(action: 'administer' | 'skip') {
     const overdueIds = inbox?.overdue.map(d => d.id) ?? []
     if (overdueIds.length === 0) return
@@ -257,7 +296,7 @@ export default function NotificationsPage() {
               <div className="space-y-3">
                 {inbox.overdue.map(d => (
                   <DoseCard key={d.id} dose={d} variant="overdue"
-                    onAdminister={handleAdminister} onSkip={handleSkip} acting={acting} prefs={prefs} />
+                    onAdminister={handleAdminister} onSkip={handleSkip} onSnooze={handleSnooze} acting={acting} prefs={prefs} />
                 ))}
               </div>
             </section>
@@ -269,7 +308,7 @@ export default function NotificationsPage() {
               <div className="space-y-3">
                 {inbox.due_today.map(d => (
                   <DoseCard key={d.id} dose={d} variant="today"
-                    onAdminister={handleAdminister} onSkip={handleSkip} acting={acting} prefs={prefs} />
+                    onAdminister={handleAdminister} onSkip={handleSkip} onSnooze={handleSnooze} acting={acting} prefs={prefs} />
                 ))}
               </div>
             </section>
@@ -292,7 +331,7 @@ export default function NotificationsPage() {
               <div className="space-y-2">
                 {inbox.upcoming.map(d => (
                   <DoseCard key={d.id} dose={d} variant="upcoming"
-                    onAdminister={handleAdminister} onSkip={handleSkip} acting={acting} prefs={prefs} />
+                    onAdminister={handleAdminister} onSkip={handleSkip} onSnooze={handleSnooze} acting={acting} prefs={prefs} />
                 ))}
               </div>
             </section>

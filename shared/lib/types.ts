@@ -81,6 +81,7 @@ export interface MedicationDose {
   skip_reason: string | null;
   notes: string | null;
   missed?: number;
+  snoozed_until?: string | null;
   created_at: string;
 }
 

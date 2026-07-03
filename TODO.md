@@ -7,6 +7,53 @@
 
 ---
 
+## Phase 64: WP4g + Sessions 5–6 (approved PRDs) → v1.0.5 TestFlight (2026-07-02)
+
+Triggered by: owner asked to implement ROADMAP WP4g plus session-plan Sessions 5 and 6 (all already-Approved PRDs), then ship one TestFlight build. v1.0.4 is already in App Store review and contains all prior repo work, so this train is **v1.0.5**. Deploy worker+frontend and commit per feature; single TestFlight build at the very end.
+
+### WP4g — Actionable iOS notifications Phase A (PRD-actionable-notifications) ✅
+- [x] Schema: `medication_doses.snoozed_until` (prod migration applied + verified)
+- [x] Worker: `POST /api/doses/:id/snooze` (default 60m, max 24h; sets snoozed_until, clears notification_sent_at; 409 on resolved so it can't resurrect a WP1c-missed dose); cron unified due-query excludes currently-snoozed / re-pings on elapse; email fallback respects snooze
+- [x] Shared: `snoozeDose` on CatTrackerApi; MedicationDose.snoozed_until; both clients
+- [x] iOS: `care_dose` + `care_dose_group` notification categories (Mark given / Mark all given / Snooze 1h) + background response handler (idempotent administer, snooze, failure-fallback local notification); cron push gains categoryId + doseIds
+- [x] Web: inline Snooze on NotificationsPage rows + snoozed-state rendering ("💤 Snoozed until …")
+- [x] Tests: 6 snooze endpoint tests; all 4 suites green (shared 335, worker 178, frontend 78, app 173); fixed 2 pre-existing flaky catAge tests + app User.email_reminders type gap; db migrate remote+local; deployed web+worker
+
+### Session 5a — Health alert acknowledgment (PRD-alert-acknowledgment)
+- [ ] Schema: `alert_acknowledgments` table (prod migration)
+- [ ] Worker: PUT/DELETE/resolve `/api/cats/:id/acknowledgment`; embed `acknowledgment` in GET /api/cats(/:id); Contributor+ gating; note ≤280
+- [ ] Shared: `alertAck.ts` suppression logic + tests; LIMITS.ACK_NOTE; apiTypes methods; AckRecord type
+- [ ] Web + iOS: InsightsPanel "I'm on it" + muted state; Home card muted pill; vet export transparency line
+- [ ] Tests, migrate remote, deploy, commit, push
+
+### Session 5b — Observations journal (PRD-notes-journal)
+- [ ] Schema: `journal_entries` table (prod migration)
+- [ ] Worker: CRUD routes + photo routes (R2 `journal/` prefix); tag validation; deceased 403; cat-delete R2 sweep
+- [ ] Shared: VALID_JOURNAL_TAGS + labels; apiTypes methods; JournalEntry type
+- [ ] Web + iOS: entry form, timeline interleave + tag filter, check-in quick-add, vet export "Owner observations"
+- [ ] Tests, migrate remote, deploy, commit, push
+
+### Session 6a — Body Condition Score (PRD-body-condition)
+- [ ] docs/research: WSAVA 9-point BCS citation FIRST (gates descriptive copy)
+- [ ] Shared: `bcs` in VALID_MEASUREMENT_TYPES + labels; BCS_PRESETS; NOT behavioral, NOT in check-in
+- [ ] Worker: per-type value validation (bcs 1–9, behavioral 0–3)
+- [ ] Web + iOS: 1–9 picker + fixed 1–9 axis chart tab
+- [ ] Tests + check-shared-drift, deploy, commit, push
+
+### Session 6b — Notification digest + preferences (PRD-actionable-notifications Phases B/C)
+- [ ] Schema: `notification_prefs` + `care_item_mutes` tables (prod migration)
+- [ ] Worker: digest cron (once/user-local-day, digest_time guard); quiet-hours defer; mute exclusion; prefs GET/PUT; mute PUT
+- [ ] Shared: apiTypes methods; NotificationPrefs type
+- [ ] Web + iOS: Settings → Notifications section (digest, quiet hours, muted items); care-item "Mute reminders for me" toggle
+- [ ] Tests, migrate remote, deploy, commit, push
+
+### Ship
+- [ ] Bump app version 1.0.4 → 1.0.5; `/deploy` (all suites → web+worker → local IPA → TestFlight submit + log)
+- [ ] REGISTRY.md: move the 4 Approved PRDs → Implemented (or Partial where phased); update ROADMAP checkboxes
+- [ ] Update MEMORY.md
+
+---
+
 ## Phase 63: Approvals + WP1–WP4 implementation (2026-07-02)
 
 Triggered by: owner approved PRD-actionable-notifications, PRD-body-condition, PRD-alert-acknowledgment, PRD-notes-journal; approved interval re-anchoring (WP1e) and web-push drop (WP4f); OK'd invite-token rotation; deferred ideal-weight-band. Then: implement ROADMAP WP1–WP4.

@@ -70,7 +70,7 @@
 - [x] 4d. PRD-medication-reminders Phase C: email fallback via Resend when no push token and dose goes overdue. Detailed spec now in the PRD (`email_sent_at` marker, 1-hour grace, 48-hour lookback cap).
 - [x] 4e. PRD-medication-reminders Phase D: refill stock tracking. Audit finding (2026-07-02): the edit form and refill alerts already exist — the actual gap is that `POST /api/doses/:id/administer` never decrements `doses_remaining`. Spec in the PRD.
 - [x] 4f. Phase B (web push/VAPID) — **dropped (owner decision, 2026-07-02)**: iOS push exists and the Phase C email fallback covers web-only users far cheaper. Logged in PRD-medication-reminders.
-- [ ] 4g. **PRD-actionable-notifications Phase A (Approved 2026-07-02):** "Mark given" / "Snooze 1h" actions on the iOS push via expo-notifications categories; hybrid snooze (server `snoozed_until` + local notification). Subsumes 4c.
+- [x] 4g. **PRD-actionable-notifications Phase A (Approved 2026-07-02):** "Mark given"/"Mark all given" + "Snooze 1h" actions on the iOS push via expo-notifications categories; server-authoritative snooze (`snoozed_until`, cron re-ping) with a local-notification fallback on server failure; web+iOS inbox inline Snooze. Subsumes 4c. (Shipped 2026-07-02.)
 
 ---
 

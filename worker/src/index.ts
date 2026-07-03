@@ -186,8 +186,12 @@ export default {
       const nextHour = new Date(now)
       nextHour.setHours(nextHour.getHours() + 1, 0, 0, 0)
       const hourEnd = `${nextHour.toISOString().slice(0, 13)}:00:00`.replace('T', ' ')
+      const nowStr = now.toISOString().replace('T', ' ').slice(0, 19)
 
-      // Find doses due in this hour window that need notification
+      // Find doses that need a push now: either due in this hour window and not
+      // snoozed, or previously snoozed with the snooze now elapsed (WP4g). The
+      // two branches are mutually exclusive (snoozed_until null vs. not-null) so
+      // no dose is picked up twice.
       const dueDoses = await env.DB.prepare(`
         SELECT d.id AS dose_id, d.due_at,
                m.name AS med_name, m.user_id,
@@ -195,13 +199,16 @@ export default {
         FROM medication_doses d
         JOIN medications m ON m.id = d.medication_id
         JOIN cats c ON c.id = m.cat_id
-        WHERE d.due_at >= ? AND d.due_at < ?
-          AND d.administered_at IS NULL
+        WHERE d.administered_at IS NULL
           AND d.skipped = 0
           AND d.missed = 0
           AND d.notification_sent_at IS NULL
           AND m.is_active = 1
-      `).bind(hourStart, hourEnd).all<{
+          AND (
+            (d.snoozed_until IS NULL AND d.due_at >= ? AND d.due_at < ?)
+            OR (d.snoozed_until IS NOT NULL AND d.snoozed_until <= ?)
+          )
+      `).bind(hourStart, hourEnd, nowStr).all<{
         dose_id: string; due_at: string; med_name: string;
         user_id: string; cat_name: string; cat_id: string;
       }>()
@@ -243,13 +250,17 @@ export default {
             ? group.med_names[0]!
             : group.med_names.slice(0, -1).join(', ') + ' and ' + group.med_names[group.med_names.length - 1]!
 
+          // Actionable category: a grouped push (multiple doses) offers
+          // "Mark all given"; a single dose offers "Mark given" (WP4g).
+          const categoryId = group.dose_ids.length > 1 ? 'care_dose_group' : 'care_dose'
           for (const token of tokens) {
             messages.push({
               to: token,
               title: `Reminder: ${group.cat_name}`,
               body: `Time to give ${medList}`,
               sound: 'default',
-              data: { catId: group.cat_id, url: `/cats/${group.cat_id}` },
+              categoryId,
+              data: { catId: group.cat_id, url: `/cats/${group.cat_id}`, doseIds: group.dose_ids },
             })
           }
 
@@ -353,10 +364,11 @@ export default {
           AND d.administered_at IS NULL AND d.skipped = 0 AND d.missed = 0
           AND d.notification_sent_at IS NULL
           AND d.email_sent_at IS NULL
+          AND (d.snoozed_until IS NULL OR d.snoozed_until <= ?)
           AND m.is_active = 1
           AND u.email_reminders = 1
           AND NOT EXISTS (SELECT 1 FROM device_tokens t WHERE t.user_id = m.user_id)
-      `).bind(emailStart, emailEnd).all<{
+      `).bind(emailStart, emailEnd, nowStr).all<{
         dose_id: string; due_at: string; med_name: string; user_id: string
         cat_name: string; email: string; display_name: string | null
       }>()

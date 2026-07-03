@@ -15,6 +15,7 @@ export interface ExpoPushMessage {
   data?: Record<string, unknown>
   sound?: 'default' | null
   badge?: number
+  categoryId?: string   // maps to APNs category → actionable lock-screen buttons (WP4g)
 }
 
 export interface ExpoPushTicket {

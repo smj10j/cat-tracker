@@ -707,6 +707,44 @@ medications.post('/doses/:id/skip', async (c) => {
   return c.json(updated)
 })
 
+// POST /api/doses/:id/snooze — defer a due/overdue dose (WP4g).
+// Sets snoozed_until and clears notification_sent_at so the hourly cron
+// re-pings once snoozed_until passes. Server is the source of truth so
+// snooze is visible to all household members and suppresses the 24h follow-up
+// until it elapses.
+medications.post('/doses/:id/snooze', async (c) => {
+  const userId = c.get('userId')
+  const doseId = c.req.param('id')
+  const body = await c.req.json<{ minutes?: number }>().catch(() => ({} as { minutes?: number }))
+
+  const dose = await c.env.DB.prepare(
+    `SELECT d.id, d.administered_at, d.skipped, d.missed, m.cat_id
+     FROM medication_doses d
+     JOIN medications m ON m.id = d.medication_id
+     WHERE d.id = ?`
+  ).bind(doseId).first<{
+    id: string; administered_at: string | null; skipped: number; missed: number; cat_id: string
+  }>()
+  if (!dose) return c.json({ error: 'Not found' }, 404)
+  const role = await getCatRole(c.env.DB, dose.cat_id, userId)
+  if (!role || !hasRole(role, 'contributor')) return c.json({ error: 'Not found' }, 404)
+  // Can't snooze a dose that's already resolved (given / skipped / expired-to-missed).
+  // The missed guard also enforces "snooze can't resurrect a WP1c-expired dose".
+  if (dose.administered_at !== null || dose.skipped === 1 || dose.missed === 1) {
+    return c.json({ error: 'Dose already resolved' }, 409)
+  }
+
+  // Default 1h; clamp to [1 min, 24h].
+  const minutes = Math.min(Math.max(Math.round(Number(body.minutes) || 60), 1), 1440)
+  const snoozedUntil = new Date(Date.now() + minutes * 60000)
+    .toISOString().replace('T', ' ').slice(0, 19)
+  await c.env.DB.prepare(
+    `UPDATE medication_doses SET snoozed_until = ?, notification_sent_at = NULL WHERE id = ?`
+  ).bind(snoozedUntil, doseId).run()
+
+  return c.json({ snoozed_until: snoozedUntil })
+})
+
 // POST /api/doses/bulk — bulk administer/skip, used by "Mark all given" /
 // "Dismiss all" on the overdue inbox.
 medications.post('/doses/bulk', async (c) => {

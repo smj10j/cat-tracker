@@ -757,6 +757,28 @@ Doses are generated using the user's timezone (from `users.timezone`) for UTC co
 
 ---
 
+#### `POST /api/doses/:id/snooze`
+
+**Auth required. Contributor role required.** Defers a due/overdue dose (WP4g). Sets `snoozed_until = now + minutes` and clears `notification_sent_at`, so the hourly cron re-pings once `snoozed_until` passes. Server-authoritative: the snooze is visible to all household members and suppresses the 24h follow-up until it elapses. Called by the iOS notification "Snooze 1h" action and the web/iOS inbox Snooze button.
+
+**Request body**
+```ts
+{
+  minutes?: number  // default 60; clamped to [1, 1440]
+}
+```
+
+**Response 200**
+```ts
+{ snoozed_until: string }  // 'YYYY-MM-DD HH:MM:SS' UTC
+```
+
+**Response 409** — dose already resolved (administered, skipped, or expired to `missed`); resolved doses can't be snoozed. This also prevents a snooze from resurrecting a WP1c-expired dose.
+
+**Response 404** — dose not found or no access
+
+---
+
 ### Notifications
 
 #### `GET /api/notifications`

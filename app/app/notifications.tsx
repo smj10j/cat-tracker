@@ -99,6 +99,18 @@ export default function NotificationsScreen() {
     }
   }
 
+  async function handleSnooze(dose: DoseWithContext) {
+    setProcessingId(dose.id);
+    try {
+      await api.snoozeDose(dose.id, 60);
+      await fetchInbox();
+    } catch (e) {
+      Alert.alert('Error', (e as Error).message);
+    } finally {
+      setProcessingId(null);
+    }
+  }
+
   async function doBulk(action: 'administer' | 'skip') {
     const overdueIds = inbox?.overdue.map((d) => d.id) ?? [];
     if (overdueIds.length === 0) return;
@@ -319,6 +331,11 @@ export default function NotificationsScreen() {
 
           const dose = item.data;
           const isProcessing = processingId === dose.id;
+          // snoozed_until is stored UTC; a future value means it's currently snoozed.
+          const snoozedUntilMs = dose.snoozed_until
+            ? new Date(dose.snoozed_until.replace(' ', 'T') + 'Z').getTime()
+            : 0;
+          const isSnoozed = snoozedUntilMs > Date.now();
           return (
             <View
               style={{
@@ -351,7 +368,9 @@ export default function NotificationsScreen() {
                   )}
                 </View>
                 <Text style={{ color: colors.inkDim, fontSize: 12, textAlign: 'right', maxWidth: 120 }}>
-                  {section.title === 'Upcoming'
+                  {isSnoozed
+                    ? `${'💤'} Snoozed until ${formatDueAt(dose.snoozed_until!, prefs)}`
+                    : section.title === 'Upcoming'
                     ? formatFutureDueAt(dose.due_at, prefs)
                     : formatDueAt(dose.due_at, prefs)}
                 </Text>
@@ -393,6 +412,25 @@ export default function NotificationsScreen() {
                     {isProcessing ? 'Saving...' : 'Done'}
                   </Text>
                 </Pressable>
+                {!isSnoozed && (
+                  <Pressable
+                    onPress={() => handleSnooze(dose)}
+                    disabled={isProcessing}
+                    style={{
+                      paddingVertical: 8,
+                      paddingHorizontal: 14,
+                      borderRadius: 10,
+                      alignItems: 'center',
+                      backgroundColor: colors.card,
+                      borderWidth: 1,
+                      borderColor: colors.rim,
+                    }}
+                  >
+                    <Text style={{ color: colors.inkDim, fontSize: 13, fontWeight: '500' }}>
+                      Snooze
+                    </Text>
+                  </Pressable>
+                )}
                 <Pressable
                   onPress={() => handleSkip(dose)}
                   disabled={isProcessing}

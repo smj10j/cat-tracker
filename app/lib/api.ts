@@ -310,6 +310,14 @@ export const api: CatTrackerNativeApi = {
     });
   },
 
+  async snoozeDose(id: string, minutes?: number): Promise<{ snoozed_until: string | null }> {
+    const res = await apiFetch(`/api/doses/${id}/snooze`, {
+      method: 'POST',
+      body: JSON.stringify({ minutes }),
+    });
+    return res.json() as Promise<{ snoozed_until: string | null }>;
+  },
+
   async bulkDoseAction(doseIds: string[], action: 'administer' | 'skip'): Promise<{ updated: number }> {
     const res = await apiFetch('/api/doses/bulk', {
       method: 'POST',

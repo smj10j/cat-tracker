@@ -17,6 +17,7 @@ interface User {
   avatar_url: string | null;
   oauth_provider: string;
   timezone: string | null;
+  email_reminders?: number;
   hasOrphanedCats: boolean;
 }
 

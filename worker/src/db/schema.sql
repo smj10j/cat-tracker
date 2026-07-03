@@ -125,6 +125,7 @@ CREATE TABLE IF NOT EXISTS medication_doses (
   missed               INTEGER NOT NULL DEFAULT 0,  -- cron-expired overdue dose; excluded from inbox, visible in history
   followup_sent_at     TEXT,           -- set when the single 24h overdue follow-up push was sent
   email_sent_at        TEXT,           -- set when the overdue email fallback was sent
+  snoozed_until        TEXT,           -- WP4g: dose deferred until this ISO datetime; cron re-pings once it passes
   created_at           TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(medication_id, due_at)       -- idempotent cron insertion via INSERT OR IGNORE
 );
@@ -133,6 +134,8 @@ CREATE TABLE IF NOT EXISTS medication_doses (
 -- Migration 2026-07-02 (medication reminders Phase C + overdue follow-up):
 -- ALTER TABLE medication_doses ADD COLUMN followup_sent_at TEXT;
 -- ALTER TABLE medication_doses ADD COLUMN email_sent_at TEXT;
+-- Migration 2026-07-02 (WP4g actionable notifications — snooze):
+-- ALTER TABLE medication_doses ADD COLUMN snoozed_until TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_doses_medication ON medication_doses(medication_id, due_at);
 CREATE INDEX IF NOT EXISTS idx_doses_due ON medication_doses(due_at, administered_at);

@@ -225,6 +225,8 @@ export const administerDose = async (id: string, data?: { administered_at?: stri
 export const skipDose = async (id: string, skipReason?: string): Promise<void> => {
   await request(`/doses/${id}/skip`, { method: 'POST', body: JSON.stringify({ skip_reason: skipReason }) })
 }
+export const snoozeDose = (id: string, minutes?: number) =>
+  request<{ snoozed_until: string | null }>(`/doses/${id}/snooze`, { method: 'POST', body: JSON.stringify({ minutes }) })
 export const bulkDoseAction = (doseIds: string[], action: 'administer' | 'skip') =>
   request<{ updated: number }>('/doses/bulk', { method: 'POST', body: JSON.stringify({ dose_ids: doseIds, action }) })
 export const logPrnDose = (medicationId: string, data?: { given_at?: string; notes?: string }) =>
@@ -238,7 +240,7 @@ const _typeCheck: CatTrackerWebApi = {
   uploadCatPhoto, deleteCatPhoto,
   getMeasurements, createMeasurement, deleteMeasurement,
   getMedications, getMedication, createMedication, updateMedication, archiveMedication, logPrnDose,
-  administerDose, skipDose, bulkDoseAction,
+  administerDose, skipDose, snoozeDose, bulkDoseAction,
   getNotifications,
   getHousehold, getHouseholdList, renameHousehold,
   sendInvite, revokeInvite, changeMemberRole, removeMember,

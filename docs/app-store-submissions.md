@@ -110,9 +110,12 @@ iPhone 6.7" / 6.9" App Store screenshots: **1284×2778** or **1242×2688**. Resi
 - **App Store Connect**: https://appstoreconnect.apple.com/apps/6762031793/testflight/ios
 - **Status**: Submitted to TestFlight
 
-## Version 1.0.5 (Build 2026-07-02)
+## Version 1.0.5 — Build 2026-07-02 - APPROVED
 - **Submitted**: 2026-07-02 22:42:31 (via local)
 - **Commit**: f306768 (f306768fef0ad1e5b0934913761ca6f3577c0cb2)
 - **Commit message**: app: bump version 1.0.4 -> 1.0.5 for TestFlight
 - **App Store Connect**: https://appstoreconnect.apple.com/apps/6762031793/testflight/ios
-- **Status**: Submitted to TestFlight
+- **TestFlight**: 2026-07-02
+- **App Store Review**: 2026-07-03 (submitted)
+  - **App Store Status**: Approved 2026-07-03
+- **Scope**: WP4g + Sessions 5–6 — actionable iOS notifications (Phase A), health-alert acknowledgment, observations journal, body condition score (BCS), morning digest + notification preferences + per-item mute

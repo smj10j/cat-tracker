@@ -82,6 +82,14 @@ cd worker && npx wrangler deploy
 cd frontend && npm run build && npx wrangler pages deploy dist --project-name cat-tracker --commit-dirty=true
 ```
 
+#### Xcode version requirement (learned 2026-08-21)
+
+Local IPA builds require **Xcode 26.4 (17E192)** — `/Applications/Xcode-26.4.0.app`, selected with `xcodes select 26.4`. Verify with `xcode-select -p` before building.
+
+Xcode 26.6 **cannot archive this project**: its iphonesimulator SDK is build `23F81a` and Apple ships no matching simulator runtime (newest downloadable is `23F77`). `actool` needs a matching runtime for the expo-dev-launcher asset catalog, so `CompileAssetCatalogVariant` fails and the archive dies. Expo's error detector misreports this as "No simulator runtime version from [...] available" — the real failure is `** ARCHIVE FAILED **` further up the xcodebuild log. Xcode 26.4's SDK (`23E237`) pairs with the installed iOS 26.4 runtime (`23E244`) and archives cleanly.
+
+If a macOS/Xcode update re-selects a newer Xcode, the build will fail at the archive step. Either re-select 26.4, or check whether Apple has since published a runtime matching the newer SDK.
+
 #### `scripts/build-ios.sh`
 Runs all 4 test suites (shared + worker + frontend + app), verifies the Expo web export, deploys the web frontend to Cloudflare Pages, conditionally deploys the Worker, then builds a production iOS IPA. Writes build metadata to `/tmp/whisker-build-info.env` for the submit script. Tests and web/worker deploys happen **before** the IPA build so failures are caught without wasting build time.
 

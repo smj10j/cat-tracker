@@ -30,7 +30,7 @@ Triggered by: owner reported that Luna, stable at 8.25 lb for 3 months after an 
 - [x] Docs: API.md thresholds shape, TDD/web.md healthMetrics row
 - [x] Fixed pre-existing copy bug: a >3%/week *gain* was described as "%/week loss"
 - [x] Commit + push
-- [ ] Deploy web + worker — **blocked**: wrangler OAuth token expired, needs `npx wrangler login`
+- [x] Deploy web + worker (2026-08-21) — worker version cc01e592; Pages deploy 2097f692; prod bundle verified serving the new algorithm
 
 ---
 

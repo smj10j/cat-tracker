@@ -119,3 +119,12 @@ iPhone 6.7" / 6.9" App Store screenshots: **1284×2778** or **1242×2688**. Resi
 - **App Store Review**: 2026-07-03 (submitted)
   - **App Store Status**: Approved 2026-07-03
 - **Scope**: WP4g + Sessions 5–6 — actionable iOS notifications (Phase A), health-alert acknowledgment, observations journal, body condition score (BCS), morning digest + notification preferences + per-item mute
+
+## Version 1.0.6 (Build 2026-08-21)
+- **Submitted**: 2026-08-21 21:23:17 (via local)
+- **Commit**: 573fb34 (573fb34885c70e1ea1923b7919c0ab9c444959ca)
+- **Commit message**: app: bump version 1.0.5 -> 1.0.6 for TestFlight
+- **App Store Connect**: https://appstoreconnect.apple.com/apps/6762031793/testflight/ios
+- **Status**: Submitted to TestFlight
+- **Scope**: PRD-trend-window — weight trend alerts bounded to a 90-day evaluation window and gated by a loss-episode stabilization test, so an alert clears once a decline demonstrably stops instead of persisting on a 180-day timer; corrected vet-export reference-weight label; "weight has stabilized" insights panel; 6-month default range on the profile chart
+- **Build note**: built on Xcode 26.4 (17E192). Xcode 26.6's simulator SDK (23F81a) has no matching downloadable runtime, which breaks `actool` on the expo-dev-launcher asset catalog during archive.

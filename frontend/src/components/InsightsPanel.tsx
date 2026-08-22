@@ -134,8 +134,14 @@ export default function InsightsPanel({
     ? detectConfluence(correlations, cat.name)
     : null
 
+  // A real earlier loss that has since stopped no longer escalates the status, but the owner
+  // should still be able to see it — otherwise the alert appears to have vanished for no reason.
+  // Neutral styling: this is context, not an alert. See PRD-trend-window.
+  const showResolvedLoss =
+    hasWeightData && !showHealthAlert && health.lossStabilized && health.peakLossPct > 0
+
   const hasPatterns = availableTypes.length >= 2
-  const hasInsights = showHealthAlert || hasPatterns
+  const hasInsights = showHealthAlert || showResolvedLoss || hasPatterns
 
   if (!hasInsights) return null
 
@@ -215,6 +221,21 @@ export default function InsightsPanel({
             >
               Undo
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Resolved loss — the decline stopped; shown as context, never as an alert */}
+      {showResolvedLoss && (
+        <div className="px-4 pt-4 pb-3">
+          <div className="flex items-start gap-3">
+            <span className="text-xl shrink-0 mt-0.5">{'\u2705'}</span>
+            <div className="flex-1">
+              <p className="font-bold text-sm leading-snug mb-1 text-ink">
+                {cat.name}'s weight has stabilized
+              </p>
+              <p className="text-ink-mid text-sm">{health.summary}</p>
+            </div>
           </div>
         </div>
       )}

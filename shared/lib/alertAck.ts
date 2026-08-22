@@ -21,10 +21,15 @@ const RANK: Record<HealthStatus, number> = { ok: 0, watch: 1, concerning: 2, urg
  * non-ok period, falling back to cumulative-loss sign when the status came
  * purely from total loss-from-peak. A gain-watch and a loss-watch are different
  * clinical concerns even at equal severity.
+ *
+ * Only periods inside the trend window are considered — the same bound assessHealth
+ * uses to decide escalation, so an acknowledgment's direction is derived from the
+ * same evidence that produced the alert rather than from stale history.
  */
 export function assessmentDirection(assessment: HealthAssessment): AckDirection {
   const worstBad = assessment.periods
-    .filter((p): p is PeriodHealth => p !== null && !p.skipped && p.status !== 'ok')
+    .filter((p): p is PeriodHealth =>
+      p !== null && !p.skipped && p.withinTrendWindow && p.status !== 'ok')
     .sort((a, b) => Math.abs(b.changePerWeek) - Math.abs(a.changePerWeek))[0]
   if (worstBad) return worstBad.direction === 'gain' ? 'gain' : 'loss'
   // Status came from cumulative loss from the reference peak.

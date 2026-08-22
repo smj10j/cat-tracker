@@ -170,7 +170,7 @@ Neither the 180-day window nor the 90th-percentile level are clinical thresholds
 
 **Decision:** A period's non-ok rate classification only escalates `overallStatus` when the **previous non-skipped, non-noise-floor period** was also non-ok **in the same direction** (both loss, or both gain). This requires a sustained signal across at least two consecutive measurement intervals before the overall assessment changes.
 
-**Exception:** The cumulative peak-loss thresholds (4% → watch, 7% → concerning, 10% → urgent) are applied unconditionally, as cumulative loss from baseline *is* a trend signal by definition — it already accounts for the full history.
+**Exception (RETRACTED 2026-08-21 — see "Trend evaluation window" below):** This section previously stated that the cumulative peak-loss thresholds (4% → watch, 7% → concerning, 10% → urgent) are applied unconditionally, "as cumulative loss from baseline *is* a trend signal by definition." That premise was wrong. A cumulative loss that has **stopped** is a completed episode, not an ongoing trend, and applying the thresholds unconditionally caused the alert to persist for a full 180 days after a cat's weight had demonstrably stabilized. The cumulative branch is now gated by the stabilization test documented below.
 
 **Rationale:** A single dip that bounces back is indistinguishable from scale noise or normal biological variation. Requiring two consecutive periods in the same direction filters oscillation patterns while still catching genuine sustained weight changes. This is an engineering judgement, not a clinical threshold.
 
@@ -197,4 +197,119 @@ These constraints are not clinical thresholds but practical calibration against 
 
 ---
 
-*Last reviewed: 2026-04-11. Next review recommended when AAFP or WSAVA publish updated nutritional guidelines.*
+## Trend evaluation window and loss-episode stabilization (added 2026-08-21)
+
+These are engineering calibration decisions, not clinical thresholds. They were added after a
+reported false-positive: a cat whose weight declined from 9.0 lb to 8.25 lb and then held at
+8.25 lb for three months (13 consecutive weekly weigh-ins, every single measurement-to-measurement
+period classified `ok`) continued to render a `concerning` alert reading "Lost 8.3% from recent
+weight." The alert would have cleared only when the pre-decline measurements aged out of the
+180-day `referencePeak` window — i.e. on a calendar timer, not on a health signal.
+
+### Problem statement
+
+Three independent defects produced the behaviour:
+
+1. **The rate-of-change escalation had no recency bound.** The consecutive-period loop that sets
+   `overallStatus` iterated over the *entire* measurement history, so two consecutive non-ok
+   periods from a year ago escalated the assessment forever, even after full recovery.
+2. **The cumulative loss-from-peak branch was applied unconditionally** (see the retracted
+   exception above), with no test for whether the loss was still in progress.
+3. **The summary text quoted a stale, unfiltered worst period.** `buildSummary` selected the
+   maximum `|changePerWeek|` across all of history and did **not** require that period to be
+   non-ok — so it could report "Mild weight loss trend detected (1.8%/week)" citing a period the
+   classifier itself had scored `ok`, months earlier.
+
+### Decision 1 — Trend evaluation window (`trendWindowDays`, default 90)
+
+Rate-based escalation of `overallStatus` now only considers periods whose **end measurement**
+falls within `trendWindowDays` of the **most recent measurement** in the record.
+
+- The window is anchored to the last measurement, not to wall-clock `now`. This matches the
+  existing `referencePeak` behaviour and means a cat whose record stops being updated does not
+  silently lose its assessment.
+- Because the window is anchored to the last measurement, the final period is always inside it.
+- Escalation requires **both** periods of a consecutive pair to be in-window. A cat measured at
+  intervals longer than the window therefore produces no rate-based escalation; that cat is still
+  covered by the cumulative branch, which has its own sparse-data fallback (`referencePeak` falls
+  back to the all-time maximum below 8 measurements in 180 days).
+
+90 days is chosen because it is long enough to contain at least two measurement intervals at the
+monthly weigh-in cadence recommended in the Wellness Guide (see "Monthly weigh-in recommendation"
+above), and short enough that a resolved episode does not dominate the assessment. It is
+configurable via the server threshold config.
+
+### Decision 2 — Loss-episode stabilization gate
+
+The cumulative loss-from-peak branch is now gated on whether the loss is **still happening**,
+measured by an ordinary least-squares fit of weight against time over the measurements inside the
+trend window.
+
+**The test:** let `fittedTotalChangePct` be the fitted slope multiplied by the observed span of
+the windowed measurements, expressed as a percentage of the mean weight over that span. The loss
+episode is considered **stabilized** when:
+
+```
+fittedTotalChangePct > -(noiseFloorPct × 100)
+```
+
+That is: the best-fit line predicts a total change across the observed span that is *smaller than
+the measurement noise floor* (1.5%, see "Noise floor" above) in the downward direction. This is
+the same floor already used for measurement-to-measurement comparisons, applied to a fitted trend
+instead of a single pair, so the two calibrations cannot drift apart.
+
+**Evidence requirements.** The gate only runs when the trend window contains:
+- at least `stabilization.minMeasurements` measurements (default **4**), and
+- an observed span of at least `stabilization.minSpanDays` days (default **56**, eight weeks).
+
+When either requirement is unmet the gate **does not run** and the cumulative thresholds apply
+exactly as before. This is the fail-safe direction: absent sufficient evidence that a loss has
+stopped, the alert stands. Sparse-data cats (vet-visit-only weigh-ins) therefore see no change in
+behaviour.
+
+**Effect when stabilized:**
+
+| Cumulative loss from `referencePeak` | Not stabilized | Stabilized |
+|---|---|---|
+| ≥ 10% (`urgent`) | `urgent` | **`watch`** — demoted, not cleared |
+| 7–10% (`concerning`) | `concerning` | cumulative branch contributes nothing |
+| 4–7% (`watch`) | `watch` | cumulative branch contributes nothing |
+
+The ≥10% case is deliberately **not** cleared. A loss of 10% or more of body weight is clinically
+significant regardless of when it occurred (Merck Veterinary Manual; JVIM; see ">10% total from
+peak → `urgent`" above), and a cat that has plateaued at a substantially reduced weight is a
+finding worth carrying forward. Demoting to `watch` keeps it visible and keeps it eligible for
+acknowledgment (PRD-alert-acknowledgment) without asserting an emergency that the rate data does
+not support.
+
+In all stabilized cases the loss is still reported in the summary text and in the vet export —
+suppression applies to the *severity escalation*, never to the underlying fact.
+
+**Known limitation (accepted).** A decline shallow enough that its fitted total across the
+observed span stays under 1.5% will be classified as stabilized. At a 90-day span that is roughly
+0.117%/week — about 0.01 lb/week on an 8.25 lb cat, which is an order of magnitude below the
+±0.1–0.2 lb accuracy of consumer scales documented in "Home scale measurement accuracy" below.
+Such a trend is not distinguishable from noise with home-weighing data, and claiming otherwise
+would be a false precision. Cats declining fast enough to be measurable at home — including the
+0.5%/week multi-month decline that the "Oscar scenario" regression test encodes — remain
+un-stabilized and continue to alert.
+
+### Decision 3 — Worst-period selection for summary text
+
+`buildSummary` now selects the worst period from periods that are **both** non-ok **and**
+in-window. When no such period exists, the summary uses cumulative-loss phrasing rather than
+quoting a rate. This removes the class of message that quoted a percentage the classifier had not
+flagged. `assessmentDirection` in `alertAck.ts` applies the same in-window filter, so an
+acknowledgment's direction is derived from the same evidence the alert was.
+
+### `referencePeak` window left at 180 days
+
+The 180-day `referencePeakWindowDays` was **not** shortened as part of this change. Shortening it
+would have moved the false positive rather than fixing it (the alert would clear on a 90-day timer
+instead of a 180-day one) and would have degraded genuine slow-decline detection, which is the
+specific case the cumulative branch exists to catch. The stabilization gate resolves the reported
+behaviour without touching the baseline.
+
+---
+
+*Last reviewed: 2026-08-21. Next review recommended when AAFP or WSAVA publish updated nutritional guidelines.*

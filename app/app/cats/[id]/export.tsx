@@ -91,7 +91,10 @@ function buildShareText(
     if (weightMs.length >= 2) {
       lines.push(`Status: ${statusExplained[health.overallStatus] ?? health.overallStatus}`);
       if (health.peakLossPct > 0) {
-        lines.push(`Change from peak: ${health.peakLossPct}% below highest`);
+        lines.push(
+          `Change from reference: ${health.peakLossPct}% below reference weight (90th pct of last 180 days)` +
+            (health.lossStabilized ? ' - decline has since stabilized' : ''),
+        );
       }
       lines.push(`Trend: ${health.summary}`);
     }
@@ -330,8 +333,11 @@ export default function CatExportScreen() {
                   />
                   {health.peakLossPct > 0 && (
                     <InfoRow
-                      label="Change from peak"
-                      value={`${health.peakLossPct}% below highest recorded weight`}
+                      label="Change from reference"
+                      value={
+                        `${health.peakLossPct}% below reference weight (90th percentile of the last 180 days)` +
+                        (health.lossStabilized ? ' \u2014 decline has since stabilized' : '')
+                      }
                     />
                   )}
                   <InfoRow label="Trend" value={health.summary} />

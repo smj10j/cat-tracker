@@ -28,6 +28,13 @@ const DEFAULT_CONFIG = {
     minIntervalDays?: number
     referencePeakWindowDays?: number
     referencePeakMinMeasurements?: number
+    // Trend evaluation window + loss-episode stabilization (PRD-trend-window).
+    // Mirrors ThresholdOverrides in shared/lib/healthMetrics.ts.
+    trendWindowDays?: number
+    stabilization?: {
+      minMeasurements: number
+      minSpanDays: number
+    }
     totalLoss?: {
       watchPct: number
       concerningPct: number

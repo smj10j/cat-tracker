@@ -57,6 +57,7 @@
 | [PRD-body-condition.md](PRD-body-condition.md) | Body Condition Score (BCS) | `Implemented` | 2026-07-02 |
 | [PRD-notes-journal.md](PRD-notes-journal.md) | Observations Journal | `Implemented` | 2026-07-02 |
 | [PRD-actionable-notifications.md](PRD-actionable-notifications.md) | Actionable Notifications & Daily Digest | `Implemented` | 2026-07-02 |
+| [PRD-trend-window.md](PRD-trend-window.md) | Trend Evaluation Window — Stale Alerts After a Resolved Loss | `Implemented` | 2026-08-21 |
 | [PRD-onboarding.md](PRD-onboarding.md) | First-Run Onboarding & Empty-State Guidance | `Draft` | 2026-07-02 |
 | [PRD-sitter-live-link.md](PRD-sitter-live-link.md) | Sitter Live Share Link | `Draft` | 2026-07-02 |
 | [PRD-ios-widgets.md](PRD-ios-widgets.md) | iOS Widgets & Siri Shortcuts | `Draft` | 2026-07-02 |
@@ -890,4 +891,18 @@ Nothing rejected yet.
 
 ---
 
-*Last updated: 2026-07-02*
+### PRD-trend-window.md — Trend Evaluation Window — Stale Alerts After a Resolved Loss
+
+| | |
+|---|---|
+| **Status** | `Implemented` |
+| **Last updated** | 2026-08-21 |
+
+**Problem:** A cat that lost weight and then held steady for months kept rendering a `concerning` alert ("Lost 8.3% from recent weight") even though every measurement-to-measurement period was classified `ok`. The alert cleared only when the pre-decline data aged out of the 180-day `referencePeak` window — a calendar timer, not a health signal.
+
+**Shipped:** `trendWindowDays` (default 90) bounds rate-based escalation to recent periods; an OLS loss-episode stabilization gate (≥4 measurements spanning ≥56 days; fitted total change flatter than the 1.5% noise floor) suppresses the cumulative loss-from-peak escalation once a decline has demonstrably stopped, demoting rather than clearing at ≥10%; worst-period selection in `buildSummary` and `assessmentDirection` is now filtered to non-ok in-window periods; `detectTrend` gained a 26-week window with a full-series fallback. Profile chart defaults to a 6-month range. No clinical threshold changed.
+
+---
+
+
+*Last updated: 2026-08-21*

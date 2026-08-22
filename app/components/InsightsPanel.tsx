@@ -70,8 +70,14 @@ export default function InsightsPanel({
     ? detectConfluence(correlations, cat.name)
     : null;
 
+  // A real earlier loss that has since stopped no longer escalates the status, but the owner
+  // should still be able to see it — otherwise the alert appears to have vanished for no reason.
+  // Neutral styling: this is context, not an alert. See PRD-trend-window.
+  const showResolvedLoss =
+    hasWeightData && !alertWorthy && health.lossStabilized && health.peakLossPct > 0;
+
   const hasPatterns = availableTypes.length >= 2;
-  const hasInsights = alertWorthy || hasPatterns;
+  const hasInsights = alertWorthy || showResolvedLoss || hasPatterns;
 
   if (!hasInsights) return null;
 
@@ -148,6 +154,21 @@ export default function InsightsPanel({
         borderColor: panelBorderColor,
       }}
     >
+      {/* Resolved loss — the decline stopped; shown as context, never as an alert */}
+      {showResolvedLoss && (
+        <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+            <Text style={{ fontSize: 20, flexShrink: 0, marginTop: 2 }}>{'\u2705'}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: '700', fontSize: 14, lineHeight: 20, marginBottom: 4, color: colors.ink }}>
+                {`${cat.name}'s weight has stabilized`}
+              </Text>
+              <Text style={{ color: colors.inkMid, fontSize: 14 }}>{health.summary}</Text>
+            </View>
+          </View>
+        </View>
+      )}
+
       {/* Health headline */}
       {showFullAlert && (
         <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 }}>

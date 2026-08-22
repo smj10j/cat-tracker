@@ -168,8 +168,9 @@ export default function CatExportPage() {
                     <div><span className="font-medium">Status: </span>{statusExplained[status] ?? status}</div>
                     {health.peakLossPct > 0 && (
                       <div className="col-span-2">
-                        <span className="font-medium">Change from peak: </span>
-                        {health.peakLossPct}% below highest recorded weight
+                        <span className="font-medium">Change from reference: </span>
+                        {health.peakLossPct}% below reference weight (90th percentile of the last 180 days)
+                        {health.lossStabilized && ' — decline has since stabilized'}
                       </div>
                     )}
                     <div className="col-span-2">

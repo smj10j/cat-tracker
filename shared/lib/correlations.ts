@@ -116,14 +116,33 @@ export function lagCorrelation(a: number[], b: number[], maxLag = 4): { lag: num
 }
 
 /**
+ * Weeks of history detectTrend considers by default. Without a bound, a metric that shifted a
+ * year ago and has been flat ever since reports 'up'/'down' forever — the same staleness defect
+ * fixed for weight in PRD-trend-window. These trends feed the confluence CLUSTERS, so a stale
+ * 'up'/'down' can keep a cluster alert (e.g. kidney/thyroid/diabetes) firing indefinitely.
+ */
+export const TREND_WINDOW_WEEKS = 26
+
+/**
  * Detect whether a series is trending up, down, or stable by comparing
  * the average of the first half vs the second half of weekly buckets.
+ *
+ * Only buckets within `windowWeeks` of the most recent bucket are considered. If that window
+ * holds fewer than the 4 buckets the comparison needs, the full series is used instead —
+ * preserving existing behaviour for sparse records rather than regressing toward under-alerting.
  */
-export function detectTrend(buckets: WeeklyBucket[]): 'up' | 'down' | 'stable' {
+export function detectTrend(
+  buckets: WeeklyBucket[],
+  windowWeeks: number = TREND_WINDOW_WEEKS,
+): 'up' | 'down' | 'stable' {
   if (buckets.length < 4) return 'stable'
-  const mid = Math.floor(buckets.length / 2)
-  const first = buckets.slice(0, mid)
-  const second = buckets.slice(mid)
+  const lastStart = buckets[buckets.length - 1]!.weekStart.getTime()
+  const cutoff = lastStart - windowWeeks * 7 * 86400_000
+  const windowed = buckets.filter((b) => b.weekStart.getTime() >= cutoff)
+  const considered = windowed.length >= 4 ? windowed : buckets
+  const mid = Math.floor(considered.length / 2)
+  const first = considered.slice(0, mid)
+  const second = considered.slice(mid)
   const avgFirst = first.reduce((s, b) => s + b.value, 0) / first.length
   const avgSecond = second.reduce((s, b) => s + b.value, 0) / second.length
   const changePct = Math.abs(avgSecond - avgFirst) / (avgFirst || 1)

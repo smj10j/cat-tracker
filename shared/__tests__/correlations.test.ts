@@ -138,6 +138,58 @@ describe('detectTrend', () => {
     }))
     expect(detectTrend(buckets)).toBe('stable')
   })
+
+  it('ignores a stale trend outside the 26-week window', () => {
+    // A decline a year ago, flat ever since. Splitting the *whole* series in half reported
+    // 'down' forever; only the recent window should count.
+    const buckets = []
+    for (let i = 0; i < 8; i++) {
+      buckets.push({
+        weekKey: `stale-${i}`,
+        weekStart: new Date(2025, 0, 6 + i * 7),
+        value: 12 - i * 0.4,
+      })
+    }
+    for (let i = 0; i < 12; i++) {
+      buckets.push({
+        weekKey: `recent-${i}`,
+        weekStart: new Date(2026, 4, 4 + i * 7),
+        value: 8.8,
+      })
+    }
+    expect(detectTrend(buckets)).toBe('stable')
+  })
+
+  it('still reports a decline that continues inside the window', () => {
+    const buckets = []
+    for (let i = 0; i < 8; i++) {
+      buckets.push({
+        weekKey: `stale-${i}`,
+        weekStart: new Date(2025, 0, 6 + i * 7),
+        value: 12,
+      })
+    }
+    for (let i = 0; i < 12; i++) {
+      buckets.push({
+        weekKey: `recent-${i}`,
+        weekStart: new Date(2026, 4, 4 + i * 7),
+        value: 12 - i * 0.2,
+      })
+    }
+    expect(detectTrend(buckets)).toBe('down')
+  })
+
+  it('falls back to the full series when the window holds fewer than 4 buckets', () => {
+    // Sparse record: 5 buckets spread over two years, only 2 of them recent.
+    const buckets = [
+      { weekKey: 'a', weekStart: new Date(2024, 0, 1), value: 12 },
+      { weekKey: 'b', weekStart: new Date(2024, 6, 1), value: 11 },
+      { weekKey: 'c', weekStart: new Date(2025, 0, 1), value: 10 },
+      { weekKey: 'd', weekStart: new Date(2026, 6, 1), value: 9 },
+      { weekKey: 'e', weekStart: new Date(2026, 7, 1), value: 8 },
+    ]
+    expect(detectTrend(buckets)).toBe('down')
+  })
 })
 
 // ── detectCorrelations ────────────────────────────────────────────────────────

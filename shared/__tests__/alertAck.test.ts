@@ -3,7 +3,11 @@ import { applyAcknowledgment, assessmentDirection, isAckExpired } from '../lib/a
 import type { HealthAssessment, HealthStatus, PeriodHealth } from '../lib/healthMetrics'
 import type { AckRecord } from '../lib/types'
 
-function period(status: HealthStatus, direction: 'loss' | 'gain' | 'stable'): PeriodHealth {
+function period(
+  status: HealthStatus,
+  direction: 'loss' | 'gain' | 'stable',
+  withinTrendWindow = true,
+): PeriodHealth {
   return {
     status,
     absoluteChange: direction === 'loss' ? -0.4 : direction === 'gain' ? 0.4 : 0,
@@ -12,6 +16,7 @@ function period(status: HealthStatus, direction: 'loss' | 'gain' | 'stable'): Pe
     days: 7,
     direction,
     skipped: false,
+    withinTrendWindow,
   }
 }
 
@@ -24,6 +29,23 @@ function assess(overallStatus: HealthStatus, direction: 'loss' | 'gain', totalLo
     peakLossPct: direction === 'loss' ? 8 : -8,
     referencePeak: 10,
     summary: '',
+    trendWindowDays: 90,
+    lossStabilized: false,
+    recentSlopePctPerWeek: null,
+  }
+}
+
+/** An assessment whose only non-ok period sits outside the trend window. */
+function assessStalePeriod(overallStatus: HealthStatus): HealthAssessment {
+  return {
+    overallStatus,
+    periods: [null, period('urgent', 'gain', false)],
+    peakLossPct: 8,
+    referencePeak: 10,
+    summary: '',
+    trendWindowDays: 90,
+    lossStabilized: false,
+    recentSlopePctPerWeek: null,
   }
 }
 
@@ -47,6 +69,10 @@ describe('assessmentDirection', () => {
   it('falls back to cumulative-loss sign when status came from total loss', () => {
     const a = assess('watch', 'loss', true) // no non-ok period; peakLossPct > 0
     expect(assessmentDirection(a)).toBe('loss')
+  })
+  it('ignores a non-ok period outside the trend window', () => {
+    // The only flagged period is a stale gain; direction must come from cumulative loss instead.
+    expect(assessmentDirection(assessStalePeriod('watch'))).toBe('loss')
   })
 })
 

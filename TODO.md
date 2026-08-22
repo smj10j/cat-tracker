@@ -7,6 +7,33 @@
 
 ---
 
+## Phase 65: Trend evaluation window — stale weight alerts (PRD-trend-window) (2026-08-21)
+
+Triggered by: owner reported that Luna, stable at 8.25 lb for 3 months after an earlier decline from 9.0 lb, still shows a `concerning` alert citing a weekly loss percentage. Reproduced: every period classifies `ok`; the alert comes entirely from the unconditional cumulative loss-from-peak branch and clears only when the old data ages out of the 180-day referencePeak window.
+
+### Docs (first, per execution loop)
+- [x] `docs/research/weight-thresholds.md`: retract the "cumulative loss is unconditionally a trend" rationale; document trend window, stabilization gate, worst-period filter, and the accepted sub-noise-floor limitation
+- [x] `docs/PRDs/PRD-trend-window.md` (new) + REGISTRY.md entry
+
+### Implementation
+- [x] `shared/lib/healthMetrics.ts`: `trendWindowDays` (default 90) bounds rate escalation; `PeriodHealth.withinTrendWindow`
+- [x] `shared/lib/healthMetrics.ts`: OLS loss-episode stabilization gate (≥4 measurements, ≥56-day span, fitted total change vs 1.5% noise floor); demote ≥10% to `watch`, suppress 4–10%
+- [x] `shared/lib/healthMetrics.ts`: `buildSummary` worst-period filtered to non-ok + in-window; stabilized-state copy
+- [x] `shared/lib/alertAck.ts`: `assessmentDirection` uses the same in-window filter
+- [x] `shared/lib/correlations.ts`: `detectTrend` window (26 weeks) with full-series fallback
+- [x] Web + iOS: render the stabilized state (profile hero, health guidance, insights, memorial, vet export)
+- [x] Web + iOS: cat profile chart defaults to last 6 months (or full record if shorter)
+
+### Verification
+- [x] Tests: Luna scenario, Oscar regression, ≥10% plateau demotion, sparse-data no-op, stale-pair non-escalation
+- [x] All 4 suites green (shared 386, worker 209, frontend 106, app 175); frontend+app tsc clean; drift clean
+- [x] Docs: API.md thresholds shape, TDD/web.md healthMetrics row
+- [x] Fixed pre-existing copy bug: a >3%/week *gain* was described as "%/week loss"
+- [x] Commit + push
+- [ ] Deploy web + worker — **blocked**: wrangler OAuth token expired, needs `npx wrangler login`
+
+---
+
 ## Phase 64: WP4g + Sessions 5–6 (approved PRDs) → v1.0.5 TestFlight (2026-07-02)
 
 Triggered by: owner asked to implement ROADMAP WP4g plus session-plan Sessions 5 and 6 (all already-Approved PRDs), then ship one TestFlight build. v1.0.4 is already in App Store review and contains all prior repo work, so this train is **v1.0.5**. Deploy worker+frontend and commit per feature; single TestFlight build at the very end.

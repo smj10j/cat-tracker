@@ -12,6 +12,13 @@ export interface PeriodHealth {
   days: number
   direction: 'loss' | 'gain' | 'stable'
   skipped: boolean        // true when interval gate fired (< 5 days) — period recorded but not classified
+  /**
+   * True when this period's *end* measurement falls inside the trend evaluation window
+   * (trendWindowDays before the most recent measurement). Only in-window periods may
+   * escalate overallStatus or be quoted in summary text — a non-ok period from a year ago
+   * describes history, not a current trend.
+   */
+  withinTrendWindow: boolean
 }
 
 export interface HealthAssessment {
@@ -21,6 +28,17 @@ export interface HealthAssessment {
   peakLossPct: number     // % lost from referencePeak
   referencePeak: number   // 90th-pct of last 180 days (falls back to all-time max if < 8 recent measurements)
   summary: string         // human-readable explanation
+  /** Window (in days, back from the most recent measurement) used to bound trend escalation. */
+  trendWindowDays: number
+  /**
+   * True when a cumulative loss from referencePeak has demonstrably *stopped*: the fitted trend
+   * across the measurements inside the trend window is flatter than the noise floor, backed by
+   * enough measurements over a long enough span to say so. Suppresses (or, at >= urgent-level
+   * cumulative loss, demotes) the loss-from-peak escalation. Never hides the loss itself.
+   */
+  lossStabilized: boolean
+  /** Fitted slope over the trend window, in % of mean weight per week. null when not computable. */
+  recentSlopePctPerWeek: number | null
 }
 
 // Weight loss/gain thresholds — see docs/research/weight-thresholds.md for full citations.
@@ -57,6 +75,13 @@ export interface ThresholdOverrides {
   minIntervalDays?: number
   referencePeakWindowDays?: number
   referencePeakMinMeasurements?: number
+  /** Lookback (days, from the most recent measurement) for rate-based trend escalation. */
+  trendWindowDays?: number
+  /** Evidence required before a loss episode may be declared stabilized. */
+  stabilization?: {
+    minMeasurements: number
+    minSpanDays: number
+  }
   totalLoss?: {
     watchPct: number
     concerningPct: number
@@ -72,6 +97,8 @@ const DEFAULT_THRESHOLDS: Required<ThresholdOverrides> = {
   minIntervalDays: 5,
   referencePeakWindowDays: 180,
   referencePeakMinMeasurements: 8,
+  trendWindowDays: 90,
+  stabilization: { minMeasurements: 4, minSpanDays: 56 },
   totalLoss: { watchPct: 4, concerningPct: 7, urgentPct: 10 },
 }
 
@@ -103,6 +130,42 @@ function percentile90(values: number[]): number {
 }
 
 /**
+ * Ordinary least-squares fit of weight against time.
+ * `t` is in days; the returned slope is a percentage of the mean weight per day, which makes it
+ * comparable to the %-based noise floor and rate thresholds regardless of the cat's size or unit.
+ * Returns null when the points are too few or all share one timestamp (zero variance in t).
+ */
+function fitTrend(points: { t: number; v: number }[]): { slopePctPerDay: number; spanDays: number } | null {
+  const n = points.length
+  if (n < 2) return null
+  const meanT = points.reduce((sum, p) => sum + p.t, 0) / n
+  const meanV = points.reduce((sum, p) => sum + p.v, 0) / n
+  if (meanV <= 0) return null
+  let num = 0
+  let den = 0
+  for (const p of points) {
+    const dt = p.t - meanT
+    num += dt * (p.v - meanV)
+    den += dt * dt
+  }
+  if (den === 0) return null
+  return {
+    slopePctPerDay: (num / den / meanV) * 100,
+    spanDays: points[n - 1]!.t - points[0]!.t,
+  }
+}
+
+/** Human-readable duration for summary copy ("8 weeks", "3 months"). */
+function describeSpan(days: number): string {
+  if (days >= 60) {
+    const months = Math.round(days / 30)
+    return months === 1 ? 'month' : `${months} months`
+  }
+  const weeks = Math.max(1, Math.round(days / 7))
+  return weeks === 1 ? 'week' : `${weeks} weeks`
+}
+
+/**
  * Assess health from weight measurements.
  * displayUnit controls the unit used in human-readable summary text (defaults to 'lbs').
  * Internally, all values are normalized to lbs for deterministic computation.
@@ -115,6 +178,8 @@ export function assessHealth(measurements: Measurement[], thresholds?: Threshold
   })
   const sorted = [...normalized].sort((a, b) => a.measured_at.localeCompare(b.measured_at))
 
+  const trendWindowDays = thresholds?.trendWindowDays ?? DEFAULT_THRESHOLDS.trendWindowDays
+
   if (sorted.length < 2) {
     return {
       overallStatus: 'ok',
@@ -122,6 +187,9 @@ export function assessHealth(measurements: Measurement[], thresholds?: Threshold
       peakLossPct: 0,
       referencePeak: sorted[0]?.value ?? 0,
       summary: 'Not enough data to assess trend.',
+      trendWindowDays,
+      lossStabilized: false,
+      recentSlopePctPerWeek: null,
     }
   }
 
@@ -141,6 +209,28 @@ export function assessHealth(measurements: Measurement[], thresholds?: Threshold
   const referencePeak = recentValues.length >= peakMinMeasurements ? percentile90(recentValues) : peakWeight
 
   const peakLossPct = referencePeak > 0 ? ((referencePeak - latestWeight) / referencePeak) * 100 : 0
+
+  // Trend evaluation window — anchored to the most recent measurement, not to wall-clock now, so
+  // a record that stops being updated keeps its assessment instead of silently going quiet.
+  // See docs/research/weight-thresholds.md "Trend evaluation window and loss-episode stabilization".
+  const trendCutoffMs = lastDate.getTime() - trendWindowDays * 86400_000
+
+  // Loss-episode stabilization: fit a line through the measurements inside the trend window and
+  // ask whether it still slopes down by more than measurement noise. Requires enough measurements
+  // over a long enough span to be evidence of anything; when it is not computable the gate simply
+  // does not run and the cumulative thresholds apply exactly as before (fail-safe toward alerting).
+  const stab = thresholds?.stabilization ?? DEFAULT_THRESHOLDS.stabilization
+  const noiseFloorPct = thresholds?.noiseFloorPct ?? DEFAULT_THRESHOLDS.noiseFloorPct
+  const windowPoints = sorted
+    .filter((m) => new Date(m.measured_at).getTime() >= trendCutoffMs)
+    .map((m) => ({ t: (new Date(m.measured_at).getTime() - trendCutoffMs) / 86400_000, v: m.value }))
+  const fit = windowPoints.length >= stab.minMeasurements ? fitTrend(windowPoints) : null
+  const recentSlopePctPerWeek = fit ? Math.round(fit.slopePctPerDay * 7 * 100) / 100 : null
+  const lossStabilized =
+    fit !== null &&
+    fit.spanDays >= stab.minSpanDays &&
+    // Fitted total change across the observed span is flatter than the noise floor, downward.
+    fit.slopePctPerDay * fit.spanDays > -(noiseFloorPct * 100)
 
   const periods: (PeriodHealth | null)[] = [null]
   let overallStatus: HealthStatus = 'ok'
@@ -163,6 +253,7 @@ export function assessHealth(measurements: Measurement[], thresholds?: Threshold
       changePerWeek: Math.round(changePerWeek * 10) / 10,
       days: Math.round(days),
       direction: (absChange < -0.05 ? 'loss' : absChange > 0.05 ? 'gain' : 'stable') as PeriodHealth['direction'],
+      withinTrendWindow: new Date(curr.measured_at).getTime() >= trendCutoffMs,
     }
 
     // Interval gate: < N days between measurements → mark skipped, do not classify
@@ -189,64 +280,129 @@ export function assessHealth(measurements: Measurement[], thresholds?: Threshold
   // Consecutive-period requirement: a single non-ok period does not escalate overallStatus.
   // Two consecutive non-ok periods in the same direction are required to confirm a trend.
   // This filters oscillation noise (e.g. ±0.2 lbs week-to-week on home scales).
+  //
+  // Both periods of the pair must also fall inside the trend window. Without that bound a real
+  // decline from a year ago — long since recovered — escalates the assessment forever.
   let prevNonSkippedPeriod: PeriodHealth | null = null
   for (const p of periods) {
     if (p === null || p.skipped) continue
     if (p.status === 'ok') { prevNonSkippedPeriod = p; continue }
     // p.status is non-ok here; only escalate if previous was also non-ok in same direction
     if (prevNonSkippedPeriod !== null && prevNonSkippedPeriod.status !== 'ok'
-        && prevNonSkippedPeriod.direction === p.direction) {
+        && prevNonSkippedPeriod.direction === p.direction
+        && p.withinTrendWindow && prevNonSkippedPeriod.withinTrendWindow) {
       overallStatus = worstStatus(overallStatus, p.status)
     }
     prevNonSkippedPeriod = p
   }
 
-  // Factor in total loss from recent baseline (unconditional — cumulative loss IS a trend)
+  // Factor in total loss from the reference baseline — but only while the loss is still happening.
+  // A cumulative loss that has stopped is a completed episode, not a trend; escalating on it
+  // regardless left cats flagged until the pre-decline data aged out of the referencePeak window.
   const tl = thresholds?.totalLoss ?? DEFAULT_THRESHOLDS.totalLoss
   const roundedPeakLossPct = Math.round(peakLossPct * 10) / 10
-  if (roundedPeakLossPct >= tl.urgentPct) overallStatus = worstStatus(overallStatus, 'urgent')
-  else if (roundedPeakLossPct >= tl.concerningPct) overallStatus = worstStatus(overallStatus, 'concerning')
-  else if (roundedPeakLossPct >= tl.watchPct) overallStatus = worstStatus(overallStatus, 'watch')
+  if (roundedPeakLossPct >= tl.urgentPct) {
+    // A loss this large stays visible even once it has stopped — demoted, never cleared.
+    overallStatus = worstStatus(overallStatus, lossStabilized ? 'watch' : 'urgent')
+  } else if (!lossStabilized) {
+    if (roundedPeakLossPct >= tl.concerningPct) overallStatus = worstStatus(overallStatus, 'concerning')
+    else if (roundedPeakLossPct >= tl.watchPct) overallStatus = worstStatus(overallStatus, 'watch')
+  }
 
-  const summary = buildSummary(overallStatus, periods, roundedPeakLossPct, latestWeight, referencePeak, displayUnit)
+  const summary = buildSummary({
+    status: overallStatus,
+    periods,
+    peakLossPct: roundedPeakLossPct,
+    latestWeight,
+    referencePeak,
+    displayUnit,
+    lossStabilized,
+    stableSpanDays: fit?.spanDays ?? 0,
+    totalLoss: tl,
+  })
 
-  return { overallStatus, periods, peakLossPct: roundedPeakLossPct, referencePeak, summary }
+  return {
+    overallStatus,
+    periods,
+    peakLossPct: roundedPeakLossPct,
+    referencePeak,
+    summary,
+    trendWindowDays,
+    lossStabilized,
+    recentSlopePctPerWeek,
+  }
 }
 
-function buildSummary(
-  status: HealthStatus,
-  periods: (PeriodHealth | null)[],
-  peakLossPct: number,
-  latestWeight: number,
-  referencePeak: number,
-  displayUnit: WeightUnit = 'lbs'
-): string {
+interface SummaryInput {
+  status: HealthStatus
+  periods: (PeriodHealth | null)[]
+  peakLossPct: number
+  latestWeight: number
+  referencePeak: number
+  displayUnit: WeightUnit
+  lossStabilized: boolean
+  /** Observed span of the windowed fit, in days. 0 when the fit was not computable. */
+  stableSpanDays: number
+  totalLoss: Required<ThresholdOverrides>['totalLoss']
+}
+
+function buildSummary(input: SummaryInput): string {
+  const {
+    status, periods, peakLossPct, latestWeight, referencePeak,
+    displayUnit: unit, lossStabilized, stableSpanDays, totalLoss,
+  } = input
+
   // Convert internal lbs values to display unit for summary text
-  const displayLoss = convertWeight(referencePeak - latestWeight, 'lbs', displayUnit)
-  const unit = displayUnit
-  // Exclude skipped (interval-gated) periods from worst-period selection
+  const displayLoss = convertWeight(referencePeak - latestWeight, 'lbs', unit)
+  const displayPeak = convertWeight(referencePeak, 'lbs', unit)
+  const displayLatest = convertWeight(latestWeight, 'lbs', unit)
+  const stableFor = describeSpan(stableSpanDays)
+
+  // A quoted %/week figure must come from a period the classifier actually flagged, and one
+  // recent enough to describe what is happening now. Skipped (interval-gated), ok, and
+  // out-of-window periods are all excluded.
   const worstPeriod = periods
-    .filter((p): p is PeriodHealth => p !== null && !p.skipped)
+    .filter((p): p is PeriodHealth =>
+      p !== null && !p.skipped && p.withinTrendWindow && p.status !== 'ok')
     .sort((a, b) => Math.abs(b.changePerWeek) - Math.abs(a.changePerWeek))[0]
 
-  if (status === 'ok') return 'Weight is stable. No concerns.'
+  if (status === 'ok') {
+    // A real earlier loss that has since stopped is reported as context, not dropped silently.
+    if (lossStabilized && peakLossPct >= totalLoss.watchPct) {
+      return `Stable at ${displayLatest.toFixed(1)} ${unit} for the last ${stableFor}. That's ${peakLossPct}% below the earlier reference of ${displayPeak.toFixed(1)} ${unit}, but the decline has stopped.`
+    }
+    return 'Weight is stable. No concerns.'
+  }
 
   if (status === 'urgent') {
-    if (peakLossPct >= 10)
-      return `Lost ${peakLossPct}% from recent weight (${displayLoss.toFixed(1)} ${unit}). Veterinary evaluation is strongly recommended.`
-    return `Fastest recorded rate: ${Math.abs(worstPeriod?.changePerWeek ?? 0).toFixed(1)}%/week loss. This exceeds 2%/week — the AAFP/WSAVA clinical threshold associated with hepatic lipidosis risk. Vet visit recommended.`
+    if (worstPeriod && peakLossPct < totalLoss.urgentPct)
+      return `Fastest recorded rate: ${Math.abs(worstPeriod.changePerWeek).toFixed(1)}%/week loss. This exceeds 2%/week — the AAFP/WSAVA clinical threshold associated with hepatic lipidosis risk. Vet visit recommended.`
+    return `Lost ${peakLossPct}% from recent weight (${displayLoss.toFixed(1)} ${unit}). Veterinary evaluation is strongly recommended.`
   }
 
   if (status === 'concerning') {
-    if (peakLossPct >= 7)
-      return `Lost ${peakLossPct}% from recent weight. Clinically significant — worth discussing with your vet.`
-    return `Fastest rate: ${Math.abs(worstPeriod?.changePerWeek ?? 0).toFixed(1)}%/week loss. AAFP and WSAVA guidelines recommend no more than ~1% body weight loss per week without veterinary guidance. Sustained loss above 1.5%/week warrants clinical attention.`
+    // A >3%/week gain also classifies as concerning — it must not be described as a loss.
+    // Claim cited to AAFP Hyperthyroidism Management Guidelines; see docs/research/weight-thresholds.md.
+    if (worstPeriod?.direction === 'gain')
+      return `Rapid weight gain detected (${worstPeriod.changePerWeek.toFixed(1)}%/week). Sustained gain above 3%/week may indicate fluid retention, overfeeding, or metabolic dysfunction — worth discussing with your vet.`
+    if (worstPeriod && (lossStabilized || peakLossPct < totalLoss.concerningPct))
+      return `Fastest rate: ${Math.abs(worstPeriod.changePerWeek).toFixed(1)}%/week loss. AAFP and WSAVA guidelines recommend no more than ~1% body weight loss per week without veterinary guidance. Sustained loss above 1.5%/week warrants clinical attention.`
+    return `Lost ${peakLossPct}% from recent weight. Clinically significant — worth discussing with your vet.`
   }
 
   // watch
+  // A cumulative loss at or above the urgent threshold that has demonstrably stopped is demoted
+  // to watch rather than cleared — the magnitude still matters, the urgency no longer does.
+  if (lossStabilized && peakLossPct >= totalLoss.urgentPct) {
+    return `Down ${peakLossPct}% (${displayLoss.toFixed(1)} ${unit}) from the earlier reference of ${displayPeak.toFixed(1)} ${unit}, but weight has held steady for the last ${stableFor}. Worth raising at the next vet visit.`
+  }
   if (worstPeriod?.direction === 'gain')
     return `Rapid weight gain detected (${worstPeriod.changePerWeek.toFixed(1)}%/week). Sustained gain >2%/week can indicate fluid retention or overfeeding.`
-  return `Mild weight loss trend detected (${Math.abs(worstPeriod?.changePerWeek ?? 0).toFixed(1)}%/week). Monitor closely and track future measurements.`
+  if (worstPeriod)
+    return `Mild weight loss trend detected (${Math.abs(worstPeriod.changePerWeek).toFixed(1)}%/week). Monitor closely and track future measurements.`
+  // Slow cumulative decline with no single period large enough to flag — the case the
+  // loss-from-peak branch exists to catch. Quote the cumulative figure, not a per-week rate.
+  return `Down ${peakLossPct}% from recent weight (${displayLoss.toFixed(1)} ${unit}). Monitor closely and track future measurements.`
 }
 
 export const STATUS_COLORS: Record<HealthStatus, string> = {

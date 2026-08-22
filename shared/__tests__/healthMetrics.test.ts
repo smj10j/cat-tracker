@@ -380,6 +380,166 @@ describe('assessHealth', () => {
     expect(result.summary).not.toMatch(/10%\/week/)
   })
 
+
+  // ── Trend evaluation window + loss-episode stabilization (PRD-trend-window) ────
+  //
+  // Helper: build a weekly series ending `endDaysAgo` days before `anchor`.
+  // All timestamps are noon UTC so the day arithmetic stays exact.
+
+  const ANCHOR = new Date('2026-08-21T12:00:00Z').getTime()
+  const at = (daysAgo: number) => new Date(ANCHOR - daysAgo * 86400_000).toISOString()
+
+  it('Luna scenario: decline that ended 3 months ago, flat since, returns ok', () => {
+    // 9.0 stable → declines to 8.25 → holds 8.25 for 13 weekly weigh-ins.
+    // Every measurement-to-measurement period classifies ok; the old algorithm still reported
+    // `concerning` from the cumulative branch until the 9.0 readings aged out of the 180d window.
+    const measurements: Measurement[] = []
+    for (let w = 34; w >= 22; w--) measurements.push(m(9.0, at(w * 7)))
+    for (let w = 21; w >= 13; w--) {
+      const t = (21 - w) / (21 - 13)
+      measurements.push(m(Number((9.0 - 0.75 * t).toFixed(2)), at(w * 7)))
+    }
+    const noise = [0, 0.05, -0.05, 0, 0.1, -0.05, 0, 0.05, -0.1, 0, 0.05, 0, 0]
+    for (let w = 12; w >= 0; w--) {
+      measurements.push(m(Number((8.25 + (noise[12 - w] ?? 0)).toFixed(2)), at(w * 7)))
+    }
+
+    const result = assessHealth(measurements)
+    expect(result.lossStabilized).toBe(true)
+    expect(result.overallStatus).toBe('ok')
+    // The loss is suppressed as an escalation but never hidden as a fact.
+    expect(result.peakLossPct).toBeGreaterThanOrEqual(7)
+    expect(result.summary).toMatch(/decline has stopped/i)
+    expect(result.summary).not.toMatch(/%\/week/)
+  })
+
+  it('stabilization does not fire while a slow decline is still in progress', () => {
+    // ~0.5%/week sustained over 6 months — the case the cumulative branch exists to catch.
+    const measurements: Measurement[] = []
+    for (let w = 26; w >= 0; w--) {
+      measurements.push(m(Number((13.5 - (26 - w) * 0.035).toFixed(2)), at(w * 7)))
+    }
+    const result = assessHealth(measurements)
+    expect(result.lossStabilized).toBe(false)
+    expect(result.overallStatus).not.toBe('ok')
+    expect(result.recentSlopePctPerWeek).toBeLessThan(-0.2)
+  })
+
+  it('a >=10% cumulative loss that has stabilized demotes to watch, never to ok', () => {
+    // 10.0 → 8.7 (13% loss), then flat for 12 weeks.
+    const measurements: Measurement[] = []
+    for (let w = 40; w >= 26; w--) measurements.push(m(10.0, at(w * 7)))
+    for (let w = 25; w >= 13; w--) {
+      const t = (25 - w) / (25 - 13)
+      measurements.push(m(Number((10.0 - 1.3 * t).toFixed(2)), at(w * 7)))
+    }
+    for (let w = 12; w >= 0; w--) measurements.push(m(8.7, at(w * 7)))
+
+    const result = assessHealth(measurements)
+    expect(result.lossStabilized).toBe(true)
+    expect(result.peakLossPct).toBeGreaterThanOrEqual(10)
+    expect(result.overallStatus).toBe('watch')
+    expect(result.summary).toMatch(/held steady/i)
+  })
+
+  it('stabilization gate does not run without enough measurements in the window', () => {
+    // Stable-then-drop, but only 3 measurements inside the 90-day window → gate cannot run,
+    // so the cumulative thresholds apply exactly as before (fail-safe toward alerting).
+    const measurements: Measurement[] = []
+    for (let i = 0; i < 8; i++) measurements.push(m(10.0, at(300 - i * 10)))
+    measurements.push(m(8.9, at(60)))
+    measurements.push(m(8.9, at(30)))
+    measurements.push(m(8.9, at(0)))
+
+    const result = assessHealth(measurements)
+    expect(result.lossStabilized).toBe(false)
+    expect(result.overallStatus).not.toBe('ok')
+  })
+
+  it('stabilization gate does not run when the observed span is under 8 weeks', () => {
+    // Six flat readings, but packed into 5 weeks — not enough elapsed time to call a loss over.
+    const measurements: Measurement[] = []
+    for (let i = 0; i < 8; i++) measurements.push(m(10.0, at(300 - i * 10)))
+    for (let d = 35; d >= 0; d -= 7) measurements.push(m(8.9, at(d)))
+
+    const result = assessHealth(measurements)
+    expect(result.lossStabilized).toBe(false)
+    expect(result.overallStatus).not.toBe('ok')
+  })
+
+  it('two consecutive bad periods outside the trend window no longer escalate', () => {
+    // A genuine rapid decline a year ago, fully recovered and flat since.
+    const measurements: Measurement[] = [
+      m(10.0, at(400)),
+      m(9.5,  at(393)),   // -5%/week
+      m(9.0,  at(386)),   // -5.3%/week, consecutive → escalated forever under the old loop
+      m(10.0, at(360)),   // recovered
+    ]
+    for (let w = 20; w >= 0; w--) measurements.push(m(10.0, at(w * 7)))
+
+    const result = assessHealth(measurements)
+    expect(result.overallStatus).toBe('ok')
+    // The historical periods keep their own classification for the chart — they are just
+    // marked out-of-window so they cannot drive the overall status.
+    expect(result.periods[2]?.status).toBe('urgent')
+    expect(result.periods[2]?.withinTrendWindow).toBe(false)
+  })
+
+  it('a recent bad period pair still escalates', () => {
+    const measurements: Measurement[] = [
+      m(10.0, at(21)),
+      m(9.5,  at(14)),
+      m(9.0,  at(7)),
+    ]
+    const result = assessHealth(measurements)
+    expect(result.overallStatus).toBe('urgent')
+    expect(result.periods[2]?.withinTrendWindow).toBe(true)
+  })
+
+  it('summary never quotes a %/week rate from a period the classifier scored ok', () => {
+    // Slow multi-month decline: cumulative loss escalates, but no single period is flagged.
+    const measurements = [
+      m(10.0, at(90)),
+      m(9.8,  at(60)),
+      m(9.6,  at(30)),
+      m(9.3,  at(0)),
+    ]
+    const result = assessHealth(measurements)
+    expect(result.overallStatus).not.toBe('ok')
+    const flagged = result.periods.filter((p) => p !== null && !p.skipped && p.status !== 'ok')
+    expect(flagged).toHaveLength(0)
+    expect(result.summary).not.toMatch(/%\/week/)
+  })
+
+  it('describes a rapid gain as a gain, not a loss', () => {
+    // A >3%/week gain classifies as `concerning`; the copy used to say "%/week loss".
+    const measurements: Measurement[] = []
+    for (let w = 12; w >= 0; w--) measurements.push(m(Number((9.0 + (12 - w) * 0.3).toFixed(2)), at(w * 7)))
+    const result = assessHealth(measurements)
+    expect(result.overallStatus).toBe('concerning')
+    expect(result.summary).toMatch(/weight gain/i)
+    expect(result.summary).not.toMatch(/loss/i)
+  })
+
+  it('exposes trendWindowDays, lossStabilized and recentSlopePctPerWeek', () => {
+    const result = assessHealth([m(10.0, at(7)), m(10.0, at(0))])
+    expect(result.trendWindowDays).toBe(90)
+    expect(result.lossStabilized).toBe(false)
+    expect(result.recentSlopePctPerWeek).toBeNull()
+  })
+
+  it('respects a custom trendWindowDays override', () => {
+    // The same stale pair as above, with a window wide enough to include it again.
+    const measurements: Measurement[] = [
+      m(10.0, at(400)),
+      m(9.5,  at(393)),
+      m(9.0,  at(386)),
+      m(10.0, at(360)),
+    ]
+    for (let w = 20; w >= 0; w--) measurements.push(m(10.0, at(w * 7)))
+    expect(assessHealth(measurements, { trendWindowDays: 500 }).overallStatus).toBe('urgent')
+  })
+
   // ── referencePeak field on HealthAssessment ───────────────────────────────────
 
   it('exposes referencePeak on the returned assessment', () => {

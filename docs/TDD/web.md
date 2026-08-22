@@ -188,7 +188,7 @@ re-export from this directory:
 |---------------|---------|
 | `types.ts` | Cat, Measurement, User, Household, Medication, and other shared interfaces |
 | `correlations.ts` | Pearson lag correlation engine; `detectCorrelations`; `detectConfluence`; `describeCorrelation` |
-| `healthMetrics.ts` | Weight health status thresholds; `STATUS_EMOJI`/`STATUS_COLORS`; vet-sourced constants |
+| `healthMetrics.ts` | Weight health status thresholds; trend evaluation window + loss-episode stabilization gate (PRD-trend-window); `STATUS_EMOJI`/`STATUS_COLORS`; vet-sourced constants |
 | `measurementPresets.ts` | Preset labels/values for behavioral types (0-3 scale); `getPresetLabel()` |
 | `dates.ts` | Timezone-safe date parsing (`parseLocalDate`, `catAge`); avoids browser date pitfalls |
 | `preferences.ts` | User preference types and defaults |

@@ -107,7 +107,9 @@ No authentication required. Returns server status.
 
 If `deprecations` is non-null, response includes `Deprecation: true` and `Sunset: <earliest date>` headers.
 
-Config is stored in Cloudflare KV (`CONFIG_KV` namespace). If KV is empty or contains malformed data, hardcoded defaults are returned. The `thresholds` field is reserved for future server-driven health threshold overrides.
+Config is stored in Cloudflare KV (`CONFIG_KV` namespace). If KV is empty or contains malformed data, hardcoded defaults are returned.
+
+The `thresholds` field carries optional server-driven overrides for the weight health algorithm; its shape mirrors `ThresholdOverrides` in `shared/lib/healthMetrics.ts`. Any subset may be supplied — omitted keys fall back to the documented defaults. Supported keys: `weightLoss`, `weightGain`, `noiseFloorPct`, `minIntervalDays`, `referencePeakWindowDays`, `referencePeakMinMeasurements`, `trendWindowDays`, `stabilization` (`{ minMeasurements, minSpanDays }`), and `totalLoss`. See `docs/research/weight-thresholds.md` for what each one calibrates — clinical thresholds there are citation-backed and should not be retuned without updating that document.
 
 **Additive-only policy:** This endpoint's response may gain new fields at any time. Clients must ignore unknown fields. Existing fields are never removed or change type without a major API version bump.
 

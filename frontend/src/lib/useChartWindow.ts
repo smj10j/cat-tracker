@@ -1,6 +1,7 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import type { Measurement } from './api'
 import { getLocaleTickFormatter, type UserPreferences } from '@shared/lib/preferences'
+import { DEFAULT_CHART_WINDOW_DAYS } from '@shared/lib/formatting'
 
 export type TimeRange = '1W' | '1M' | '3M' | '6M' | '1Y' | 'All'
 
@@ -12,9 +13,46 @@ export const RANGE_LABELS: Record<TimeRange, string> = {
   '1W': '1W', '1M': '1M', '3M': '3M', '6M': '6M', '1Y': '1Y', 'All': 'All',
 }
 
+/**
+ * Default range for a series: the last 6 months, or the whole record when it is shorter.
+ * A multi-year record opened at 'All' compresses recent movement into an unreadable sliver;
+ * 6 months is the span most weight questions are actually about. Computed once, on mount —
+ * the selector stays authoritative afterwards so adding a measurement never yanks the range
+ * out from under the user.
+ */
+export function defaultRangeFor(measurements: Measurement[]): TimeRange {
+  if (measurements.length === 0) return 'All'
+  let earliest = Infinity
+  let latest = -Infinity
+  for (const m of measurements) {
+    const t = new Date(m.measured_at).getTime()
+    if (Number.isNaN(t)) continue
+    if (t < earliest) earliest = t
+    if (t > latest) latest = t
+  }
+  if (!Number.isFinite(earliest) || !Number.isFinite(latest)) return 'All'
+  const spanDays = (latest - earliest) / 86400_000
+  return spanDays > DEFAULT_CHART_WINDOW_DAYS ? '6M' : 'All'
+}
+
 export function useChartWindow(measurements: Measurement[]) {
-  const [range, setRange] = useState<TimeRange>('All')
+  const [range, setRange] = useState<TimeRange>(() => defaultRangeFor(measurements))
   const [windowEnd, setWindowEnd] = useState(() => new Date())
+
+  // Callers that mount before their data arrives start with an empty array, so the lazy
+  // initializer above sees nothing to measure. Apply the default once, when real data first
+  // shows up — and never again, so a later measurement can't move a range the user picked.
+  const defaultApplied = useRef(measurements.length > 0)
+  useEffect(() => {
+    if (defaultApplied.current || measurements.length === 0) return
+    defaultApplied.current = true
+    setRange(defaultRangeFor(measurements))
+  }, [measurements])
+
+  const selectRange = useCallback((next: TimeRange) => {
+    defaultApplied.current = true
+    setRange(next)
+  }, [])
 
   const windowStart = useMemo(() => {
     const days = RANGE_DAYS[range]
@@ -57,7 +95,7 @@ export function useChartWindow(measurements: Measurement[]) {
     return end < today
   }, [windowEnd, range])
 
-  return { range, setRange, windowEnd, windowStart, filteredData, navigate, hasOlderData, hasNewerData }
+  return { range, setRange: selectRange, windowEnd, windowStart, filteredData, navigate, hasOlderData, hasNewerData }
 }
 
 /** @deprecated Use getLocaleTickFormatter from shared/lib/preferences instead */

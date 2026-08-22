@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react'
-import { useChartWindow } from '../../lib/useChartWindow'
+import { useChartWindow, defaultRangeFor } from '../../lib/useChartWindow'
 import type { Measurement } from '../../lib/api'
 
 function makeMeasurement(daysAgo: number, value: number): Measurement {
@@ -122,5 +122,64 @@ describe('useChartWindow', () => {
     act(() => { result.current.setRange('1M') })
     act(() => { result.current.navigate('back') })
     expect(result.current.filteredData).toHaveLength(0)
+  })
+})
+
+// ── Default range: last 6 months, or the whole record when shorter (PRD-trend-window) ──
+
+describe('defaultRangeFor', () => {
+  it('defaults to 6M when the record spans more than 6 months', () => {
+    const ms = [makeMeasurement(400, 10), makeMeasurement(200, 10), makeMeasurement(0, 10)]
+    expect(defaultRangeFor(ms)).toBe('6M')
+  })
+
+  it('defaults to All when the record is shorter than 6 months', () => {
+    const ms = [makeMeasurement(60, 10), makeMeasurement(30, 10), makeMeasurement(0, 10)]
+    expect(defaultRangeFor(ms)).toBe('All')
+  })
+
+  it('defaults to All for an empty record', () => {
+    expect(defaultRangeFor([])).toBe('All')
+  })
+
+  it('uses the span of the data, not its distance from today', () => {
+    // A short, entirely historical record still shows in full.
+    const ms = [makeMeasurement(500, 10), makeMeasurement(480, 10), makeMeasurement(460, 10)]
+    expect(defaultRangeFor(ms)).toBe('All')
+  })
+})
+
+describe('useChartWindow default range', () => {
+  it('opens a multi-year record at 6M', () => {
+    const ms = [makeMeasurement(400, 10), makeMeasurement(200, 10), makeMeasurement(0, 10)]
+    const { result } = renderHook(() => useChartWindow(ms))
+    expect(result.current.range).toBe('6M')
+    expect(result.current.hasOlderData).toBe(true)
+  })
+
+  it('opens a short record at All', () => {
+    const ms = [makeMeasurement(30, 10), makeMeasurement(0, 10)]
+    const { result } = renderHook(() => useChartWindow(ms))
+    expect(result.current.range).toBe('All')
+  })
+
+  it('applies the default once data arrives after mounting empty', () => {
+    const ms = [makeMeasurement(400, 10), makeMeasurement(200, 10), makeMeasurement(0, 10)]
+    const { result, rerender } = renderHook(({ data }) => useChartWindow(data), {
+      initialProps: { data: [] as Measurement[] },
+    })
+    expect(result.current.range).toBe('All')
+    rerender({ data: ms })
+    expect(result.current.range).toBe('6M')
+  })
+
+  it('never overrides a range the user picked', () => {
+    const ms = [makeMeasurement(400, 10), makeMeasurement(200, 10), makeMeasurement(0, 10)]
+    const { result, rerender } = renderHook(({ data }) => useChartWindow(data), {
+      initialProps: { data: [] as Measurement[] },
+    })
+    act(() => result.current.setRange('1W'))
+    rerender({ data: ms })
+    expect(result.current.range).toBe('1W')
   })
 })

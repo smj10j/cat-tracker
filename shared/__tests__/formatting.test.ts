@@ -10,6 +10,7 @@ import {
   formatFreqShort,
   formatDueAt,
   formatFutureDueAt,
+  sliceToDefaultChartWindow,
 } from '../lib/formatting'
 import type { UserPreferences } from '../lib/preferences'
 import { US_DEFAULTS } from '../lib/preferences'
@@ -361,5 +362,41 @@ describe('formatFutureDueAt (upcoming notifications)', () => {
     expect(result).not.toContain('AM')
     expect(result).not.toContain('PM')
     expect(result).toMatch(/\d{2}:\d{2}/)
+  })
+})
+
+// ── Default chart window (PRD-trend-window) ───────────────────────────────────
+
+describe('sliceToDefaultChartWindow', () => {
+  const at = (daysAgo: number) => ({
+    measured_at: new Date(Date.now() - daysAgo * 86400_000).toISOString(),
+    id: `m-${daysAgo}`,
+  })
+
+  it('keeps only the last 6 months of a longer record', () => {
+    const ms = [at(400), at(300), at(200), at(100), at(10)]
+    const out = sliceToDefaultChartWindow(ms)
+    expect(out).toHaveLength(2)
+    expect(out.map((m) => m.id)).toEqual(['m-100', 'm-10'])
+  })
+
+  it('returns the whole record when it is shorter than the window', () => {
+    const ms = [at(90), at(45), at(0)]
+    expect(sliceToDefaultChartWindow(ms)).toHaveLength(3)
+  })
+
+  it('returns an empty input untouched', () => {
+    expect(sliceToDefaultChartWindow([])).toEqual([])
+  })
+
+  it('falls back to the full record rather than rendering an empty chart', () => {
+    // Every measurement predates the window — a short historical record beats nothing.
+    const ms = [at(500), at(480), at(460)]
+    expect(sliceToDefaultChartWindow(ms)).toHaveLength(3)
+  })
+
+  it('respects a custom window', () => {
+    const ms = [at(60), at(20), at(0)]
+    expect(sliceToDefaultChartWindow(ms, 30)).toHaveLength(2)
   })
 })

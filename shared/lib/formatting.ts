@@ -219,3 +219,30 @@ export function formatSexNeuter(sex: string | null, isNeutered: number | null): 
   if (isNeutered === 0) return `${sexStr} · Intact`
   return sexStr
 }
+
+/**
+ * Default chart lookback, in days. A multi-year record rendered end-to-end compresses recent
+ * movement into an unreadable sliver; six months is the span most weight questions are about.
+ * Shared so web (range selector default) and iOS (data slice) cannot drift apart.
+ */
+export const DEFAULT_CHART_WINDOW_DAYS = 180
+
+/**
+ * The last DEFAULT_CHART_WINDOW_DAYS of a series, or the whole series when it is shorter —
+ * "the last 6 months or the range of data we have, whichever is shorter".
+ *
+ * The window is anchored to `now` rather than to the newest measurement, so a chart of a record
+ * that stopped being updated correctly reads as empty-at-the-right rather than silently
+ * re-centering on stale data. Returns the input untouched when nothing would be cut.
+ */
+export function sliceToDefaultChartWindow<T extends { measured_at: string }>(
+  measurements: T[],
+  windowDays: number = DEFAULT_CHART_WINDOW_DAYS,
+): T[] {
+  if (measurements.length === 0) return measurements
+  const cutoff = Date.now() - windowDays * 86400_000
+  const windowed = measurements.filter((m) => new Date(m.measured_at).getTime() >= cutoff)
+  // Never hand back an empty chart: if every measurement predates the window, the whole
+  // (short, historical) record is more useful than nothing.
+  return windowed.length > 0 ? windowed : measurements
+}

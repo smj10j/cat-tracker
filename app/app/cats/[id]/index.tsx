@@ -28,7 +28,7 @@ import {
   formatTime as formatTimePref,
   formatDateShort,
 } from '@shared/lib/preferences';
-import { groupByDay, groupTimelineByDay, formatFreqShort, formatNextDue, formatDueAt, formatSexNeuter } from '@shared/lib/formatting';
+import { groupByDay, groupTimelineByDay, formatFreqShort, formatNextDue, formatDueAt, formatSexNeuter, sliceToDefaultChartWindow } from '@shared/lib/formatting';
 import { isAsNeeded, VALID_JOURNAL_TAGS, JOURNAL_TAG_LABELS } from '@shared/lib/constants';
 import { MEASUREMENT_TYPE_LABELS as MEAS_TYPE_LABELS, BEHAVIOR_CHART_TYPES as BEHAVIORAL_TYPES, BCS_MIN, BCS_MAX } from '@shared/lib/constants';
 
@@ -179,6 +179,9 @@ export default function CatProfileScreen() {
 
   const isDeceased = !!cat.deceased_at;
   const weightMeasurements = measurements.filter((m) => m.type === 'weight');
+  // Health assessment always sees the full history; only the inline chart is windowed.
+  // The full-screen chart keeps the whole record so older history stays one tap away.
+  const weightChartMeasurements = sliceToDefaultChartWindow(weightMeasurements);
   const latestWeight = [...weightMeasurements].sort((a, b) => b.measured_at.localeCompare(a.measured_at))[0];
   const health = assessHealth(weightMeasurements);
   const status = health.overallStatus;
@@ -471,7 +474,7 @@ export default function CatProfileScreen() {
                   <ChartExpandButton onPress={() => setExpandedChart('weight')} visible={weightMeasurements.length > 0} />
                   <ErrorBoundary>
                     <LineChart
-                      data={weightMeasurements
+                      data={[...weightChartMeasurements]
                         .sort((a, b) => a.measured_at.localeCompare(b.measured_at))
                         .map(m => ({ date: new Date(m.measured_at).getTime(), value: m.value }))}
                       seriesKeys={['value']}
